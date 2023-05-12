@@ -12,6 +12,7 @@ private_key.txt
 public_key.txt
 venv/**
 log/**
+*.log
 release/*
 src/db/wgdashboard.db
 .jshintrc
