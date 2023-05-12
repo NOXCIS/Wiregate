@@ -1,0 +1,71 @@
+[2023-05-11 03:43:51 -0500] [2349] [INFO] Starting gunicorn 20.1.0
+[2023-05-11 03:43:51 -0500] [2349] [INFO] Listening at: http://0.0.0.0:10086 (2349)
+[2023-05-11 03:43:51 -0500] [2349] [INFO] Using worker: gthread
+[2023-05-11 03:43:51 -0500] [2350] [INFO] Booting worker with pid: 2350
+[2023-05-11 03:43:51 -0500] [2351] [INFO] Booting worker with pid: 2351
+[2023-05-11 03:43:51 -0500] [2352] [INFO] Booting worker with pid: 2352
+[2023-05-11 03:43:51 -0500] [2353] [INFO] Booting worker with pid: 2353
+[2023-05-11 03:43:51 -0500] [2354] [INFO] Booting worker with pid: 2354
+[2023-05-11 03:43:51 -0500] [2355] [INFO] Booting worker with pid: 2355
+[2023-05-11 03:43:51 -0500] [2356] [INFO] Booting worker with pid: 2356
+[2023-05-11 03:43:51 -0500] [2357] [INFO] Booting worker with pid: 2357
+[2023-05-11 03:43:51 -0500] [2358] [INFO] Booting worker with pid: 2358
+[2023-05-11 03:43:52 -0500] [2359] [INFO] Booting worker with pid: 2359
+[2023-05-11 03:43:52 -0500] [2360] [INFO] Booting worker with pid: 2360
+[2023-05-11 03:43:52 -0500] [2361] [INFO] Booting worker with pid: 2361
+[2023-05-11 03:43:52 -0500] [2362] [INFO] Booting worker with pid: 2362
+[2023-05-11 03:43:52 -0500] [2363] [INFO] Booting worker with pid: 2363
+[2023-05-11 03:43:52 -0500] [2364] [INFO] Booting worker with pid: 2364
+[2023-05-11 03:43:52 -0500] [2365] [INFO] Booting worker with pid: 2365
+[2023-05-11 03:43:52 -0500] [2366] [INFO] Booting worker with pid: 2366
+[2023-05-11 03:43:52 -0500] [2367] [INFO] Booting worker with pid: 2367
+[2023-05-11 03:43:52 -0500] [2368] [INFO] Booting worker with pid: 2368
+[2023-05-11 03:43:52 -0500] [2369] [INFO] Booting worker with pid: 2369
+[2023-05-11 03:43:52 -0500] [2370] [INFO] Booting worker with pid: 2370
+[2023-05-11 03:43:52 -0500] [2371] [INFO] Booting worker with pid: 2371
+[2023-05-11 03:43:52 -0500] [2372] [INFO] Booting worker with pid: 2372
+[2023-05-11 03:43:52 -0500] [2373] [INFO] Booting worker with pid: 2373
+[2023-05-11 03:43:52 -0500] [2374] [INFO] Booting worker with pid: 2374
+[2023-05-11 03:43:52 -0500] [2375] [INFO] Booting worker with pid: 2375
+[2023-05-11 03:43:53 -0500] [2376] [INFO] Booting worker with pid: 2376
+[2023-05-11 03:43:53 -0500] [2377] [INFO] Booting worker with pid: 2377
+[2023-05-11 03:43:53 -0500] [2378] [INFO] Booting worker with pid: 2378
+[2023-05-11 03:43:53 -0500] [2379] [INFO] Booting worker with pid: 2379
+[2023-05-11 03:43:53 -0500] [2380] [INFO] Booting worker with pid: 2380
+[2023-05-11 03:43:53 -0500] [2381] [INFO] Booting worker with pid: 2381
+[2023-05-11 03:43:53 -0500] [2382] [INFO] Booting worker with pid: 2382
+[2023-05-11 03:44:23 -0500] [2349] [INFO] Handling signal: term
+[2023-05-11 03:44:23 -0500] [2377] [INFO] Worker exiting (pid: 2377)
+[2023-05-11 03:44:23 -0500] [2378] [INFO] Worker exiting (pid: 2378)
+[2023-05-11 03:44:23 -0500] [2361] [INFO] Worker exiting (pid: 2361)
+[2023-05-11 03:44:23 -0500] [2362] [INFO] Worker exiting (pid: 2362)
+[2023-05-11 03:44:23 -0500] [2360] [INFO] Worker exiting (pid: 2360)
+[2023-05-11 03:44:23 -0500] [2363] [INFO] Worker exiting (pid: 2363)
+[2023-05-11 03:44:23 -0500] [2364] [INFO] Worker exiting (pid: 2364)
+[2023-05-11 03:44:23 -0500] [2365] [INFO] Worker exiting (pid: 2365)
+[2023-05-11 03:44:23 -0500] [2366] [INFO] Worker exiting (pid: 2366)
+[2023-05-11 03:44:23 -0500] [2367] [INFO] Worker exiting (pid: 2367)
+[2023-05-11 03:44:23 -0500] [2368] [INFO] Worker exiting (pid: 2368)
+[2023-05-11 03:44:23 -0500] [2351] [INFO] Worker exiting (pid: 2351)
+[2023-05-11 03:44:23 -0500] [2352] [INFO] Worker exiting (pid: 2352)
+[2023-05-11 03:44:23 -0500] [2353] [INFO] Worker exiting (pid: 2353)
+[2023-05-11 03:44:23 -0500] [2350] [INFO] Worker exiting (pid: 2350)
+[2023-05-11 03:44:23 -0500] [2369] [INFO] Worker exiting (pid: 2369)
+[2023-05-11 03:44:23 -0500] [2370] [INFO] Worker exiting (pid: 2370)
+[2023-05-11 03:44:23 -0500] [2379] [INFO] Worker exiting (pid: 2379)
+[2023-05-11 03:44:23 -0500] [2380] [INFO] Worker exiting (pid: 2380)
+[2023-05-11 03:44:23 -0500] [2354] [INFO] Worker exiting (pid: 2354)
+[2023-05-11 03:44:24 -0500] [2371] [INFO] Worker exiting (pid: 2371)
+[2023-05-11 03:44:24 -0500] [2355] [INFO] Worker exiting (pid: 2355)
+[2023-05-11 03:44:24 -0500] [2372] [INFO] Worker exiting (pid: 2372)
+[2023-05-11 03:44:24 -0500] [2381] [INFO] Worker exiting (pid: 2381)
+[2023-05-11 03:44:24 -0500] [2373] [INFO] Worker exiting (pid: 2373)
+[2023-05-11 03:44:24 -0500] [2356] [INFO] Worker exiting (pid: 2356)
+[2023-05-11 03:44:24 -0500] [2374] [INFO] Worker exiting (pid: 2374)
+[2023-05-11 03:44:24 -0500] [2357] [INFO] Worker exiting (pid: 2357)
+[2023-05-11 03:44:24 -0500] [2382] [INFO] Worker exiting (pid: 2382)
+[2023-05-11 03:44:24 -0500] [2358] [INFO] Worker exiting (pid: 2358)
+[2023-05-11 03:44:24 -0500] [2375] [INFO] Worker exiting (pid: 2375)
+[2023-05-11 03:44:24 -0500] [2376] [INFO] Worker exiting (pid: 2376)
+[2023-05-11 03:44:24 -0500] [2359] [INFO] Worker exiting (pid: 2359)
+[2023-05-11 03:44:24 -0500] [2349] [INFO] Shutting down: Master

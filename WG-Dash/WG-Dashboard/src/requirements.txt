@@ -1,0 +1,6 @@
+Flask
+ifcfg
+icmplib
+flask-qrcode
+gunicorn
+certbot

@@ -1,0 +1,31 @@
+version: "3.5"
+
+services:
+  web:
+    build: 
+      context: ./
+    image: noxcis/wireguard_dashboard:latest
+    container_name: wg_dashboard
+    cap_add: 
+      - NET_ADMIN
+      - SYS_MODULE
+    restart: unless-stopped 
+    volumes:
+      - /lib/modules:/lib/modules
+      - ./config:/etc/wireguard
+    environment:
+      - SERVER_IP=172.30.155.189
+      - CONFIG_CT=1
+    command: >
+      sh -c "/home/app/wgd.sh newconfig &&
+             sleep infinity"  
+    ports:
+      - 10086:10086
+      - 51820:51820/udp
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+networks:
+  default:
+    external:
+      name: wirehole_private_network
