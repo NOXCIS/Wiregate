@@ -100,14 +100,23 @@ do
 done
 
 # Check if docker-compose is already installed
-if ! command -v docker-compose > /dev/null 2>&1; then
-    echo "${GREEN}docker-compose is not installed. Installing...${RESET}"
+if ! command -v docker > /dev/null 2>&1; then
+    echo "${GREEN}docker is not installed. Installing...${RESET}"
     # Install docker-compose
-    sudo curl -L "https://github.com/docker/compose/releases/download/1.29.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose &&
-    sudo chmod +x /usr/local/bin/docker-compose &&
-    sudo ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
+    sudo apt-get remove docker docker-engine docker.io containerd runc
+    sudo apt-get update
+    sudo apt-get install ca-certificates curl gnupg
+    sudo install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    sudo chmod a+r /etc/apt/keyrings/docker.gpg
+    echo \
+        "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+        "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    sudo apt-get update
+    sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 else
-    echo "${GREEN}docker-compose is already installed. Skipping...${RESET}"
+    echo "${GREEN}docker is already installed. Skipping...${RESET}"
 fi
 
 echo -e "\033[33m\n"
