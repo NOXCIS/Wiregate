@@ -1,5 +1,0 @@
-wireguard/
-unbound/*
-etc-pihole/
-etc-dnsmasq.d/
-!unbound/unbound.conf

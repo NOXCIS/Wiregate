@@ -15,7 +15,7 @@ services:
       - ./config:/etc/wireguard
     environment:
       - SERVER_IP=172.30.155.189
-      - CONFIG_CT=1
+      - CONFIG_CT=6
     command: >
       sh -c "/home/app/wgd.sh newconfig &&
              sleep infinity"  
@@ -25,7 +25,7 @@ services:
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
-networks:
-  default:
-    external:
-      name: wirehole_private_network
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.3
+

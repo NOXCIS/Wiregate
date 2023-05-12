@@ -14,11 +14,36 @@ services:
     restart: unless-stopped
     hostname: "unbound"
     volumes:
-      - "./unbound:/opt/unbound/etc/unbound/"
+      - "./Pihole-Unbound/unbound:/home/app/unbound/etc/unbound/"
     networks:
       private_network:
         ipv4_address: 10.2.0.200
 
+  wg_dashboard:
+    build: 
+      context: ./WG-Dash
+    image: noxcis/wireguard_dashboard:latest
+    container_name: wg_dashboard
+    cap_add: 
+      - NET_ADMIN
+      - SYS_MODULE
+    restart: unless-stopped 
+    volumes:
+      - /lib/modules:/lib/modules
+      - ./WG-Dash/config:/etc/wireguard
+    environment:
+      - SERVER_IP=172.30.155.189
+      - CONFIG_CT=3
+    
+    ports:
+      - 10086:10086
+      - 51820:51820/udp
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.3
 
   pihole:
     depends_on: [unbound]
@@ -30,9 +55,9 @@ services:
       - 127.0.0.1
       - 10.2.0.200 # Points to unbound
     environment:
-      TZ: "test"
-      WEBPASSWORD: "test"
-      ServerIP: 10.1.0.100 # Internal IP of pihole
+      TZ: "America/New_York"
+      WEBPASSWORD: ""
+      ServerIP: 10.2.0.100 # Internal IP of pihole
       DNS1: 10.2.0.200 # Unbound IP
       DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
     # Volumes store your data between container upgrades
@@ -46,3 +71,6 @@ services:
     networks:
       private_network:
         ipv4_address: 10.2.0.100
+
+
+

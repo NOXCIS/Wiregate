@@ -15,3 +15,8 @@ log/**
 release/*
 src/db/wgdashboard.db
 .jshintrc
+wireguard/
+unbound/*
+etc-pihole/
+etc-dnsmasq.d/
+!unbound/unbound.conf
