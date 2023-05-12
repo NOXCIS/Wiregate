@@ -32,7 +32,7 @@ services:
       - /lib/modules:/lib/modules
       - ./WG-Dash/config:/etc/wireguard
     environment:
-      - SERVER_IP=172.30.155.189
+      - SERVER_IP=127.0.0.1
       - CONFIG_CT=3
     
     ports:
@@ -55,7 +55,7 @@ services:
       - 127.0.0.1
       - 10.2.0.200 # Points to unbound
     environment:
-      TZ: "America/New_York"
+      TZ: "America/Chicago"
       WEBPASSWORD: ""
       ServerIP: 10.2.0.100 # Internal IP of pihole
       DNS1: 10.2.0.200 # Unbound IP
