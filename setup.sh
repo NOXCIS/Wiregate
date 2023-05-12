@@ -69,7 +69,7 @@ function set_password_and_tz {
 
 }
 
-
+sudo apt-get update -y && sudo apt-get upgrade -y
 set -e
 
 # List of prerequisites
@@ -103,7 +103,6 @@ done
 if ! command -v docker > /dev/null 2>&1; then
     echo "${GREEN}docker is not installed. Installing...${RESET}"
     # Install docker-compose
-    sudo apt-get remove docker docker-engine docker.io containerd runc
     sudo apt-get update
     sudo apt-get install ca-certificates curl gnupg
     sudo install -m 0755 -d /etc/apt/keyrings
