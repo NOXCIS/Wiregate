@@ -29,7 +29,6 @@ services:
       - SYS_MODULE
     restart: unless-stopped 
     volumes:
-      - /lib/modules:/lib/modules
       - ./WG-Dash/config:/etc/wireguard
     environment:
       - SERVER_IP=127.0.0.1
