@@ -86,6 +86,7 @@ function config_count() {
 
 
 #set -e
+export DEBIAN_FRONTEND=noninteractive
 
 # List of prerequisites
 PREREQUISITES=(
