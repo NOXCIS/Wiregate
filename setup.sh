@@ -100,37 +100,43 @@ PREREQUISITES=(
     software-properties-common
 )
 
-#!/bin/bash
+
 
 # Define ANSI color codes
 GREEN=$(tput setaf 2)
 RESET=$(tput sgr0)
 
-# Update package manager
-echo "${GREEN}Updating package manager...${RESET}"
-sudo apt-get update -yqq
+# Set default configuration for docker-ce package
+echo "docker-ce docker-ce/restart-services boolean true" | sudo debconf-set-selections
 
 # Check if each prerequisite is already installed
-PREREQUISITES=("git" "curl" "wget" "jq" "gnupg2" "python3-pip")
 for prerequisite in "${PREREQUISITES[@]}"
 do
     if ! dpkg -s "$prerequisite" > /dev/null 2>&1; then
         echo "${GREEN}$prerequisite is not installed. Installing...${RESET}"
+        sudo apt-get update &&
         sudo apt-get install -yqq "$prerequisite"
     else
         echo "${GREEN}$prerequisite is already installed. Skipping...${RESET}"
     fi
 done
 
-# Check for outdated libraries
-if ldconfig -p | grep -qE 'libssl.*(1.0.|1.1.[0-9])'; then
-    echo "${GREEN}The following libraries are outdated:${RESET}"
-    ldconfig -p | grep -E 'libssl.*(1.0.|1.1.[0-9])'
-    echo "${GREEN}Restarting services that use these libraries...${RESET}"
-    systemctl --no-pager list-units --type service | awk '{print $1}' | xargs systemctl restart
-    echo "${GREEN}Services restarted.${RESET}"
+# Check if docker-compose is already installed
+if ! command -v docker > /dev/null 2>&1; then
+    echo "${GREEN}docker is not installed. Installing...${RESET}"
+    # Install docker-compose
+    sudo install -m 0755 -d /etc/apt/keyrings
+    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    sudo chmod a+r /etc/apt/keyrings/docker.gpg
+    echo \
+        "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+        "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+    sudo apt-get update
+    sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -yqq
+
 else
-    echo "${GREEN}No outdated libraries found.${RESET}"
+    echo "${GREEN}docker is already installed. Skipping...${RESET}"
 fi
 
 
