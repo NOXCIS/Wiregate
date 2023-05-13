@@ -111,8 +111,8 @@ for prerequisite in "${PREREQUISITES[@]}"
 do
     if ! dpkg -s "$prerequisite" > /dev/null 2>&1; then
         echo "${GREEN}$prerequisite is not installed. Installing...${RESET}"
-        sudo apt-get update &&
-        sudo apt-get install -yqq "$prerequisite"
+        #sudo apt-get update &&
+        sudo apt-get install -y "$prerequisite"
     else
         echo "${GREEN}$prerequisite is already installed. Skipping...${RESET}"
     fi
