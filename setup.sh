@@ -100,6 +100,8 @@ PREREQUISITES=(
     software-properties-common
 )
 
+#!/bin/bash
+
 # Define ANSI color codes
 GREEN=$(tput setaf 2)
 RESET=$(tput sgr0)
@@ -120,21 +122,15 @@ do
     fi
 done
 
-# Check for outdated daemons
-if systemctl list-units --state=running --all | grep -qE '(apache2|mysql|php).*;.*[0-9]{1,2} weeks? ago'; then
-    echo "${GREEN}The following services have outdated daemons:${RESET}"
-    systemctl list-units --state=running --all | grep -E '(apache2|mysql|php).*;.*[0-9]{1,2} weeks? ago'
-    echo -e "${GREEN}Do you want to restart these services? (y/n)${RESET}\n"
-    read -r restart_services
-
-    if [[ "$restart_services" =~ ^[Yy]$ ]]; then
-        systemctl restart apache2 mysql php*
-        echo "${GREEN}Services restarted.${RESET}"
-    else
-        echo "${GREEN}Services not restarted.${RESET}"
-    fi
+# Check for outdated libraries
+if ldconfig -p | grep -qE 'libssl.*(1.0.|1.1.[0-9])'; then
+    echo "${GREEN}The following libraries are outdated:${RESET}"
+    ldconfig -p | grep -E 'libssl.*(1.0.|1.1.[0-9])'
+    echo "${GREEN}Restarting services that use these libraries...${RESET}"
+    systemctl --no-pager list-units --type service | awk '{print $1}' | xargs systemctl restart
+    echo "${GREEN}Services restarted.${RESET}"
 else
-    echo "${GREEN}No services with outdated daemons found.${RESET}"
+    echo "${GREEN}No outdated libraries found.${RESET}"
 fi
 
 
