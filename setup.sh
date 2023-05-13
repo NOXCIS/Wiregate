@@ -104,36 +104,37 @@ PREREQUISITES=(
 GREEN=$(tput setaf 2)
 RESET=$(tput sgr0)
 
+# Update package manager
+echo "${GREEN}Updating package manager...${RESET}"
+sudo apt-get update -yqq
+
 # Check if each prerequisite is already installed
+PREREQUISITES=("git" "curl" "wget" "jq" "gnupg2" "python3-pip")
 for prerequisite in "${PREREQUISITES[@]}"
 do
     if ! dpkg -s "$prerequisite" > /dev/null 2>&1; then
         echo "${GREEN}$prerequisite is not installed. Installing...${RESET}"
-        sudo apt-get update &&
         sudo apt-get install -yqq "$prerequisite"
     else
         echo "${GREEN}$prerequisite is already installed. Skipping...${RESET}"
     fi
 done
 
-# Check if docker-compose is already installed
-if ! command -v docker > /dev/null 2>&1; then
-    echo "${GREEN}docker is not installed. Installing...${RESET}"
-    # Install docker-compose
-    sudo install -m 0755 -d /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-    sudo chmod a+r /etc/apt/keyrings/docker.gpg
-    echo \
-        "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-        "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
-    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-    sudo apt-get update
-    sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -yqq
+# Check for outdated daemons
+if systemctl list-units --state=running --all | grep -qE '(apache2|mysql|php).*;.*[0-9]{1,2} weeks? ago'; then
+    echo "${GREEN}The following services have outdated daemons:${RESET}"
+    systemctl list-units --state=running --all | grep -E '(apache2|mysql|php).*;.*[0-9]{1,2} weeks? ago'
+    echo -e "${GREEN}Do you want to restart these services? (y/n)${RESET}\n"
+    read -r restart_services
 
+    if [[ "$restart_services" =~ ^[Yy]$ ]]; then
+        systemctl restart apache2 mysql php*
+        echo "${GREEN}Services restarted.${RESET}"
+    else
+        echo "${GREEN}Services not restarted.${RESET}"
+    fi
 else
-
-    echo "${GREEN}docker is already installed. Skipping...${RESET}"
-
+    echo "${GREEN}No services with outdated daemons found.${RESET}"
 fi
 
 
