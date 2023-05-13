@@ -110,7 +110,7 @@ for prerequisite in "${PREREQUISITES[@]}"
 do
     if ! dpkg -s "$prerequisite" > /dev/null 2>&1; then
         echo "${GREEN}$prerequisite is not installed. Installing...${RESET}"
-        sudo apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y install "$prerequisite"
+        sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy install "$prerequisite"
     else
         echo "${GREEN}$prerequisite is already installed. Skipping...${RESET}"
     fi
@@ -128,7 +128,7 @@ if ! command -v docker > /dev/null 2>&1; then
         "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
     sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
     sudo apt-get update
-    sudo apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -y install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+    sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
 else
     echo "${GREEN}docker is already installed. Skipping...${RESET}"
 fi
