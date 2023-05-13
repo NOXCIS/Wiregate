@@ -110,7 +110,7 @@ do
     if ! dpkg -s "$prerequisite" > /dev/null 2>&1; then
         echo "${GREEN}$prerequisite is not installed. Installing...${RESET}"
         sudo apt-get update &&
-        sudo apt-get install -yqq "$prerequisite"
+        sudo apt-get install -y "$prerequisite"
     else
         echo "${GREEN}$prerequisite is already installed. Skipping...${RESET}"
     fi
@@ -128,7 +128,7 @@ if ! command -v docker > /dev/null 2>&1; then
         "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
     sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
     sudo apt-get update
-    sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -yqq
+    sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
 
 else
 
