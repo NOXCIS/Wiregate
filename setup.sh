@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-sudo apt-get update -y && sudo apt-get upgrade -y
+#sudo apt-get update -y && sudo apt-get upgrade -y
 
 function set_tz {
     local yml_file="docker-compose.yml"
@@ -106,9 +106,6 @@ PREREQUISITES=(
 GREEN=$(tput setaf 2)
 RESET=$(tput sgr0)
 
-# Set default configuration for docker-ce package
-echo "docker-ce docker-ce/restart-services boolean true" | sudo debconf-set-selections
-
 # Check if each prerequisite is already installed
 for prerequisite in "${PREREQUISITES[@]}"
 do
@@ -136,7 +133,9 @@ if ! command -v docker > /dev/null 2>&1; then
     sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -yqq
 
 else
+
     echo "${GREEN}docker is already installed. Skipping...${RESET}"
+
 fi
 
 
