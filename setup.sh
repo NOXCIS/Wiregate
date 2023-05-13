@@ -30,11 +30,11 @@ function update_server_ip() {
   local yml_file="docker-compose.yml"
   local ip
 
-  read -t 10 -p "Do you want to automatically set the server IP address? $(tput setaf 1)(y/n)$(tput sgr0) " auto_ip
+  read -t 5 -p "Do you want to automatically set the server IP address? $(tput setaf 1)(y/n)$(tput sgr0) " auto_ip
   echo ""
   echo ""
   if [[ $auto_ip =~ ^[Nn]$ ]]; then
-    read -t 10 -p "Please enter the server IP address $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)127.0.0.1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " ip
+    read -t 5 -p "Please enter the server IP address $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)127.0.0.1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " ip
     ip=${ip:-127.0.0.1}
     echo ""
   else
