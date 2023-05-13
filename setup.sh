@@ -104,20 +104,13 @@ PREREQUISITES=(
 GREEN=$(tput setaf 2)
 RESET=$(tput sgr0)
 
-# Function to restart a service without prompting
-restart_service() {
-    sudo service $1 restart < /dev/null
-}
-
 # Check if each prerequisite is already installed
 for prerequisite in "${PREREQUISITES[@]}"
 do
     if ! dpkg -s "$prerequisite" > /dev/null 2>&1; then
         echo "${GREEN}$prerequisite is not installed. Installing...${RESET}"
         sudo apt-get update &&
-        sudo apt-get install -y "$prerequisite"
-        # Restart the service without prompting
-        restart_service $prerequisite
+        sudo apt-get install -yqq "$prerequisite"
     else
         echo "${GREEN}$prerequisite is already installed. Skipping...${RESET}"
     fi
@@ -135,9 +128,7 @@ if ! command -v docker > /dev/null 2>&1; then
         "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
     sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
     sudo apt-get update
-    sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
-    # Restart Docker without prompting
-    restart_service docker
+    sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -yqq
 
 else
 
