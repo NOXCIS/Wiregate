@@ -111,6 +111,8 @@ do
         echo "${GREEN}$prerequisite is not installed. Installing...${RESET}"
         sudo apt-get update &&
         sudo apt-get install -y "$prerequisite"
+        # Restart service without prompting
+        sudo service <service-name> restart -y
     else
         echo "${GREEN}$prerequisite is already installed. Skipping...${RESET}"
     fi
@@ -129,12 +131,15 @@ if ! command -v docker > /dev/null 2>&1; then
     sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
     sudo apt-get update
     sudo apt-get install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin -y
+    # Restart service without prompting
+    sudo service docker restart -y
 
 else
 
     echo "${GREEN}docker is already installed. Skipping...${RESET}"
 
 fi
+
 
 
 clear
