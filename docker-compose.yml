@@ -9,12 +9,13 @@ networks:
 
 services:
   unbound:
-    image: "mvance/unbound:latest"
+    image: "mvance/unbound:1.14.0"
     container_name: unbound
     restart: unless-stopped
     hostname: "unbound"
+    
     volumes:
-      - "./Pihole-Unbound/unbound:/home/app/unbound/etc/unbound/"
+      - "./unbound:/opt/unbound/etc/unbound/"
     networks:
       private_network:
         ipv4_address: 10.2.0.200
@@ -52,7 +53,7 @@ services:
       - 127.0.0.1
       - 10.2.0.200 # Points to unbound
     environment:
-      TZ: "America/Chicago"
+      TZ: "America/New_York"
       WEBPASSWORD: ""
       ServerIP: 10.2.0.100 # Internal IP of pihole
       DNS1: 10.2.0.200 # Unbound IP

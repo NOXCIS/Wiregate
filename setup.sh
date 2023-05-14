@@ -298,15 +298,15 @@ sleep 2s
 
 
 docker-compose up -d --build  &&
-sudo ufw enable 
-sudo ufw default deny incoming
+#sudo ufw enable 
+#sudo ufw default deny incoming
 #sudo ufw allow OpenSSH
-sudo ufw limit 22/tcp
-sudo ufw allow 51820/udp
+#sudo ufw limit 22/tcp
+#sudo ufw allow 51820/udp
 
 #todo change portainter to use worm-hole private network
 #todo diable allow port 9000
 #todo reverse proxy WG dashboard via port 80
-sudo ufw allow 9000/tcp
-sudo ufw allow 10086/tcp
+#sudo ufw allow 9000/tcp
+#sudo ufw allow 10086/tcp
 sleep 1s

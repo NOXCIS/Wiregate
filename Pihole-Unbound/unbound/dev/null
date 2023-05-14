@@ -1,8 +1,0 @@
-[1683902084] unbound[1:0] warning: subnetcache: serve-expired is set but not working for data originating from the subnet module cache.
-[1683902084] unbound[1:0] warning: subnetcache: prefetch is set but not working for data originating from the subnet module cache.
-[1683902084] unbound[1:0] error: unable to open var/root.key for reading: No such file or directory
-[1683902084] unbound[1:0] error: error reading auto-trust-anchor-file: var/root.key
-[1683902084] unbound[1:0] error: validator: error in trustanchors config
-[1683902084] unbound[1:0] error: validator: could not apply configuration settings.
-[1683902084] unbound[1:0] error: module init for module validator failed
-[1683902084] unbound[1:0] fatal error: failed to setup modules
