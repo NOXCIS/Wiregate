@@ -20,3 +20,4 @@ unbound/*
 etc-pihole/
 etc-dnsmasq.d/
 !unbound/unbound.conf
+WG-Dash/config/*.conf

@@ -31,7 +31,7 @@ echo '
                               Thanks to
 
                     @donaldzou for WGDashboard
-                    @IAmStoxe for UnBound Config
+                  @klutchell for UnBound Config
 
 
 
