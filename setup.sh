@@ -300,7 +300,7 @@ sleep 2s
 docker-compose up -d --build  &&
 sudo ufw enable 
 sudo ufw default deny incoming
-sudo ufw allow OpenSSH
+#sudo ufw allow OpenSSH
 sudo ufw limit 22/tcp
 sudo ufw allow 51820/udp
 
