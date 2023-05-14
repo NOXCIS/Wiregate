@@ -12,7 +12,7 @@ WireHole is a combination of WireGuard, PiHole, and Unbound in a docker-compose 
  
  - **Portainer** - for overall container management on a lightweight VPS.
  
- - **Setup Script** - for modify the docker-compose environment variables before the container stack is started.
+ - **Setup Script** - to modify the docker-compose environment variables before the container stack is created.
 
 ## Working Containers
 
