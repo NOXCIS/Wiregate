@@ -154,7 +154,10 @@ if docker ps -a | grep portainer ; then
 else
     echo -e "\033[31mPortainer is not running, creating data volume and starting container\033[0m" "\n"
     echo -e "\033[32m$(docker volume create portainer_data)\033[0m" "\n"
-    echo -e "\033[32m$(docker run -d -p 8000:8000 -p 9000:9000 --name=portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce)\033[0m" "\n"
+    echo -e "\033[32m$(docker run -d -p 8000:8000 -p 9000:9000 -e SERVER_IP=$(ip route get 8.8.8.8 | awk 'NR==1 {print $NF}') --name=portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce)\033[0m" "\n"
+
+    #echo -e "\033[32m$(docker volume create portainer_data)\033[0m" "\n"
+    #echo -e "\033[32m$(docker run -d -p 8000:8000 -p 9000:9000 --name=portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce)\033[0m" "\n"
 fi
 echo ""
 echo ""  
