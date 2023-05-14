@@ -1,5 +1,44 @@
 #!/bin/bash
 
+echo '  
+
+
+
+
+
+ █     █░ ▒█████   ██▀███   ███▄ ▄███▓ ██░ ██  ▒█████   ██▓    ▓█████ 
+▓█░ █ ░█░▒██▒  ██▒▓██ ▒ ██▒▓██▒▀█▀ ██▒▓██░ ██▒▒██▒  ██▒▓██▒    ▓█   ▀ 
+▒█░ █ ░█ ▒██░  ██▒▓██ ░▄█ ▒▓██    ▓██░▒██▀▀██░▒██░  ██▒▒██░    ▒███   
+░█░ █ ░█ ▒██   ██░▒██▀▀█▄  ▒██    ▒██ ░▓█ ░██ ▒██   ██░▒██░    ▒▓█  ▄ 
+░░██▒██▓ ░ ████▓▒░░██▓ ▒██▒▒██▒   ░██▒░▓█▒░██▓░ ████▓▒░░██████▒░▒████▒
+░ ▓░▒ ▒  ░ ▒░▒░▒░ ░ ▒▓ ░▒▓░░ ▒░   ░  ░ ▒ ░░▒░▒░ ▒░▒░▒░ ░ ▒░▓  ░░░ ▒░ ░
+  ▒ ░ ░    ░ ▒ ▒░   ░▒ ░ ▒░░  ░      ░ ▒ ░▒░ ░  ░ ▒ ▒░ ░ ░ ▒  ░ ░ ░  ░
+  ░   ░  ░ ░ ░ ▒    ░░   ░ ░      ░    ░  ░░ ░░ ░ ░ ▒    ░ ░      ░   
+ ▄▄▄▄ ▓██   ██▓░   ███▄    █  ▒█████  ▒██ ░ ██▒ ▄████▄   ██▓  ██████ ░
+▓█████▄▒██  ██▒    ██ ▀█   █ ▒██▒  ██▒▒▒ █ █ ▒░▒██▀ ▀█  ▓██▒▒██    ▒  
+▒██▒ ▄██▒██ ██░   ▓██  ▀█ ██▒▒██░  ██▒░░  █   ░▒▓█    ▄ ▒██▒░ ▓██▄    
+▒██░█▀  ░ ▐██▓░   ▓██▒  ▐▌██▒▒██   ██░ ░ █ █ ▒ ▒▓▓▄ ▄██▒░██░  ▒   ██▒ 
+░▓█  ▀█▓░ ██▒▓░   ▒██░   ▓██░░ ████▓▒░▒██▒ ▒██▒▒ ▓███▀ ░░██░▒██████▒▒ 
+░▒▓███▀▒ ██▒▒▒    ░ ▒░   ▒ ▒ ░ ▒░▒░▒░ ▒▒ ░ ░▓ ░░ ░▒ ▒  ░░▓  ▒ ▒▓▒ ▒ ░ 
+▒░▒   ░▓██ ░▒░    ░ ░░   ░ ▒░  ░ ▒ ▒░ ░░   ░▒ ░  ░  ▒    ▒ ░░ ░▒  ░ ░ 
+ ░    ░▒ ▒ ░░        ░   ░ ░ ░ ░ ░ ▒   ░    ░  ░         ▒ ░░  ░  ░   
+ ░     ░ ░                 ░     ░ ░   ░    ░  ░ ░       ░        ░   
+      ░░ ░                                     ░                      
+
+                  Setup Script & Dockerization by 
+                      Shamar Lee A.K.A NOXCIS
+
+                              Thanks to
+
+                    @donaldzou for WGDashboard
+                    @IAmStoxe for UnBound Config
+
+
+
+'
+sleep 5s
+
+
 
 #sudo apt-get update -y && sudo apt-get upgrade -y
 
@@ -13,7 +52,7 @@ function set_tz {
         echo -e "Timezone has been set to \033[32m$timezone\033[0m"
         
     else
-        read -t 5 -p "Enter timezone $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)America/New_York$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " timezone
+        read -p "Enter timezone $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)America/New_York$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " timezone
         echo ""
         if [[ -z $timezone ]]; then
             timezone="America/New_York"
@@ -34,7 +73,7 @@ function update_server_ip() {
   echo ""
   echo ""
   if [[ $auto_ip =~ ^[Nn]$ ]]; then
-    read -t 5 -p "Please enter the server IP address $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)127.0.0.1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " ip
+    read -p "Please enter the server IP address $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)127.0.0.1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " ip
     ip=${ip:-127.0.0.1}
     echo ""
   else
@@ -53,35 +92,69 @@ function update_server_ip() {
 function set_password {
     local yml_file="docker-compose.yml"
     local password=""
-    
-    # Set a timeout of 10 seconds for user input
-    trap 'password=""' USR1
-    read -t 10 -sp "Enter password for Pihole Dashboard $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)No Password$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " password 
-    echo ""
-    echo ""
-    sed -i "s/WEBPASSWORD:.*/WEBPASSWORD: \"$password\"/" "$yml_file"
-    echo -e "\033[32mPASSWORD HAS BEEN SET\033[0m"
-    echo ""
+    local confirm_password=""
+    local timer=5
+    local user_activity=false
+
+    # Wait for 5 seconds or until user activity is detected
+    sleep $timer & PID=$!
+    while true; do
+        read -t 1 -n 1 && user_activity=true && break || true
+        if ! ps -p $PID > /dev/null; then
+            # Timer has expired and no user activity detected
+            password=""
+            echo ""
+            sed -i "s/WEBPASSWORD:.*/WEBPASSWORD: \"$password\"/" "$yml_file"
+            echo -e "\033[31mNo user activity detected. Password has been set to null.\033[0m"
+            echo ""
+            break
+        fi
+    done
+
+    if [[ "$user_activity" == true ]]; then
+        # Prompt user to enter and confirm their password
+        while true; do
+            read -sp "$(tput setaf 3)Enter password for Pihole Dashboard:$(tput sgr0)" password 
+            echo ""
+            echo ""
+
+            if [[ -z "$password" ]]; then
+                echo -e "\033[31mPassword cannot be empty. Please try again.\033[0m"
+                continue
+            fi
+
+            read -sp "$(tput setaf 3)Confirm password for Pihole Dashboard:$(tput sgr0) " confirm_password
+            echo ""
+            echo ""
+
+            if [[ "$password" != "$confirm_password" ]]; then
+                echo -e "\033[31mPasswords do not match. Please try again.\033[0m"
+            else
+                # Passwords match, update the yml_file and exit the loop
+                sed -i "s/WEBPASSWORD:.*/WEBPASSWORD: \"$password\"/" "$yml_file"
+                echo -e "\033[32mPASSWORD HAS BEEN SET\033[0m"
+                echo ""
+                break
+            fi
+        done
+    fi
 }
+
+
 
 
 function config_count() {
   local yml_file="docker-compose.yml"
-
-  if [[ -f "$yml_file" ]]; then
-    local count=""
-    
-    # Set a timeout of 5 seconds for user input
-    count=$(timeout 5 bash -c 'read -e -p "Enter # of WireGuard server configurations to generate $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " count && echo "$count"')
-    
-    count=${count:-1} # set count to 1 if user enters nothing
-    sed -i "s/CONFIG_CT=.*/CONFIG_CT=$count/" "$yml_file"
-    echo -e "WireGuard Server Configurations to be Generated has been set to \033[32m$count\033[0m"
-    echo ""
-  else
-    echo "$yml_file not found."
-
+  local count=""
+  read -t 10 -p "Enter # of WireGuard server configurations to generate $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " count
+  echo ""
+  echo ""
+  if [[ -z "$count" ]]; then
+    count=1
   fi
+  sed -i "s/CONFIG_CT=.*/CONFIG_CT=$count/" "$yml_file"
+  echo -e "WireGuard Server Configurations to be Generated has been set to \033[32m$count\033[0m"
+  echo ""
 }
 
 
@@ -140,6 +213,50 @@ clear
 echo -e "\033[33m\n"
 echo "#######################################################################"
 echo ""
+echo "                 SET TIMEZONE AND DASHBOARD PASSWORD"
+echo ""
+echo "              Input Prompt will timeout after 5s & 10s "
+echo ""
+echo "   The Time Zone will be set Automatically and The password left blank"
+echo "                    When a timeout event occours"
+echo ""
+echo "#######################################################################"
+echo -e "\n\033[0m"
+sleep 0.5s
+
+      set_tz &&
+      sleep 2s
+      echo ""
+      echo "Enter password for Pihole Dashboard $(tput setaf 1)(Press enter to set password or wait 5 seconds for no password): $(tput sgr0)"  
+      set_password &&
+              sleep 1s
+
+clear
+
+
+echo -e "\033[33m\n" 
+echo "#######################################################################"
+echo ""
+echo "           SETTING SERVER IP & SERVER CONFIG FOR WIREGUARD"
+echo ""
+echo "                Input Prompt will timeout after 5s "
+echo ""
+echo "  The Server IP will be set Automatically and The Config Count set to 1"
+echo "                    When a timeout event occours"
+echo ""
+echo "#######################################################################"
+echo -e "\n\033[0m"
+sleep 0.5s
+
+      update_server_ip &&
+      config_count &&
+              sleep 1s
+              
+clear
+
+echo -e "\033[33m\n"
+echo "#######################################################################"
+echo ""
 echo "                        INSTALLING PORTAINER"
 echo "                        RUNNING ON PORT :9000"
 echo ""
@@ -161,50 +278,9 @@ else
 fi
 echo ""
 echo ""  
-              sleep 1s
+sleep 1s
 clear
 
-
-echo -e "\033[33m\n"
-echo "#######################################################################"
-echo ""
-echo "                 SET TIMEZONE AND DASHBOARD PASSWORD"
-echo ""
-echo "              Input Prompt will timeout after 5s & 10s "
-echo ""
-echo "   The Time Zone will be set Automatically and The password left blank"
-echo "                    When a timeout event occours"
-echo ""
-echo "#######################################################################"
-echo -e "\n\033[0m"
-sleep 0.5s
-
-      set_tz &&
-      set_password &&
-              sleep 2s
-
-clear
-
-
-echo -e "\033[33m\n" 
-echo "#######################################################################"
-echo ""
-echo "           SETTING SERVER IP & SERVER CONFIG FOR WIREGUARD"
-echo ""
-echo "                Input Prompt will timeout after 5s "
-echo ""
-echo "  The Server IP will be set Automatically and The Config Count set to 1"
-echo "                    When a timeout event occours"
-echo ""
-echo "#######################################################################"
-echo -e "\n\033[0m"
-sleep 0.5s
-
-      update_server_ip &&
-      config_count &&
-              sleep 2s
-              
-clear
 
 echo -e "\033[33m\n"   
 echo "#######################################################################"
@@ -218,7 +294,8 @@ echo -e "\n\033[0m"
 sleep 2s
 
 #Uncomment to review the compose file before build.
-# nano docker-compose.yml 
+#nano docker-compose.yml 
+
 
 docker-compose up -d --build  &&
 
