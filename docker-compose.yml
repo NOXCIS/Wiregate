@@ -9,13 +9,10 @@ networks:
 
 services:
   unbound:
-    image: "mvance/unbound:1.14.0"
+    image: "klutchell/unbound:latest"
     container_name: unbound
     restart: unless-stopped
     hostname: "unbound"
-    
-    volumes:
-      - "./unbound:/opt/unbound/etc/unbound/"
     networks:
       private_network:
         ipv4_address: 10.2.0.200
