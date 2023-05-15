@@ -67,7 +67,7 @@ The code in this repo is influenced by [IAmStoxe's Wirehole](https://github.com/
 
  Wirehole lacked the ability to easily generate new users and has recenlty stopped working due to updates to the parent project of Unbound-Docker, [Unbound-Docker by MatthewVance](https://github.com/MatthewVance/unbound-docker) . 
 
-Therefore with the help of klutchell's unbound-docker Docker image & donaldzou's WGDashboard Dockerized by Noxcis. Wirehole was recreated as Worm-Hole.
+Therefore with the help of klutchell's unbound-docker Docker image & donaldzou's WGDashboard Dockerized by Noxcis, Wirehole was recreated as Worm-Hole.
 
 However, the upstream projects and their authors most certainly also deserve credit for making this all possible.
 - [pi-hole](https://github.com/pi-hole).
