@@ -68,6 +68,12 @@ services:
     image: containrrr/watchtower
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.6
+    dns:
+      - 127.0.0.1
+      - 10.2.0.200
 
   nginx:
     container_name: nginx-pm
@@ -90,6 +96,9 @@ services:
     networks:
       private_network:
         ipv4_address: 10.2.0.4
+    dns:
+      - 127.0.0.1
+      - 10.2.0.200
 
   portainer:
     container_name: portainer
@@ -106,6 +115,9 @@ services:
     networks:
       private_network:
         ipv4_address: 10.2.0.5
+    dns:
+      - 127.0.0.1
+      - 10.2.0.200
 
 volumes:
   portainer_data:
