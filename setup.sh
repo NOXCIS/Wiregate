@@ -310,8 +310,6 @@ echo "#######################################################################"
 echo -e "\n\033[0m"
 sleep 2s
 
-sudo apt install nginx
-sudo systemctl status nginx
 
 
 
