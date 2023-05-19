@@ -141,8 +141,6 @@ function set_password {
 }
 
 
-
-
 function config_count() {
   local yml_file="docker-compose.yml"
   local count=""
@@ -156,6 +154,8 @@ function config_count() {
   echo -e "WireGuard Server Configurations to be Generated has been set to \033[32m$count\033[0m"
   echo ""
 }
+
+
 
 
 #set -e
@@ -172,6 +172,7 @@ PREREQUISITES=(
     gnupg
     gnupg-agent
     software-properties-common
+    openssl
 )
 
 # Define ANSI color codes
@@ -250,6 +251,7 @@ sleep 0.5s
 
       update_server_ip &&
       config_count &&
+      set_nginx_Db &&
               sleep 1s
               
 clear
@@ -265,33 +267,21 @@ echo -e "\n\033[0m"
 sleep 1s
 
    #docker rm -f portainer
-if docker ps -a | grep portainer ; then
-    echo "" 
-    echo -e "\033[32mPortainer is already running\033[0m"
-else
-    echo -e "\033[31mPortainer is not running, creating data volume and starting container\033[0m" "\n"
-    echo -e "\033[32m$(docker volume create portainer_data)\033[0m" "\n"
-    echo -e "\033[32m$(docker run -d -p 8000:8000 -p 9000:9000 -e SERVER_IP=$(ip route get 8.8.8.8 | awk 'NR==1 {print $NF}') --name=portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce)\033[0m" "\n"
+#if docker ps -a | grep portainer ; then
+    #echo "" 
+    #echo -e "\033[32mPortainer is already running\033[0m"
+#else
+    #echo -e "\033[31mPortainer is not running, creating data volume and starting container\033[0m" "\n"
+    #echo -e "\033[32m$(docker volume create portainer_data)\033[0m" "\n"
+    #echo -e "\033[32m$(docker run -d -p 8000:8000 -p 9000:9000 -e SERVER_IP=$(ip route get 8.8.8.8 | awk 'NR==1 {print $NF}') --name=portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce)\033[0m" "\n"
 
     #echo -e "\033[32m$(docker volume create portainer_data)\033[0m" "\n"
     #echo -e "\033[32m$(docker run -d -p 8000:8000 -p 9000:9000 --name=portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce)\033[0m" "\n"
-fi
-echo ""
-echo ""  
-sleep 1s
+#fi
+#echo ""
+#echo ""  
+#sleep 1s
 clear
-
-
-echo -e "\033[33m\n"   
-echo "#######################################################################"
-echo ""
-echo ""
-echo "                        REVIEW COMPOSE FILE"
-echo ""
-echo ""
-echo "#######################################################################"
-echo -e "\n\033[0m"
-sleep 2s
 
 #Uncomment to review the compose file before build.
 #nano docker-compose.yml 

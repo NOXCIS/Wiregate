@@ -20,10 +20,10 @@ services:
   wg_dashboard:
     image: noxcis/wg-dashboard:latest
     container_name: wg_dashboard
-    cap_add: 
+    cap_add:
       - NET_ADMIN
       - SYS_MODULE
-    restart: unless-stopped 
+    restart: unless-stopped
     volumes:
       - ./WG-Dash/config:/etc/wireguard
     environment:
@@ -74,44 +74,30 @@ services:
       # Admin Web Port:
       - '81:81'
     environment:
-      # These are the settings to access your db
-      DB_MYSQL_HOST: "db"
-      DB_MYSQL_PORT: 3306
-      DB_MYSQL_USER: "exampleuser"
-
-      # ⚠️ Required: ########################################
-
-      DB_MYSQL_PASSWORD: "changeme" #SET DATABASE PASSWORD
-      
-      ######################################################
-
-      DB_MYSQL_NAME: "npm"
-      # If you would rather use Sqlite uncomment this
-      # and remove all DB_MYSQL_* lines above
-      # DB_SQLITE_FILE: "/data/database.sqlite"
+      DB_SQLITE_FILE: "/data/database.sqlite"
       # Uncomment this if IPv6 is not enabled on your host
-      # DISABLE_IPV6: 'true'
+      DISABLE_IPV6: 'true'
     volumes:
       - ./data/nginx-proxy-manager:/data
       - ./letsencrypt:/etc/letsencrypt
-    depends_on:
-      - db
-  db:
-    image: yobasystems/alpine-mariadb:latest
-    restart: unless-stopped
-    environment:
-      MYSQL_RANDOM_ROOT_PASSWORD: '1'
-      MYSQL_DATABASE: "npm"
-      MYSQL_USER: "exampleuser"
-
-      # ⚠️ Required: ###############################################################
-
-      MYSQL_PASSWORD: "changeme" # USE SAME PASSOWRD AS DATABASE TO AVOID ISSUES
-
-      #############################################################################
-
-    volumes:
-      - ./data/mariadb:/var/lib/mysql
     networks:
       private_network:
         ipv4_address: 10.2.0.4
+
+  portainer:
+    image: portainer/portainer-ce
+    ports:
+      - 8000:8000
+      - 9000:9000
+    environment:
+      - SERVER_IP=172.30.155.189
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    restart: always
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.5
+
+volumes:
+  portainer_data:
