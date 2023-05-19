@@ -232,7 +232,7 @@ sleep 0.5s
       set_password &&
               sleep 1s
 
-clear
+
 
 
 echo -e "\033[33m\n" 
@@ -256,32 +256,8 @@ sleep 0.5s
               
 clear
 
-echo -e "\033[33m\n"
-echo "#######################################################################"
-echo ""
-echo "                        INSTALLING PORTAINER"
-echo "                        RUNNING ON PORT :9000"
-echo ""
-echo "#######################################################################"
-echo -e "\n\033[0m"
-sleep 1s
 
-   #docker rm -f portainer
-#if docker ps -a | grep portainer ; then
-    #echo "" 
-    #echo -e "\033[32mPortainer is already running\033[0m"
-#else
-    #echo -e "\033[31mPortainer is not running, creating data volume and starting container\033[0m" "\n"
-    #echo -e "\033[32m$(docker volume create portainer_data)\033[0m" "\n"
-    #echo -e "\033[32m$(docker run -d -p 8000:8000 -p 9000:9000 -e SERVER_IP=$(ip route get 8.8.8.8 | awk 'NR==1 {print $NF}') --name=portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce)\033[0m" "\n"
 
-    #echo -e "\033[32m$(docker volume create portainer_data)\033[0m" "\n"
-    #echo -e "\033[32m$(docker run -d -p 8000:8000 -p 9000:9000 --name=portainer --restart=always -v /var/run/docker.sock:/var/run/docker.sock -v portainer_data:/data portainer/portainer-ce)\033[0m" "\n"
-#fi
-#echo ""
-#echo ""  
-#sleep 1s
-clear
 
 #Uncomment to review the compose file before build.
 #nano docker-compose.yml 
@@ -289,18 +265,30 @@ clear
 
 docker-compose up -d --build  &&
 
-echo -e "\033[33m\n"   
-echo "#######################################################################"
-echo ""
-echo ""
-echo "                       INSTALL NGINX"
-echo ""
-echo ""
-echo "#######################################################################"
-echo -e "\n\033[0m"
-sleep 2s
 
 
+# Check if a swapfile already exists
+if [[ -f /swapfile ]]; then
+    echo "Swapfile already exists."
+    exit 1
+fi
+
+# Create a swapfile
+sudo fallocate -l 2G /swapfile
+
+# Set permissions for the swapfile
+sudo chmod 600 /swapfile
+
+# Set up the swap space
+sudo mkswap /swapfile
+
+# Enable the swapfile
+sudo swapon /swapfile
+
+# Update the fstab file to make the swapfile persistent across reboots
+echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+
+echo "Swapfile created and enabled."
 
 
 #sudo ufw enable 
