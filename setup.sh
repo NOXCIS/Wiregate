@@ -298,6 +298,23 @@ sleep 2s
 
 
 docker-compose up -d --build  &&
+
+echo -e "\033[33m\n"   
+echo "#######################################################################"
+echo ""
+echo ""
+echo "                       INSTALL NGINX"
+echo ""
+echo ""
+echo "#######################################################################"
+echo -e "\n\033[0m"
+sleep 2s
+
+sudo apt install nginx
+sudo systemctl status nginx
+
+
+
 #sudo ufw enable 
 #sudo ufw default deny incoming
 #sudo ufw allow OpenSSH
