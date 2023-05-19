@@ -27,7 +27,7 @@ services:
     volumes:
       - ./WG-Dash/config:/etc/wireguard
     environment:
-      - SERVER_IP=127.0.0.1
+      - SERVER_IP=172.30.155.189
       - CONFIG_CT=1
     ports:
       - 10086:10086
@@ -112,3 +112,6 @@ services:
 
     volumes:
       - ./data/mariadb:/var/lib/mysql
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.4
