@@ -62,8 +62,15 @@ services:
     networks:
       private_network:
         ipv4_address: 10.2.0.100
+  
+  watchtower:
+    container_name: watchtower
+    image: containrrr/watchtower
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
 
   nginx:
+    container_name: nginx-pm
     image: 'jc21/nginx-proxy-manager:latest'
     restart: unless-stopped
     ports:
@@ -85,6 +92,7 @@ services:
         ipv4_address: 10.2.0.4
 
   portainer:
+    container_name: portainer
     image: portainer/portainer-ce
     ports:
       - 8000:8000
