@@ -93,6 +93,7 @@ services:
     volumes:
       - ./data/nginx-proxy-manager:/data
       - ./letsencrypt:/etc/letsencrypt
+      - ./web:/var/www/html
     networks:
       private_network:
         ipv4_address: 10.2.0.4
