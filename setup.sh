@@ -38,6 +38,8 @@ echo '
 '
 sleep 5s
 
+sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy update
+sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy upgrade
 
 
 #sudo apt-get update -y && sudo apt-get upgrade -y
