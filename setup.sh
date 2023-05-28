@@ -57,6 +57,36 @@ function check_docker_compose {
   echo "File '$yml_file' successfully pulled from GitHub."
 }
 
+function disable_docker_iptables {
+  # Check if Docker is installed
+  if ! command -v docker > /dev/null 2>&1; then
+    echo "Docker is not installed."
+    return 1
+  fi
+
+  # Disable Docker iptables
+  DOCKER_CONFIG="/etc/docker/daemon.json"
+  if [[ -f "$DOCKER_CONFIG" ]]; then
+    # Check if iptables configuration exists in daemon.json
+    if grep -q '"iptables": false' "$DOCKER_CONFIG"; then
+      echo "Docker iptables is already disabled."
+      return 0
+    fi
+
+    # Disable iptables in daemon.json
+    sed -i 's/\("iptables":\s*\)true/\1false/' "$DOCKER_CONFIG"
+    echo "Docker iptables has been disabled. Restarting Docker daemon..."
+
+    # Restart Docker daemon
+    systemctl restart docker
+    return $?
+  else
+    echo "Docker configuration file ($DOCKER_CONFIG) not found."
+    return 1
+  fi
+}
+
+
 
 function set_tz {
     local yml_file="docker-compose.yml"
@@ -273,8 +303,36 @@ sleep 0.1s
               
 clear
 
+systemctl enable --now firewalld &&
+firewall-cmd --state &&
+disable_docker_iptables &&
+
+#Restart Docker
+systemctl restart docker &&
 
 
+# Masquerading allows for docker ingress and egress (this is the juicy bit)
+firewall-cmd --zone=public --add-masquerade --permanent &&
+# Reload firewall to apply permanent rules
+firewall-cmd --reload &&
+
+# Show interfaces to find out docker interface name
+ip link show &&
+
+# Assumes docker interface is docker0
+firewall-cmd --permanent --zone=trusted --add-interface=docker0 &&
+firewall-cmd --reload &&
+systemctl restart docker &&
+
+
+firewall-cmd --permanent --zone=public --add-interface=eth0 &&
+firewall-cmd --reload &&
+
+
+firewall-cmd --permanent --zone=public --add-port=9000/tcp
+firewall-cmd --permanent --zone=public --add-port=10086/tcp
+# Reload firewall to apply permanent rules
+firewall-cmd --reload
 
 #Uncomment to review the compose file before build.
 #nano docker-compose.yml 
@@ -307,17 +365,5 @@ echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
 
 echo "Swapfile created and enabled."
 
-
-#sudo ufw enable 
-#sudo ufw default deny incoming
-#sudo ufw allow OpenSSH
-#sudo ufw limit 22/tcp
-#sudo ufw allow 51820/udp
-
-#todo change portainter to use worm-hole private network
-#todo diable allow port 9000
-#todo reverse proxy WG dashboard via port 80
-#sudo ufw allow 9000/tcp
-#sudo ufw allow 10086/tcp
 sleep 1s
-rm docker-compose.yml
+#rm docker-compose.yml
