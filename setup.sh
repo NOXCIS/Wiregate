@@ -189,6 +189,7 @@ PREREQUISITES=(
     gnupg-agent
     software-properties-common
     openssl
+    firewalld
 )
 
 # Define ANSI color codes
