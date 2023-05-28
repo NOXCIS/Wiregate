@@ -42,7 +42,17 @@ sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-con
 sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy upgrade
 
 
-#sudo apt-get update -y && sudo apt-get upgrade -y
+
+function check_docker_compose {
+  if [ ! -f "docker-compose.yml" ]; then
+    echo "File 'docker-compose.yml' not found. Pulling from GitHub..."
+    curl -o docker-compose.yml https://raw.githubusercontent.com/NOXCIS/Worm-Hole/nginx-%2B%2B/docker-compose.yml
+    echo "File 'docker-compose.yml' successfully pulled from GitHub."
+  else
+    echo "File 'docker-compose.yml' already exists."
+  fi
+}
+
 
 function set_tz {
     local yml_file="docker-compose.yml"
@@ -209,7 +219,7 @@ else
     echo "${GREEN}docker is already installed. Skipping...${RESET}"
 fi
 
-
+check_docker_compose &&
 
 clear
 
@@ -305,3 +315,4 @@ echo "Swapfile created and enabled."
 #sudo ufw allow 9000/tcp
 #sudo ufw allow 10086/tcp
 sleep 1s
+rm docker-compose.yml
