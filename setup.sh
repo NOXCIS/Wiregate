@@ -57,16 +57,21 @@ function check_docker_compose {
   echo "File '$yml_file' successfully pulled from GitHub."
 }
 
-function disable_docker_iptables {
+disable_docker_iptables() {
   # Check if Docker is installed
   if ! command -v docker > /dev/null 2>&1; then
     echo "Docker is not installed."
     return 1
   fi
 
-  # Disable Docker iptables
+  # Docker configuration file
   DOCKER_CONFIG="/etc/docker/daemon.json"
-  if [[ -f "$DOCKER_CONFIG" ]]; then
+
+  # Check if daemon.json exists
+  if [[ ! -f "$DOCKER_CONFIG" ]]; then
+    echo "Creating Docker configuration file: $DOCKER_CONFIG"
+    echo '{ "iptables": false }' > "$DOCKER_CONFIG"
+  else
     # Check if iptables configuration exists in daemon.json
     if grep -q '"iptables": false' "$DOCKER_CONFIG"; then
       echo "Docker iptables is already disabled."
@@ -75,15 +80,13 @@ function disable_docker_iptables {
 
     # Disable iptables in daemon.json
     sed -i 's/\("iptables":\s*\)true/\1false/' "$DOCKER_CONFIG"
-    echo "Docker iptables has been disabled. Restarting Docker daemon..."
-
-    # Restart Docker daemon
-    systemctl restart docker
-    return $?
-  else
-    echo "Docker configuration file ($DOCKER_CONFIG) not found."
-    return 1
   fi
+
+  echo "Docker iptables has been disabled. Restarting Docker daemon..."
+
+  # Restart Docker daemon
+  systemctl restart docker
+  return $?
 }
 
 
@@ -305,6 +308,7 @@ clear
 
 systemctl enable --now firewalld &&
 firewall-cmd --state &&
+wait 5s &&
 disable_docker_iptables &&
 
 #Restart Docker
@@ -328,7 +332,8 @@ systemctl restart docker &&
 firewall-cmd --permanent --zone=public --add-interface=eth0 &&
 firewall-cmd --reload &&
 
-
+firewall-cmd --permanent --zone=public --add-port=443/tcp
+firewall-cmd --permanent --zone=public --add-port=80/tcp
 firewall-cmd --permanent --zone=public --add-port=9000/tcp
 firewall-cmd --permanent --zone=public --add-port=10086/tcp
 # Reload firewall to apply permanent rules
