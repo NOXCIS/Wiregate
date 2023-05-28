@@ -91,7 +91,7 @@ set_fw() {
   firewall-cmd --state 
 
   #Restart Docker
-    systemctl restart docker 
+    #systemctl restart docker 
 
   # Masquerading for docker ingress and egress
     firewall-cmd --zone=public --add-masquerade --permanent 
@@ -357,7 +357,7 @@ echo "#######################################################################"
 echo -e "\n\033[0m"
 sleep 0.1s
           docker_compose_install &&
-sleep 0.1s
+sleep 5s
 
 
 echo -e "\033[33m\n" 
