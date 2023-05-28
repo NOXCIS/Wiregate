@@ -308,7 +308,6 @@ clear
 
 systemctl enable --now firewalld &&
 firewall-cmd --state &&
-wait 5s &&
 disable_docker_iptables &&
 
 #Restart Docker
