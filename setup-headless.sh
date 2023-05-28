@@ -1,5 +1,5 @@
 #!/bin/bash
-#set -e
+set -e
 export DEBIAN_FRONTEND=noninteractive
 echo '  
 
@@ -77,35 +77,33 @@ disable_docker_iptables() {
 
 
 set_fw() {
-  
-  #Enable FirewallD
-  systemctl enable --now firewalld 
-  firewall-cmd --state 
 
+    #Enable FirewallD
+        systemctl enable --now firewalld 
+        firewall-cmd --state 
+    # Docker Intigration
+        firewall-cmd --zone=trusted --remove-interface=docker0 --permanent
+        firewall-cmd --reload
 
-    firewall-cmd --zone=trusted --remove-interface=docker0 --permanent
-    firewall-cmd --reload 
-  #Restart Docker
-    systemctl restart docker 
+    # Restart Docker
+        systemctl restart docker    
 
-  # Masquerading for docker ingress and egress
-    firewall-cmd --zone=public --add-masquerade --permanent 
+    # Masquerading for docker ingress and egress
+        firewall-cmd --zone=public --add-masquerade --permanent 
 
-  # Reload firewall to apply permanent rules
-    firewall-cmd --reload 
+    # Reload firewall to apply permanent rules
+        firewall-cmd --reload 
 
-  #Add firewall rules
+    # Add firewall rules
+        firewall-cmd --permanent --zone=public --add-interface=eth0 
+        firewall-cmd --reload 
+        firewall-cmd --permanent --zone=public --add-port=443/tcp
+        firewall-cmd --permanent --zone=public --add-port=80/tcp
+        firewall-cmd --permanent --zone=public --add-port=9000/tcp
+        firewall-cmd --permanent --zone=public --add-port=10086/tcp
 
-    firewall-cmd --permanent --zone=public --add-interface=eth0 
-    firewall-cmd --reload 
-    firewall-cmd --permanent --zone=public --add-port=443/tcp
-    firewall-cmd --permanent --zone=public --add-port=80/tcp
-    firewall-cmd --permanent --zone=public --add-port=9000/tcp
-    firewall-cmd --permanent --zone=public --add-port=10086/tcp
-
-  # Reload firewall to apply permanent rules
-    firewall-cmd --reload 
-
+    # Reload firewall to apply permanent rules
+        firewall-cmd --reload 
 
 }
 
@@ -134,27 +132,27 @@ set_tz() {
 
 
 update_server_ip() {
-  local yml_file="docker-compose.yml"
-  local ip
+    local yml_file="docker-compose.yml"
+    local ip
 
-  read -t 0.1 -p "Do you want to automatically set the server IP address? $(tput setaf 1)(y/n)$(tput sgr0) " auto_ip
-  echo ""
-  echo ""
-  if [[ $auto_ip =~ ^[Nn]$ ]]; then
-    read -p "Please enter the server IP address $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)127.0.0.1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " ip
-    ip=${ip:-127.0.0.1}
-    echo ""
-  else
-    ip=$(hostname -I | awk '{print $1}')
-  fi
+        read -t 0.1 -p "Do you want to automatically set the server IP address? $(tput setaf 1)(y/n)$(tput sgr0) " auto_ip
+        echo ""
+        echo ""
+    if [[ $auto_ip =~ ^[Nn]$ ]]; then
+        read -p "Please enter the server IP address $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)127.0.0.1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " ip
+        ip=${ip:-127.0.0.1}
+        echo ""
+    else
+        ip=$(hostname -I | awk '{print $1}')
+    fi
 
-  if [[ -f "$yml_file" ]]; then
-    sed -i "s/SERVER_IP=.*/SERVER_IP=$ip/" "$yml_file"
-    echo -e "Server IP address has been set to \033[32m$ip\033[0m"
-    echo ""
-  else
-    echo "$yml_file not found."
-  fi
+    if [[ -f "$yml_file" ]]; then
+        sed -i "s/SERVER_IP=.*/SERVER_IP=$ip/" "$yml_file"
+        echo -e "Server IP address has been set to \033[32m$ip\033[0m"
+        echo ""
+    else
+        echo "$yml_file not found."
+    fi
 }
 
 
@@ -211,17 +209,17 @@ set_password() {
 
 
 config_count() {
-  local yml_file="docker-compose.yml"
-  local count=""
-  read -t 0.1 -p "Enter # of WireGuard server configurations to generate $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " count
-  echo ""
-  echo ""
-  if [[ -z "$count" ]]; then
-    count=1
-  fi
-  sed -i "s/CONFIG_CT=.*/CONFIG_CT=$count/" "$yml_file"
-  echo -e "WireGuard Server Configurations to be Generated has been set to \033[32m$count\033[0m"
-  echo ""
+    local yml_file="docker-compose.yml"
+    local count=""
+        read -t 0.1 -p "Enter # of WireGuard server configurations to generate $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " count
+        echo ""
+        echo ""
+    if [[ -z "$count" ]]; then
+        count=1
+    fi
+        sed -i "s/CONFIG_CT=.*/CONFIG_CT=$count/" "$yml_file"
+        echo -e "WireGuard Server Configurations to be Generated has been set to \033[32m$count\033[0m"
+        echo ""
 }
 
 
@@ -258,68 +256,45 @@ install_prerequisites() {
 }
 
 
-docker_compose_install() {
-
-  # Check if docker-compose is already installed
-  if ! command -v docker > /dev/null 2>&1; then
-    echo "${GREEN}docker is not installed. Installing...${RESET}"
-    # Install docker-compose
-    sudo install -m 0755 -d /etc/apt/keyrings
-    curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
-    sudo chmod a+r /etc/apt/keyrings/docker.gpg
-    echo \
-        "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
-        "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
-    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-    sudo apt-get update
-    sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
-  else
-    echo "${GREEN}docker is already installed. Skipping...${RESET}"
-  fi
-
-
-}
-
 
 get_docker_compose() {
-  local yml_file="docker-compose.yml"
+    local yml_file="docker-compose.yml"
 
-  if [ -f "$(dirname "$0")/$yml_file" ]; then
-    echo "Removing existing '$yml_file'..."
-    rm "$(dirname "$0")/$yml_file"
-    echo "Existing '$yml_file' removed."
-  fi
+    if [ -f "$(dirname "$0")/$yml_file" ]; then
+        echo "Removing existing '$yml_file'..."
+        rm "$(dirname "$0")/$yml_file"
+        echo "Existing '$yml_file' removed."
+    fi
 
-  echo "Pulling '$yml_file' from GitHub..."
-  curl -o "$(dirname "$0")/$yml_file" https://raw.githubusercontent.com/NOXCIS/Worm-Hole/nginx-%2B%2B/docker-compose.yml
-  echo "File '$yml_file' successfully pulled from GitHub."
+        echo "Pulling '$yml_file' from GitHub..."
+        curl -o "$(dirname "$0")/$yml_file" https://raw.githubusercontent.com/NOXCIS/Worm-Hole/nginx-%2B%2B/docker-compose.yml
+        echo "File '$yml_file' successfully pulled from GitHub."
 }
 
 
 create_swap() {
 
-  # Check if a swapfile already exists
-  if [[ -f /swapfile ]]; then
-    echo "Swapfile already exists."
-    exit 1
-  fi
+    # Check if a swapfile already exists
+    if [[ -f /swapfile ]]; then
+        echo "Swapfile already exists."
+        exit 1
+    fi
 
-  # Create a swapfile
-  sudo fallocate -l 2G /swapfile
+    # Create a swapfile
+        sudo fallocate -l 2G /swapfile
 
-  # Set permissions for the swapfile
-  sudo chmod 600 /swapfile
+    # Set permissions for the swapfile
+        sudo chmod 600 /swapfile
 
-  # Set up the swap space
-  sudo mkswap /swapfile
+    # Set up the swap space
+        sudo mkswap /swapfile
 
-  # Enable the swapfile
-  sudo swapon /swapfile
+    # Enable the swapfile
+        sudo swapon /swapfile
 
-  # Update the fstab file to make the swapfile persistent across reboots
-  echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-
-  echo "Swapfile created and enabled."
+    # Update the fstab file to make the swapfile persistent across reboots
+        echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+        echo "Swapfile created and enabled."
 
 
 }
@@ -335,7 +310,7 @@ echo ""
 echo "#######################################################################"
 echo -e "\n\033[0m"
 sleep 0.1s
-          install_prerequisites &&
+            install_prerequisites &&
 sleep 3s
 
 echo -e "\033[33m\n" 
@@ -359,7 +334,7 @@ echo ""
 echo "#######################################################################"
 echo -e "\n\033[0m"
 sleep 0.1s
-          get_docker_compose &&
+            get_docker_compose &&
 sleep 0.1s
 
 
@@ -376,11 +351,11 @@ echo ""
 echo "#######################################################################"
 echo -e "\n\033[0m"
 sleep 0.1s
-          set_tz &&
+            set_tz &&
 sleep 0.1s
 echo ""
 echo "Enter password for Pihole Dashboard $(tput setaf 1)(Press enter to set password or wait 5 seconds for no password): $(tput sgr0)"  
-          set_password &&
+            set_password &&
 sleep 0.1s
 
 
@@ -397,10 +372,10 @@ echo ""
 echo "#######################################################################"
 echo -e "\n\033[0m"
 sleep 0.1s
-          update_server_ip &&
-          config_count &&
+            update_server_ip &&
+            config_count &&
 sleep 0.1s
-              
+
 
 
 
@@ -420,7 +395,7 @@ echo ""
 echo "#######################################################################"
 echo -e "\n\033[0m"
 sleep 0.1s          
-          docker-compose up -d --build  &&
+            docker-compose up -d --build  &&
 sleep 0.1s
 
 
@@ -432,7 +407,7 @@ echo ""
 echo "#######################################################################"
 echo -e "\n\033[0m"
 sleep 0.1s
-          create_swap &&
+            create_swap &&
 sleep 0.1s
 
 
