@@ -76,24 +76,14 @@ services:
       - 10.2.0.200
 
   nginx:
-    container_name: nginx-pm
-    image: 'jc21/nginx-proxy-manager:latest'
-    restart: unless-stopped
+    container_name: nginx
+    image: nginx:latest
     ports:
-      # Public HTTP Port:
-      - '80:80'
-      # Public HTTPS Port:
-      - '443:443'
-      # Admin Web Port:
-      - '81:81'
-    environment:
-      DB_SQLITE_FILE: "/data/database.sqlite"
-      # Uncomment this if IPv6 is not enabled on your host
-      DISABLE_IPV6: 'true'
+      - 80:80
     volumes:
-      - ./data/nginx-proxy-manager:/data
-      - ./letsencrypt:/etc/letsencrypt
-      - ./web:/var/www/html
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./web/:/var/www/html/
+    restart: unless-stopped
     networks:
       private_network:
         ipv4_address: 10.2.0.4
