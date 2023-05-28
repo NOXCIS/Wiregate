@@ -102,6 +102,7 @@ set_fw() {
         firewall-cmd --reload 
         firewall-cmd --permanent --zone=public --add-port=443/tcp
         firewall-cmd --permanent --zone=public --add-port=80/tcp
+        firewall-cmd --permanent --zone=docker --add-port=51820/udp
         firewall-cmd --permanent --zone=docker --add-port=9000/tcp
         firewall-cmd --permanent --zone=docker --add-port=10086/tcp
 
