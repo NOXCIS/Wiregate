@@ -77,24 +77,22 @@ disable_docker_iptables() {
 
 
 set_fw() {
-
+  
   #Enable FirewallD
   systemctl enable --now firewalld 
   firewall-cmd --state 
 
+
+    firewall-cmd --zone=trusted --remove-interface=docker0 --permanent
+    firewall-cmd --reload 
   #Restart Docker
-    #systemctl restart docker 
+    systemctl restart docker 
 
   # Masquerading for docker ingress and egress
     firewall-cmd --zone=public --add-masquerade --permanent 
 
   # Reload firewall to apply permanent rules
     firewall-cmd --reload 
-
-  # Assumes docker interface is docker0
-    firewall-cmd --permanent --zone=trusted --add-interface=docker0 
-    firewall-cmd --reload 
-    systemctl restart docker 
 
   #Add firewall rules
 
@@ -230,8 +228,6 @@ config_count() {
 install_prerequisites() {
     # List of prerequisites
     PREREQUISITES=(
-        docker
-        docker-compose
         curl
         git
         apt-transport-https
@@ -241,6 +237,8 @@ install_prerequisites() {
         software-properties-common
         openssl
         firewalld
+        docker
+        docker-compose
     )
 
     # Define ANSI color codes
@@ -340,6 +338,18 @@ sleep 0.1s
           install_prerequisites &&
 sleep 3s
 
+echo -e "\033[33m\n" 
+echo "#######################################################################"
+echo ""
+echo "           SETTING UP FirewallD for Container Stack"
+echo ""
+echo "#######################################################################"
+echo -e "\n\033[0m"
+sleep 0.1s
+            systemctl restart docker &&
+            set_fw &&
+sleep 0.1s
+
 
 echo -e "\033[33m\n" 
 echo "#######################################################################"
@@ -393,16 +403,7 @@ sleep 0.1s
               
 
 
-echo -e "\033[33m\n" 
-echo "#######################################################################"
-echo ""
-echo "           SETTING UP FirewallD for Container Stack"
-echo ""
-echo "#######################################################################"
-echo -e "\n\033[0m"
-sleep 0.1s
-          set_fw &&
-sleep 0.1s
+
 
 
 
