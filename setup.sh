@@ -44,13 +44,17 @@ sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-con
 
 
 function check_docker_compose {
-  if [ ! -f "docker-compose.yml" ]; then
-    echo "File 'docker-compose.yml' not found. Pulling from GitHub..."
-    curl -o docker-compose.yml https://raw.githubusercontent.com/NOXCIS/Worm-Hole/nginx-%2B%2B/docker-compose.yml
-    echo "File 'docker-compose.yml' successfully pulled from GitHub."
-  else
-    echo "File 'docker-compose.yml' already exists."
+  local yml_file="docker-compose.yml"
+
+  if [ -f "$(dirname "$0")/$yml_file" ]; then
+    echo "Removing existing '$yml_file'..."
+    rm "$(dirname "$0")/$yml_file"
+    echo "Existing '$yml_file' removed."
   fi
+
+  echo "Pulling '$yml_file' from GitHub..."
+  curl -o "$(dirname "$0")/$yml_file" https://raw.githubusercontent.com/NOXCIS/Worm-Hole/nginx-%2B%2B/docker-compose.yml
+  echo "File '$yml_file' successfully pulled from GitHub."
 }
 
 
@@ -235,14 +239,14 @@ echo "                    When a timeout event occours"
 echo ""
 echo "#######################################################################"
 echo -e "\n\033[0m"
-sleep 0.5s
+sleep 0.1s
 
       set_tz &&
-      sleep 2s
+      sleep 0.1s
       echo ""
       echo "Enter password for Pihole Dashboard $(tput setaf 1)(Press enter to set password or wait 5 seconds for no password): $(tput sgr0)"  
       set_password &&
-              sleep 1s
+              sleep 0.1s
 
 
 
@@ -259,12 +263,12 @@ echo "                    When a timeout event occours"
 echo ""
 echo "#######################################################################"
 echo -e "\n\033[0m"
-sleep 0.5s
+sleep 0.1s
 
       update_server_ip &&
       config_count &&
       set_nginx_Db &&
-              sleep 1s
+              sleep 0.1s
               
 clear
 
