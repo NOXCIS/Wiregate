@@ -94,9 +94,9 @@ services:
   portainer:
     container_name: portainer
     image: portainer/portainer-ce
-    ports:
-      - 8000:8000
-      - 9000:9000
+    #ports:
+      #- 8000:8000
+      #- 9000:9000
     environment:
       - SERVER_IP=172.30.155.189
     volumes:
