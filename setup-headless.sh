@@ -82,7 +82,10 @@ set_fw() {
         systemctl enable --now firewalld 
         firewall-cmd --state 
     # Docker Intigration
-        firewall-cmd --zone=trusted --remove-interface=docker0 --permanent
+        # firewall-cmd --zone=trusted --remove-interface=docker0 --permanent
+        # firewall-cmd --reload
+        firewall-cmd --zone=docker --permanent --change-interface=docker0
+        firewall-cmd --permanent --zone=docker --add-interface=docker0
         firewall-cmd --reload
 
     # Restart Docker
