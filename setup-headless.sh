@@ -78,14 +78,6 @@ disable_docker_iptables() {
 
 set_fw() {
 
-  # Check if Firewalld is installed
-    if ! command -v firewalld &>/dev/null; then
-        echo "Firewalld is not installed on this system."
-        return 1
-    else
-        install_prerequisites
-    fi
-
   #Enable FirewallD
   systemctl enable --now firewalld 
   firewall-cmd --state 
@@ -122,7 +114,7 @@ set_fw() {
 
 set_tz() {
     local yml_file="docker-compose.yml"
-    read -t 5 -p "Do you want to automatically get the host timezone? $(tput setaf 1)(y/n)$(tput sgr0) " answer 
+    read -t 0.1 -p "Do you want to automatically get the host timezone? $(tput setaf 1)(y/n)$(tput sgr0) " answer 
     echo ""
     echo ""
     if [[ $answer == [Yy] || -z $answer ]]; then
@@ -147,7 +139,7 @@ update_server_ip() {
   local yml_file="docker-compose.yml"
   local ip
 
-  read -t 5 -p "Do you want to automatically set the server IP address? $(tput setaf 1)(y/n)$(tput sgr0) " auto_ip
+  read -t 0.1 -p "Do you want to automatically set the server IP address? $(tput setaf 1)(y/n)$(tput sgr0) " auto_ip
   echo ""
   echo ""
   if [[ $auto_ip =~ ^[Nn]$ ]]; then
@@ -172,7 +164,7 @@ set_password() {
     local yml_file="docker-compose.yml"
     local password=""
     local confirm_password=""
-    local timer=5
+    local timer=0.1
     local user_activity=false
 
     # Wait for 5 seconds or until user activity is detected
@@ -223,7 +215,7 @@ set_password() {
 config_count() {
   local yml_file="docker-compose.yml"
   local count=""
-  read -t 5 -p "Enter # of WireGuard server configurations to generate $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " count
+  read -t 0.1 -p "Enter # of WireGuard server configurations to generate $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " count
   echo ""
   echo ""
   if [[ -z "$count" ]]; then
