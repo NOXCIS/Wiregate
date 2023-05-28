@@ -78,6 +78,14 @@ disable_docker_iptables() {
 
 set_fw() {
 
+  # Check if Firewalld is installed
+    if ! command -v firewalld &>/dev/null; then
+        echo "Firewalld is not installed on this system."
+        return 1
+    else
+        install_prerequisites
+    fi
+
   #Enable FirewallD
   systemctl enable --now firewalld 
   firewall-cmd --state 
@@ -176,7 +184,7 @@ set_password() {
             password=""
             echo ""
             sed -i "s/WEBPASSWORD:.*/WEBPASSWORD: \"$password\"/" "$yml_file"
-            echo -e "\033[31mNo user activity detected. Password has been set to null.\033[0m"
+            echo -e "\033[31mRunning Headless. Password has been set to null.\033[0m"
             echo ""
             break
         fi
