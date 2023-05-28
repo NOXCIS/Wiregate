@@ -84,7 +84,9 @@ services:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
       - ./web/:/var/www/html/
     restart: unless-stopped
-    
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.4
     dns:
       - 127.0.0.1
       - 10.2.0.200
