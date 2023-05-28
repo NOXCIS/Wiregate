@@ -9,11 +9,57 @@
     <link rel="stylesheet" type="text/css" href="./assets/css/common.css" />
     <link rel="stylesheet" type="text/css" href="./assets/css/fonts.css" />
     <link rel="stylesheet" type="text/css" href="./assets/css/UntitledPage.css" />
-    <link rel="stylesheet" type="image" href="./assets/3.gif" />
+    <link rel="stylesheet" type="image" href="./assets/images/3.gif" />
     <script type="text/javascript" src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
     <script type="text/javascript" src="https://unpkg.com/headroom.js@0.12.0/dist/headroom.min.js"></script>
 
-    <style>
+
+
+<style>
+        
+        root {
+  display: flex;
+  flex-direction: column;
+  background-color: black;
+  position: relative;
+  overflow: hidden;
+}
+
+.image {
+  width: 46.25%;
+  height: auto;
+  aspect-ratio: 1.1;
+  vertical-align: top;
+  -o-object-fit: cover;
+  object-fit: cover;
+  -o-object-position: center center;
+  object-position: center center;
+  position: relative;
+  margin: 209px auto 208px;
+}
+@media (max-width: 767px) {
+  .image {
+    width: 53.43%;
+  }
+}
+@media (max-width: 575px) {
+  .image {
+    width: 60.47%;
+  }
+}
+@media (max-width: 479px) {
+  .image {
+    width: 67.11%;
+  }
+}
+@media (max-width: 383px) {
+  .image {
+    width: 73.12%;
+  }
+}
+
+
+
         body {
             background-color: #000000;
         }
@@ -31,12 +77,17 @@
             align-items: center;
         }
     </style>
+
+
+
+
+    
 </head>
 
 <body class="flex-column">
     <div class="untitled-page root">
         <a href="https://github.com/NOXCIS">
-            <img src="./assets/3.gif" alt="alt text" class="image" />
+            <img src="./assets/images/3.gif" alt="alt text" class="image" />
         </a>
     </div>
     <script type="text/javascript">

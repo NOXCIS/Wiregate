@@ -6,6 +6,24 @@
   overflow: hidden;
 }
 
+.body {
+  background-color: #000000;
+}
+
+.untitled-page {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.untitled-page a {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+
 .image {
   width: 46.25%;
   height: auto;
