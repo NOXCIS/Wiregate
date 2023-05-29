@@ -18,6 +18,7 @@ services:
         ipv4_address: 10.2.0.200
 
   wg_dashboard:
+    depends_on: [unbound, pihole]
     image: noxcis/wg-dashboard:latest
     container_name: wg_dashboard
     cap_add:
