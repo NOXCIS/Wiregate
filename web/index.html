@@ -18,9 +18,228 @@
     <script src="https://cdn.jsdelivr.net/gh/px2code/posize/build/v1.01.0.js"></script>
 
 
+<style>
+.root {
+  display: flex;
+  flex-direction: column;
+  background-color: #000000;
+  position: relative;
+  overflow: hidden;
+}
+
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  width: 91.18%;
+  position: relative;
+  flex-grow: 1;
+  margin: 8px auto 13px;
+}
+@media (max-width: 1399px) {
+  .wrapper {
+    width: 93.24%;
+  }
+}
+@media (max-width: 1199px) {
+  .wrapper {
+    width: 94.84%;
+  }
+}
+@media (max-width: 991px) {
+  .wrapper {
+    width: 96.08%;
+  }
+}
+@media (max-width: 767px) {
+  .wrapper {
+    width: 97.03%;
+  }
+}
+@media (max-width: 575px) {
+  .wrapper {
+    width: 97.76%;
+  }
+}
+@media (max-width: 479px) {
+  .wrapper {
+    width: 98.31%;
+  }
+}
+@media (max-width: 383px) {
+  .wrapper {
+    width: 98.73%;
+  }
+}
+
+.wrapper1 {
+  display: flex;
+  flex-direction: column;
+  width: 45.7%;
+  position: relative;
+  margin: 0px auto;
+}
+@media (max-width: 767px) {
+  .wrapper1 {
+    width: 52.88%;
+  }
+}
+@media (max-width: 575px) {
+  .wrapper1 {
+    width: 59.94%;
+  }
+}
+@media (max-width: 479px) {
+  .wrapper1 {
+    width: 66.62%;
+  }
+}
+@media (max-width: 383px) {
+  .wrapper1 {
+    width: 72.68%;
+  }
+}
+
+.wrapper11 {
+  display: flex;
+  flex-direction: column;
+  background: var(--src) center center/contain no-repeat;
+  position: relative;
+  flex-grow: 1;
+  min-height: 569px;
+  margin: 0px 0px 67px;
+}
+
+.wrapper2 {
+  display: flex;
+  flex-direction: column;
+  width: 45.77%;
+  position: relative;
+  margin: 46px auto 0px;
+}
+@media (max-width: 767px) {
+  .wrapper2 {
+    width: 52.94%;
+  }
+}
+@media (max-width: 575px) {
+  .wrapper2 {
+    width: 60%;
+  }
+}
+@media (max-width: 479px) {
+  .wrapper2 {
+    width: 66.67%;
+  }
+}
+@media (max-width: 383px) {
+  .wrapper2 {
+    width: 72.73%;
+  }
+}
+
+.wrapper2 > .cell {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.wrapper3 {
+  outline: 7px solid white;
+  outline-offset: -7px;
+  width: calc(100% - 1px);
+  height: auto;
+  aspect-ratio: 10;
+  vertical-align: top;
+  -o-object-fit: cover;
+  object-fit: cover;
+  -o-object-position: center center;
+  object-position: center center;
+  position: relative;
+  margin: 0px 1px 0px 0px;
+}
+
+.wrapper31 {
+  outline: 7px solid white;
+  outline-offset: -7px;
+  width: calc(100% - 1px);
+  height: auto;
+  aspect-ratio: 10;
+  vertical-align: top;
+  -o-object-fit: cover;
+  object-fit: cover;
+  -o-object-position: center center;
+  object-position: center center;
+  position: relative;
+  margin: 21px 1px 0px 0px;
+}
+
+.wrapper32 {
+  outline: 7px solid white;
+  outline-offset: -7px;
+  width: calc(100% - 1px);
+  height: auto;
+  aspect-ratio: 10;
+  vertical-align: top;
+  -o-object-fit: cover;
+  object-fit: cover;
+  -o-object-position: center center;
+  object-position: center center;
+  position: relative;
+  margin: 21px 0px 0px 1px;
+}
+
+.wrapper > .cell {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.wrapper4 {
+  outline: 7px solid black;
+  outline-offset: -7px;
+  width: calc(100% - 0px);
+  height: auto;
+  aspect-ratio: 24.77;
+  vertical-align: top;
+  -o-object-fit: cover;
+  object-fit: cover;
+  -o-object-position: center center;
+  object-position: center center;
+  position: relative;
+  margin: 46px 0px 0px;
+}
+@media (max-width: 991px) {
+  .wrapper4 {
+    aspect-ratio: 19.67;
+  }
+}
+@media (max-width: 767px) {
+  .wrapper4 {
+    aspect-ratio: 19.94;
+  }
+}
+@media (max-width: 575px) {
+  .wrapper4 {
+    aspect-ratio: 17.32;
+  }
+}
+@media (max-width: 479px) {
+  .wrapper4 {
+    aspect-ratio: 11.01;
+  }
+}
+@media (max-width: 383px) {
+  .wrapper4 {
+    aspect-ratio: 10.97;
+  }
+}
+
+
+</style>    
+
 </head>
 
-<body class="flex-column">
+<body class="flex-column" style="background-color: #000000;" data-aos-easing="ease" data-aos-duration="400" data-aos-delay="0">
     <header id="header" class="headroom">
         <nav class="max:show">
 
@@ -33,17 +252,25 @@
             </div>
             <div class="wrapper2">
                 <div class="cell">
-                    <img src="./assets/6f43a92c5b1a6a8fd65ac9d5a6965982.png" alt="alt text" class="wrapper3" />
+                    <a href="http://10.2.0.3:10086">
+                    <img src="https://raw.githubusercontent.com/NOXCIS/Worm-Hole/3ee99256a0c1c48063eeaee0beb94d4b74bedaeb/web/assets/wireguard_dash.png" alt="alt text" class="wrapper3" />
+                    </a>    
                 </div>
                 <div class="cell">
-                    <img src="./assets/97b26cd37080461ecf1369a46a1c4645.png" alt="alt text" class="wrapper31" />
+                    <a href="http://10.2.0.100">
+                        <img src="https://raw.githubusercontent.com/NOXCIS/Worm-Hole/3ee99256a0c1c48063eeaee0beb94d4b74bedaeb/web/assets/pihole_dash.png" alt="alt text" class="wrapper31" />
+                    </a>
                 </div>
                 <div class="cell">
-                    <img src="./assets/d2ed52b40bf81094a6090a3e6d3ebe3e.png" alt="alt text" class="wrapper32" />
+                    <a href="http://10.2.0.3:9000">
+                        <img src="https://raw.githubusercontent.com/NOXCIS/Worm-Hole/3ee99256a0c1c48063eeaee0beb94d4b74bedaeb/web/assets/portainer_dash.png" alt="alt text" class="wrapper32" />
+                    </a>    
                 </div>
             </div>
             <div class="cell">
-                <img src="./assets/196dfe17c1d87702e6fdb84dd6797622.png" alt="alt text" class="wrapper4" />
+                <aa href="https://github.com/NOXCIS/Worm-Hole">
+                        <img src="https://raw.githubusercontent.com/NOXCIS/Worm-Hole/3ee99256a0c1c48063eeaee0beb94d4b74bedaeb/web/assets/warn.png" alt="alt text" class="wrapper4" />
+                </a>     
             </div>
         </div>
     </div>
