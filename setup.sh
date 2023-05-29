@@ -251,7 +251,7 @@ install_prerequisites() {
     do
         if ! dpkg -s "$prerequisite" > /dev/null 2>&1; then
             echo "${GREEN}$prerequisite is not installed. Installing...${RESET}"
-            sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy install "$prerequisite"
+            sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy install "$prerequisite" > /dev/null 2>&1
         else
             echo "${GREEN}$prerequisite is already installed. Skipping...${RESET}"
         fi
