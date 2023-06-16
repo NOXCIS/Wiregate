@@ -30,6 +30,7 @@ Worm-Hole can be installed on Ubuntu via the stackscript.sh
 ```bash
 #!/bin/bash
 export  DEBIAN_FRONTEND=noninteractive
+sudo apt install git -y
 sudo  sudo  DEBIAN_FRONTEND=noninteractive  apt-get  -o  Dpkg::Options::="--force-confdef"  -o  Dpkg::Options::="--force-confold"  -qy  update
 sudo  sudo  DEBIAN_FRONTEND=noninteractive  apt-get  -o  Dpkg::Options::="--force-confdef"  -o  Dpkg::Options::="--force-confold"  -qy  upgrade
 git  clone  https://github.com/NOXCIS/Worm-Hole.git
