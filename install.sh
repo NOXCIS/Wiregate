@@ -107,7 +107,6 @@ run_setup() {
             config_count &&
     sleep 0.1s
 
-
     #Uncomment to review the compose file before build.
     #nano docker-compose.yml
 
