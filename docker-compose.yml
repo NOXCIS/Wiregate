@@ -60,7 +60,6 @@ services:
     volumes:
       - "./etc-pihole/:/etc/pihole/"
       - "./etc-dnsmasq.d/:/etc/dnsmasq.d/"
-      - "./99-edns.conf:/etc/dnsmasq.d/99-edns.conf"
     cap_add:
       - NET_ADMIN
     networks:

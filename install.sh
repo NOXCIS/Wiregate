@@ -2,50 +2,152 @@
 set -e
 export DEBIAN_FRONTEND=noninteractive
 export TIMER_VALUE=0
-echo '  
+sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy update > /dev/null 2>&1
+sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy upgrade > /dev/null 2>&1
 
 
+menu() {
 
-
-
- █     █░ ▒█████   ██▀███   ███▄ ▄███▓ ██░ ██  ▒█████   ██▓    ▓█████ 
-▓█░ █ ░█░▒██▒  ██▒▓██ ▒ ██▒▓██▒▀█▀ ██▒▓██░ ██▒▒██▒  ██▒▓██▒    ▓█   ▀ 
-▒█░ █ ░█ ▒██░  ██▒▓██ ░▄█ ▒▓██    ▓██░▒██▀▀██░▒██░  ██▒▒██░    ▒███   
-░█░ █ ░█ ▒██   ██░▒██▀▀█▄  ▒██    ▒██ ░▓█ ░██ ▒██   ██░▒██░    ▒▓█  ▄ 
-░░██▒██▓ ░ ████▓▒░░██▓ ▒██▒▒██▒   ░██▒░▓█▒░██▓░ ████▓▒░░██████▒░▒████▒
-░ ▓░▒ ▒  ░ ▒░▒░▒░ ░ ▒▓ ░▒▓░░ ▒░   ░  ░ ▒ ░░▒░▒░ ▒░▒░▒░ ░ ▒░▓  ░░░ ▒░ ░
-  ▒ ░ ░    ░ ▒ ▒░   ░▒ ░ ▒░░  ░      ░ ▒ ░▒░ ░  ░ ▒ ▒░ ░ ░ ▒  ░ ░ ░  ░
-  ░   ░  ░ ░ ░ ▒    ░░   ░ ░      ░    ░  ░░ ░░ ░ ░ ▒    ░ ░      ░   
- ▄▄▄▄ ▓██   ██▓░   ███▄    █  ▒█████  ▒██ ░ ██▒ ▄████▄   ██▓  ██████ ░
-▓█████▄▒██  ██▒    ██ ▀█   █ ▒██▒  ██▒▒▒ █ █ ▒░▒██▀ ▀█  ▓██▒▒██    ▒  
-▒██▒ ▄██▒██ ██░   ▓██  ▀█ ██▒▒██░  ██▒░░  █   ░▒▓█    ▄ ▒██▒░ ▓██▄    
-▒██░█▀  ░ ▐██▓░   ▓██▒  ▐▌██▒▒██   ██░ ░ █ █ ▒ ▒▓▓▄ ▄██▒░██░  ▒   ██▒ 
-░▓█  ▀█▓░ ██▒▓░   ▒██░   ▓██░░ ████▓▒░▒██▒ ▒██▒▒ ▓███▀ ░░██░▒██████▒▒ 
-░▒▓███▀▒ ██▒▒▒    ░ ▒░   ▒ ▒ ░ ▒░▒░▒░ ▒▒ ░ ░▓ ░░ ░▒ ▒  ░░▓  ▒ ▒▓▒ ▒ ░ 
-▒░▒   ░▓██ ░▒░    ░ ░░   ░ ▒░  ░ ▒ ▒░ ░░   ░▒ ░  ░  ▒    ▒ ░░ ░▒  ░ ░ 
- ░    ░▒ ▒ ░░        ░   ░ ░ ░ ░ ░ ▒   ░    ░  ░         ▒ ░░  ░  ░   
- ░     ░ ░                 ░     ░ ░   ░    ░  ░ ░       ░        ░   
+    echo '  
+     █     █░ ▒█████   ██▀███   ███▄ ▄███▓ ██░ ██  ▒█████   ██▓    ▓█████ 
+    ▓█░ █ ░█░▒██▒  ██▒▓██ ▒ ██▒▓██▒▀█▀ ██▒▓██░ ██▒▒██▒  ██▒▓██▒    ▓█   ▀ 
+    ▒█░ █ ░█ ▒██░  ██▒▓██ ░▄█ ▒▓██    ▓██░▒██▀▀██░▒██░  ██▒▒██░    ▒███   
+    ░█░ █ ░█ ▒██   ██░▒██▀▀█▄  ▒██    ▒██ ░▓█ ░██ ▒██   ██░▒██░    ▒▓█  ▄ 
+    ░░██▒██▓ ░ ████▓▒░░██▓ ▒██▒▒██▒   ░██▒░▓█▒░██▓░ ████▓▒░░██████▒░▒████▒
+    ░ ▓░▒ ▒  ░ ▒░▒░▒░ ░ ▒▓ ░▒▓░░ ▒░   ░  ░ ▒ ░░▒░▒░ ▒░▒░▒░ ░ ▒░▓  ░░░ ▒░ ░
+      ▒ ░ ░    ░ ▒ ▒░   ░▒ ░ ▒░░  ░      ░ ▒ ░▒░ ░  ░ ▒ ▒░ ░ ░ ▒  ░ ░ ░  ░
+      ░   ░  ░ ░ ░ ▒    ░░   ░ ░      ░    ░  ░░ ░░ ░ ░ ▒    ░ ░      ░   
       ░░ ░                                     ░                      
 
-                  Setup Script & Dockerization by 
-                      Shamar Lee A.K.A NOXCIS
+            Setup Script & Dockerization by Shamar Lee A.K.A NOXCIS
+        Thanks to @donaldzou for WGDashboard @klutchell for UnBound Config
+    '
 
-                              Thanks to
+    echo "Please choose an option:"
+    echo "1. Run Setup"
+    echo "2. Manual Configuartion"
+    echo "3. Auto Configuatrion"
+    echo "4. Get Fresh docker-compose.yml"
+    echo "4. Exit"
 
-                    @donaldzou for WGDashboard
-                  @klutchell for UnBound Config
+    read -p "Enter your choice: " choice
+    echo ""
+
+    case $choice in
+        1) run_setup ;;
+        2) manual_setup ;;
+        3) auto_setup ;;
+        4) get_docker_compose ;;
+        4) exit ;;
+        *) echo "Invalid choice. Please try again." ;;
+    esac
+
+}
+
+run_setup() {
+
+    echo -e "\033[33m\n" 
+    echo "#######################################################################"
+    echo ""
+    echo "                        Installing prerequisites"
+    echo ""
+    echo "#######################################################################"
+    echo -e "\n\033[0m"
+    sleep 0.1s
+            install_prerequisites &&
+    sleep 3s
+
+    echo -e "\033[33m\n" 
+    echo "#######################################################################"
+    echo ""
+    echo "           SETTING UP FirewallD for Container Stack"
+    echo ""
+    echo "#######################################################################"
+    echo -e "\n\033[0m"
+    sleep 0.1s
+            systemctl restart docker &&
+            set_fw &&
+    sleep 0.1s
+
+    echo -e "\033[33m\n"
+    echo "#######################################################################"
+    echo ""
+    echo "                 SET TIMEZONE AND DASHBOARD PASSWORD"
+    echo ""
+    echo "              Input Prompt will timeout after 5s & 10s "
+    echo ""
+    echo "   The Time Zone will be set Automatically and The password left blank"
+    echo "                    When a timeout event occours"
+    echo ""
+    echo "#######################################################################"
+    echo -e "\n\033[0m"
+    sleep 0.1s
+            set_tz &&
+    sleep 0.1s
+    echo ""
+    echo "Enter password for Pihole Dashboard $(tput setaf 1)(Press enter to set password or wait 5 seconds for no password): $(tput sgr0)"  
+            set_password &&
+    sleep 0.1s
+
+
+    echo -e "\033[33m\n" 
+    echo "#######################################################################"
+    echo ""
+    echo "           SETTING SERVER IP & SERVER CONFIG FOR WIREGUARD"
+    echo ""
+    echo "                Input Prompt will timeout after 5s "
+    echo ""
+    echo "  The Server IP will be set Automatically and The Config Count set to 1"
+    echo "                    When a timeout event occours"
+    echo ""
+    echo "#######################################################################"
+    echo -e "\n\033[0m"
+    sleep 0.1s
+            update_server_ip &&
+            config_count &&
+    sleep 0.1s
+
+
+    #Uncomment to review the compose file before build.
+    #nano docker-compose.yml
+
+
+    echo -e "\033[33m\n" 
+    echo "#######################################################################"
+    echo ""
+    echo "                        Run docker Compose UP"
+    echo ""
+    echo "#######################################################################"
+    echo -e "\n\033[0m"
+    sleep 0.1s          
+            docker-compose up -d --build &&
+    sleep 0.1s
+
+
+    echo -e "\033[33m\n" 
+    echo "#######################################################################"
+    echo ""
+    echo "                        Create a 2 Gb swapfile"
+    echo ""
+    echo "#######################################################################"
+    echo -e "\n\033[0m"
+    sleep 0.1s
+            create_swap &&
+    sleep 0.1s
 
 
 
-'
-sleep 5s
+    
+}
 
-sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy update
-sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy upgrade
+auto_setup() {
 
+    TIMER_VALUE=0 
+    run_setup 
 
+}
 
-set_mode(){
+manual_setup() {
 
     echo "Enter the timer value (in seconds):"
     read TIMER_VALUE
@@ -53,39 +155,6 @@ set_mode(){
 
 
 }
-
-disable_docker_iptables() {
-  # Check if Docker is installed
-  if ! command -v docker > /dev/null 2>&1; then
-    echo "Docker is not installed."
-    return 1
-  fi
-
-  # Docker configuration file
-  DOCKER_CONFIG="/etc/docker/daemon.json"
-
-  # Check if daemon.json exists
-  if [[ ! -f "$DOCKER_CONFIG" ]]; then
-    echo "Creating Docker configuration file: $DOCKER_CONFIG"
-    echo '{ "iptables": false }' > "$DOCKER_CONFIG"
-  else
-    # Check if iptables configuration exists in daemon.json
-    if grep -q '"iptables": false' "$DOCKER_CONFIG"; then
-      echo "Docker iptables is already disabled."
-      return 0
-    fi
-
-    # Disable iptables in daemon.json
-    sed -i 's/\("iptables":\s*\)true/\1false/' "$DOCKER_CONFIG"
-  fi
-
-  echo "Docker iptables has been disabled. Restarting Docker daemon..."
-
-  # Restart Docker daemon
-  systemctl restart docker
-  return $?
-}
-
 
 set_fw() {
 
@@ -121,7 +190,6 @@ set_fw() {
 
 }
 
-
 set_tz() {
     local yml_file="docker-compose.yml"
     read -t $TIMER_VALUE -p "Do you want to automatically get the host timezone? $(tput setaf 1)(y/n)$(tput sgr0) " answer 
@@ -143,7 +211,6 @@ set_tz() {
     sed -i "s|TZ:.*|TZ: \"$timezone\"|" "$yml_file"
     echo ""
 }
-
 
 update_server_ip() {
     local yml_file="docker-compose.yml"
@@ -168,7 +235,6 @@ update_server_ip() {
         echo "$yml_file not found."
     fi
 }
-
 
 set_password() {
     local yml_file="docker-compose.yml"
@@ -221,7 +287,6 @@ set_password() {
     fi
 }
 
-
 config_count() {
     local yml_file="docker-compose.yml"
     local count=""
@@ -235,7 +300,6 @@ config_count() {
         echo -e "WireGuard Server Configurations to be Generated has been set to \033[32m$count\033[0m"
         echo ""
 }
-
 
 install_prerequisites() {
     # List of prerequisites
@@ -269,8 +333,6 @@ install_prerequisites() {
     done
 }
 
-
-
 get_docker_compose() {
     local yml_file="docker-compose.yml"
 
@@ -284,7 +346,6 @@ get_docker_compose() {
         curl -o "$(dirname "$0")/$yml_file" https://raw.githubusercontent.com/NOXCIS/Worm-Hole/nginx-%2B%2B/docker-compose.yml
         echo "File '$yml_file' successfully pulled from GitHub."
 }
-
 
 create_swap() {
 
@@ -314,115 +375,19 @@ create_swap() {
 }
 
 
+# Main script
+    if [ $# -eq 0 ]; then
+        menu
+    else
+    case $1 in
+        run) run_setup ;;
+        manual) manual_setup ;;
+        headless) auto_setup ;;
+        fresh) get_docker_compose ;;
+        *) echo "Invalid choice. Please try again." ;;
+    esac
+    fi
 
-
-echo -e "\033[33m\n" 
-echo "#######################################################################"
-echo ""
-echo "                        Installing prerequisites"
-echo ""
-echo "#######################################################################"
-echo -e "\n\033[0m"
-sleep 0.1s
-            install_prerequisites &&
-sleep 3s
-
-echo -e "\033[33m\n" 
-echo "#######################################################################"
-echo ""
-echo "           SETTING UP FirewallD for Container Stack"
-echo ""
-echo "#######################################################################"
-echo -e "\n\033[0m"
-sleep 0.1s
-            systemctl restart docker &&
-            set_fw &&
-sleep 0.1s
-
-
-echo -e "\033[33m\n" 
-echo "#######################################################################"
-echo ""
-echo "              Pulling fresh docker-compose.yml from Github"
-echo ""
-echo "#######################################################################"
-echo -e "\n\033[0m"
-sleep 0.1s
-            #get_docker_compose &&
-sleep 0.1s
-
-
-echo -e "\033[33m\n"
-echo "#######################################################################"
-echo ""
-echo "                 SET TIMEZONE AND DASHBOARD PASSWORD"
-echo ""
-echo "              Input Prompt will timeout after 5s & 10s "
-echo ""
-echo "   The Time Zone will be set Automatically and The password left blank"
-echo "                    When a timeout event occours"
-echo ""
-echo "#######################################################################"
-echo -e "\n\033[0m"
-sleep 0.1s
-            set_tz &&
-sleep 0.1s
-echo ""
-echo "Enter password for Pihole Dashboard $(tput setaf 1)(Press enter to set password or wait 5 seconds for no password): $(tput sgr0)"  
-            set_password &&
-sleep 0.1s
-
-
-echo -e "\033[33m\n" 
-echo "#######################################################################"
-echo ""
-echo "           SETTING SERVER IP & SERVER CONFIG FOR WIREGUARD"
-echo ""
-echo "                Input Prompt will timeout after 5s "
-echo ""
-echo "  The Server IP will be set Automatically and The Config Count set to 1"
-echo "                    When a timeout event occours"
-echo ""
-echo "#######################################################################"
-echo -e "\n\033[0m"
-sleep 0.1s
-            update_server_ip &&
-            config_count &&
-sleep 0.1s
-
-
-
-
-
-
-
-#Uncomment to review the compose file before build.
-#nano docker-compose.yml
-
-
-
-echo -e "\033[33m\n" 
-echo "#######################################################################"
-echo ""
-echo "                        Run docker Compose UP"
-echo ""
-echo "#######################################################################"
-echo -e "\n\033[0m"
-sleep 0.1s          
-            docker-compose up -d --build  &&
-sleep 0.1s
-
-
-echo -e "\033[33m\n" 
-echo "#######################################################################"
-echo ""
-echo "                        Create a 2 Gb swapfile"
-echo ""
-echo "#######################################################################"
-echo -e "\n\033[0m"
-sleep 0.1s
-            create_swap &&
-sleep 0.1s
 
 
 #rm docker-compose.yml
