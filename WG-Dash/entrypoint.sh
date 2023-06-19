@@ -1,6 +1,6 @@
 #!/bin/bash
 
-rm /etc/wireguard/*.conf
+#rm /etc/wireguard/*.conf
 
 chmod u+x /home/app/wgd.sh
 
