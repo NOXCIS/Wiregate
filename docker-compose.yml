@@ -13,9 +13,18 @@ services:
     container_name: unbound
     restart: unless-stopped
     hostname: "unbound"
+    healthcheck:
+      test: ["CMD", "dig", "-p", "53", "dnssec.works", "@127.0.0.1"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 30s
+    volumes:
+      - ./pi-hole.conf:/etc/unbound/custom.conf.d/pi-hole.conf
     networks:
       private_network:
         ipv4_address: 10.2.0.200
+    
 
   wg_dashboard:
     depends_on: [unbound, pihole]
@@ -47,7 +56,6 @@ services:
     restart: unless-stopped
     hostname: pihole
     dns:
-      - 127.0.0.1
       - 10.2.0.200 # Points to unbound
     environment:
       TZ: "America/Chicago"
@@ -58,6 +66,7 @@ services:
     volumes:
       - "./etc-pihole/:/etc/pihole/"
       - "./etc-dnsmasq.d/:/etc/dnsmasq.d/"
+      - "./99-edns.conf:/etc/dnsmasq.d/99-edns.conf"
     cap_add:
       - NET_ADMIN
     networks:
@@ -73,8 +82,8 @@ services:
       private_network:
         ipv4_address: 10.2.0.6
     dns:
-      - 127.0.0.1
       - 10.2.0.200
+      
 
   nginx:
     container_name: nginx
@@ -89,7 +98,6 @@ services:
       private_network:
         ipv4_address: 10.2.0.4
     dns:
-      - 127.0.0.1
       - 10.2.0.200
 
   portainer:
@@ -108,7 +116,6 @@ services:
       private_network:
         ipv4_address: 10.2.0.5
     dns:
-      - 127.0.0.1
       - 10.2.0.200
 
 volumes:
