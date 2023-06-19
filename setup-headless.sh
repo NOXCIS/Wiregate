@@ -1,6 +1,7 @@
 #!/bin/bash
 set -e
 export DEBIAN_FRONTEND=noninteractive
+export TIMER_VALUE=0
 echo '  
 
 
@@ -42,6 +43,16 @@ sleep 5s
 sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy update
 sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy upgrade
 
+
+
+set_mode(){
+
+    echo "Enter the timer value (in seconds):"
+    read TIMER_VALUE
+    echo "Timer value set to $TIMER_VALUE seconds."
+
+
+}
 
 disable_docker_iptables() {
   # Check if Docker is installed
@@ -113,7 +124,7 @@ set_fw() {
 
 set_tz() {
     local yml_file="docker-compose.yml"
-    read -t 0.1 -p "Do you want to automatically get the host timezone? $(tput setaf 1)(y/n)$(tput sgr0) " answer 
+    read -t $TIMER_VALUE -p "Do you want to automatically get the host timezone? $(tput setaf 1)(y/n)$(tput sgr0) " answer 
     echo ""
     echo ""
     if [[ $answer == [Yy] || -z $answer ]]; then
@@ -138,7 +149,7 @@ update_server_ip() {
     local yml_file="docker-compose.yml"
     local ip
 
-        read -t 0.1 -p "Do you want to automatically set the server IP address? $(tput setaf 1)(y/n)$(tput sgr0) " auto_ip
+        read -t $TIMER_VALUE -p "Do you want to automatically set the server IP address? $(tput setaf 1)(y/n)$(tput sgr0) " auto_ip
         echo ""
         echo ""
     if [[ $auto_ip =~ ^[Nn]$ ]]; then
@@ -163,7 +174,7 @@ set_password() {
     local yml_file="docker-compose.yml"
     local password=""
     local confirm_password=""
-    local timer=0.1
+    local timer=$TIMER_VALUE
     local user_activity=false
 
     # Wait for 5 seconds or until user activity is detected
@@ -214,7 +225,7 @@ set_password() {
 config_count() {
     local yml_file="docker-compose.yml"
     local count=""
-        read -t 0.1 -p "Enter # of WireGuard server configurations to generate $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " count
+        read -t $TIMER_VALUE -p "Enter # of WireGuard server configurations to generate $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " count
         echo ""
         echo ""
     if [[ -z "$count" ]]; then
@@ -337,7 +348,7 @@ echo ""
 echo "#######################################################################"
 echo -e "\n\033[0m"
 sleep 0.1s
-            get_docker_compose &&
+            #get_docker_compose &&
 sleep 0.1s
 
 

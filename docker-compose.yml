@@ -13,12 +13,6 @@ services:
     container_name: unbound
     restart: unless-stopped
     hostname: "unbound"
-    healthcheck:
-      test: ["CMD", "dig", "-p", "53", "dnssec.works", "@127.0.0.1"]
-      interval: 30s
-      timeout: 30s
-      retries: 3
-      start_period: 30s
     volumes:
       - ./pi-hole.conf:/etc/unbound/custom.conf.d/pi-hole.conf
     networks:
