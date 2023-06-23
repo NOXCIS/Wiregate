@@ -3,7 +3,6 @@
 #rm /etc/wireguard/*.conf
 
 chmod u+x /home/app/wgd.sh
-wg-quick up wg0
 if [ ! -f "/home/app/wg-dashboard.ini" ]; 
 then
   /home/app/wgd.sh install
