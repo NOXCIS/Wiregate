@@ -32,7 +32,7 @@ Worm-Hole can be installed on Ubuntu via the stackscript.sh
 git clone https://github.com/NOXCIS/Worm-Hole.git
 cd Worm-Hole 
 chmod +x install.sh
-./install.sh auto
+./install.sh headless
 ```
 
  - The setup script can be left to run on its own where it will automatically assign the necessary environment variables or accept user input for the users desired environment variables.
