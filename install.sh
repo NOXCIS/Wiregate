@@ -117,7 +117,6 @@ run_setup() {
     echo "#######################################################################"
     echo -e "\n\033[0m"
     sleep 0.1s          
-            docker-compose down
             docker-compose up -d --build &&
     sleep 0.1s
 
@@ -359,6 +358,7 @@ create_swap() {
 
 
 }
+
 
 
 # Main script
