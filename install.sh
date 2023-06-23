@@ -2,12 +2,8 @@
 set -e
 export DEBIAN_FRONTEND=noninteractive
 export TIMER_VALUE=0
-sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy update > /dev/null 2>&1
-sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy upgrade > /dev/null 2>&1
 
-
-menu() {
-
+title() {
     echo '  
      █     █░ ▒█████   ██▀███   ███▄ ▄███▓ ██░ ██  ▒█████   ██▓    ▓█████ 
     ▓█░ █ ░█░▒██▒  ██▒▓██ ▒ ██▒▓██▒▀█▀ ██▒▓██░ ██▒▒██▒  ██▒▓██▒    ▓█   ▀ 
@@ -22,22 +18,23 @@ menu() {
             Setup Script & Dockerization by Shamar Lee A.K.A NOXCIS
         Thanks to @donaldzou for WGDashboard @klutchell for UnBound Config
     '
+}
 
+menu() {
+    title
     echo "Please choose an option:"
-    echo "1. Run Setup"
-    echo "2. Manual Configuartion"
-    echo "3. Auto Configuatrion"
-    echo "4. Get Fresh docker-compose.yml"
+    echo "1. Manual Configuartion"
+    echo "2. Auto Configuatrion"
+    echo "3. Get Fresh docker-compose.yml"
     echo "4. Exit"
 
     read -p "Enter your choice: " choice
     echo ""
 
     case $choice in
-        1) run_setup ;;
-        2) manual_setup ;;
-        3) auto_setup ;;
-        4) get_docker_compose ;;
+        1) manual_setup ;;
+        2) auto_setup ;;
+        3) get_docker_compose ;;
         4) exit ;;
         *) echo "Invalid choice. Please try again." ;;
     esac
@@ -45,6 +42,8 @@ menu() {
 }
 
 run_setup() {
+    sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy update > /dev/null 2>&1
+    sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy upgrade > /dev/null 2>&1
 
     echo -e "\033[33m\n" 
     echo "#######################################################################"
@@ -72,7 +71,7 @@ run_setup() {
     echo -e "\033[33m\n"
     echo "#######################################################################"
     echo ""
-    echo "                 SET TIMEZONE AND DASHBOARD PASSWORD"
+    echo "                 SET TIMEZONE AND DASHBOARD PASSWORDS"
     echo ""
     echo "              Input Prompt will timeout after 5s & 10s "
     echo ""
@@ -93,18 +92,17 @@ run_setup() {
     echo -e "\033[33m\n" 
     echo "#######################################################################"
     echo ""
-    echo "           SETTING SERVER IP & SERVER CONFIG FOR WIREGUARD"
+    echo "                  SETTING SERVER IP FOR WIREGUARD"
     echo ""
     echo "                Input Prompt will timeout after 5s "
     echo ""
-    echo "  The Server IP will be set Automatically and The Config Count set to 1"
+    echo "              The Server IP will be set Automatically "
     echo "                    When a timeout event occours"
     echo ""
     echo "#######################################################################"
     echo -e "\n\033[0m"
     sleep 0.1s
             update_server_ip &&
-            config_count &&
     sleep 0.1s
 
     #Uncomment to review the compose file before build.
@@ -119,6 +117,7 @@ run_setup() {
     echo "#######################################################################"
     echo -e "\n\033[0m"
     sleep 0.1s          
+            docker-compose down
             docker-compose up -d --build &&
     sleep 0.1s
 
@@ -140,35 +139,20 @@ run_setup() {
 }
 
 auto_setup() {
-
-
-    echo '  
-     █     █░ ▒█████   ██▀███   ███▄ ▄███▓ ██░ ██  ▒█████   ██▓    ▓█████ 
-    ▓█░ █ ░█░▒██▒  ██▒▓██ ▒ ██▒▓██▒▀█▀ ██▒▓██░ ██▒▒██▒  ██▒▓██▒    ▓█   ▀ 
-    ▒█░ █ ░█ ▒██░  ██▒▓██ ░▄█ ▒▓██    ▓██░▒██▀▀██░▒██░  ██▒▒██░    ▒███   
-    ░█░ █ ░█ ▒██   ██░▒██▀▀█▄  ▒██    ▒██ ░▓█ ░██ ▒██   ██░▒██░    ▒▓█  ▄ 
-    ░░██▒██▓ ░ ████▓▒░░██▓ ▒██▒▒██▒   ░██▒░▓█▒░██▓░ ████▓▒░░██████▒░▒████▒
-    ░ ▓░▒ ▒  ░ ▒░▒░▒░ ░ ▒▓ ░▒▓░░ ▒░   ░  ░ ▒ ░░▒░▒░ ▒░▒░▒░ ░ ▒░▓  ░░░ ▒░ ░
-      ▒ ░ ░    ░ ▒ ▒░   ░▒ ░ ▒░░  ░      ░ ▒ ░▒░ ░  ░ ▒ ▒░ ░ ░ ▒  ░ ░ ░  ░
-      ░   ░  ░ ░ ░ ▒    ░░   ░ ░      ░    ░  ░░ ░░ ░ ░ ▒    ░ ░      ░   
-      ░░ ░                                     ░                      
-
-            Setup Script & Dockerization by Shamar Lee A.K.A NOXCIS
-        Thanks to @donaldzou for WGDashboard @klutchell for UnBound Config
-    '
+    title
     sleep 5s
     TIMER_VALUE=0 
     run_setup 
-
 }
 
 manual_setup() {
-
+    title
+    echo "The Timer value dictates how much time you will have in each setup set."
     echo "Enter the timer value (in seconds):"
     read TIMER_VALUE
-    echo "Timer value set to $TIMER_VALUE seconds."
-
-
+    echo -e "Timer value set to \033[32m$TIMER_VALUE\033[0m seconds."
+    sleep 2s
+    run_setup
 }
 
 set_fw() {
@@ -243,7 +227,7 @@ update_server_ip() {
     fi
 
     if [[ -f "$yml_file" ]]; then
-        sed -i "s/SERVER_IP=.*/SERVER_IP=$ip/" "$yml_file"
+        sed -i "s/WG_HOST=.*/WG_HOST=$ip/" "$yml_file"
         echo -e "Server IP address has been set to \033[32m$ip\033[0m"
         echo ""
     else
@@ -302,21 +286,8 @@ set_password() {
     fi
 }
 
-config_count() {
-    local yml_file="docker-compose.yml"
-    local count=""
-        read -t $TIMER_VALUE -p "Enter # of WireGuard server configurations to generate $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " count
-        echo ""
-        echo ""
-    if [[ -z "$count" ]]; then
-        count=1
-    fi
-        sed -i "s/CONFIG_CT=.*/CONFIG_CT=$count/" "$yml_file"
-        echo -e "WireGuard Server Configurations to be Generated has been set to \033[32m$count\033[0m"
-        echo ""
-}
-
 install_prerequisites() {
+    
     # List of prerequisites
     PREREQUISITES=(
         curl

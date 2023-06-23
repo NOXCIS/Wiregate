@@ -8,6 +8,7 @@ networks:
       config:
         - subnet: 10.2.0.0/24
 
+
 services:
   unbound:
     image: "klutchell/unbound:latest"
@@ -15,33 +16,34 @@ services:
     restart: unless-stopped
     hostname: "unbound"
     volumes:
-      - ./Unbound-Custom-Config/unbound.conf:/etc/unbound/custom.conf.d/unbound.conf
+      - ./pi-hole.conf:/etc/unbound/custom.conf.d/pi-hole.conf
     networks:
       private_network:
         ipv4_address: 10.2.0.200
     
-  wg_dashboard:
-    depends_on: [unbound, pihole]
-    image: noxcis/wg-dashboard:latest
-    container_name: wg_dashboard
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-    restart: unless-stopped
-    volumes:
-      - ./WG-Dash/config:/etc/wireguard
-    environment:
-      - SERVER_IP=172.30.155.189
-      - CONFIG_CT=1
-    ports:
-      - 10086:10086
-      - 51820:51820/udp
-    sysctls:
-      - net.ipv4.ip_forward=1
-      - net.ipv4.conf.all.src_valid_mark=1
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.3
+  subspace:
+   image: subspacecommunity/subspace:latest
+   container_name: subspace
+   volumes:
+    - /opt/docker/subspace:/data
+    - /opt/docker/dnsmasq:/etc/dnsmasq.d
+   restart: always
+   environment:
+    - SUBSPACE_HTTP_HOST=127.0.0.1
+    - SUBSPACE_LETSENCRYPT=true
+    - SUBSPACE_HTTP_INSECURE=false
+    - SUBSPACE_HTTP_ADDR=":80"
+    - SUBSPACE_NAMESERVERS=1.1.1.1,8.8.8.8
+    - SUBSPACE_LISTENPORT=51820
+    - SUBSPACE_IPV4_POOL=10.99.97.0/24
+    - SUBSPACE_IPV6_POOL=fd00::10:97:0/64
+    - SUBSPACE_IPV4_GW=10.99.97.1
+    - SUBSPACE_IPV6_GW=fd00::10:97:1
+    - SUBSPACE_IPV6_NAT_ENABLED=1
+    - SUBSPACE_DISABLE_DNS=0
+    - SUBSPACE_PERSISTENT_KEEPALIVE=20
+
+      
 
 
 
@@ -62,8 +64,7 @@ services:
     volumes:
       - "./etc-pihole/:/etc/pihole/"
       - "./etc-dnsmasq.d/:/etc/dnsmasq.d/"
-    cap_add:
-      - NET_ADMIN
+
     networks:
       private_network:
         ipv4_address: 10.2.0.100
