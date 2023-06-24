@@ -67,7 +67,7 @@ services:
     networks:
       private_network:
         ipv4_address: 10.2.0.100
-  
+      
   watchtower:
     container_name: watchtower
     image: containrrr/watchtower
@@ -77,7 +77,7 @@ services:
       private_network:
         ipv4_address: 10.2.0.6
     dns:
-      - 10.2.0.200
+      - 10.2.0.100
       
 
   nginx:
@@ -93,7 +93,7 @@ services:
       private_network:
         ipv4_address: 10.2.0.4
     dns:
-      - 10.2.0.200
+      - 10.2.0.100
 
   portainer:
     container_name: portainer
@@ -111,7 +111,7 @@ services:
       private_network:
         ipv4_address: 10.2.0.5
     dns:
-      - 10.2.0.200
+      - 10.2.0.100
 
 volumes:
   portainer_data:
