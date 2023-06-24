@@ -15,7 +15,7 @@ services:
     restart: unless-stopped
     hostname: "unbound"
     volumes:
-      - ./unbound.conf:/etc/unbound/custom.conf.d/unbound.conf
+      - ./Unbound-Custom-Config/unbound.conf:/etc/unbound/custom.conf.d/unbound.conf
     networks:
       private_network:
         ipv4_address: 10.2.0.200
