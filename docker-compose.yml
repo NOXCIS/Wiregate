@@ -1,3 +1,4 @@
+
 version: "3"
 
 networks:
@@ -13,10 +14,12 @@ services:
     container_name: unbound
     restart: unless-stopped
     hostname: "unbound"
+    volumes:
+      - ./Unbound-Custom-Config/unbound.conf:/etc/unbound/custom.conf.d/unbound.conf
     networks:
       private_network:
         ipv4_address: 10.2.0.200
-
+    
   wg_dashboard:
     depends_on: [unbound, pihole]
     image: noxcis/wg-dashboard:latest
@@ -40,6 +43,8 @@ services:
       private_network:
         ipv4_address: 10.2.0.3
 
+
+
   pihole:
     depends_on: [unbound]
     container_name: pihole
@@ -47,7 +52,6 @@ services:
     restart: unless-stopped
     hostname: pihole
     dns:
-      - 127.0.0.1
       - 10.2.0.200 # Points to unbound
     environment:
       TZ: "America/Chicago"
@@ -73,8 +77,8 @@ services:
       private_network:
         ipv4_address: 10.2.0.6
     dns:
-      - 127.0.0.1
       - 10.2.0.200
+      
 
   nginx:
     container_name: nginx
@@ -89,7 +93,6 @@ services:
       private_network:
         ipv4_address: 10.2.0.4
     dns:
-      - 127.0.0.1
       - 10.2.0.200
 
   portainer:
@@ -108,7 +111,6 @@ services:
       private_network:
         ipv4_address: 10.2.0.5
     dns:
-      - 127.0.0.1
       - 10.2.0.200
 
 volumes:
