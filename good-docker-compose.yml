@@ -9,27 +9,31 @@ networks:
 
 services:
   unbound:
-    image: "klutchell/unbound:latest"
+    image: "mvance/unbound:latest"
     container_name: unbound
     restart: unless-stopped
     hostname: "unbound"
+    volumes:
+      - "./Pihole-Unbound/unbound:/home/app/unbound/etc/unbound/"
     networks:
       private_network:
         ipv4_address: 10.2.0.200
 
   wg_dashboard:
-    depends_on: [unbound, pihole]
-    image: noxcis/wg-dashboard:latest
+    build: 
+      context: ./WG-Dash
+    image: noxcis/wireguard_dashboard:latest
     container_name: wg_dashboard
-    cap_add:
+    cap_add: 
       - NET_ADMIN
       - SYS_MODULE
-    restart: unless-stopped
+    restart: unless-stopped 
     volumes:
       - ./WG-Dash/config:/etc/wireguard
     environment:
       - SERVER_IP=172.30.155.189
       - CONFIG_CT=1
+    
     ports:
       - 10086:10086
       - 51820:51820/udp
@@ -55,61 +59,17 @@ services:
       ServerIP: 10.2.0.100 # Internal IP of pihole
       DNS1: 10.2.0.200 # Unbound IP
       DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
+    # Volumes store your data between container upgrades
     volumes:
       - "./etc-pihole/:/etc/pihole/"
       - "./etc-dnsmasq.d/:/etc/dnsmasq.d/"
+    # Recommended but not required (DHCP needs NET_ADMIN)
+    #   https://github.com/pi-hole/docker-pi-hole#note-on-capabilities
     cap_add:
       - NET_ADMIN
     networks:
       private_network:
         ipv4_address: 10.2.0.100
-  
-  watchtower:
-    container_name: watchtower
-    image: containrrr/watchtower
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.6
-    dns:
-      - 127.0.0.1
-      - 10.2.0.200
 
-  nginx:
-    container_name: nginx
-    image: nginx:latest
-    ports:
-      - 80:80
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./web/:/var/www/html/
-    restart: unless-stopped
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.4
-    dns:
-      - 127.0.0.1
-      - 10.2.0.200
 
-  portainer:
-    container_name: portainer
-    image: portainer/portainer-ce
-    #ports:
-      #- 8000:8000
-      #- 9000:9000
-    environment:
-      - SERVER_IP=172.30.155.189
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - portainer_data:/data
-    restart: always
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.5
-    dns:
-      - 127.0.0.1
-      - 10.2.0.200
 
-volumes:
-  portainer_data:

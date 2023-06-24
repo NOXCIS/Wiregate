@@ -29,10 +29,13 @@ WireHole is a combination of WireGuard, PiHole, and Unbound in a docker-compose 
 Worm-Hole can be installed on Ubuntu via the stackscript.sh
 ```bash
 #!/bin/bash
-git clone https://github.com/NOXCIS/Worm-Hole.git
-cd Worm-Hole 
-chmod +x install.sh
-./install.sh headless
+export  DEBIAN_FRONTEND=noninteractive
+sudo  sudo  DEBIAN_FRONTEND=noninteractive  apt-get  -o  Dpkg::Options::="--force-confdef"  -o  Dpkg::Options::="--force-confold"  -qy  update
+sudo  sudo  DEBIAN_FRONTEND=noninteractive  apt-get  -o  Dpkg::Options::="--force-confdef"  -o  Dpkg::Options::="--force-confold"  -qy  upgrade
+git  clone  https://github.com/NOXCIS/Worm-Hole.git
+cd  Worm-Hole
+chmod  +x  setup.sh
+sudo ./setup.sh
 ```
 
  - The setup script can be left to run on its own where it will automatically assign the necessary environment variables or accept user input for the users desired environment variables.
