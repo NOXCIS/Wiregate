@@ -117,7 +117,7 @@ run_setup() {
     echo "#######################################################################"
     echo -e "\n\033[0m"
     sleep 0.1s         
-            sudo sysctl -w net.core.rmem_max=2097152
+            sysctl -w net.core.rmem_max=2097152
             docker-compose up -d --build &&
     sleep 0.1s
 
