@@ -104,6 +104,7 @@ run_setup() {
     sleep 0.1s
             update_server_ip &&
             config_count &&
+            add_port_mappings &&
     sleep 0.1s
 
     #Uncomment to review the compose file before build.
@@ -141,7 +142,6 @@ run_setup() {
 
 auto_setup() {
     title
-    sleep 5s
     TIMER_VALUE=0 
     run_setup 
 }
@@ -326,12 +326,39 @@ config_count() {
         echo ""
         echo ""
     if [[ -z "$count" ]]; then
-        count=1
+        count=2
     fi
         sed -i "s/CONFIG_CT=.*/CONFIG_CT=$count/" "$yml_file"
         echo -e "WireGuard Server Configurations to be Generated has been set to \033[32m$count\033[0m"
         echo ""
 }
+add_port_mappings() {
+    local config_ct=$(grep -oP '(?<=CONFIG_CT=)\d+' docker-compose.yml)
+    local start_port=51820
+    local port_mappings=""
+    local cfg_ct=$config_ct - 2
+    for ((i = 1; i <= cfg_ct; i++)); do
+        local port=$((start_port + i - 1))
+        port_mappings+="\n      - $port:$port/udp"
+    done
+
+    sed -i "/- 51820:51820\/udp/a${port_mappings//$'\n'/\\n}" docker-compose.yml
+    sed -i '/ports:/,/sysctls:/s/^n//' docker-compose.yml
+    sed -i '/ports:/,/sysctls:/ { /- 51820:51820\/udp/{n; d; } }' docker-compose.yml
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
 get_docker_compose() {
     local yml_file="docker-compose.yml"
 
