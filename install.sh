@@ -182,7 +182,6 @@ set_fw() {
         firewall-cmd --reload 
         firewall-cmd --permanent --zone=public --add-port=443/tcp
         firewall-cmd --permanent --zone=public --add-port=80/tcp
-        firewall-cmd --permanent --zone=docker --add-port=51820/udp
         firewall-cmd --permanent --zone=docker --add-port=10086/tcp
 
     # Reload firewall to apply permanent rules
@@ -336,28 +335,16 @@ add_port_mappings() {
     local config_ct=$(grep -oP '(?<=CONFIG_CT=)\d+' docker-compose.yml)
     local start_port=51820
     local port_mappings=""
-    for ((i = 1; i <= config_ct; i++)); do
-        local port=$((start_port + i - 1))
-        port_mappings+="\n      - $port:$port/udp"
-    done
+        for ((i = 1; i <= config_ct; i++)); do
+            local port=$((start_port + i - 1))
+            port_mappings+="\n      - $port:$port/udp"
+        done
 
     sed -i "/- 51820:51820\/udp/a${port_mappings//$'\n'/\\n}" docker-compose.yml
     sed -i '/ports:/,/sysctls:/s/^n//' docker-compose.yml
     sed -i '/ports:/,/sysctls:/ { /- 51820:51820\/udp/{n; d; } }' docker-compose.yml
 
 }
-
-
-
-
-
-
-
-
-
-
-
-
 get_docker_compose() {
     local yml_file="docker-compose.yml"
 
@@ -371,7 +358,6 @@ get_docker_compose() {
         curl -o "$(dirname "$0")/$yml_file" https://raw.githubusercontent.com/NOXCIS/Worm-Hole/docker-compose.yml
         echo "File '$yml_file' successfully pulled from GitHub."
 }
-
 create_swap() {
 
     # Check if a swapfile already exists
