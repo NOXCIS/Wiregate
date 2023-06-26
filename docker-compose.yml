@@ -31,8 +31,8 @@ services:
     volumes:
       - ./WG-Dash/config:/etc/wireguard
     environment:
-      - SERVER_IP=172.17.6.190
-      - CONFIG_CT=2
+      - SERVER_IP=127.0.0.1
+      - CONFIG_CT=1
     ports:
       - 10086:10086
       - 51820:51820/udp
