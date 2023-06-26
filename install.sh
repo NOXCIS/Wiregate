@@ -19,7 +19,6 @@ title() {
         Thanks to @donaldzou for WGDashboard @klutchell for UnBound Config
     '
 }
-
 menu() {
     title
     echo "Please choose an option:"
@@ -40,7 +39,6 @@ menu() {
     esac
 
 }
-
 run_setup() {
     sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy update > /dev/null 2>&1
     sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy upgrade > /dev/null 2>&1
@@ -139,13 +137,11 @@ run_setup() {
 
     
 }
-
 auto_setup() {
     title
     TIMER_VALUE=0 
     run_setup 
 }
-
 manual_setup() {
     title
     echo "The Timer value dictates how much time you will have in each setup set."
@@ -155,7 +151,6 @@ manual_setup() {
     sleep 2s
     run_setup
 }
-
 set_fw() {
 
     #Enable FirewallD
@@ -188,7 +183,6 @@ set_fw() {
         firewall-cmd --reload 
 
 }
-
 set_tz() {
     local yml_file="docker-compose.yml"
     read -t $TIMER_VALUE -p "Do you want to automatically get the host timezone? $(tput setaf 1)(y/n)$(tput sgr0) " answer 
@@ -210,7 +204,6 @@ set_tz() {
     sed -i "s|TZ:.*|TZ: \"$timezone\"|" "$yml_file"
     echo ""
 }
-
 update_server_ip() {
     local yml_file="docker-compose.yml"
     local ip
@@ -234,7 +227,6 @@ update_server_ip() {
         echo "$yml_file not found."
     fi
 }
-
 set_password() {
     local yml_file="docker-compose.yml"
     local password=""
@@ -285,7 +277,6 @@ set_password() {
         done
     fi
 }
-
 install_prerequisites() {
     
     # List of prerequisites
@@ -325,7 +316,7 @@ config_count() {
         echo ""
         echo ""
     if [[ -z "$count" ]]; then
-        count=1
+        count=4
     fi
         sed -i "s/CONFIG_CT=.*/CONFIG_CT=$count/" "$yml_file"
         echo -e "WireGuard Server Configurations to be Generated has been set to \033[32m$count\033[0m"
@@ -341,7 +332,7 @@ add_port_mappings() {
         done
 
     sed -i "/- 51820:51820\/udp/a${port_mappings//$'\n'/\\n}" docker-compose.yml
-    sed -i '/ports:/,/sysctls:/s/^n//' docker-compose.yml
+    #sed -i '/ports:/,/sysctls:/s/^n//' docker-compose.yml
     sed -i '/ports:/,/sysctls:/ { /- 51820:51820\/udp/{n; d; } }' docker-compose.yml
 
 }

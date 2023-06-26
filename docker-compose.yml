@@ -101,7 +101,7 @@ services:
       #- 8000:8000
       #- 9000:9000
     environment:
-      - SERVER_IP=127.0.0.1
+      - SERVER_IP=172.17.6.190
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
