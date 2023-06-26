@@ -1,7 +1,5 @@
 #!/bin/bash
 
-rm /etc/wireguard/*.conf
-
 chmod u+x /home/app/wgd.sh
 
 if [ ! -f "/home/app/wg-dashboard.ini" ]; then
