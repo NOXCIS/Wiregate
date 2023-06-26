@@ -326,7 +326,7 @@ config_count() {
         echo ""
         echo ""
     if [[ -z "$count" ]]; then
-        count=2
+        count=1
     fi
         sed -i "s/CONFIG_CT=.*/CONFIG_CT=$count/" "$yml_file"
         echo -e "WireGuard Server Configurations to be Generated has been set to \033[32m$count\033[0m"
@@ -336,8 +336,7 @@ add_port_mappings() {
     local config_ct=$(grep -oP '(?<=CONFIG_CT=)\d+' docker-compose.yml)
     local start_port=51820
     local port_mappings=""
-    local cfg_ct=$config_ct - 2
-    for ((i = 1; i <= cfg_ct; i++)); do
+    for ((i = 1; i <= config_ct; i++)); do
         local port=$((start_port + i - 1))
         port_mappings+="\n      - $port:$port/udp"
     done
@@ -369,7 +368,7 @@ get_docker_compose() {
     fi
 
         echo "Pulling '$yml_file' from GitHub..."
-        curl -o "$(dirname "$0")/$yml_file" https://raw.githubusercontent.com/NOXCIS/Worm-Hole/nginx-%2B%2B/docker-compose.yml
+        curl -o "$(dirname "$0")/$yml_file" https://raw.githubusercontent.com/NOXCIS/Worm-Hole/docker-compose.yml
         echo "File '$yml_file' successfully pulled from GitHub."
 }
 

@@ -32,11 +32,10 @@ services:
       - ./WG-Dash/config:/etc/wireguard
     environment:
       - SERVER_IP=172.17.6.190
-      - CONFIG_CT=2
+      - CONFIG_CT=5
     ports:
       - 10086:10086
       - 51820:51820/udp
-      - 51821:51821/udp
      
     sysctls:
       - net.ipv4.ip_forward=1
