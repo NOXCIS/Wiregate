@@ -134,7 +134,7 @@ newconf_wgd() {
     # Build the configuration file content
     config="[Interface]
 PrivateKey = $private_key
-Address = 10.0.0.1/24
+Address = 10.0.1.1/24
 ListenPort = 51820
 SaveConfig = true
 PostUp = iptables -t nat -I POSTROUTING -o eth0 -j MASQUERADE
@@ -146,7 +146,32 @@ PreDown = iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
 
     # Print a message indicating that the file was written
     echo "Configuration written to $filename"
+    fix_multi_config
 }
+
+fix_multi_config() {
+    config_files=$(find /etc/wireguard -type f -name "*.conf" ! -name "wg0.conf")
+    
+    for file in $config_files; do
+        address_line=$(grep -oP 'Address = 10.0.\K\d+(?=.1/24)' "$file")
+        listen_port_line=$(grep -oP 'ListenPort = 5182\K\d+' "$file")
+        
+        if [ -n "$address_line" ] && [ -n "$listen_port_line" ]; then
+            existing_address=$(echo "$address_line" | awk '{print $1}')
+            existing_listen_port=$(echo "$listen_port_line" | awk '{print $1}')
+            
+            new_address=$((existing_address + 1))
+            new_listen_port=$((existing_listen_port + 1))
+            
+            sed -i "s/Address = 10.0.$existing_address.1\/24/Address = 10.0.$new_address.1\/24/" "$file"
+            sed -i "s/ListenPort = 5182$existing_listen_port/ListenPort = 5182$new_listen_port/" "$file"
+            
+            echo "Updated $file"
+        fi
+    done
+}
+
+
 
 
 

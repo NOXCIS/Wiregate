@@ -5,6 +5,7 @@ src/db
 __pycache__
 src/test.py
 *.db
+docker-compose-test.yml
 src/wg-dashboard.ini
 src/static/pic.xd
 private_key.txt
