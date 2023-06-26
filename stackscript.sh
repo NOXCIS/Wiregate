@@ -2,8 +2,9 @@
 export DEBIAN_FRONTEND=noninteractive
 sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy update
 sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy upgrade
-#sudo apt-get update -q && sudo apt-get upgrade -qy
+cd ..
+cd home
 git clone https://github.com/NOXCIS/Worm-Hole.git
 cd Worm-Hole 
-chmod +x setup.sh
-./setup.sh
+chmod +x install.sh 
+./install.sh headless
