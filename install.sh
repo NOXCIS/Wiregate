@@ -322,7 +322,7 @@ install_prerequisites() {
 config_count() {
     local yml_file="docker-compose.yml"
     local count=""
-        read -t 0.1 -p "Enter # of WireGuard server configurations to generate $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " count
+        read -t $TIMER_VALUE -p "Enter # of WireGuard server configurations to generate $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " count
         echo ""
         echo ""
     if [[ -z "$count" ]]; then
