@@ -93,7 +93,7 @@ run_setup() {
     echo "#######################################################################"
     echo ""
     echo "                  SETTING SERVER IP FOR WIREGUARD"
-    echo ""
+    echo "                 SETTING # of INTERFACES TO CREATE"
     echo "                Input Prompt will timeout after 5s "
     echo ""
     echo "              The Server IP will be set Automatically "
@@ -103,6 +103,7 @@ run_setup() {
     echo -e "\n\033[0m"
     sleep 0.1s
             update_server_ip &&
+            config_count &&
     sleep 0.1s
 
     #Uncomment to review the compose file before build.
@@ -318,7 +319,19 @@ install_prerequisites() {
         fi
     done
 }
-
+config_count() {
+    local yml_file="docker-compose.yml"
+    local count=""
+        read -t 0.1 -p "Enter # of WireGuard server configurations to generate $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " count
+        echo ""
+        echo ""
+    if [[ -z "$count" ]]; then
+        count=1
+    fi
+        sed -i "s/CONFIG_CT=.*/CONFIG_CT=$count/" "$yml_file"
+        echo -e "WireGuard Server Configurations to be Generated has been set to \033[32m$count\033[0m"
+        echo ""
+}
 get_docker_compose() {
     local yml_file="docker-compose.yml"
 
