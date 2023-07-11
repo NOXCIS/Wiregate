@@ -5,15 +5,13 @@ export TIMER_VALUE=0
 
 title() {
     echo '  
-     █     █░ ▒█████   ██▀███   ███▄ ▄███▓ ██░ ██  ▒█████   ██▓    ▓█████ 
-    ▓█░ █ ░█░▒██▒  ██▒▓██ ▒ ██▒▓██▒▀█▀ ██▒▓██░ ██▒▒██▒  ██▒▓██▒    ▓█   ▀ 
-    ▒█░ █ ░█ ▒██░  ██▒▓██ ░▄█ ▒▓██    ▓██░▒██▀▀██░▒██░  ██▒▒██░    ▒███   
-    ░█░ █ ░█ ▒██   ██░▒██▀▀█▄  ▒██    ▒██ ░▓█ ░██ ▒██   ██░▒██░    ▒▓█  ▄ 
-    ░░██▒██▓ ░ ████▓▒░░██▓ ▒██▒▒██▒   ░██▒░▓█▒░██▓░ ████▓▒░░██████▒░▒████▒
-    ░ ▓░▒ ▒  ░ ▒░▒░▒░ ░ ▒▓ ░▒▓░░ ▒░   ░  ░ ▒ ░░▒░▒░ ▒░▒░▒░ ░ ▒░▓  ░░░ ▒░ ░
-      ▒ ░ ░    ░ ▒ ▒░   ░▒ ░ ▒░░  ░      ░ ▒ ░▒░ ░  ░ ▒ ▒░ ░ ░ ▒  ░ ░ ░  ░
-      ░   ░  ░ ░ ░ ▒    ░░   ░ ░      ░    ░  ░░ ░░ ░ ░ ▒    ░ ░      ░   
-      ░░ ░                                     ░                      
+
+    ██╗    ██╗ ██████╗ ██████╗ ███╗   ███╗██╗  ██╗ ██████╗ ██╗     ███████╗
+    ██║    ██║██╔═══██╗██╔══██╗████╗ ████║██║  ██║██╔═══██╗██║     ██╔════╝
+    ██║ █╗ ██║██║   ██║██████╔╝██╔████╔██║███████║██║   ██║██║     █████╗  
+    ██║███╗██║██║   ██║██╔══██╗██║╚██╔╝██║██╔══██║██║   ██║██║     ██╔══╝  
+    ╚███╔███╔╝╚██████╔╝██║  ██║██║ ╚═╝ ██║██║  ██║╚██████╔╝███████╗███████╗
+    ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚══════╝
 
             Setup Script & Dockerization by Shamar Lee A.K.A NOXCIS
         Thanks to @donaldzou for WGDashboard @klutchell for UnBound Config
@@ -57,7 +55,7 @@ run_setup() {
     echo -e "\033[33m\n" 
     echo "#######################################################################"
     echo ""
-    echo "           SETTING UP FirewallD for Container Stack"
+    echo "                 SET UP FirewallD for Container Stack"
     echo ""
     echo "#######################################################################"
     echo -e "\n\033[0m"
@@ -71,7 +69,7 @@ run_setup() {
     echo ""
     echo "                 SET TIMEZONE AND DASHBOARD PASSWORDS"
     echo ""
-    echo "              Input Prompt will timeout after 5s & 10s "
+    echo ""
     echo ""
     echo "   The Time Zone will be set Automatically and The password left blank"
     echo "                    When a timeout event occours"
@@ -90,12 +88,12 @@ run_setup() {
     echo -e "\033[33m\n" 
     echo "#######################################################################"
     echo ""
-    echo "                  SETTING SERVER IP FOR WIREGUARD"
-    echo "                 SETTING # of INTERFACES TO CREATE"
-    echo "                Input Prompt will timeout after 5s "
+    echo "                       SET SERVER IP FOR WIREGUARD"
+    echo "                   SET # of SERVER INTERFACES TO CREATE"
     echo ""
-    echo "              The Server IP will be set Automatically "
-    echo "                    When a timeout event occours"
+    echo ""
+    echo "                 The Server IP will be set Automatically"
+    echo "                      When a timeout event occours"
     echo ""
     echo "#######################################################################"
     echo -e "\n\033[0m"
@@ -302,7 +300,7 @@ install_prerequisites() {
     for prerequisite in "${PREREQUISITES[@]}"
     do
         if ! dpkg -s "$prerequisite" > /dev/null 2>&1; then
-            echo "${GREEN}$prerequisite is not installed. Installing...${RESET}"
+            echo "${RED}$prerequisite is not installed. Installing...${RESET}"
             sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy install "$prerequisite" > /dev/null 2>&1
         else
             echo "${GREEN}$prerequisite is already installed. Skipping...${RESET}"

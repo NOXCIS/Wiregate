@@ -63,13 +63,6 @@ start_wgd () {
     uwsgi -i wgd-uwsgi-conf.ini
 }
 
-stop_wgd() {
-  if test -f "$PID_FILE"; then
-    gunicorn_stop
-  else
-    kill "$(ps aux | grep "[p]ython3 $app_name" | awk '{print $2}')"
-  fi
-}
 
 newconf_wgd() {
     # Generate the private key

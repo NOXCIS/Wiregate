@@ -1,5 +1,5 @@
 FROM alpine:latest
- 
+
 RUN apk update && \
     apk add --no-cache python3 py3-pip python3-dev && \
     apk add --no-cache build-base wireguard-tools iproute2 iptables && \ 
@@ -20,5 +20,3 @@ ENTRYPOINT ["/home/app/entrypoint.sh"]
 
 WORKDIR /home/app 
 
-EXPOSE 10086
-#EXPOSE 51820/udp
