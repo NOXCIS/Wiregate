@@ -316,7 +316,7 @@ config_count() {
         echo ""
         echo ""
     if [[ -z "$count" ]]; then
-        count=4
+        count=1
     fi
         sed -i "s/CONFIG_CT=.*/CONFIG_CT=$count/" "$yml_file"
         echo -e "WireGuard Server Configurations to be Generated has been set to \033[32m$count\033[0m"
@@ -331,8 +331,8 @@ add_port_mappings() {
             port_mappings+="\n      - $port:$port/udp"
         done
 
+    sed -i '/- 51820:51820\/udp/,/sysctls:/ {//!d}' docker-compose.yml
     sed -i "/- 51820:51820\/udp/a${port_mappings//$'\n'/\\n}" docker-compose.yml
-    #sed -i '/ports:/,/sysctls:/s/^n//' docker-compose.yml
     sed -i '/ports:/,/sysctls:/ { /- 51820:51820\/udp/{n; d; } }' docker-compose.yml
 
 }
