@@ -1,20 +1,24 @@
-FROM ubuntu:20.04
-
-
-RUN apt-get update && \
-apt-get install -y --no-install-recommends  iproute2 wireguard-tools wireguard iptables nano net-tools python3 python3-pip python3-venv procps openresolv inotify-tools && \
-apt-get clean
-
+FROM alpine:latest
+ 
+RUN apk update && \
+    apk add --no-cache python3 py3-pip python3-dev && \
+    apk add --no-cache build-base wireguard-tools iproute2 iptables && \ 
+    apk add --no-cache nano net-tools py3-virtualenv procps openresolv && \
+    apk add --no-cache inotify-tools linux-headers libc-dev pcre-dev
+    
+RUN    rm -rf /var/cache/apk/*
 
 RUN mkdir /home/app 
+
 COPY ./src /home/app 
 
-RUN pip3 install -r /home/app/requirements.txt   --no-cache-dir
 COPY ./entrypoint.sh /home/app/entrypoint.sh
+
 RUN chmod u+x /home/app/entrypoint.sh
 
 ENTRYPOINT ["/home/app/entrypoint.sh"]
+
 WORKDIR /home/app 
 
 EXPOSE 10086
-EXPOSE 51820/udp
+#EXPOSE 51820/udp

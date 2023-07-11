@@ -4,7 +4,6 @@
 # Under Apache-2.0 License
 app_name="dashboard.py"
 app_official_name="WGDashboard"
-PID_FILE=./gunicorn.pid
 environment=$(if [[ $ENVIRONMENT ]]; then echo $ENVIRONMENT; else echo 'develop'; fi)
 if [[ $CONFIGURATION_PATH ]]; then
   cb_work_dir=$CONFIGURATION_PATH/letsencrypt/work-dir
@@ -46,12 +45,6 @@ _check_and_set_venv(){
 
 install_wgd(){
     printf "| Starting to install WGDashboard                          |\n"
-    version_pass=$(python3 -c 'import sys; print("1") if (sys.version_info.major == 3 and sys.version_info.minor >= 7) else print("0");')
-    if [ $version_pass == "0" ]
-      then printf "| WGDashboard required Python 3.7 or above          |\n"
-      printf "%s\n" "$dashes"
-      exit 1
-    fi
     if [ ! -d "db" ]
       then mkdir "db"
     fi
@@ -59,53 +52,15 @@ install_wgd(){
       then mkdir "log"
     fi
     printf "| Upgrading pip                                            |\n"
-    python3 -m pip install -U pip > /dev/null 2>&1
+    pip3 install --upgrade pip > /dev/null 2>&1
     printf "| Installing latest Python dependencies                    |\n"
-    python3 -m pip install -U -r requirements.txt > /dev/null 2>&1
+    pip3 install -r requirements.txt 
     printf "| WGDashboard installed successfully!                      |\n"
     printf "| Enter ./wgd.sh start to start the dashboard              |\n"
 }
 
-
-check_wgd_status(){
-  if test -f "$PID_FILE"; then
-    if ps aux | grep -v grep | grep $(cat ./gunicorn.pid)  > /dev/null; then
-    return 0
-    else
-      return 1
-    fi
-  else
-    if ps aux | grep -v grep | grep '[p]ython3 '$app_name > /dev/null; then
-      return 0
-    else
-      return 1
-    fi
-  fi
-}
-
-
-gunicorn_start () {
-  printf "%s\n" "$dashes"
-  printf "| Starting WGDashboard with Gunicorn in the background.    |\n"
-  if [ ! -d "log" ]; then
-    mkdir "log"
-  fi
-  d=$(date '+%Y%m%d%H%M%S')
-  if [[ $USER == root ]]; then
-    export PATH=$PATH:/usr/local/bin:$HOME/.local/bin
-  fi
-  gunicorn --access-logfile log/access_"$d".log \
-  --error-logfile log/error_"$d".log 'dashboard:run_dashboard()'
-  printf "| Log files is under log/                                  |\n"
-  printf "%s\n" "$dashes"
-}
-
-gunicorn_stop () {
-  kill $(cat ./gunicorn.pid)
-}
-
 start_wgd () {
-    gunicorn_start
+    uwsgi -i wgd-uwsgi-conf.ini
 }
 
 stop_wgd() {
