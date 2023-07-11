@@ -163,39 +163,14 @@ if [ "$#" != 1 ];
           else
             start_wgd
         fi
-      elif [ "$1" = "stop" ]; then
-        if check_wgd_status; then
-            printf "%s\n" "$dashes"
-            stop_wgd
-            printf "| WGDashboard is stopped.                                  |\n"
-            printf "%s\n" "$dashes"
-            else
-              printf "%s\n" "$dashes"
-              printf "| WGDashboard is not running.                              |\n"
-              printf "%s\n" "$dashes"
-        fi
+      
       elif [ "$1" = "update" ]; then
         update_wgd
       elif [ "$1" = "install" ]; then
         printf "%s\n" "$dashes"
         install_wgd
         printf "%s\n" "$dashes"
-      elif [ "$1" = "restart" ]; then
-         if check_wgd_status; then
-           printf "%s\n" "$dashes"
-           stop_wgd
-           printf "| WGDashboard is stopped.                                  |\n"
-           sleep 4
-           start_wgd
-        else
-          start_wgd
-        fi
-      elif [ "$1" = "debug" ]; then
-        if check_wgd_status; then
-          printf "| WGDashboard is already running.                          |\n"
-          else
-            start_wgd_debug
-        fi
+      
       elif [ "$1" = "newconfig" ]; then
         newconf_wgd 
       else
