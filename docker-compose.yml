@@ -28,11 +28,11 @@ services:
       - NET_ADMIN
       - SYS_MODULE
     restart: unless-stopped
-    volumes:
-      - ./WG-Dash/config:/etc/wireguard
+    #volumes:
+      #- ./WG-Dash/config:/etc/wireguard
     environment:
       - SERVER_IP=127.0.0.1
-      - CONFIG_CT=1
+      - CONFIG_CT=4
     ports:
       - 10086:10086
       - 51820:51820/udp
@@ -86,7 +86,7 @@ services:
       - 80:80
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./web/:/var/www/html/
+      - ./web/:/var/www/html/website
     restart: unless-stopped
     networks:
       private_network:
@@ -97,9 +97,6 @@ services:
   portainer:
     container_name: portainer
     image: portainer/portainer-ce
-    #ports:
-      #- 8000:8000
-      #- 9000:9000
     environment:
       - SERVER_IP=172.17.6.190
     volumes:

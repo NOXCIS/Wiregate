@@ -54,7 +54,7 @@ install_wgd(){
     printf "| Upgrading pip                                            |\n"
     pip3 install --upgrade pip > /dev/null 2>&1
     printf "| Installing latest Python dependencies                    |\n"
-    pip3 install -r requirements.txt 
+    pip3 install -r requirements.txt > /dev/null 2>&1
     printf "| WGDashboard installed successfully!                      |\n"
     printf "| Enter ./wgd.sh start to start the dashboard              |\n"
 }
@@ -71,8 +71,8 @@ newconf_wgd() {
   local address_prefix="10.0."
 
   for ((i = 0; i < num_configs; i++)); do
-    local listen_port_str="ListenPort = $listen_port"
-    local address_str="Address = ${address_prefix}$((i + 1)).1/32"
+    local listen_port_str="$listen_port"
+    local address_str="${address_prefix}$((i + 1)).1/24"
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
@@ -84,21 +84,24 @@ newconf_wgd() {
     cat <<EOF >"/etc/wireguard/wg$file_number.conf"
 [Interface]
 PrivateKey = $private_key
-$listen_port_str
-$address_str
+Address = $address_str
+ListenPort = $listen_port_str
 SaveConfig = true
 PostUp = iptables -t nat -I POSTROUTING -o eth0 -j MASQUERADE
 PreDown = iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
 EOF
 
+
     echo "Generated wg$file_number.conf"
     ((listen_port++))
+    chmod 600 "/etc/wireguard/wg$file_number.conf"
   done
 }
 
+
 check_wgd_status(){
   if test -f "$PID_FILE"; then
-    if ps aux | grep -v grep | grep $(cat ./gunicorn.pid)  > /dev/null; then
+    if ps aux | grep -v grep | grep $(cat ./uwsgi.pid)  > /dev/null; then
     return 0
     else
       return 1

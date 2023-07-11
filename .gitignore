@@ -29,3 +29,4 @@ WG-Dash/docker-compose-dev.yml
 WG-Dash/docker-compose-dev.yml
 *.conf
 WG-Dash/docker-compose-dev.yml
+docker-compose-dev.yml

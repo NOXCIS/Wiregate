@@ -14,10 +14,10 @@ function run_wireguard_up() {
   
   for file in $config_files; do
     config_name=$(basename "$file" ".conf")
-    chmod 600 "$config_name"
     wg-quick up "$config_name"
   done
 }
+
 
 run_wireguard_up
 
