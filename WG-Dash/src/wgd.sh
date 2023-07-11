@@ -96,28 +96,6 @@ EOF
   done
 }
 
-check_wgd_status(){
-  if test -f "$PID_FILE"; then
-    if ps aux | grep -v grep | grep $(cat ./gunicorn.pid)  > /dev/null; then
-    return 0
-    else
-      return 1
-    fi
-  else
-    if ps aux | grep -v grep | grep '[p]ython3 '$app_name > /dev/null; then
-      return 0
-    else
-      return 1
-    fi
-  fi
-}
-
-start_wgd_debug() {
-  printf "%s\n" "$dashes"
-  printf "| Starting WGDashboard in the foreground.                  |\n"
-  python3 "$app_name"
-  printf "%s\n" "$dashes"
-}
 
 update_wgd() {
   new_ver=$(python3 -c "import json; import urllib.request; data = urllib.request.urlopen('https://api.github.com/repos/donaldzou/WGDashboard/releases/latest').read(); output = json.loads(data);print(output['tag_name'])")
@@ -160,39 +138,14 @@ if [ "$#" != 1 ];
           else
             start_wgd
         fi
-      elif [ "$1" = "stop" ]; then
-        if check_wgd_status; then
-            printf "%s\n" "$dashes"
-            stop_wgd
-            printf "| WGDashboard is stopped.                                  |\n"
-            printf "%s\n" "$dashes"
-            else
-              printf "%s\n" "$dashes"
-              printf "| WGDashboard is not running.                              |\n"
-              printf "%s\n" "$dashes"
-        fi
+      
       elif [ "$1" = "update" ]; then
         update_wgd
       elif [ "$1" = "install" ]; then
         printf "%s\n" "$dashes"
         install_wgd
         printf "%s\n" "$dashes"
-      elif [ "$1" = "restart" ]; then
-         if check_wgd_status; then
-           printf "%s\n" "$dashes"
-           stop_wgd
-           printf "| WGDashboard is stopped.                                  |\n"
-           sleep 4
-           start_wgd
-        else
-          start_wgd
-        fi
-      elif [ "$1" = "debug" ]; then
-        if check_wgd_status; then
-          printf "| WGDashboard is already running.                          |\n"
-          else
-            start_wgd_debug
-        fi
+      
       elif [ "$1" = "newconfig" ]; then
         newconf_wgd 
       else
