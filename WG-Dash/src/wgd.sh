@@ -64,64 +64,53 @@ start_wgd () {
 }
 
 
-newconf_wgd() {
-    # Generate the private key
-    private_key=$(wg genkey)
 
-    # Generate the public key from the private key
+newconf_wgd() {
+  local num_configs=$CONFIG_CT
+  local listen_port=51820
+  local address_prefix="10.0."
+
+  for ((i = 0; i < num_configs; i++)); do
+    local listen_port_str="ListenPort = $listen_port"
+    local address_str="Address = ${address_prefix}$((i + 1)).1/32"
+    private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
-    # Determine the filename to use for the configuration file
-    filename="wg0.conf"
-    i=1
-    while [ -e "/etc/wireguard/$filename" ]; do
-        filename="wg$i.conf"
-        ((i++))
-    done
+    local file_number=$((i))
+    if [[ $file_number -eq 0 ]]; then
+      file_number="0"
+    fi
 
-    # Build the configuration file content
-    config="[Interface]
+    cat <<EOF >"/etc/wireguard/wg$file_number.conf"
+[Interface]
 PrivateKey = $private_key
-Address = 10.0.1.1/24
-ListenPort = 51820
+$listen_port_str
+$address_str
 SaveConfig = true
 PostUp = iptables -t nat -I POSTROUTING -o eth0 -j MASQUERADE
 PreDown = iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
-"
+EOF
 
-    # Write the configuration file to disk
-    echo "$config" > "/etc/wireguard/$filename"
-
-    # Print a message indicating that the file was written
-    echo "Configuration written to $filename"
-    fix_multi_config
+    echo "Generated wg$file_number.conf"
+    ((listen_port++))
+  done
 }
 
-fix_multi_config() {
-    config_files=$(find /etc/wireguard -type f -name "*.conf" ! -name "wg0.conf")
-    
-    for file in $config_files; do
-        address_line=$(grep -oP 'Address = 10.0.\K\d+(?=.1/24)' "$file")
-        listen_port_line=$(grep -oP 'ListenPort = 5182\K\d+' "$file")
-        
-        if [ -n "$address_line" ] && [ -n "$listen_port_line" ]; then
-            existing_address=$(echo "$address_line" | awk '{print $1}')
-            existing_listen_port=$(echo "$listen_port_line" | awk '{print $1}')
-            
-            new_address=$((existing_address + 1))
-            new_listen_port=$((existing_listen_port + 1))
-            
-            sed -i "s/Address = 10.0.$existing_address.1\/24/Address = 10.0.$new_address.1\/24/" "$file"
-            sed -i "s/ListenPort = 5182$existing_listen_port/ListenPort = 5182$new_listen_port/" "$file"
-            
-            echo "Updated $file"
-        fi
-    done
+check_wgd_status(){
+  if test -f "$PID_FILE"; then
+    if ps aux | grep -v grep | grep $(cat ./gunicorn.pid)  > /dev/null; then
+    return 0
+    else
+      return 1
+    fi
+  else
+    if ps aux | grep -v grep | grep '[p]ython3 '$app_name > /dev/null; then
+      return 0
+    else
+      return 1
+    fi
+  fi
 }
-
-
-
-
 
 start_wgd_debug() {
   printf "%s\n" "$dashes"
@@ -205,7 +194,7 @@ if [ "$#" != 1 ];
             start_wgd_debug
         fi
       elif [ "$1" = "newconfig" ]; then
-        newconf_wgd
+        newconf_wgd 
       else
         help
     fi

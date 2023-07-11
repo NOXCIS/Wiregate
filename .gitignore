@@ -24,3 +24,8 @@ etc-dnsmasq.d/
 !unbound/unbound.conf
 WG-Dash/config/*.conf
 data/
+test.sh
+WG-Dash/docker-compose-dev.yml
+WG-Dash/docker-compose-dev.yml
+*.conf
+WG-Dash/docker-compose-dev.yml
