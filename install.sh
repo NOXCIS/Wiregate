@@ -316,7 +316,7 @@ config_count() {
         echo ""
         echo ""
     if [[ -z "$count" ]]; then
-        count=4
+        count=1
     fi
         sed -i "s/CONFIG_CT=.*/CONFIG_CT=$count/" "$yml_file"
         echo -e "WireGuard Server Configurations to be Generated has been set to \033[32m$count\033[0m"

@@ -14,6 +14,7 @@ venv/**
 log/**
 *.log
 release/*
+/src/docker-compose-dev.yml
 src/db/wgdashboard.db
 .jshintrc
 wireguard/

@@ -6,7 +6,7 @@ RUN apk update && \
     apk add --no-cache nano net-tools py3-virtualenv procps openresolv && \
     apk add --no-cache inotify-tools linux-headers libc-dev pcre-dev
     
-RUN    rm -rf /var/cache/apk/*
+RUN rm -rf /var/cache/apk/*
 
 RUN mkdir /home/app 
 
