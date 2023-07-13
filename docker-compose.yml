@@ -22,17 +22,18 @@ services:
     
   wg_dashboard:
     depends_on: [unbound, pihole]
-    image: noxcis/wg-dashboard:latest
+    #build: ./WG-Dash
+    image: noxcis/wg-dashboard:hammerhead
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
     restart: unless-stopped
-    #volumes:
-      #- ./WG-Dash/config:/etc/wireguard
+    volumes:
+      - ./WG-Dash/config:/etc/wireguard
     environment:
       - SERVER_IP=127.0.0.1
-      - CONFIG_CT=4
+      - CONFIG_CT=500
     ports:
       - 10086:10086
       - 51820:51820/udp
@@ -42,6 +43,7 @@ services:
     networks:
       private_network:
         ipv4_address: 10.2.0.3
+
 
 
   pihole:
@@ -67,47 +69,7 @@ services:
       private_network:
         ipv4_address: 10.2.0.100
       
-  watchtower:
-    container_name: watchtower
-    image: containrrr/watchtower
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.6
-    dns:
-      - 10.2.0.100
+
       
 
-  nginx:
-    container_name: nginx
-    image: nginx:latest
-    ports:
-      - 80:80
-    volumes:
-      - ./nginx.conf:/etc/nginx/nginx.conf:ro
-      - ./web/:/var/www/html/website
-    restart: unless-stopped
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.4
-    dns:
-      - 10.2.0.100
-
-  portainer:
-    container_name: portainer
-    image: portainer/portainer-ce
-    environment:
-      - SERVER_IP=172.17.6.190
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - portainer_data:/data
-    restart: always
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.5
-    dns:
-      - 10.2.0.100
-
-volumes:
-  portainer_data:
+  

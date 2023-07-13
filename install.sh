@@ -17,6 +17,7 @@ title() {
         Thanks to @donaldzou for WGDashboard @klutchell for UnBound Config
     '
 }
+
 menu() {
     title
     echo "Please choose an option:"
@@ -37,6 +38,7 @@ menu() {
     esac
 
 }
+
 run_setup() {
     sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy update > /dev/null 2>&1
     sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy upgrade > /dev/null 2>&1
@@ -55,7 +57,7 @@ run_setup() {
     echo -e "\033[33m\n" 
     echo "#######################################################################"
     echo ""
-    echo "                 SET UP FirewallD for Container Stack"
+    echo "           SETTING UP FirewallD for Container Stack"
     echo ""
     echo "#######################################################################"
     echo -e "\n\033[0m"
@@ -135,11 +137,14 @@ run_setup() {
 
     
 }
+
 auto_setup() {
     title
+    sleep 5s
     TIMER_VALUE=0 
     run_setup 
 }
+
 manual_setup() {
     title
     echo "The Timer value dictates how much time you will have in each setup set."
@@ -149,6 +154,7 @@ manual_setup() {
     sleep 2s
     run_setup
 }
+
 set_fw() {
 
     #Enable FirewallD
@@ -175,12 +181,14 @@ set_fw() {
         firewall-cmd --reload 
         firewall-cmd --permanent --zone=public --add-port=443/tcp
         firewall-cmd --permanent --zone=public --add-port=80/tcp
+        firewall-cmd --permanent --zone=docker --add-port=51820/udp
         firewall-cmd --permanent --zone=docker --add-port=10086/tcp
 
     # Reload firewall to apply permanent rules
         firewall-cmd --reload 
 
 }
+
 set_tz() {
     local yml_file="docker-compose.yml"
     read -t $TIMER_VALUE -p "Do you want to automatically get the host timezone? $(tput setaf 1)(y/n)$(tput sgr0) " answer 
@@ -202,6 +210,7 @@ set_tz() {
     sed -i "s|TZ:.*|TZ: \"$timezone\"|" "$yml_file"
     echo ""
 }
+
 update_server_ip() {
     local yml_file="docker-compose.yml"
     local ip
@@ -225,6 +234,7 @@ update_server_ip() {
         echo "$yml_file not found."
     fi
 }
+
 set_password() {
     local yml_file="docker-compose.yml"
     local password=""
@@ -275,6 +285,7 @@ set_password() {
         done
     fi
 }
+
 install_prerequisites() {
     
     # List of prerequisites
@@ -300,13 +311,14 @@ install_prerequisites() {
     for prerequisite in "${PREREQUISITES[@]}"
     do
         if ! dpkg -s "$prerequisite" > /dev/null 2>&1; then
-            echo "${RED}$prerequisite is not installed. Installing...${RESET}"
+            echo "${GREEN}$prerequisite is not installed. Installing...${RESET}"
             sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy install "$prerequisite" > /dev/null 2>&1
         else
             echo "${GREEN}$prerequisite is already installed. Skipping...${RESET}"
         fi
     done
 }
+
 config_count() {
     local yml_file="docker-compose.yml"
     local count=""
@@ -334,6 +346,7 @@ add_port_mappings() {
     sed -i '/ports:/,/sysctls:/ { /- 51820:51820\/udp/{n; d; } }' docker-compose.yml
 
 }
+
 get_docker_compose() {
     local yml_file="docker-compose.yml"
 
@@ -347,6 +360,7 @@ get_docker_compose() {
         curl -o "$(dirname "$0")/$yml_file" https://raw.githubusercontent.com/NOXCIS/Worm-Hole/docker-compose.yml
         echo "File '$yml_file' successfully pulled from GitHub."
 }
+
 create_swap() {
 
     # Check if a swapfile already exists

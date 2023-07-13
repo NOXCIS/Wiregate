@@ -1651,30 +1651,6 @@ def init_dashboard():
     config.clear()
 
 
-def check_update():
-    """
-    Dashboard check update
-
-    @return: Retunt text with result
-    @rtype: str
-    """
-    config = get_dashboard_conf()
-    try:
-        data = urllib.request.urlopen("https://api.github.com/repos/donaldzou/WGDashboard/releases").read()
-        output = json.loads(data)
-        release = []
-        for i in output:
-            if not i["prerelease"]:
-                release.append(i)
-        if config.get("Server", "version") == release[0]["tag_name"]:
-            result = "false"
-        else:
-            result = "true"
-
-        return result
-    except urllib.error.HTTPError:
-        return "false"
-
 
 """
 Configure DashBoard before start web-server
@@ -1713,7 +1689,6 @@ def get_host_bind():
 
 if __name__ == "__main__":
     init_dashboard()
-    UPDATE = check_update()
     config = configparser.ConfigParser(strict=False)
     config.read('wg-dashboard.ini')
     # global app_ip
@@ -1722,4 +1697,4 @@ if __name__ == "__main__":
     app_port = config.get("Server", "app_port")
     WG_CONF_PATH = config.get("Server", "wg_conf_path")
     config.clear()
-    app.run(host=app_ip, debug=False, port=app_port)
+    app.run(host=app_ip, debug=True, port=app_port)

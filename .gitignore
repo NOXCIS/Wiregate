@@ -14,7 +14,6 @@ venv/**
 log/**
 *.log
 release/*
-/src/docker-compose-dev.yml
 src/db/wgdashboard.db
 .jshintrc
 wireguard/
@@ -24,9 +23,4 @@ etc-dnsmasq.d/
 !unbound/unbound.conf
 WG-Dash/config/*.conf
 data/
-test.sh
-WG-Dash/docker-compose-dev.yml
-WG-Dash/docker-compose-dev.yml
-*.conf
-WG-Dash/docker-compose-dev.yml
-docker-compose-dev.yml
+WG-Dash/src/test.sh

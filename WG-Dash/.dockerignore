@@ -15,4 +15,3 @@ log/**
 release/*
 src/db/wgdashboard.db
 .jshintrc
-wg-dashboard.service
