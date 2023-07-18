@@ -115,7 +115,8 @@ run_setup() {
     echo ""
     echo "        Copy Master Client Config to empty WireGuard .conf file "
     echo "           To connect to Wireguard and access the Dashboard" 
-    echo "" 
+    echo ""
+    echo "                Dashboard Address http://10.2.0.3:10086" 
     echo "#######################################################################"
     echo -e "\n\033[0m"
 
