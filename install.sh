@@ -65,18 +65,7 @@ run_setup() {
             install_prerequisites &&
     sleep 3s
 
-    echo -e "\033[33m\n" 
-    echo "#######################################################################"
-    echo ""
-    echo "           SETTING UP FirewallD for Container Stack"
-    echo ""
-    echo "#######################################################################"
-    echo -e "\n\033[0m"
     
-            systemctl restart docker &&
-            set_fw &&
-    
-
     echo -e "\033[33m\n"
     echo "#######################################################################"
     echo ""
@@ -372,7 +361,7 @@ create_swap() {
 }
 cout_master_key() {
 
-    cat ./WG-Dash/master-key/master.conf 
+    cat /master-key/master.conf 
 
 }
 
