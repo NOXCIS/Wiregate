@@ -123,7 +123,8 @@ run_setup() {
     echo -e "\n\033[0m"
 
             cout_master_key &&
-
+            echo ""
+            generate_wireguard_qr &&
 
 
     echo -e "\033[33m\n" 
@@ -264,6 +265,7 @@ install_prerequisites() {
     # List of prerequisites
     PREREQUISITES=(
         curl
+        qrencode
         git
         apt-transport-https
         ca-certificates
@@ -365,6 +367,25 @@ cout_master_key() {
     cat ./WG-Dash/master-key/master.conf 
 
 }
+generate_wireguard_qr() {
+    local config_file="/WG-Dash/master-key/master.conf"
+
+    if ! [ -f "$config_file" ]; then
+        echo "Error: Config file not found."
+        return 1
+    fi
+
+    # Generate the QR code and display it in the CLI
+    qrencode -t ANSIUTF8 < "$config_file"
+
+    if [ $? -eq 0 ]; then
+        echo "QR code generated."
+    else
+        echo "Error: QR code generation failed."
+        return 1
+    fi
+}
+
 
 
 # Main script

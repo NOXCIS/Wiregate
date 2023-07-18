@@ -135,6 +135,8 @@ PersistentKeepalive = 21
 PresharedKey = $preshared_key
 EOF
 
+    qrencode -t ansiutf8 < "$client_config_file"
+
 }
 
 start_wgd_debug() {
