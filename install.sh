@@ -42,6 +42,15 @@ menu() {
 }
 
 run_setup() {
+    echo -e "\033[33m\n" 
+    echo "#######################################################################"
+    echo ""
+    echo "                     Getting OS Updates and Upgrades"
+    echo "                        This may take some time ..."
+    echo ""
+    echo "#######################################################################"
+    echo -e "\n\033[0m"
+
     sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy update > /dev/null 2>&1
     sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy upgrade > /dev/null 2>&1
 
