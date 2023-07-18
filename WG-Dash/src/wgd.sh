@@ -49,7 +49,7 @@ newconf_wgd() {
 
   for ((i = 0; i < num_configs; i++)); do
     local listen_port_str="$listen_port"
-    local address_str="${address_prefix}$((i / 256)).$((i % 256)).1/32" # Fixed subnet mask to /32
+    local address_str="${address_prefix}$((i / 256)).$((i % 256)).1/24"
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
@@ -135,7 +135,6 @@ PersistentKeepalive = 21
 PresharedKey = $preshared_key
 EOF
 
-    qrencode -t ansiutf8 < "$client_config_file"
 
 }
 

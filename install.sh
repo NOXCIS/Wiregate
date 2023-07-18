@@ -17,7 +17,6 @@ title() {
         Thanks to @donaldzou for WGDashboard @klutchell for UnBound Config
     '
 }
-
 menu() {
     title
     echo "Please choose an option:"
@@ -38,9 +37,7 @@ menu() {
         5) exit ;;
         *) echo "Invalid choice. Please try again." ;;
     esac
-
 }
-
 run_setup() {
     echo -e "\033[33m\n" 
     echo "#######################################################################"
@@ -137,15 +134,12 @@ run_setup() {
     
             create_swap 
 }  
-
-
 auto_setup() {
     title
     sleep 5s
     TIMER_VALUE=0 
     run_setup 
 }
-
 auto_set_wct() {
     TIMER_VALUE=5
     config_count &&
@@ -162,7 +156,6 @@ manual_setup() {
     sleep 2s
     run_setup
 }
-
 set_tz() {
     local yml_file="docker-compose.yml"
     read -t $TIMER_VALUE -p "Do you want to automatically get the host timezone? $(tput setaf 1)(y/n)$(tput sgr0) " answer 
@@ -184,7 +177,6 @@ set_tz() {
     sed -i "s|TZ:.*|TZ: \"$timezone\"|" "$yml_file"
     echo ""
 }
-
 update_server_ip() {
     local yml_file="docker-compose.yml"
     local ip
@@ -208,7 +200,6 @@ update_server_ip() {
         echo "$yml_file not found."
     fi
 }
-
 set_password() {
     local yml_file="docker-compose.yml"
     local password=""
@@ -259,7 +250,6 @@ set_password() {
         done
     fi
 }
-
 install_prerequisites() {
     
     # List of prerequisites
@@ -276,11 +266,9 @@ install_prerequisites() {
         docker
         docker-compose
     )
-
     # Define ANSI color codes
     GREEN=$(tput setaf 2)
     RESET=$(tput sgr0)
-
     # Check if each prerequisite is already installed
     for prerequisite in "${PREREQUISITES[@]}"
     do
@@ -292,7 +280,6 @@ install_prerequisites() {
         fi
     done
 }
-
 config_count() {
     local yml_file="docker-compose.yml"
     local count=""
@@ -306,7 +293,6 @@ config_count() {
         echo -e "WireGuard Server Configurations to be Generated has been set to \033[32m$count\033[0m"
         echo ""
 }
-        
 add_port_mappings() {
     local config_ct=$(grep -oP '(?<=CONFIG_CT=)\d+' docker-compose.yml)
     local start_port=51820
@@ -321,7 +307,6 @@ add_port_mappings() {
     sed -i '/ports:/,/sysctls:/ { /- 51820:51820\/udp/{n; d; } }' docker-compose.yml
 
 }
-
 get_docker_compose() {
     local yml_file="docker-compose.yml"
 
@@ -335,7 +320,6 @@ get_docker_compose() {
         curl -o "$(dirname "$0")/$yml_file" https://raw.githubusercontent.com/NOXCIS/Worm-Hole/docker-compose.yml
         echo "File '$yml_file' successfully pulled from GitHub."
 }
-
 create_swap() {
 
     # Check if a swapfile already exists
