@@ -22,8 +22,8 @@ services:
     
   wg_dashboard:
     depends_on: [unbound, pihole]
-    build: ./WG-Dash
-    #image: noxcis/wg-dashboard:hammerhead
+    #build: ./WG-Dash
+    image: noxcis/wg-dashboard:squid
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
@@ -31,7 +31,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./WG-Dash/master-key:/home/app/master-key
-      #- ./WG-Dash/config:/etc/wireguard
+      - ./WG-Dash/config:/etc/wireguard
     environment:
       - SERVER_IP=127.0.0.1
       - CONFIG_CT=5

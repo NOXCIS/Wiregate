@@ -49,7 +49,7 @@ newconf_wgd() {
 
   for ((i = 0; i < num_configs; i++)); do
     local listen_port_str="$listen_port"
-    local address_str="${address_prefix}$((i / 256)).$((i % 256)).1/24"
+    local address_str="${address_prefix}$((i / 256)).$((i % 256)).1/32" # Fixed subnet mask to /32
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
@@ -68,16 +68,18 @@ PostUp = iptables -t nat -I POSTROUTING -o eth0 -j MASQUERADE
 PreDown = iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
 EOF
 
-
     echo "Generated wg$file_number.conf"
     ((listen_port++))
-    if [ ! -f "/home/app/master-key/master.conf"]; then
-    make_master_config
-    fi
     
-    chmod 600 "/etc/wireguard/wg$file_number.conf"
   done
+
+  if [ ! -f "/master-key/master.conf" ]; then
+    make_master_config # Only call make_master_config if master.conf doesn't exist
+  fi
+
+  chmod 600 /etc/wireguard/wg*.conf # Change permission for all generated config files
 }
+
 
 make_master_config() {
         local svr_config="/etc/wireguard/wg0.conf"
@@ -119,13 +121,13 @@ make_master_config() {
 
     # Generate the client config file
     cat <<EOF >"/home/app/master-key/master.conf"
-[Interface
+[Interface]
 PrivateKey = $wg_private_key
 Address = 10.0.0.42/32
 DNS = 10.2.0.100,10.2.0.100
 MTU = 1420
 
-Peer]
+[Peer]
 PublicKey = $svrpublic_key
 AllowedIPs = 0.0.0.0/0
 Endpoint = $SERVER_IP:51820
