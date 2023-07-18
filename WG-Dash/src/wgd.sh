@@ -112,7 +112,7 @@ make_master_config() {
     echo -e "\n[Peer]" >> "$svr_config"
     echo "PublicKey = $peer_public_key" >> "$svr_config"
     echo "PresharedKey = $preshared_key" >> "$svr_config"
-    echo "AllowedIPs = 10.0.0.42/24" >> "$svr_config"
+    echo "AllowedIPs = 10.0.0.2/24" >> "$svr_config"
 
 
     server_public_key=$(grep -E '^PrivateKey' "$svr_config" | awk '{print $NF}')
@@ -123,7 +123,7 @@ make_master_config() {
     cat <<EOF >"/home/app/master-key/master.conf"
 [Interface]
 PrivateKey = $wg_private_key
-Address = 10.0.0.42/32
+Address = 10.0.0.2/32
 DNS = 10.2.0.100,10.2.0.100
 MTU = 1420
 
