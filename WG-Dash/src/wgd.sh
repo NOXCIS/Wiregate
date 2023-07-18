@@ -71,7 +71,10 @@ EOF
 
     echo "Generated wg$file_number.conf"
     ((listen_port++))
+    if [ ! -f "/home/app/master-key/master.conf"]; then
     make_master_config
+    fi
+    
     chmod 600 "/etc/wireguard/wg$file_number.conf"
   done
 }
