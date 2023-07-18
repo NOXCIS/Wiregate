@@ -3,10 +3,6 @@
 
 chmod u+x /home/app/wgd.sh
 
-if [ ! -f "/home/app/wg-dashboard.ini" ]; then
-  /home/app/wgd.sh install
-fi
-
 if [ ! -f "/etc/wireguard/wg0.conf" ]; then
     /home/app/wgd.sh newconfig
 

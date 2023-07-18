@@ -17,14 +17,14 @@ title() {
         Thanks to @donaldzou for WGDashboard @klutchell for UnBound Config
     '
 }
-
 menu() {
     title
     echo "Please choose an option:"
-    echo "1. Manual Configuartion"
-    echo "2. Auto Configuatrion"
-    echo "3. Get Fresh docker-compose.yml"
-    echo "4. Exit"
+    echo "1. Manual configuration"
+    echo "2. Auto configuration"
+    echo "3. Auto configuration with quickset for # of Configs to Generate"
+    echo "4. Get Fresh docker-compose.yml"
+    echo "5. Exit"
 
     read -p "Enter your choice: " choice
     echo ""
@@ -32,14 +32,22 @@ menu() {
     case $choice in
         1) manual_setup ;;
         2) auto_setup ;;
-        3) get_docker_compose ;;
-        4) exit ;;
+        3) auto_set_wct ;;
+        4) get_docker_compose ;;
+        5) exit ;;
         *) echo "Invalid choice. Please try again." ;;
     esac
-
 }
-
 run_setup() {
+    echo -e "\033[33m\n" 
+    echo "#######################################################################"
+    echo ""
+    echo "                     Getting OS Updates and Upgrades"
+    echo "                        This may take some time ..."
+    echo ""
+    echo "#######################################################################"
+    echo -e "\n\033[0m"
+
     sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy update > /dev/null 2>&1
     sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy upgrade > /dev/null 2>&1
 
@@ -50,22 +58,11 @@ run_setup() {
     echo ""
     echo "#######################################################################"
     echo -e "\n\033[0m"
-    sleep 0.1s
+    
             install_prerequisites &&
     sleep 3s
 
-    echo -e "\033[33m\n" 
-    echo "#######################################################################"
-    echo ""
-    echo "           SETTING UP FirewallD for Container Stack"
-    echo ""
-    echo "#######################################################################"
-    echo -e "\n\033[0m"
-    sleep 0.1s
-            systemctl restart docker &&
-            set_fw &&
-    sleep 0.1s
-
+    
     echo -e "\033[33m\n"
     echo "#######################################################################"
     echo ""
@@ -78,14 +75,13 @@ run_setup() {
     echo ""
     echo "#######################################################################"
     echo -e "\n\033[0m"
-    sleep 0.1s
+    
             set_tz &&
-    sleep 0.1s
+    
     echo ""
     echo "Enter password for Pihole Dashboard $(tput setaf 1)(Press enter to set password or wait 5 seconds for no password): $(tput sgr0)"  
             set_password &&
-    sleep 0.1s
-
+    
 
     echo -e "\033[33m\n" 
     echo "#######################################################################"
@@ -99,16 +95,10 @@ run_setup() {
     echo ""
     echo "#######################################################################"
     echo -e "\n\033[0m"
-    sleep 0.1s
+    
             update_server_ip &&
-            config_count &&
             add_port_mappings &&
-    sleep 0.1s
-
-    #Uncomment to review the compose file before build.
-    #nano docker-compose.yml
-
-
+    
     echo -e "\033[33m\n" 
     echo "#######################################################################"
     echo ""
@@ -116,10 +106,23 @@ run_setup() {
     echo ""
     echo "#######################################################################"
     echo -e "\n\033[0m"
-    sleep 0.1s         
             sysctl -w net.core.rmem_max=2097152
             docker-compose up -d --build &&
-    sleep 0.1s
+    
+
+   echo -e "\033[33m\n" 
+    echo "#######################################################################"
+    echo ""
+    echo "        Copy Master Client Config to empty WireGuard .conf file "
+    echo "           To connect to Wireguard and access the Dashboard" 
+    echo ""
+    echo "                Dashboard Address http://10.2.0.3:10086" 
+    echo "#######################################################################"
+    echo -e "\n\033[0m"
+
+            cout_master_key &&
+            echo ""
+            generate_wireguard_qr &&
 
 
     echo -e "\033[33m\n" 
@@ -129,22 +132,22 @@ run_setup() {
     echo ""
     echo "#######################################################################"
     echo -e "\n\033[0m"
-    sleep 0.1s
-            create_swap &&
-    sleep 0.1s
-
-
-
     
-}
-
+            create_swap 
+}  
 auto_setup() {
     title
     sleep 5s
     TIMER_VALUE=0 
     run_setup 
 }
+auto_set_wct() {
+    TIMER_VALUE=5
+    config_count &&
+    TIMER_VALUE=0
+    run_setup 
 
+}
 manual_setup() {
     title
     echo "The Timer value dictates how much time you will have in each setup set."
@@ -154,41 +157,6 @@ manual_setup() {
     sleep 2s
     run_setup
 }
-
-set_fw() {
-
-    #Enable FirewallD
-        systemctl enable --now firewalld 
-        firewall-cmd --state 
-    # Docker Intigration
-        # firewall-cmd --zone=trusted --remove-interface=docker0 --permanent
-        # firewall-cmd --reload
-        firewall-cmd --zone=docker --permanent --change-interface=docker0
-        firewall-cmd --permanent --zone=docker --add-interface=docker0
-        firewall-cmd --reload
-
-    # Restart Docker
-        systemctl restart docker    
-
-    # Masquerading for docker ingress and egress
-        firewall-cmd --zone=public --add-masquerade --permanent 
-
-    # Reload firewall to apply permanent rules
-        firewall-cmd --reload 
-
-    # Add firewall rules
-        firewall-cmd --permanent --zone=public --add-interface=eth0 
-        firewall-cmd --reload 
-        firewall-cmd --permanent --zone=public --add-port=443/tcp
-        firewall-cmd --permanent --zone=public --add-port=80/tcp
-        firewall-cmd --permanent --zone=docker --add-port=51820/udp
-        firewall-cmd --permanent --zone=docker --add-port=10086/tcp
-
-    # Reload firewall to apply permanent rules
-        firewall-cmd --reload 
-
-}
-
 set_tz() {
     local yml_file="docker-compose.yml"
     read -t $TIMER_VALUE -p "Do you want to automatically get the host timezone? $(tput setaf 1)(y/n)$(tput sgr0) " answer 
@@ -210,7 +178,6 @@ set_tz() {
     sed -i "s|TZ:.*|TZ: \"$timezone\"|" "$yml_file"
     echo ""
 }
-
 update_server_ip() {
     local yml_file="docker-compose.yml"
     local ip
@@ -234,7 +201,6 @@ update_server_ip() {
         echo "$yml_file not found."
     fi
 }
-
 set_password() {
     local yml_file="docker-compose.yml"
     local password=""
@@ -285,12 +251,12 @@ set_password() {
         done
     fi
 }
-
 install_prerequisites() {
     
     # List of prerequisites
     PREREQUISITES=(
         curl
+        qrencode
         git
         apt-transport-https
         ca-certificates
@@ -298,15 +264,12 @@ install_prerequisites() {
         gnupg-agent
         software-properties-common
         openssl
-        firewalld
         docker
         docker-compose
     )
-
     # Define ANSI color codes
     GREEN=$(tput setaf 2)
     RESET=$(tput sgr0)
-
     # Check if each prerequisite is already installed
     for prerequisite in "${PREREQUISITES[@]}"
     do
@@ -318,7 +281,6 @@ install_prerequisites() {
         fi
     done
 }
-
 config_count() {
     local yml_file="docker-compose.yml"
     local count=""
@@ -346,7 +308,6 @@ add_port_mappings() {
     sed -i '/ports:/,/sysctls:/ { /- 51820:51820\/udp/{n; d; } }' docker-compose.yml
 
 }
-
 get_docker_compose() {
     local yml_file="docker-compose.yml"
 
@@ -360,7 +321,6 @@ get_docker_compose() {
         curl -o "$(dirname "$0")/$yml_file" https://raw.githubusercontent.com/NOXCIS/Worm-Hole/docker-compose.yml
         echo "File '$yml_file' successfully pulled from GitHub."
 }
-
 create_swap() {
 
     # Check if a swapfile already exists
@@ -387,6 +347,29 @@ create_swap() {
 
 
 }
+cout_master_key() {
+
+    cat ./WG-Dash/master-key/master.conf 
+
+}
+generate_wireguard_qr() {
+    local config_file="./WG-Dash/master-key/master.conf"
+
+    if ! [ -f "$config_file" ]; then
+        echo "Error: Config file not found."
+        return 1
+    fi
+
+    # Generate the QR code and display it in the CLI
+    qrencode -t ANSIUTF8 < "$config_file"
+
+    if [ $? -eq 0 ]; then
+        echo "QR code generated."
+    else
+        echo "Error: QR code generation failed."
+        return 1
+    fi
+}
 
 
 
@@ -399,6 +382,7 @@ create_swap() {
         manual) manual_setup ;;
         headless) auto_setup ;;
         fresh) get_docker_compose ;;
+        quickcount) auto_set_wct ;;
         *) echo "Invalid choice. Please try again." ;;
     esac
     fi

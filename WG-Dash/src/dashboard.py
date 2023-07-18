@@ -1632,7 +1632,7 @@ def init_dashboard():
     if "Peers" not in config:
         config['Peers'] = {}
     if 'peer_global_DNS' not in config['Peers']:
-        config['Peers']['peer_global_DNS'] = '10.2.0.100, 10.2.0.200'
+        config['Peers']['peer_global_DNS'] = '10.2.0.100, 10.2.0.100'
     if 'peer_endpoint_allowed_ip' not in config['Peers']:
         config['Peers']['peer_endpoint_allowed_ip'] = '0.0.0.0/0'
     if 'peer_display_mode' not in config['Peers']:
@@ -1697,4 +1697,4 @@ if __name__ == "__main__":
     app_port = config.get("Server", "app_port")
     WG_CONF_PATH = config.get("Server", "wg_conf_path")
     config.clear()
-    app.run(host=app_ip, debug=True, port=app_port)
+    app.run(host=app_ip, debug=False, port=app_port)

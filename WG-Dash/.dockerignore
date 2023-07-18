@@ -7,6 +7,7 @@ src/test.py
 *.db
 src/wg-dashboard.ini
 src/static/pic.xd
+master-key/master.conf
 *.conf
 private_key.txt
 public_key.txt
