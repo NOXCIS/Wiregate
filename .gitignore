@@ -24,3 +24,6 @@ etc-dnsmasq.d/
 WG-Dash/config/*.conf
 data/
 WG-Dash/src/test.sh
+WG-Dash/master-key/master.conf
+WG-Dash/config/test.sh
+WG-Dash/config/test.sh

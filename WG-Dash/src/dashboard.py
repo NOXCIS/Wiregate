@@ -1632,7 +1632,7 @@ def init_dashboard():
     if "Peers" not in config:
         config['Peers'] = {}
     if 'peer_global_DNS' not in config['Peers']:
-        config['Peers']['peer_global_DNS'] = '10.2.0.100, 10.2.0.200'
+        config['Peers']['peer_global_DNS'] = '10.2.0.100, 10.2.0.100'
     if 'peer_endpoint_allowed_ip' not in config['Peers']:
         config['Peers']['peer_endpoint_allowed_ip'] = '0.0.0.0/0'
     if 'peer_display_mode' not in config['Peers']:

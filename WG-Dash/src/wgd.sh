@@ -4,33 +4,10 @@
 # Under Apache-2.0 License
 app_name="dashboard.py"
 app_official_name="WGDashboard"
-PID_FILE=./gunicorn.pid
-environment=$(if [[ $ENVIRONMENT ]]; then echo $ENVIRONMENT; else echo 'develop'; fi)
-if [[ $CONFIGURATION_PATH ]]; then
-  cb_work_dir=$CONFIGURATION_PATH/letsencrypt/work-dir
-  cb_config_dir=$CONFIGURATION_PATH/letsencrypt/config-dir
-else
-  cb_work_dir=/etc/letsencrypt
-  cb_config_dir=/var/lib/letsencrypt
-fi
 
 dashes='------------------------------------------------------------'
 equals='============================================================'
-help () {
-  printf "=================================================================================\n"
-  printf "+          <WGDashboard> by Donald Zou - https://github.com/donaldzou           +\n"
-  printf "=================================================================================\n"
-  printf "| Usage: ./wgd.sh <option>                                                      |\n"
-  printf "|                                                                               |\n"
-  printf "| Available options:                                                            |\n"
-  printf "|    start: To start WGDashboard.                                               |\n"
-  printf "|    stop: To stop WGDashboard.                                                 |\n"
-  printf "|    debug: To start WGDashboard in debug mode (i.e run in foreground).         |\n"
-  printf "|    update: To update WGDashboard to the newest version from GitHub.           |\n"
-  printf "|    install: To install WGDashboard.                                           |\n"
-  printf "| Thank you for using! Your support is my motivation ;)                         |\n"
-  printf "=================================================================================\n"
-}
+
 
 _check_and_set_venv(){
     # This function will not be using in v3.0
@@ -44,27 +21,6 @@ _check_and_set_venv(){
     . ${VIRTUAL_ENV}/bin/activate
 }
 
-install_wgd(){
-    printf "| Starting to install WGDashboard                          |\n"
-    version_pass=$(python3 -c 'import sys; print("1") if (sys.version_info.major == 3 and sys.version_info.minor >= 7) else print("0");')
-    if [ $version_pass == "0" ]
-      then printf "| WGDashboard required Python 3.7 or above          |\n"
-      printf "%s\n" "$dashes"
-      exit 1
-    fi
-    if [ ! -d "db" ]
-      then mkdir "db"
-    fi
-    if [ ! -d "log" ]
-      then mkdir "log"
-    fi
-    printf "| Upgrading pip                                            |\n"
-    python3 -m pip install -U pip > /dev/null 2>&1
-    printf "| Installing latest Python dependencies                    |\n"
-    python3 -m pip install -U -r requirements.txt > /dev/null 2>&1
-    printf "| WGDashboard installed successfully!                      |\n"
-    printf "| Enter ./wgd.sh start to start the dashboard              |\n"
-}
 
 check_wgd_status(){
   if test -f "$PID_FILE"; then
@@ -115,8 +71,65 @@ EOF
 
     echo "Generated wg$file_number.conf"
     ((listen_port++))
+    make_master_config
     chmod 600 "/etc/wireguard/wg$file_number.conf"
   done
+}
+
+make_master_config() {
+        local svr_config="/etc/wireguard/wg0.conf"
+        # Check if the specified config file exists
+        if [ ! -f "$svr_config" ]; then
+            echo "Error: Config file $svr_config not found."
+            exit 1
+        fi
+
+
+        #Function to generate a new peer's public key
+        generate_public_key() {
+            local private_key="$1"
+            echo "$private_key" | wg pubkey
+        }
+
+        # Function to generate a new preshared key
+        generate_preshared_key() {
+            wg genpsk
+        }   
+
+
+
+    # Generate the new peer's public key, preshared key, and allowed IP
+    wg_private_key=$(wg genkey)
+    peer_public_key=$(generate_public_key "$wg_private_key")
+    preshared_key=$(generate_preshared_key)
+
+    # Add the peer to the WireGuard config file with the preshared key
+    echo -e "\n[Peer]" >> "$svr_config"
+    echo "PublicKey = $peer_public_key" >> "$svr_config"
+    echo "PresharedKey = $preshared_key" >> "$svr_config"
+    echo "AllowedIPs = 10.0.0.42/32" >> "$svr_config"
+
+
+    server_public_key=$(grep -E '^PrivateKey' "$svr_config" | awk '{print $NF}')
+    svrpublic_key=$(echo "$server_public_key" | wg pubkey)
+
+
+    # Generate the client config file
+    cat <<EOF >"/home/app/master-key/master.conf"
+[Interface
+PrivateKey = $wg_private_key
+Address = 10.0.0.42/32
+DNS = 10.2.0.100,10.2.0.100
+MTU = 1420
+
+Peer]
+PublicKey = $svrpublic_key
+AllowedIPs = 0.0.0.0/0
+Endpoint = $SERVER_IP:51820
+PersistentKeepalive = 21
+PresharedKey = $preshared_key
+EOF
+
 }
 
 start_wgd_debug() {
@@ -129,51 +142,22 @@ start_wgd_debug() {
 if [ "$#" != 1 ];
   then
     help
-  else
-    if [ "$1" = "start" ]; then
-        if check_wgd_status; then
-          printf "%s\n" "$dashes"
-          printf "| WGDashboard is already running.                          |\n"
-          printf "%s\n" "$dashes"
-          else
-            start_wgd
-        fi
-      elif [ "$1" = "stop" ]; then
-        if check_wgd_status; then
-            printf "%s\n" "$dashes"
-            stop_wgd
-            printf "| WGDashboard is stopped.                                  |\n"
-            printf "%s\n" "$dashes"
-            else
-              printf "%s\n" "$dashes"
-              printf "| WGDashboard is not running.                              |\n"
-              printf "%s\n" "$dashes"
-        fi
-      elif [ "$1" = "update" ]; then
-        update_wgd
+  
       elif [ "$1" = "install" ]; then
         printf "%s\n" "$dashes"
         install_wgd
         printf "%s\n" "$dashes"
-      elif [ "$1" = "restart" ]; then
-         if check_wgd_status; then
-           printf "%s\n" "$dashes"
-           stop_wgd
-           printf "| WGDashboard is stopped.                                  |\n"
-           sleep 4
-           start_wgd
-        else
-          start_wgd
-        fi
+
       elif [ "$1" = "debug" ]; then
         if check_wgd_status; then
           printf "| WGDashboard is already running.                          |\n"
           else
             start_wgd_debug
         fi
+
       elif [ "$1" = "newconfig" ]; then
         newconf_wgd
       else
         help
-    fi
+    
 fi

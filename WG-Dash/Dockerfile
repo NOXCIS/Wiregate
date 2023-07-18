@@ -10,7 +10,13 @@ RUN rm -rf /var/cache/apk/*
 
 RUN mkdir /home/app 
 
+RUN mkdir /home/app/master-key
+
 COPY ./src /home/app 
+
+RUN python3 -m pip install -U pip 
+                
+RUN python3 -m pip install -U -r /home/app/requirements.txt 
 
 COPY ./entrypoint.sh /home/app/entrypoint.sh
 
