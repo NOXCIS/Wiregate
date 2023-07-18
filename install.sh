@@ -353,7 +353,7 @@ cout_master_key() {
 
 }
 generate_wireguard_qr() {
-    local config_file="/WG-Dash/master-key/master.conf"
+    local config_file="./WG-Dash/master-key/master.conf"
 
     if ! [ -f "$config_file" ]; then
         echo "Error: Config file not found."
