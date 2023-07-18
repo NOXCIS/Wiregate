@@ -122,8 +122,8 @@ run_setup() {
     echo "#######################################################################"
     echo -e "\n\033[0m"
 
-            cout_master_key
-}
+            cout_master_key &&
+
 
 
     echo -e "\033[33m\n" 
@@ -135,8 +135,8 @@ run_setup() {
     echo -e "\n\033[0m"
     
             create_swap 
-    
- 
+}  
+
 
 auto_setup() {
     title
@@ -362,7 +362,7 @@ create_swap() {
 }
 cout_master_key() {
 
-    cat /master-key/master.conf 
+    cat ./WG-Dash/master-key/master.conf 
 
 }
 
