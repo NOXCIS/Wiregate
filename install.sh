@@ -113,18 +113,7 @@ run_setup() {
             docker-compose up -d --build &&
     
 
-
-    echo -e "\033[33m\n" 
-    echo "#######################################################################"
-    echo ""
-    echo "                        Create a 2 Gb swapfile"
-    echo ""
-    echo "#######################################################################"
-    echo -e "\n\033[0m"
-    
-            create_swap &&
-    
-    echo -e "\033[33m\n" 
+   echo -e "\033[33m\n" 
     echo "#######################################################################"
     echo ""
     echo "        Copy Master Client Config to empty WireGuard .conf file "
@@ -135,6 +124,19 @@ run_setup() {
 
             cout_master_key
 }
+
+
+    echo -e "\033[33m\n" 
+    echo "#######################################################################"
+    echo ""
+    echo "                        Create a 2 Gb swapfile"
+    echo ""
+    echo "#######################################################################"
+    echo -e "\n\033[0m"
+    
+            create_swap 
+    
+ 
 
 auto_setup() {
     title
