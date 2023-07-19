@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/bin/sh
+
 set -e
 export DEBIAN_FRONTEND=noninteractive
 export TIMER_VALUE=0
@@ -47,10 +48,8 @@ run_setup() {
     echo ""
     echo "#######################################################################"
     echo -e "\n\033[0m"
-
     sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy update > /dev/null 2>&1
     sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy upgrade > /dev/null 2>&1
-
     echo -e "\033[33m\n" 
     echo "#######################################################################"
     echo ""
@@ -58,11 +57,7 @@ run_setup() {
     echo ""
     echo "#######################################################################"
     echo -e "\n\033[0m"
-    
             install_prerequisites &&
-    sleep 3s
-
-    
     echo -e "\033[33m\n"
     echo "#######################################################################"
     echo ""
@@ -75,9 +70,7 @@ run_setup() {
     echo ""
     echo "#######################################################################"
     echo -e "\n\033[0m"
-    
             set_tz &&
-    
     echo ""
     echo "Enter password for Pihole Dashboard $(tput setaf 1)(Press enter to set password or wait 5 seconds for no password): $(tput sgr0)"  
             set_password &&
@@ -106,33 +99,23 @@ run_setup() {
     echo ""
     echo "#######################################################################"
     echo -e "\n\033[0m"
-            sysctl -w net.core.rmem_max=2097152
-            docker-compose up -d --build &&
+            compose_up &&
     
 
-   echo -e "\033[33m\n" 
+    echo -e "\033[33m\n" 
     echo "#######################################################################"
     echo ""
     echo "        Copy Master Client Config to empty WireGuard .conf file "
-    echo "           To connect to Wireguard and access the Dashboard" 
+    echo "           Connect to Wireguard and access the Dashboard" 
     echo ""
     echo "                Dashboard Address http://10.2.0.3:10086" 
+    echo ""
     echo "#######################################################################"
     echo -e "\n\033[0m"
 
             cout_master_key &&
             echo ""
             generate_wireguard_qr &&
-
-
-    echo -e "\033[33m\n" 
-    echo "#######################################################################"
-    echo ""
-    echo "                        Create a 2 Gb swapfile"
-    echo ""
-    echo "#######################################################################"
-    echo -e "\n\033[0m"
-    
             create_swap 
 }  
 auto_setup() {
@@ -251,6 +234,10 @@ set_password() {
         done
     fi
 }
+compose_up() {
+    sudo sysctl -w net.core.rmem_max=2097152
+    docker-compose up -d --build &&
+}
 install_prerequisites() {
     
     # List of prerequisites
@@ -328,22 +315,17 @@ create_swap() {
         echo "Swapfile already exists."
         exit 1
     fi
-
     # Create a swapfile
-        sudo fallocate -l 2G /swapfile
-
+        sudo fallocate -l 2G /swapfile > /dev/null 2>&1
     # Set permissions for the swapfile
-        sudo chmod 600 /swapfile
-
+        sudo chmod 600 /swapfile > /dev/null 2>&1
     # Set up the swap space
-        sudo mkswap /swapfile
-
+        sudo mkswap /swapfile > /dev/null 2>&1
     # Enable the swapfile
-        sudo swapon /swapfile
-
+        sudo swapon /swapfile > /dev/null 2>&1
     # Update the fstab file to make the swapfile persistent across reboots
-        echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-        echo "Swapfile created and enabled."
+        echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab > /dev/null 2>&1
+        echo "Swapfile created and enabled." 
 
 
 }
