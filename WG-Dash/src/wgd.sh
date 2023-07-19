@@ -22,21 +22,7 @@ _check_and_set_venv(){
 }
 
 
-check_wgd_status(){
-  if test -f "$PID_FILE"; then
-    if ps aux | grep -v grep | grep $(cat ./gunicorn.pid)  > /dev/null; then
-    return 0
-    else
-      return 1
-    fi
-  else
-    if ps aux | grep -v grep | grep '[p]ython3 '$app_name > /dev/null; then
-      return 0
-    else
-      return 1
-    fi
-  fi
-}
+
 
 start_wgd () {
       uwsgi -i wg-uwsgi.ini
@@ -68,16 +54,17 @@ PostUp = iptables -t nat -I POSTROUTING -o eth0 -j MASQUERADE
 PreDown = iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
 EOF
 
-    echo "Generated wg$file_number.conf"
+    #echo "Generated wg$file_number.conf"
     ((listen_port++))
-    
+
   done
 
   if [ ! -f "/master-key/master.conf" ]; then
     make_master_config # Only call make_master_config if master.conf doesn't exist
   fi
 
-  chmod 600 /etc/wireguard/wg*.conf # Change permission for all generated config files
+  
+  
 }
 
 

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 set -e
 export DEBIAN_FRONTEND=noninteractive
@@ -24,7 +24,7 @@ menu() {
     echo "1. Manual configuration"
     echo "2. Auto configuration"
     echo "3. Auto configuration with quickset for # of Configs to Generate"
-    echo "4. Get Fresh docker-compose.yml"
+    echo "4. Reset Dashboard"
     echo "5. Exit"
 
     read -p "Enter your choice: " choice
@@ -34,7 +34,7 @@ menu() {
         1) manual_setup ;;
         2) auto_setup ;;
         3) auto_set_wct ;;
-        4) get_docker_compose ;;
+        4) fresh_install ;;
         5) exit ;;
         *) echo "Invalid choice. Please try again." ;;
     esac
@@ -113,9 +113,9 @@ run_setup() {
     echo "#######################################################################"
     echo -e "\n\033[0m"
 
-            cout_master_key &&
+            docker logs -f wg_dashboard &&
             echo ""
-            generate_wireguard_qr &&
+           
             create_swap 
 }  
 auto_setup() {
@@ -236,7 +236,7 @@ set_password() {
 }
 compose_up() {
     sudo sysctl -w net.core.rmem_max=2097152
-    docker-compose up -d --build &&
+    docker compose up -d --build 
 }
 install_prerequisites() {
     
@@ -295,19 +295,38 @@ add_port_mappings() {
     sed -i '/ports:/,/sysctls:/ { /- 51820:51820\/udp/{n; d; } }' docker-compose.yml
 
 }
-get_docker_compose() {
-    local yml_file="docker-compose.yml"
+fresh_install() {
+    
+    local masterkey_file="/WG-Dash/master-key/master.conf"
+    local config_folder="/WG-Dash/config"
+    
+    docker compose down 
+    
 
-    if [ -f "$(dirname "$0")/$yml_file" ]; then
-        echo "Removing existing '$yml_file'..."
-        rm "$(dirname "$0")/$yml_file"
-        echo "Existing '$yml_file' removed."
+    if [ -f "$(dirname "$0")$masterkey_file" ]; then
+        echo "Removing existing '$masterkey_file'..."
+        rm "$(dirname "$0")$masterkey_file"
+        echo "Existing '$masterkey_file' removed."
     fi
 
-        echo "Pulling '$yml_file' from GitHub..."
-        curl -o "$(dirname "$0")/$yml_file" https://raw.githubusercontent.com/NOXCIS/Worm-Hole/docker-compose.yml
-        echo "File '$yml_file' successfully pulled from GitHub."
+    if [ -d "$(dirname "$0")$config_folder" ]; then
+        echo "Removing existing '$config_folder'..."
+        rm -r "$(dirname "$0")$config_folder"
+        echo "Existing '$config_folder' removed."
+    fi
+
+        echo "Removing existing Compose File"
+        rm docker-compose.yml
+        echo "Existing Compose File removed."
+
+        echo "Pulling from Clean Compose File..."
+        cat Custom-Compose/clean-docker-compose.yml > docker-compose.yml
+        echo "File successfully pulled from Clean Compose File."
+    
+
+    menu
 }
+
 create_swap() {
 
     # Check if a swapfile already exists
@@ -329,29 +348,7 @@ create_swap() {
 
 
 }
-cout_master_key() {
 
-    cat ./WG-Dash/master-key/master.conf 
-
-}
-generate_wireguard_qr() {
-    local config_file="./WG-Dash/master-key/master.conf"
-
-    if ! [ -f "$config_file" ]; then
-        echo "Error: Config file not found."
-        return 1
-    fi
-
-    # Generate the QR code and display it in the CLI
-    qrencode -t ANSIUTF8 < "$config_file"
-
-    if [ $? -eq 0 ]; then
-        echo "QR code generated."
-    else
-        echo "Error: QR code generation failed."
-        return 1
-    fi
-}
 
 
 
@@ -363,7 +360,7 @@ generate_wireguard_qr() {
         run) run_setup ;;
         manual) manual_setup ;;
         headless) auto_setup ;;
-        fresh) get_docker_compose ;;
+        fresh) fresh_install ;;
         quickcount) auto_set_wct ;;
         *) echo "Invalid choice. Please try again." ;;
     esac
