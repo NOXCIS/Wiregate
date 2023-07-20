@@ -266,8 +266,8 @@ install_prerequisites() {
         fi
     done
 
-    if ! command -v docker > /dev/null 2>&1 || ! command -v docker-compose > /dev/null 2>&1; then
-        echo "${GREEN}Installing Docker...${RESET}"
+    if ! dpkg -s "docker-ce" > /dev/null 2>&1 || ! dpkg -s "docker-compose" > /dev/null 2>&1; then
+        echo "${GREEN}Installing Docker using the install_docker() function...${RESET}"
         install_docker
     fi
 }
