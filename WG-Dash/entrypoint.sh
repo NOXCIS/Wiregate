@@ -33,7 +33,7 @@ generate_wireguard_qr() {
     qrencode -t ANSIUTF8 < "$config_file"
 
     if [ $? -eq 0 ]; then
-        echo "QR code generated."
+        echo "QR code generated." > /dev/null 2>&1
     else
         echo "Error: QR code generation failed."
         return 1
