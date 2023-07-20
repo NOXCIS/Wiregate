@@ -273,7 +273,7 @@ install_prerequisites() {
 }
 install_docker() {
     rm /etc/apt/keyrings/docker.gpg 
-    for pkg in docker.io docker-doc docker-compose podman-docker containerd runc; do sudo apt-get remove -y $pkg; done
+    for pkg in docker.io docker-doc docker-compose podman-docker containerd runc; do sudo apt-get remove -y $pkg; done  > /dev/null 2>&1
     sudo install -m 0755 -d /etc/apt/keyrings
     sleep 0.25s
     sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg 
