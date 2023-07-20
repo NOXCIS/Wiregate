@@ -1,7 +1,5 @@
 #!/bin/bash
 
-# wgd.sh - Copyright(C) 2021 Donald Zou [https://github.com/donaldzou]
-# Under Apache-2.0 License
 app_name="dashboard.py"
 app_official_name="WGDashboard"
 
@@ -20,14 +18,9 @@ _check_and_set_venv(){
     fi
     . ${VIRTUAL_ENV}/bin/activate
 }
-
-
-
-
 start_wgd () {
       uwsgi -i wg-uwsgi.ini
 }
-
 newconf_wgd() {
   local num_configs=$CONFIG_CT
   local listen_port=51820
@@ -61,12 +54,8 @@ EOF
 
   if [ ! -f "/master-key/master.conf" ]; then
     make_master_config # Only call make_master_config if master.conf doesn't exist
-  fi
-
-  
-  
+  fi 
 }
-
 
 make_master_config() {
         local svr_config="/etc/wireguard/wg0.conf"
@@ -121,16 +110,9 @@ Endpoint = $SERVER_IP:51820
 PersistentKeepalive = 21
 PresharedKey = $preshared_key
 EOF
-
-
 }
 
-start_wgd_debug() {
-  printf "%s\n" "$dashes"
-  printf "| Starting WGDashboard in the foreground.                  |\n"
-  python3 "$app_name"
-  printf "%s\n" "$dashes"
-}
+
 
 if [ "$#" != 1 ];
   then
