@@ -8,7 +8,7 @@ if [ ! -f "/etc/wireguard/wg0.conf" ]; then
 
 fi
 
-function run_wireguard_up() {
+run_wireguard_up() {
   config_files=$(find /etc/wireguard -type f -name "*.conf")
   
   for file in $config_files; do
@@ -18,10 +18,7 @@ function run_wireguard_up() {
   done
 }
 
-
-
 cout_master_key() {
-
     cat ./master-key/master.conf 
 }
 generate_wireguard_qr() {
@@ -45,8 +42,17 @@ generate_wireguard_qr() {
 
 run_wireguard_up > /dev/null 2>&1
 # Change permission for all generated config files
+echo '
+
+███╗   ███╗ █████╗ ███████╗████████╗███████╗██████╗     ██╗  ██╗███████╗██╗   ██╗
+████╗ ████║██╔══██╗██╔════╝╚══██╔══╝██╔════╝██╔══██╗    ██║ ██╔╝██╔════╝╚██╗ ██╔╝
+██╔████╔██║███████║███████╗   ██║   █████╗  ██████╔╝    █████╔╝ █████╗   ╚████╔╝ 
+██║╚██╔╝██║██╔══██║╚════██║   ██║   ██╔══╝  ██╔══██╗    ██╔═██╗ ██╔══╝    ╚██╔╝  
+██║ ╚═╝ ██║██║  ██║███████║   ██║   ███████╗██║  ██║    ██║  ██╗███████╗   ██║   
+╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝   ╚═╝   ╚══════╝╚═╝  ╚═╝    ╚═╝  ╚═╝╚══════╝   ╚═╝   
+
+
+'
 cout_master_key
 generate_wireguard_qr
 
-
-/home/app/wgd.sh debug
