@@ -263,16 +263,15 @@ install_prerequisites() {
         if ! dpkg -s "$prerequisite" > /dev/null 2>&1; then
             echo "${GREEN}$prerequisite is not installed. Installing...${RESET}"
             sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy install "$prerequisite" > /dev/null 2>&1
-        
-        if [[ "$prerequisite" == "docker" ]]; then
-            echo "${GREEN}Docker is not installed. Installing...${RESET}"
-            install_docker
-        fi
-        
         else
             echo "${GREEN}$prerequisite is already installed. Skipping...${RESET}"
         fi
     done
+
+    if ! command -v docker > /dev/null 2>&1 || ! command -v docker-compose > /dev/null 2>&1; then
+        echo "${GREEN}Installing Docker...${RESET}"
+        install_docker
+    fi
 }
 install_docker() {
 
@@ -286,7 +285,7 @@ install_docker() {
     "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
     sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
     sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy update > /dev/null 2>&1
-    sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin > /dev/null 2>&1
+    sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin 
 
 }
 config_count() {
