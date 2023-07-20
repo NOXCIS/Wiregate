@@ -266,10 +266,8 @@ install_prerequisites() {
         fi
     done
 
-    if ! dpkg -s "docker-ce" > /dev/null 2>&1 || ! dpkg -s "docker-compose" > /dev/null 2>&1; then
-        echo "${GREEN}Installing Docker using the install_docker() function...${RESET}"
         install_docker
-    fi
+    
 }
 install_docker() {
     rm /etc/apt/keyrings/docker.gpg 
@@ -299,17 +297,15 @@ install_docker() {
     GREEN=$(tput setaf 2)
     RESET=$(tput sgr0)
 
-    for docreqs in "${DOCREQS[@]}" do
-    if ! dpkg -s "$docreqs" > /dev/null 2>&1; then
-    echo "${GREEN}Docker is not installed. Installing...${RESET}"
-    sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy install "$docreqs" > /dev/null 2>&1
+    for docreqs in "${DOCREQS[@]}" 
+    do
+        if ! dpkg -s "$docreqs" > /dev/null 2>&1; then
+        echo "${GREEN}Docker is not installed. Installing...${RESET}"
+        sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy install "$docreqs" 
     else
-            echo "${GREEN}$prerequisite is already installed. Skipping...${RESET}"
+            echo "${GREEN}$docreqs is already installed. Skipping...${RESET}"
     fi
     done
-
-
-
 }
 config_count() {
     local yml_file="docker-compose.yml"
@@ -366,7 +362,7 @@ fresh_install() {
         cat Custom-Compose/clean-docker-compose.yml > docker-compose.yml
         echo "File successfully pulled from Clean Compose File."
     
-
+    clear
     menu
 }
 
