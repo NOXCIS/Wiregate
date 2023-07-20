@@ -287,7 +287,28 @@ install_docker() {
     sleep 0.25s
     sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy update > /dev/null 2>&1
     sleep 0.25s
-    sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy install docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin 
+
+    DOCREQS=(
+        docker-ce 
+        docker-ce-cli 
+        containerd.io 
+        docker-buildx-plugin 
+        docker-compose-plugin
+    )
+
+    GREEN=$(tput setaf 2)
+    RESET=$(tput sgr0)
+
+    for docreqs in "${DOCREQS[@]}" do
+    if ! dpkg -s "$docreqs" > /dev/null 2>&1; then
+    echo "${GREEN}Docker is not installed. Installing...${RESET}"
+    sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy install "$docreqs" > /dev/null 2>&1
+    else
+            echo "${GREEN}$prerequisite is already installed. Skipping...${RESET}"
+    fi
+    done
+
+
 
 }
 config_count() {
