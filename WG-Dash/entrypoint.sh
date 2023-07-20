@@ -58,3 +58,5 @@ echo '
 '
 generate_wireguard_qr
 
+
+/home/app/wgd.sh debug

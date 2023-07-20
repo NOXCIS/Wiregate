@@ -8,7 +8,7 @@ src/test.py
 src/wg-dashboard.ini
 src/static/pic.xd
 master-key/master.conf
-*.conf
+config/*.conf
 private_key.txt
 public_key.txt
 venv/**

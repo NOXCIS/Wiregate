@@ -112,6 +112,14 @@ PresharedKey = $preshared_key
 EOF
 }
 
+start_wgd_debug() {
+  printf "%s\n" "$dashes"
+  printf "| Starting WGDashboard in the foreground.                  |\n"
+  python3 "$app_name"
+  printf "%s\n" "$dashes"
+}
+
+
 
 
 if [ "$#" != 1 ];
@@ -124,11 +132,7 @@ if [ "$#" != 1 ];
         printf "%s\n" "$dashes"
 
       elif [ "$1" = "debug" ]; then
-        if check_wgd_status; then
-          printf "| WGDashboard is already running.                          |\n"
-          else
             start_wgd_debug
-        fi
 
       elif [ "$1" = "newconfig" ]; then
         newconf_wgd
