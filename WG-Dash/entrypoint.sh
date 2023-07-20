@@ -54,5 +54,7 @@ echo '
 
 '
 cout_master_key
+echo '
+'
 generate_wireguard_qr
 
