@@ -17,13 +17,11 @@ release/*
 src/db/wgdashboard.db
 .jshintrc
 wireguard/
-unbound/*
-etc-pihole/
+
+etc-pihole/*
+!etc-pihole/custom.list
 etc-dnsmasq.d/
-!unbound/unbound.conf
 WG-Dash/config/*.conf
 data/
 WG-Dash/src/test.sh
 WG-Dash/master-key/master.conf
-WG-Dash/config/test.sh
-WG-Dash/config/test.sh

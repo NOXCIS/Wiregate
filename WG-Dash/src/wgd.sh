@@ -99,7 +99,7 @@ make_master_config() {
     cat <<EOF >"/home/app/master-key/master.conf"
 [Interface]
 PrivateKey = $wg_private_key
-Address = 10.0.0.2/32
+Address = 10.0.0.254/32
 DNS = 10.2.0.100,10.2.0.100
 MTU = 1420
 

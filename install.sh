@@ -5,6 +5,7 @@ export DEBIAN_FRONTEND=noninteractive
 export TIMER_VALUE=0
 
 title() {
+    echo -e "\033[32m"
     echo '  
 
     ██╗    ██╗ ██████╗ ██████╗ ███╗   ███╗██╗  ██╗ ██████╗ ██╗     ███████╗
@@ -12,19 +13,20 @@ title() {
     ██║ █╗ ██║██║   ██║██████╔╝██╔████╔██║███████║██║   ██║██║     █████╗  
     ██║███╗██║██║   ██║██╔══██╗██║╚██╔╝██║██╔══██║██║   ██║██║     ██╔══╝  
     ╚███╔███╔╝╚██████╔╝██║  ██║██║ ╚═╝ ██║██║  ██║╚██████╔╝███████╗███████╗
-    ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚══════╝
+     ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝╚═╝  ╚═╝ ╚═════╝ ╚══════╝╚══════╝
 
-            Setup Script & Dockerization by Shamar Lee A.K.A NOXCIS
+                    Setup Script & Dockerization by NOXCIS
         Thanks to @donaldzou for WGDashboard @klutchell for UnBound Config
     '
+    echo -e "\033[0m"
 }
 menu() {
     title
     echo "Please choose an option:"
     echo "1. Manual configuration"
     echo "2. Auto configuration"
-    echo "3. Auto configuration with quickset for # of Configs to Generate"
-    echo "4. Reset Dashboard"
+    echo "3. Auto configuration with quickset for # of Server Interfaces to Generate & Pihole Password"
+    echo "4. Reset WireGuard Dashboard"
     echo "5. Exit"
 
     read -p "Enter your choice: " choice
@@ -48,8 +50,11 @@ run_setup() {
     echo ""
     echo "#######################################################################"
     echo -e "\n\033[0m"
-    sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy update > /dev/null 2>&1
-    sudo sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy upgrade > /dev/null 2>&1
+    
+    sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy update 
+    sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy upgrade 
+    clear
+    title
     echo -e "\033[33m\n" 
     echo "#######################################################################"
     echo ""
@@ -57,31 +62,26 @@ run_setup() {
     echo ""
     echo "#######################################################################"
     echo -e "\n\033[0m"
+
             install_prerequisites &&
     echo -e "\033[33m\n"
+
     echo "#######################################################################"
     echo ""
-    echo "                 SET TIMEZONE AND DASHBOARD PASSWORDS"
+    echo "                              SET TIMEZONE "
     echo ""
-    echo ""
-    echo ""
-    echo "   The Time Zone will be set Automatically and The password left blank"
+    echo "                The Time Zone will be set Automatically "
     echo "                    When a timeout event occours"
     echo ""
     echo "#######################################################################"
     echo -e "\n\033[0m"
+
             set_tz &&
-    echo ""
-    echo "Enter password for Pihole Dashboard $(tput setaf 1)(Press enter to set password or wait 5 seconds for no password): $(tput sgr0)"  
-            set_password &&
-    
 
     echo -e "\033[33m\n" 
     echo "#######################################################################"
     echo ""
     echo "                       SET SERVER IP FOR WIREGUARD"
-    echo "                   SET # of SERVER INTERFACES TO CREATE"
-    echo ""
     echo ""
     echo "                 The Server IP will be set Automatically"
     echo "                      When a timeout event occours"
@@ -95,7 +95,7 @@ run_setup() {
     echo -e "\033[33m\n" 
     echo "#######################################################################"
     echo ""
-    echo "                        Run docker Compose UP"
+    echo "                           Run Docker Compose "
     echo ""
     echo "#######################################################################"
     echo -e "\n\033[0m"
@@ -105,11 +105,14 @@ run_setup() {
     echo -e "\033[33m\n" 
     echo "#######################################################################"
     echo ""
-    echo "        Copy Master Client Config to empty WireGuard .conf file "
-    echo "           Connect to Wireguard and access the Dashboard" 
+    echo "             Copy Master Key to empty WireGuard .conf file"
+    echo "             Connect to Wireguard and access the Dashboard" 
     echo ""
-    echo "                Dashboard Address http://10.2.0.3:10086" 
+    echo -e "             WireGuard Dashboard Address: \033[32mhttp://worm.hole\033[0m" 
+    echo -e "             \033[33mPihole Dashboard Address:    \033[32mhttp://pi.hole\033[0m"
     echo ""
+    echo -e "             \033[32mVPN Connection Required to Access Dashboards\033[0m" 
+    echo -e "\033[33m"
     echo "#######################################################################"
     echo -e "\n\033[0m"
 
@@ -119,25 +122,34 @@ run_setup() {
             create_swap 
 }  
 auto_setup() {
-    title
-    sleep 5s
+    TIMER_VALUE=0
+    config_count &&
+    set_password &&
     TIMER_VALUE=0 
     run_setup 
 }
 auto_set_wct() {
     TIMER_VALUE=5
     config_count &&
+    set_password &&
     TIMER_VALUE=0
     run_setup 
 
 }
 manual_setup() {
-    title
-    echo "The Timer value dictates how much time you will have in each setup set."
-    echo "Enter the timer value (in seconds):"
-    read TIMER_VALUE
+    echo -e "\033[33m\n" 
+    echo "#######################################################################"
+    echo ""
+    echo "The Timer value dictates how much time you will have in each setup step."
+    echo ""
+    echo "#######################################################################"
+    echo -e "\n\033[0m"
+    read -p "Enter the timer value (in seconds): " TIMER_VALUE
+    echo ""
     echo -e "Timer value set to \033[32m$TIMER_VALUE\033[0m seconds."
-    sleep 2s
+    echo ""
+    config_count &&
+    set_password &&
     run_setup
 }
 set_tz() {
@@ -191,6 +203,7 @@ set_password() {
     local timer=$TIMER_VALUE
     local user_activity=false
 
+     echo "Press any key to set password $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$TIMER_VALUE$(tput sgr0)$(tput setaf 1) seconds for no password: $(tput sgr0)"  
     # Wait for 5 seconds or until user activity is detected
     sleep $timer & PID=$!
     while true; do
@@ -200,7 +213,7 @@ set_password() {
             password=""
             echo ""
             sed -i "s/WEBPASSWORD:.*/WEBPASSWORD: \"$password\"/" "$yml_file"
-            echo -e "\033[31mRunning Headless. Password has been set to null.\033[0m"
+            echo -e "\033[32mRunning Headless. Password has been set to null.\033[0m"
             echo ""
             break
         fi
@@ -227,8 +240,19 @@ set_password() {
             else
                 # Passwords match, update the yml_file and exit the loop
                 sed -i "s/WEBPASSWORD:.*/WEBPASSWORD: \"$password\"/" "$yml_file"
-                echo -e "\033[32mPASSWORD HAS BEEN SET\033[0m"
-                echo ""
+
+                echo -e "\033[32m"
+                echo '
+      ██████╗  █████╗ ███████╗███████╗██╗    ██╗ ██████╗ ██████╗ ██████╗     ███████╗███████╗████████╗
+      ██╔══██╗██╔══██╗██╔════╝██╔════╝██║    ██║██╔═══██╗██╔══██╗██╔══██╗    ██╔════╝██╔════╝╚══██╔══╝
+      ██████╔╝███████║███████╗███████╗██║ █╗ ██║██║   ██║██████╔╝██║  ██║    ███████╗█████╗     ██║   
+      ██╔═══╝ ██╔══██║╚════██║╚════██║██║███╗██║██║   ██║██╔══██╗██║  ██║    ╚════██║██╔══╝     ██║   
+      ██║     ██║  ██║███████║███████║╚███╔███╔╝╚██████╔╝██║  ██║██████╔╝    ███████║███████╗   ██║   
+      ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝ ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═════╝     ╚══════╝╚══════╝   ╚═╝                         
+        '
+                
+                echo -e "\033[0m"
+
                 break
             fi
         done
@@ -254,15 +278,17 @@ install_prerequisites() {
     )
     # Define ANSI color codes
     GREEN=$(tput setaf 2)
+    YELLOW=$(tput setaf 3)
     RESET=$(tput sgr0)
+   
     # Check if each prerequisite is already installed
     for prerequisite in "${PREREQUISITES[@]}"
     do
         if ! dpkg -s "$prerequisite" > /dev/null 2>&1; then
-            echo "${GREEN}$prerequisite is not installed. Installing...${RESET}"
+            echo "${GREEN}$prerequisite is not installed.${RESET} ${YELLOW}Installing...${RESET}"
             sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy install "$prerequisite" > /dev/null 2>&1
         else
-            echo "${GREEN}$prerequisite is already installed. Skipping...${RESET}"
+            echo "${GREEN}$prerequisite is already installed.${RESET} ${YELLOW}Skipping...${RESET}"
         fi
     done
 
@@ -270,7 +296,9 @@ install_prerequisites() {
     
 }
 install_docker() {
-    rm /etc/apt/keyrings/docker.gpg 
+    if [ -f /etc/apt/keyrings/docker.gpg ]; then
+       sudo rm /etc/apt/keyrings/docker.gpg 
+    fi
     for pkg in docker.io docker-doc docker-compose podman-docker containerd runc; do sudo apt-get remove -y $pkg; done  > /dev/null 2>&1
     sudo install -m 0755 -d /etc/apt/keyrings
     sleep 0.25s
@@ -303,13 +331,28 @@ install_docker() {
         echo "${GREEN}Docker is not installed. Installing...${RESET}"
         sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy install "$docreqs" 
     else
-            echo "${GREEN}$docreqs is already installed. Skipping...${RESET}"
+            echo "${GREEN}$docreqs is already installed.${RESET} ${RED}Skipping...${RESET}"
     fi
     done
 }
 config_count() {
     local yml_file="docker-compose.yml"
     local count=""
+    echo -e "\033[33m\n"    
+    echo '
+              ███╗   ██╗ ██████╗ ████████╗██╗ ██████╗███████╗
+              ████╗  ██║██╔═══██╗╚══██╔══╝██║██╔════╝██╔════╝
+              ██╔██╗ ██║██║   ██║   ██║   ██║██║     █████╗  
+              ██║╚██╗██║██║   ██║   ██║   ██║██║     ██╔══╝  
+              ██║ ╚████║╚██████╔╝   ██║   ██║╚██████╗███████╗
+              ╚═╝  ╚═══╝ ╚═════╝    ╚═╝   ╚═╝ ╚═════╝╚══════╝                                              
+    '
+    echo "#######################################################################"
+    echo ""
+    echo "             Set Number of Wireguard Interfaces to be Generate"
+    echo ""
+    echo "#######################################################################"
+    echo -e "\n\033[0m"
         read -t $TIMER_VALUE -p "Enter # of WireGuard server configurations to generate $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " count
         echo ""
         echo ""
@@ -335,10 +378,87 @@ add_port_mappings() {
 
 }
 fresh_install() {
-    
     local masterkey_file="/WG-Dash/master-key/master.conf"
     local config_folder="/WG-Dash/config"
+    clear
+    echo -e "\033[33m\n"    
+    echo '
+        ██╗    ██╗ █████╗ ██████╗ ███╗   ██╗██╗███╗   ██╗ ██████╗ 
+        ██║    ██║██╔══██╗██╔══██╗████╗  ██║██║████╗  ██║██╔════╝ 
+        ██║ █╗ ██║███████║██████╔╝██╔██╗ ██║██║██╔██╗ ██║██║  ███╗
+        ██║███╗██║██╔══██║██╔══██╗██║╚██╗██║██║██║╚██╗██║██║   ██║
+        ╚███╔███╔╝██║  ██║██║  ██║██║ ╚████║██║██║ ╚████║╚██████╔╝
+         ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝  ╚═╝╚═╝  ╚═══╝╚═╝╚═╝  ╚═══╝ ╚═════╝                                                   
+    '
+    echo "#######################################################################"
+      echo ""
+    echo "                  Resetting WireGuard will Delete            "
+    echo "              Your Client, Server , & Master Key Configs         "
+    echo ""
+    echo "#######################################################################"
+    echo -e "\n\033[0m"
+
+    read -p "Continue Resetting Wireguard? $(tput setaf 1)(y/n)$(tput sgr0) " answer 
+    echo ""
+    echo ""
+    if [[ $answer == [Yy] || -z $answer ]]; then
+         docker compose down 
     
+
+    if [ -f "$(dirname "$0")$masterkey_file" ]; then
+        echo "Removing existing '$masterkey_file'..."
+        rm "$(dirname "$0")$masterkey_file"
+        echo "Existing '$masterkey_file' removed."
+    fi
+
+    if [ -d "$(dirname "$0")$config_folder" ]; then
+        echo "Removing existing '$config_folder'..."
+        rm -r "$(dirname "$0")$config_folder"
+        echo "Existing '$config_folder' removed."
+    fi
+
+        echo "Removing existing Compose File"
+        rm docker-compose.yml
+        echo "Existing Compose File removed."
+
+        echo "Pulling from Clean Compose File..."
+        cat Custom-Compose/clean-docker-compose.yml > docker-compose.yml
+        echo "File successfully pulled from Clean Compose File."
+    
+        clear
+        menu
+        
+    else
+        clear
+        menu  
+        
+    fi
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     docker compose down 
     
 
@@ -365,7 +485,6 @@ fresh_install() {
     clear
     menu
 }
-
 create_swap() {
 
     # Check if a swapfile already exists
@@ -396,7 +515,6 @@ create_swap() {
         menu
     else
     case $1 in
-        run) run_setup ;;
         manual) manual_setup ;;
         headless) auto_setup ;;
         fresh) fresh_install ;;

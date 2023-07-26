@@ -5,10 +5,11 @@ src/db
 __pycache__
 src/test.py
 *.db
-src/wg-dashboard.ini
-src/static/pic.xd
 master-key/master.conf
 config/*.conf
+src/wg-dashboard.ini
+src/static/pic.xd
+*.conf
 private_key.txt
 public_key.txt
 venv/**
