@@ -88,7 +88,7 @@ make_master_config() {
     echo -e "\n[Peer]" >> "$svr_config"
     echo "PublicKey = $peer_public_key" >> "$svr_config"
     echo "PresharedKey = $preshared_key" >> "$svr_config"
-    echo "AllowedIPs = 10.0.0.2/24" >> "$svr_config"
+    echo "AllowedIPs = 10.0.0.254/24" >> "$svr_config"
 
 
     server_public_key=$(grep -E '^PrivateKey' "$svr_config" | awk '{print $NF}')
