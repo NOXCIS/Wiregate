@@ -189,7 +189,9 @@ update_server_ip() {
     fi
 
     if [[ -f "$yml_file" ]]; then
-        sed -i "s/SERVER_IP=.*/SERVER_IP=$ip/" "$yml_file"
+
+        export SERVER_IP="$ip"
+        #sed -i "s/SERVER_IP=.*/SERVER_IP=$ip/" "$yml_file"
         echo -e "Server IP address has been set to \033[32m$ip\033[0m"
         echo ""
     else
@@ -197,13 +199,12 @@ update_server_ip() {
     fi
 }
 set_password() {
-    local yml_file="docker-compose.yml"
     local password=""
     local confirm_password=""
     local timer=$TIMER_VALUE
     local user_activity=false
 
-     echo "Press any key to set password $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$TIMER_VALUE$(tput sgr0)$(tput setaf 1) seconds for no password: $(tput sgr0)"  
+    echo "Press any key to set password $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$TIMER_VALUE$(tput sgr0)$(tput setaf 1) seconds for no password: $(tput sgr0)"  
     # Wait for 5 seconds or until user activity is detected
     sleep $timer & PID=$!
     while true; do
@@ -212,7 +213,7 @@ set_password() {
             # Timer has expired and no user activity detected
             password=""
             echo ""
-            sed -i "s/WEBPASSWORD:.*/WEBPASSWORD: \"$password\"/" "$yml_file"
+            export WEBPASSWORD="$password"
             echo -e "\033[32mRunning Headless. Password has been set to null.\033[0m"
             echo ""
             break
@@ -238,8 +239,8 @@ set_password() {
             if [[ "$password" != "$confirm_password" ]]; then
                 echo -e "\033[31mPasswords do not match. Please try again.\033[0m"
             else
-                # Passwords match, update the yml_file and exit the loop
-                sed -i "s/WEBPASSWORD:.*/WEBPASSWORD: \"$password\"/" "$yml_file"
+                # Passwords match, set the WEBPASSWORD environment variable
+                export WEBPASSWORD="$password"
 
                 echo -e "\033[32m"
                 echo '
@@ -258,6 +259,7 @@ set_password() {
         done
     fi
 }
+
 compose_up() {
     sudo sysctl -w net.core.rmem_max=2097152
     docker compose up -d --build 
@@ -407,18 +409,18 @@ fresh_install() {
 
     if [ -f "$(dirname "$0")$masterkey_file" ]; then
         echo "Removing existing '$masterkey_file'..."
-        rm "$(dirname "$0")$masterkey_file"
+        sudo rm "$(dirname "$0")$masterkey_file"
         echo "Existing '$masterkey_file' removed."
     fi
 
     if [ -d "$(dirname "$0")$config_folder" ]; then
         echo "Removing existing '$config_folder'..."
-        rm -r "$(dirname "$0")$config_folder"
+        sudo rm -r "$(dirname "$0")$config_folder"
         echo "Existing '$config_folder' removed."
     fi
 
         echo "Removing existing Compose File"
-        rm docker-compose.yml
+        sudo rm docker-compose.yml
         echo "Existing Compose File removed."
 
         echo "Pulling from Clean Compose File..."
