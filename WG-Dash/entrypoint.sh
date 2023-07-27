@@ -14,7 +14,7 @@ run_wireguard_up() {
   for file in $config_files; do
     config_name=$(basename "$file" ".conf")
     chmod 600 "/etc/wireguard/$config_name.conf"
-    wg-quick up "$config_name" > /dev/null 2>&1
+    wg-quick up "$config_name" #> /dev/null 2>&1
   done
 }
 
@@ -33,7 +33,7 @@ generate_wireguard_qr() {
     qrencode -t ANSIUTF8 < "$config_file"
 
     if [ $? -eq 0 ]; then
-        echo "QR code generated." > /dev/null 2>&1
+        echo "QR code generated." #> /dev/null 2>&1
     else
         echo "Error: QR code generation failed."
         return 1

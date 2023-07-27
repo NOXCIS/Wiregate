@@ -17,6 +17,10 @@ title() {
 
                     Setup Script & Dockerization by NOXCIS
         Thanks to @donaldzou for WGDashboard @klutchell for UnBound Config
+
+
+**********************************************************************************
+##################################################################################        
     '
     echo -e "\033[0m"
 }
@@ -41,7 +45,7 @@ menu() {
         *) echo "Invalid choice. Please try again." ;;
     esac
 }
-run_setup() {
+run_os_update() {
     echo -e "\033[33m\n" 
     echo "#######################################################################"
     echo ""
@@ -54,7 +58,8 @@ run_setup() {
     sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy update 
     sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy upgrade 
     clear
-    title
+}
+run_setup() {
     echo -e "\033[33m\n" 
     echo "#######################################################################"
     echo ""
@@ -90,7 +95,6 @@ run_setup() {
     echo -e "\n\033[0m"
     
             update_server_ip &&
-            add_port_mappings &&
     
     echo -e "\033[33m\n" 
     echo "#######################################################################"
@@ -123,6 +127,8 @@ run_setup() {
 }  
 auto_setup() {
     TIMER_VALUE=0
+    run_os_update &&
+    title &&
     config_count &&
     set_password &&
     TIMER_VALUE=0 
@@ -130,6 +136,8 @@ auto_setup() {
 }
 auto_set_wct() {
     TIMER_VALUE=5
+    run_os_update &&
+    title &&
     config_count &&
     set_password &&
     TIMER_VALUE=0
@@ -137,6 +145,8 @@ auto_set_wct() {
 
 }
 manual_setup() {
+    run_os_update &&
+    title &&
     echo -e "\033[33m\n" 
     echo "#######################################################################"
     echo ""
@@ -170,7 +180,8 @@ set_tz() {
         echo -e "Timezone has been set to \033[32m$timezone\033[0m"
         
     fi
-    sed -i "s|TZ:.*|TZ: \"$timezone\"|" "$yml_file"
+    export TIMEZONE="$timezone"
+    #sed -i "s|TZ:.*|TZ: \"$timezone\"|" "$yml_file"
     echo ""
 }
 update_server_ip() {
@@ -204,7 +215,7 @@ set_password() {
     local timer=$TIMER_VALUE
     local user_activity=false
 
-    echo "Press any key to set password $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$TIMER_VALUE$(tput sgr0)$(tput setaf 1) seconds for no password: $(tput sgr0)"  
+    echo "Press any key to set Pihole Dashboard Password $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$TIMER_VALUE$(tput sgr0)$(tput setaf 1) seconds for no password: $(tput sgr0)"  
     # Wait for 5 seconds or until user activity is detected
     sleep $timer & PID=$!
     while true; do
@@ -212,10 +223,11 @@ set_password() {
         if ! ps -p $PID > /dev/null; then
             # Timer has expired and no user activity detected
             password=""
-            echo ""
+           
             export WEBPASSWORD="$password"
-            echo -e "\033[32mRunning Headless. Password has been set to null.\033[0m"
             echo ""
+            echo -e "\033[32mPassword has been set to null.\033[0m"
+            
             break
         fi
     done
@@ -225,16 +237,16 @@ set_password() {
         while true; do
             read -sp "$(tput setaf 3)Enter password for Pihole Dashboard:$(tput sgr0)" password 
             echo ""
-            echo ""
+            
 
             if [[ -z "$password" ]]; then
                 echo -e "\033[31mPassword cannot be empty. Please try again.\033[0m"
                 continue
             fi
-
+            echo ""
             read -sp "$(tput setaf 3)Confirm password for Pihole Dashboard:$(tput sgr0) " confirm_password
-            echo ""
-            echo ""
+            
+            
 
             if [[ "$password" != "$confirm_password" ]]; then
                 echo -e "\033[31mPasswords do not match. Please try again.\033[0m"
@@ -244,6 +256,8 @@ set_password() {
 
                 echo -e "\033[32m"
                 echo '
+
+
       ██████╗  █████╗ ███████╗███████╗██╗    ██╗ ██████╗ ██████╗ ██████╗     ███████╗███████╗████████╗
       ██╔══██╗██╔══██╗██╔════╝██╔════╝██║    ██║██╔═══██╗██╔══██╗██╔══██╗    ██╔════╝██╔════╝╚══██╔══╝
       ██████╔╝███████║███████╗███████╗██║ █╗ ██║██║   ██║██████╔╝██║  ██║    ███████╗█████╗     ██║   
@@ -259,7 +273,6 @@ set_password() {
         done
     fi
 }
-
 compose_up() {
     sudo sysctl -w net.core.rmem_max=2097152
     docker compose up -d --build 
@@ -324,6 +337,7 @@ install_docker() {
         docker-compose-plugin
     )
 
+    YELLOW=$(tput setaf 3)
     GREEN=$(tput setaf 2)
     RESET=$(tput sgr0)
 
@@ -333,55 +347,87 @@ install_docker() {
         echo "${GREEN}Docker is not installed. Installing...${RESET}"
         sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy install "$docreqs" 
     else
-            echo "${GREEN}$docreqs is already installed.${RESET} ${RED}Skipping...${RESET}"
+            echo "${GREEN}$docreqs is already installed.${RESET} ${YELLOW}Skipping...${RESET}"
     fi
     done
 }
 config_count() {
     local yml_file="docker-compose.yml"
-    local count=""
+    local HOST_PORT_START=51820
+    local count=1
     echo -e "\033[33m\n"    
     echo '
-              ███╗   ██╗ ██████╗ ████████╗██╗ ██████╗███████╗
-              ████╗  ██║██╔═══██╗╚══██╔══╝██║██╔════╝██╔════╝
-              ██╔██╗ ██║██║   ██║   ██║   ██║██║     █████╗  
-              ██║╚██╗██║██║   ██║   ██║   ██║██║     ██╔══╝  
-              ██║ ╚████║╚██████╔╝   ██║   ██║╚██████╗███████╗
-              ╚═╝  ╚═══╝ ╚═════╝    ╚═╝   ╚═╝ ╚═════╝╚══════╝                                              
+              
+ ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗ 
+██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝ 
+██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗
+██║     ██║   ██║██║╚██╗██║██╔══╝  ██║██║   ██║
+╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝
+ ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ 
+                                               
+                                             
     '
     echo "#######################################################################"
     echo ""
-    echo "             Set Number of Wireguard Interfaces to be Generate"
+    echo "                       Set Configuration Options"
     echo ""
     echo "#######################################################################"
     echo -e "\n\033[0m"
-        read -t $TIMER_VALUE -p "Enter # of WireGuard server configurations to generate $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " count
-        echo ""
-        echo ""
-    if [[ -z "$count" ]]; then
-        count=1
+        read -t $TIMER_VALUE -p "Enter # of WireGuard Interfaces to generate $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " count
+        echo '
+        '
+            if [[ -z "$count" ]]; then
+                count=1
+            fi
+
+            while true; do
+
+                read -t "$TIMER_VALUE" -p "Enter the starting port for WireGuard Server interface's Port Range $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)51820$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " HOST_PORT_START
+                echo '
+                '
+        # If the user didn't enter anything, set the default value
+        if [[ -z "$HOST_PORT_START" ]]; then
+        HOST_PORT_START=51820
+        break
+        fi
+
+    # Check if the input is a valid integer
+    if [[ "$HOST_PORT_START" =~ ^[0-9]+$ ]]; then
+        # Convert the input to an integer value
+        HOST_PORT_START=$((HOST_PORT_START))
+
+        # Check if the input is within the valid range
+        if (( HOST_PORT_START >= 1 && HOST_PORT_START <= 65535 )); then
+            break
+        fi
     fi
-        sed -i "s/CONFIG_CT=.*/CONFIG_CT=$count/" "$yml_file"
-        echo -e "WireGuard Server Configurations to be Generated has been set to \033[32m$count\033[0m"
+    echo ""
+    echo "Invalid input. Please enter a value between 1 and 65535."
+done
+
+
+
+
+        if [[ -z "$HOST_PORT_START" ]]; then
+        HOST_PORT_START=51820
+        fi
+
+        pcount=$((count - 1))
+        HOST_PORT_END=$((HOST_PORT_START + pcount))  
+        port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
+        echo -e "Wireguard Port Range Set To: \033[32m$port_mappings\033[0m"
+
+        export INTERFACE_COUNT="$count"
+        export PORT_RANGE_START="$HOST_PORT_START"
+        export PORT_MAPPINGS="$port_mappings"
         echo ""
-}
-add_port_mappings() {
-    local config_ct=$(grep -oP '(?<=CONFIG_CT=)\d+' docker-compose.yml)
-    local start_port=51820
-    local port_mappings=""
-        for ((i = 1; i <= config_ct; i++)); do
-            local port=$((start_port + i - 1))
-            port_mappings+="\n      - $port:$port/udp"
-        done
-
-    sed -i '/- 51820:51820\/udp/,/sysctls:/ {//!d}' docker-compose.yml
-    sed -i "/- 51820:51820\/udp/a${port_mappings//$'\n'/\\n}" docker-compose.yml
-    sed -i '/ports:/,/sysctls:/ { /- 51820:51820\/udp/{n; d; } }' docker-compose.yml
-
+        echo -e "WireGuard Server Configurations to be Generated has been set to: \033[32m$count\033[0m"
+        echo ""
 }
 fresh_install() {
     local masterkey_file="/WG-Dash/master-key/master.conf"
     local config_folder="/WG-Dash/config"
+    local yml_file="docker-compose.yml"
     clear
     echo -e "\033[33m\n"    
     echo '
@@ -404,7 +450,10 @@ fresh_install() {
     echo ""
     echo ""
     if [[ $answer == [Yy] || -z $answer ]]; then
-         docker compose down 
+
+
+        sudo sed -i '/ports:/,/sysctls:/ {//!d}; /ports:/a\ \ \ \ \ \ - 51820:51820\/udp' docker-compose.yml
+        docker compose down 
     
 
     if [ -f "$(dirname "$0")$masterkey_file" ]; then

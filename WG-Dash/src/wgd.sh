@@ -23,7 +23,7 @@ start_wgd () {
 }
 newconf_wgd() {
   local num_configs=$CONFIG_CT
-  local listen_port=51820
+  local listen_port=$START_PORT
   local address_prefix="10."
 
   for ((i = 0; i < num_configs; i++)); do
@@ -106,17 +106,17 @@ MTU = 1420
 [Peer]
 PublicKey = $svrpublic_key
 AllowedIPs = 0.0.0.0/0
-Endpoint = $SERVER_IP:51820
+Endpoint = $SERVER_IP:$START_PORT
 PersistentKeepalive = 21
 PresharedKey = $preshared_key
 EOF
 }
 
 start_wgd_debug() {
-  printf "%s\n" "$dashes" > /dev/null 2>&1
-  printf "| Starting WGDashboard in the foreground.                  |\n" > /dev/null 2>&1
-  python3 "$app_name" > /dev/null 2>&1
-  printf "%s\n" "$dashes" > /dev/null 2>&1
+  printf "%s\n" "$dashes" #> /dev/null 2>&1
+  printf "| Starting WGDashboard in the foreground.                  |\n" #> /dev/null 2>&1
+  python3 "$app_name" #> /dev/null 2>&1
+  printf "%s\n" "$dashes" #> /dev/null 2>&1
 }
 
 

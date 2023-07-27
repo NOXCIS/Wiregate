@@ -22,8 +22,8 @@ services:
     
   wg_dashboard:
     depends_on: [unbound, pihole]
-    #build: ./WG-Dash
-    image: noxcis/wg-dashboard:squid-multi-arch
+    build: ./WG-Dash
+    #image: noxcis/wg-dashboard:squid-multi-arch
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
@@ -34,9 +34,10 @@ services:
       - ./WG-Dash/config:/etc/wireguard
     environment:
       - SERVER_IP=${SERVER_IP}
-      - CONFIG_CT=1
+      - CONFIG_CT=${INTERFACE_COUNT}
+      - START_PORT=${PORT_RANGE_START}
     ports:
-      - 51820:51820/udp
+      - "${PORT_MAPPINGS}"
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
