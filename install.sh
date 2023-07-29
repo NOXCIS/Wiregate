@@ -258,11 +258,11 @@ set_password() {
                 echo '
 
 
-      ██████╗  █████╗ ███████╗███████╗██╗    ██╗ ██████╗ ██████╗ ██████╗     ███████╗███████╗████████╗
-      ██╔══██╗██╔══██╗██╔════╝██╔════╝██║    ██║██╔═══██╗██╔══██╗██╔══██╗    ██╔════╝██╔════╝╚══██╔══╝
-      ██████╔╝███████║███████╗███████╗██║ █╗ ██║██║   ██║██████╔╝██║  ██║    ███████╗█████╗     ██║   
-      ██╔═══╝ ██╔══██║╚════██║╚════██║██║███╗██║██║   ██║██╔══██╗██║  ██║    ╚════██║██╔══╝     ██║   
-      ██║     ██║  ██║███████║███████║╚███╔███╔╝╚██████╔╝██║  ██║██████╔╝    ███████║███████╗   ██║   
+    ██████╗  █████╗ ███████╗███████╗██╗    ██╗ ██████╗ ██████╗ ██████╗     ███████╗███████╗████████╗
+    ██╔══██╗██╔══██╗██╔════╝██╔════╝██║    ██║██╔═══██╗██╔══██╗██╔══██╗    ██╔════╝██╔════╝╚══██╔══╝
+    ██████╔╝███████║███████╗███████╗██║ █╗ ██║██║   ██║██████╔╝██║  ██║    ███████╗█████╗     ██║   
+    ██╔═══╝ ██╔══██║╚════██║╚════██║██║███╗██║██║   ██║██╔══██╗██║  ██║    ╚════██║██╔══╝     ██║   
+    ██║     ██║  ██║███████║███████║╚███╔███╔╝╚██████╔╝██║  ██║██████╔╝    ███████║███████╗   ██║   
       ╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝ ╚══╝╚══╝  ╚═════╝ ╚═╝  ╚═╝╚═════╝     ╚══════╝╚══════╝   ╚═╝                         
         '
                 
@@ -353,17 +353,16 @@ install_docker() {
 }
 config_count() {
     local yml_file="docker-compose.yml"
-    local HOST_PORT_START=51820
     local count=1
     echo -e "\033[33m\n"    
     echo '
               
- ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗ 
-██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝ 
-██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗
-██║     ██║   ██║██║╚██╗██║██╔══╝  ██║██║   ██║
-╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝
- ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ 
+     ██████╗ ██████╗ ███╗   ██╗███████╗██╗ ██████╗ 
+    ██╔════╝██╔═══██╗████╗  ██║██╔════╝██║██╔════╝ 
+    ██║     ██║   ██║██╔██╗ ██║█████╗  ██║██║  ███╗
+    ██║     ██║   ██║██║╚██╗██║██╔══╝  ██║██║   ██║
+    ╚██████╗╚██████╔╝██║ ╚████║██║     ██║╚██████╔╝
+     ╚═════╝ ╚═════╝ ╚═╝  ╚═══╝╚═╝     ╚═╝ ╚═════╝ 
                                                
                                              
     '
@@ -376,41 +375,33 @@ config_count() {
         read -t $TIMER_VALUE -p "Enter # of WireGuard Interfaces to generate $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " count
         echo '
         '
-            if [[ -z "$count" ]]; then
-                count=1
-            fi
-
-            while true; do
-
-                read -t "$TIMER_VALUE" -p "Enter the starting port for WireGuard Server interface's Port Range $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)51820$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " HOST_PORT_START
-                echo '
-                '
-        # If the user didn't enter anything, set the default value
-        if [[ -z "$HOST_PORT_START" ]]; then
-        HOST_PORT_START=51820
-        break
+        if [[ -z "$count" ]]; then
+            count=1
         fi
+
+        while true; do
+
+            read -t "$TIMER_VALUE" -p "Enter the starting port for WireGuard Server interface's Port Range $(tput setaf 1)(Press enter for random: $(tput sgr0)$(tput setaf 3)Starting Port$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " HOST_PORT_START
+            echo '
+                '
+    # If the user didn't enter anything, set the default value
+        if [[ -z "$HOST_PORT_START" ]]; then
+            HOST_PORT_START=$((1 + RANDOM % 65535))
+        fi
+
 
     # Check if the input is a valid integer
-    if [[ "$HOST_PORT_START" =~ ^[0-9]+$ ]]; then
-        # Convert the input to an integer value
-        HOST_PORT_START=$((HOST_PORT_START))
-
-        # Check if the input is within the valid range
-        if (( HOST_PORT_START >= 1 && HOST_PORT_START <= 65535 )); then
+        if [[ "$HOST_PORT_START" =~ ^[0-9]+$ ]]; then
+            # Convert the input to an integer value
+            HOST_PORT_START=$((HOST_PORT_START))
+            # Check if the input is within the valid range
+            if (( HOST_PORT_START >= 1 && HOST_PORT_START <= 65535 )); then
             break
+            fi
         fi
-    fi
     echo ""
     echo "Invalid input. Please enter a value between 1 and 65535."
-done
-
-
-
-
-        if [[ -z "$HOST_PORT_START" ]]; then
-        HOST_PORT_START=51820
-        fi
+        done
 
         pcount=$((count - 1))
         HOST_PORT_END=$((HOST_PORT_START + pcount))  

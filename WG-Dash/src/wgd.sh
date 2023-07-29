@@ -113,10 +113,10 @@ EOF
 }
 
 start_wgd_debug() {
-  printf "%s\n" "$dashes" #> /dev/null 2>&1
-  printf "| Starting WGDashboard in the foreground.                  |\n" #> /dev/null 2>&1
-  python3 "$app_name" #> /dev/null 2>&1
-  printf "%s\n" "$dashes" #> /dev/null 2>&1
+  printf "%s\n" "$dashes" > /dev/null 2>&1
+  printf "| Starting WGDashboard in the foreground.                  |\n" > /dev/null 2>&1
+  python3 "$app_name" > /dev/null 2>&1
+  printf "%s\n" "$dashes" > /dev/null 2>&1
 }
 
 
