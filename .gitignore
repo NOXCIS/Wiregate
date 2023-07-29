@@ -17,7 +17,8 @@ release/*
 src/db/wgdashboard.db
 .jshintrc
 wireguard/
-
+etc-dnsmasq.d/*
+!etc-dnsmasq.d/01-pihole.conf
 etc-pihole/*
 !etc-pihole/custom.list
 etc-dnsmasq.d/
