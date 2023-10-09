@@ -26,3 +26,5 @@ WG-Dash/config/*.conf
 data/
 WG-Dash/src/test.sh
 WG-Dash/master-key/master.conf
+test.sh
+Unbound-Custom-Config/root.hints

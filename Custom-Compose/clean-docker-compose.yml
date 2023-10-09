@@ -15,15 +15,22 @@ services:
     restart: unless-stopped
     hostname: "unbound"
     volumes:
-      - ./Unbound-Custom-Config/unbound.conf:/etc/unbound/custom.conf.d/unbound.conf
+      - ./Unbound-Custom-Config/custom-unbound.conf:/etc/unbound/custom.conf.d/custom-unbound.conf
+      - ./Unbound-Custom-Config/root.hints:/etc/unbound/root.hints
     networks:
       private_network:
         ipv4_address: 10.2.0.200
+    healthcheck:
+      test: ["CMD", "dig", "-p", "53", "dnssec.works", "@127.0.0.1"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 30s
     
   wg_dashboard:
     depends_on: [unbound, pihole]
-    #build: ./WG-Dash
-    image: noxcis/wg-dashboard:squid-multi-arch
+    build: ./WG-Dash
+    #image: noxcis/wg-dashboard:squid-multi-arch
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN

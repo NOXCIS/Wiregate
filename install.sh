@@ -59,6 +59,8 @@ run_os_update() {
     sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy upgrade 
     clear
 }
+
+
 run_setup() {
     echo -e "\033[33m\n" 
     echo "#######################################################################"
@@ -95,7 +97,7 @@ run_setup() {
     echo -e "\n\033[0m"
     
             update_server_ip &&
-    
+            update_root_hints &&
     echo -e "\033[33m\n" 
     echo "#######################################################################"
     echo ""
@@ -125,6 +127,8 @@ run_setup() {
            
             create_swap 
 }  
+
+
 auto_setup() {
     TIMER_VALUE=0
     run_os_update &&
@@ -162,6 +166,9 @@ manual_setup() {
     set_password &&
     run_setup
 }
+
+
+
 set_tz() {
     local yml_file="docker-compose.yml"
     read -t $TIMER_VALUE -p "Do you want to automatically get the host timezone? $(tput setaf 1)(y/n)$(tput sgr0) " answer 
@@ -273,10 +280,55 @@ set_password() {
         done
     fi
 }
+
+
+
 compose_up() {
     sudo sysctl -w net.core.rmem_max=2097152
     docker compose up -d --build 
 }
+
+
+update_root_hints() {
+    # Define the URL for the root server hints file and its MD5 hash
+    ROOT_HINTS_URL="https://www.internic.net/domain/named.root"
+    MD5_HASH_URL="https://www.internic.net/domain/named.root.md5"
+
+    # Download the MD5 hash file
+    if ! curl -s -o "named.root.md5" "$MD5_HASH_URL"; then
+        echo "Failed to download MD5 hash file from $MD5_HASH_URL"
+        return 1
+    fi
+
+    # Extract the MD5 hash value from the downloaded file
+    EXPECTED_HASH=$(cat "named.root.md5" | awk '{print $1}')
+
+    # Download the root server hints file
+    wget -O root.hints "$ROOT_HINTS_URL"
+
+    # Calculate the MD5 hash of the downloaded root hints file
+    ACTUAL_HASH=$(md5sum root.hints | awk '{print $1}')
+
+    # Compare the calculated MD5 hash with the expected MD5 hash
+    if [ "$ACTUAL_HASH" = "$EXPECTED_HASH" ]; then
+        echo "Root server hints file downloaded and verified successfully."
+    else
+        echo "Error: Root server hints file download or verification failed."
+        rm -f root.hints  # Remove the file in case of failure
+    fi
+
+    mv root.hints Unbound-Custom-Config/root.hints
+
+    # Clean up the downloaded MD5 hash file
+    rm -f named.root.md5
+}
+
+
+
+
+
+
+
 install_prerequisites() {
     
     # List of prerequisites
