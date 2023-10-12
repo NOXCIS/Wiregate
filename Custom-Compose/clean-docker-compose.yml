@@ -30,7 +30,7 @@ services:
   wg_dashboard:
     depends_on: [unbound, pihole]
     #build: ./WG-Dash
-    image: noxcis/wg-dashboard:squid-multi-arch
+    image: noxcis/wg-dashboard:moray-multi-arch
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
@@ -52,6 +52,14 @@ services:
       private_network:
         ipv4_address: 10.2.0.3
 
+  hermes:
+    depends_on: [wg_dashboard]
+    container_name: hermes-messenger
+    image: noxcis/hermes-worm-hole:beta
+    restart: unless-stopped
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.4
 
 
   pihole:

@@ -1,0 +1,36 @@
+body {
+    color: #000;
+    background-color: white;
+    font-family: Helvetica, Arial, sans-serif;
+}
+
+#menu {
+    padding-top: 0px;
+    padding-bottom: 0px;
+    margin-right: 10px;
+    top: 0px;
+    position: absolute;
+    right: 0px;
+    font-size: 0.8em;
+}
+
+#menu ul {
+
+}
+
+#menu li {
+}
+
+#menu ul li {
+    display: inline;
+}
+
+.msg-date {
+    float:right;
+    text-align: right;
+    font-size: 0.8em;
+}
+
+input {
+width: 100%;
+}

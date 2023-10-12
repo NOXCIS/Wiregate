@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h1>Add User</h1>
+
+<form action="" method="post" name="adduser">
+    {{ form.hidden_tag() }}
+    <p>
+        Username:<br>
+        {{ form.username(size=80) }}<br>
+    </p>
+    <p>
+        Password:<br>
+        {{ form.password(size=80) }}<br>
+    </p>
+    <p><input type="submit" value="adduser"></p>
+</form>
+
+
+{% endblock %}
+

@@ -1,0 +1,16 @@
+
+{% for msg in messages %}
+    <div><p><b>{% if msg.author %}
+                {{ msg.author.username }}
+            {% else %}
+                unknown player
+            {% endif %}
+        says: </b>{{ msg.content }}
+        {% if msg.timestamp %}
+            <span class="msg-date">
+                {{ msg.timestamp }}
+            </span>
+        {% endif %}
+        </p>
+    </p></div>
+{% endfor %}
