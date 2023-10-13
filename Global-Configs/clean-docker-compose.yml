@@ -78,6 +78,7 @@ services:
   channels:
     depends_on: [db, wg_dashboard]
     #image: noxcis/worm-hole-channels:beta-2
+    restart: unless-stopped
     build: ./Channels/web
     command: python run.py
     environment:
@@ -96,6 +97,7 @@ services:
 
   db:
     image: postgres:13-alpine
+    restart: unless-stopped
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     environment:
