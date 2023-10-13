@@ -65,9 +65,9 @@ run_setup() {
 
 #SETUP OPTIONS
 express_setup() {
+    run_os_update &&
     install_prerequisites &&
     TIMER_VALUE=0
-    run_os_update &&
     title &&
     set_config_count &&
     set_port_range &&
@@ -76,8 +76,8 @@ express_setup() {
     run_setup 
 }
 advanced_setup() {
-    install_prerequisites &&
     run_os_update &&
+    install_prerequisites &&
     title &&
     echo -e "\033[33m\n" 
     echo "#######################################################################"
@@ -96,9 +96,9 @@ advanced_setup() {
     run_setup
 }
 auto_set_wct() {
+    run_os_update &&
     install_prerequisites &&
     TIMER_VALUE=5
-    run_os_update &&
     title &&
     set_config_count &&
     set_port_range &&
