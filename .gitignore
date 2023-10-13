@@ -28,3 +28,13 @@ WG-Dash/src/test.sh
 WG-Dash/master-key/master.conf
 test.sh
 Unbound-Custom-Config/root.hints
+.gitignore
+.idea/
+Channels/web/venv/
+Channels/web/node_modules
+Channels/web/flask_session
+Channels/web/app/static/dist
+Channels/web/Channels notebook.ipynb
+Channels/web/.pytest_cache/
+Channels/web/.mypy_cache/
+Channels/web/.ipynb_checkpoints/

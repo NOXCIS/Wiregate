@@ -21,7 +21,6 @@ services:
     restart: unless-stopped
     volumes:
       - ./WG-Dash/master-key:/home/app/master-key
-      #- ./WG-Dash/config:/etc/wireguard
     environment:
       - SERVER_IP=${SERVER_IP}
       - CONFIG_CT=${INTERFACE_COUNT}

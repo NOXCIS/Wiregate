@@ -1,7 +1,0 @@
-flask
-flask-sqlalchemy
-sqlalchemy-migrate
-coverage
-flask-wtf
-flask-login
-passlib
