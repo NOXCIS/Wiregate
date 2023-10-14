@@ -27,7 +27,7 @@ fresh_install() {
 
     if [[ $answer == [Yy] || -z $answer ]]; then
         sudo sed -i '/ports:/,/sysctls:/ {//!d}; /ports:/a\ \ \ \ \ \ - 51820:51820\/udp' "$yml_file"
-        docker compose down 
+        docker compose down --volumes
 
         if [ -f "$masterkey_file" ]; then
             echo "Removing existing '$masterkey_file'..."

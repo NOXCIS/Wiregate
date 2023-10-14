@@ -42,6 +42,7 @@ ____________________________________|_______________________________________
         WIREGUARD INTERFACE COUNT   |   \033[33m'"$INTERFACE_COUNT"'\033[0m               
 ____________________________________|_______________________________________'
     
+
     echo -e "\033[0m"  # Reset text color to default
     return 0
 }
@@ -98,6 +99,19 @@ set_config_port_range_title() {
     printf "%s" "$dashes"
     echo -e "\n\033[0m"
 
+}
+set_timer_value() {
+    echo -e "\033[33m\n" 
+    echo "#######################################################################"
+    echo ""
+    echo "The Timer value dictates how much time you will have in each setup step."
+    echo ""
+    echo "#######################################################################"
+    echo -e "\n\033[0m"
+    read -p "Enter the timer value (in seconds): " TIMER_VALUE
+    echo ""
+    echo -e "Timer value set to \033[32m$TIMER_VALUE\033[0m seconds."
+    echo ""
 }
 set_pihole_tz_title() {
     echo -e "\033[33m\n"

@@ -77,6 +77,7 @@ services:
 
   channels:
     depends_on: [db, wg_dashboard]
+    container_name: channels_messenger
     #image: noxcis/worm-hole-channels:beta-2
     restart: unless-stopped
     build: ./Channels/web
@@ -89,13 +90,14 @@ services:
       - SQL_PORT=5432
       - DATABASE=postgres
       - SECRET_KEY=${MSG_SECRET_KEY}
-      - DATABASE_URI=postgresql://user:password@db:5432/db
+      - DATABASE_URI=${DB_URI}
     networks:
       private_network:
         ipv4_address: 10.2.0.4
     
 
   db:
+    container_name: channels_db
     image: postgres:13-alpine
     restart: unless-stopped
     volumes:

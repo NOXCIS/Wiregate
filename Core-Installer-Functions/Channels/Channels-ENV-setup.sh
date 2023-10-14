@@ -1,9 +1,9 @@
 #!/bin/bash
 set_channels_key() {
-     # Generate a 512-bit random key using OpenSSL and convert it to hexadecimal
-  secret_key_hex=$(openssl rand -hex 64)
-  # Export the key to the MSG_SECRET_KEY variable
-  export MSG_SECRET_KEY="$secret_key_hex"
+    # Generate a 512-bit random key using OpenSSL and convert it to hexadecimal
+    secret_key_hex=$(openssl rand -hex 64)
+    # Export the key to the MSG_SECRET_KEY variable
+    export MSG_SECRET_KEY="$secret_key_hex"
 }
 set_channels_DB_pass() {
     local db_password=""
@@ -29,7 +29,8 @@ set_channels_DB_pass() {
     done
     
     if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
-        db_password=$(openssl rand -hex 64)
+        characters="A-Za-z0-9"
+        db_password=$(head /dev/urandom | tr -dc "$characters" | head -c 32)
         export MSG_DB_PASS="$db_password"
         echo ""
         echo -e "\033[32mPassword has been randomly Gernerated.\033[0m"
@@ -90,7 +91,8 @@ set_channels_DB_user() {
     done
     
     if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
-        db_user=$(openssl rand -hex 64)
+        characters="A-Za-z0-9"
+        db_user=$(head /dev/urandom | tr -dc "$characters" | head -c 32)
         export MSG_DB_USER="$db_user"
         echo ""
         echo -e "\033[32mUsername has been randomly Gernerated.\033[0m"
@@ -122,5 +124,11 @@ set_channels_DB_user() {
             fi
         done
     fi
+
+}
+set_channels_DB_URI() {
+    
+    db_uri="postgresql://$MSG_DB_USER:$MSG_DB_PASS@db:5432/db"
+    export DB_URI="$db_uri"
 
 }

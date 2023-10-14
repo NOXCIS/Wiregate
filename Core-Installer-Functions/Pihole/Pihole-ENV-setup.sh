@@ -39,7 +39,7 @@ set_pihole_password() {
     done
 
     if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
-        characters="A-Za-z0-9"
+        characters="A-Za-z0-9!@#$%^&*()"
         password=$(head /dev/urandom | tr -dc "$characters" | head -c 16)
         export PI_HOLE_PASS="$password"
         echo ""
