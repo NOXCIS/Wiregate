@@ -26,7 +26,7 @@ RUN npm audit
 #RUN npm audit fix -force
 RUN npm install --save 
 RUN npm run build
-
+RUN chmod u+x /usr/src/app/entrypoint.sh
 ENTRYPOINT ["/usr/src/app/entrypoint.sh"]
 
 WORKDIR /usr/src/app
