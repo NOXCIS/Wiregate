@@ -42,7 +42,7 @@ chmod_wg_conf_files() {
 }
 
 # Call the function to apply permissions
-chmod_wg_conf_files
+#chmod_wg_conf_files
 
 
 
