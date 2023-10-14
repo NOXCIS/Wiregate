@@ -4,7 +4,7 @@ Module containing the class of the user model.
 from typing import Optional
 
 from flask_login import UserMixin
-from itsdangerous import TimedJSONWebSignatureSerializer as Serializer, SignatureExpired, BadSignature
+from itsdangerous import URLSafeTimedSerializer as Serializer, SignatureExpired, BadSignature
 from os import environ
 
 from .base import db

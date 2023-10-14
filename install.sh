@@ -139,7 +139,7 @@ run_setup() {
 
 
     #docker compose down --volumes
-    sudo sed -i '/ports:/,/sysctls:/ {//!d}; /ports:/a\ \ \ \ \ \ - 51820:51820\/udp' "$yml_file"
+    #sudo sed -i '/ports:/,/sysctls:/ {//!d}; /ports:/a\ \ \ \ \ \ - 51820:51820\/udp' "$yml_file"
     docker compose down --volumes 
 
     if [ -f "$masterkey_file" ]; then
