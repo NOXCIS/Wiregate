@@ -15,8 +15,8 @@ RUN pip install --upgrade pip &&\
     pip install -r requirements.txt
 
 # Install npm and JS dependencies
-#RUN apk add --update --no-cache nodejs npm &&\
-    #npm install --save &&\
-    #npm run build
+RUN apk add --update --no-cache nodejs npm &&\
+    npm install --save &&\
+    npm run build
 
 ENTRYPOINT ["/usr/src/app/entrypoint.sh"]

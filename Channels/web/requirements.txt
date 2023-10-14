@@ -36,7 +36,7 @@ pyparsing
 pytest
 pytest-cov
 python-engineio
-python-socketio
+python-socketio==5.9.0
 selenium
 six
 SQLAlchemy
