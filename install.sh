@@ -3,13 +3,16 @@
 set -e
 export DEBIAN_FRONTEND=noninteractive
 export TIMER_VALUE=0
-source ./Core-Installer-Functions/OS-Reqs.sh
-source ./Core-Installer-Functions/Menu.sh
-source ./Core-Installer-Functions/Title.sh
-source ./Core-Installer-Functions/Reset-WormHole.sh
-source ./Core-Installer-Functions/Channels/Channels-ENV-setup.sh
-source ./Core-Installer-Functions/Pihole/Pihole-ENV-setup.sh
-source ./Core-Installer-Functions/WG-Dash/WG-Dash-ENV-setup.sh
+
+
+#CORE_IMPORTS
+    source ./Core-Installer-Functions/OS-Reqs.sh
+    source ./Core-Installer-Functions/Menu.sh
+    source ./Core-Installer-Functions/Title.sh
+    source ./Core-Installer-Functions/Reset-WormHole.sh
+    source ./Core-Installer-Functions/Channels/Channels-ENV-setup.sh
+    source ./Core-Installer-Functions/Pihole/Pihole-ENV-setup.sh
+    source ./Core-Installer-Functions/WG-Dash/WG-Dash-ENV-setup.sh
 
 
 
@@ -18,9 +21,9 @@ source ./Core-Installer-Functions/WG-Dash/WG-Dash-ENV-setup.sh
 
 
 #SETUP
-run_setup() {
+    run_setup() {
             
-    update_root_hints >/dev/null 2>&1 &&
+        update_root_hints >/dev/null 2>&1 &&
 
     #PIHOLE
         set_pihole_tz_title &&
@@ -54,7 +57,7 @@ run_setup() {
             readme_title &&
             env_var_title 
             return
-}
+    }
 
 
 #SETUP OPTIONS

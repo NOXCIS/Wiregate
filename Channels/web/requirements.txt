@@ -30,7 +30,7 @@ packaging
 Pillow
 pluggy
 psycopg2
-py
+#py
 pycparser
 pyparsing
 pytest

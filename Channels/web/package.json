@@ -6,7 +6,7 @@
     "test": "tests"
   },
   "scripts": {
-    "compile-styles": "node-sass app/static/src/scss -o app/static/dist/css",
+    "compile-styles": "sass app/static/src/scss:app/static/dist/css",
     "bundle": "webpack --config webpack.config.js",
     "build": "npm run compile-styles && npm run bundle"
   },
@@ -26,15 +26,16 @@
     "@types/socket.io-client": "^1.4.33",
     "clean-css-cli": "^4.3.0",
     "handlebars-loader": "^1.7.1",
-    "node-sass": "^9.0.0",
+    "sass": "^1.47.0",
     "ts-loader": "^7.0.5",
     "typescript": "^3.9.10",
-    "webpack": "^4.43.0",
-    "webpack-cli": "^3.3.11"
+    "webpack": "^5.89.0",
+    "webpack-cli": "^4.0.0"
   },
   "dependencies": {
     "handlebars": "^4.7.6",
-    "socket.io-client": "^2.3.0"
+    "socket.io-client": "^4.0.1",
+    "semver": "7.5.2"
   },
   "description": ""
 }
