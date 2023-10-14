@@ -13,10 +13,8 @@ run_wireguard_up() {
   
   for file in $config_files; do
     config_name=$(basename "$file" ".conf")
-    # Show the current permissions
-    file_permissions=$(stat -c %a "$file")
-    echo "Current permissions for $file: $file_permissions"
-    wg-quick up "$config_name"
+    chmod 600 "/etc/wireguard/$config_name.conf"
+    wg-quick up "$config_name" #> /dev/null 2>&1
   done
 }
 
