@@ -18,36 +18,48 @@ run_wireguard_up() {
   done
 }
 
-chmod_wg_conf_files() {
-  local conf_dir="/etc/wireguard/"
-  local files=()
+cout_master_key() {
+    cat ./master-key/master.conf 
+}
+generate_wireguard_qr() {
+    local config_file="./master-key/master.conf"
 
-  # Check if the directory exists
-  if [ -d "$conf_dir" ]; then
-    # Find all .conf files in the directory
-    files=("$conf_dir"*.conf)
+    if ! [ -f "$config_file" ]; then
+        echo "Error: Config file not found."
+        return 1
+    fi
 
-    # Loop through the files and set their permissions to 600
-    for file in "${files[@]}"; do
-      if [ -f "$file" ]; then
-        chmod -f 600 "$file"
-        echo "Set permissions to 600 for $file"
-      fi
-    done
-  else
-    echo "Directory $conf_dir does not exist."
-  fi
+    # Generate the QR code and display it in the CLI
+    qrencode -t ANSIUTF8 < "$config_file"
+
+    if [ $? -eq 0 ]; then
+        echo "QR code generated." #> /dev/null 2>&1
+    else
+        echo "Error: QR code generation failed."
+        return 1
+    fi
 }
 
-# Call the function to apply permissions
-#chmod_wg_conf_files
+run_wireguard_up #> /dev/null 2>&1
+# Change permission for all generated config files
+echo -e "\033[32m"
+echo '
 
+███╗   ███╗ █████╗ ███████╗████████╗███████╗██████╗     ██╗  ██╗███████╗██╗   ██╗
+████╗ ████║██╔══██╗██╔════╝╚══██╔══╝██╔════╝██╔══██╗    ██║ ██╔╝██╔════╝╚██╗ ██╔╝
+██╔████╔██║███████║███████╗   ██║   █████╗  ██████╔╝    █████╔╝ █████╗   ╚████╔╝ 
+██║╚██╔╝██║██╔══██║╚════██║   ██║   ██╔══╝  ██╔══██╗    ██╔═██╗ ██╔══╝    ╚██╔╝  
+██║ ╚═╝ ██║██║  ██║███████║   ██║   ███████╗██║  ██║    ██║  ██╗███████╗   ██║   
+╚═╝     ╚═╝╚═╝  ╚═╝╚══════╝   ╚═╝   ╚══════╝╚═╝  ╚═╝    ╚═╝  ╚═╝╚══════╝   ╚═╝   
 
+'
+echo -e "\033[0m"
 
-run_wireguard_up 
+cout_master_key
+echo '
+'
 
-
-
+generate_wireguard_qr
 
 
 /home/app/wgd.sh debug
