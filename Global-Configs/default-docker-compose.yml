@@ -10,21 +10,20 @@ networks:
 
 services:
   unbound:
-    image: "klutchell/unbound:build-f8c51b61d4f1d86a54d8a27047827d3c20d5a04a"
+    image: "klutchell/unbound:latest"
     container_name: unbound
     restart: unless-stopped
     hostname: "unbound"
     volumes:
       - ./Global-Configs/Unbound/custom-unbound.conf:/etc/unbound/custom.conf.d/custom-unbound.conf
-     # - ./Global-Configs/Unbound/root.hints:/etc/unbound/root.hints
     networks:
       private_network:
         ipv4_address: 10.2.0.200
-
+    
   wg_dashboard:
     depends_on: [unbound, pihole]
-    build: ./WG-Dash
-    #image: noxcis/wg-dashboard:moray-multi-arch
+    #build: ./WG-Dash
+    image: noxcis/wg-dashboard:squid-multi-arch
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
@@ -32,6 +31,7 @@ services:
     restart: unless-stopped
     volumes:
       - ./WG-Dash/master-key:/home/app/master-key
+      #- ./WG-Dash/config:/etc/wireguard
     environment:
       - SERVER_IP=${SERVER_IP}
       - CONFIG_CT=${INTERFACE_COUNT}
@@ -45,8 +45,8 @@ services:
       private_network:
         ipv4_address: 10.2.0.3
 
-  
-    
+
+
   pihole:
     depends_on: [unbound]
     container_name: pihole
@@ -57,18 +57,19 @@ services:
       - 10.2.0.200 # Points to unbound
     environment:
       TZ: "America/Chicago"
-      WEBPASSWORD: ${PI_HOLE_PASS} 
+      WEBPASSWORD: ${WEBPASSWORD}
       ServerIP: 10.2.0.100 # Internal IP of pihole
       DNS1: 10.2.0.200 # Unbound IP
       DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
     volumes:
-      - "./Global-Configs/Pihole/etc-pihole/:/etc/pihole/"
-      - "./Global-Configs/Pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/"
+      - "./etc-pihole/:/etc/pihole/"
+      - "./etc-dnsmasq.d/:/etc/dnsmasq.d/"
     cap_add:
       - NET_ADMIN
     networks:
       private_network:
         ipv4_address: 10.2.0.100
+
 
   channels:
     depends_on: [db, wg_dashboard]
