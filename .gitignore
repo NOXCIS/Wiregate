@@ -17,9 +17,9 @@ release/*
 src/db/wgdashboard.db
 .jshintrc
 wireguard/
-Global-Configs/Pihole/etc-dnsmasq.d/*
-Global-Configs/Pihole/etc-pihole/*
-!Global-Configs/Pihole/etc-pihole/custom.list
+etc-dnsmasq.d/*
+etc-pihole/*
+etc-pihole/custom.list
 etc-dnsmasq.d/
 WG-Dash/config/*.conf
 data/
@@ -40,3 +40,4 @@ Channels/.ipynb_checkpoints/
 
 wget-log
 
+dev-docker-compose.yml

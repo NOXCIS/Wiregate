@@ -9,6 +9,41 @@ networks:
         - subnet: 10.2.0.0/24
 
 services:
+  unbound:
+    image: "klutchell/unbound:latest"
+    container_name: unbound
+    restart: unless-stopped
+    hostname: "unbound"
+    volumes:
+      - ./Global-Configs/Unbound/custom-unbound.conf:/etc/unbound/custom.conf.d/custom-unbound.conf
+      - ./Global-Configs/Unbound/root.hints:/etc/unbound/root.hints
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.200
+
+  pihole:
+    depends_on: [unbound]
+    container_name: pihole
+    image: pihole/pihole:latest
+    restart: unless-stopped
+    hostname: pihole
+    dns:
+      - 10.2.0.200 # Points to unbound
+    environment:
+      TZ: "America/Chicago"
+      WEBPASSWORD: "" 
+      ServerIP: 10.2.0.100 # Internal IP of pihole
+      DNS1: 10.2.0.200 # Unbound IP
+      DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
+    volumes:
+      - "./etc-pihole/:/etc/pihole/"
+      - "./etc-dnsmasq.d/:/etc/dnsmasq.d/"
+    cap_add:
+      - NET_ADMIN
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.100
+
 
   wg_dashboard:
     depends_on: [unbound, pihole]
@@ -33,41 +68,6 @@ services:
     networks:
       private_network:
         ipv4_address: 10.2.0.3
-
-  unbound:
-    image: "klutchell/unbound:latest"
-    container_name: unbound
-    restart: unless-stopped
-    hostname: "unbound"
-    volumes:
-      - ./Global-Configs/Unbound/custom-unbound.conf:/etc/unbound/custom.conf.d/custom-unbound.conf
-      - ./Global-Configs/Unbound/root.hints:/etc/unbound/root.hints
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.200
-    
-  pihole:
-    depends_on: [unbound]
-    container_name: pihole
-    image: pihole/pihole:latest
-    restart: unless-stopped
-    hostname: pihole
-    dns:
-      - 10.2.0.200 # Points to unbound
-    environment:
-      TZ: "America/Chicago"
-      WEBPASSWORD: "" 
-      ServerIP: 10.2.0.100 # Internal IP of pihole
-      DNS1: 10.2.0.200 # Unbound IP
-      DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
-    volumes:
-      - "./Global-Configs/Pihole/etc-pihole/:/etc/pihole/"
-      - "./Global-Configs/Pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/"
-    cap_add:
-      - NET_ADMIN
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.100
 
   channels:
     depends_on: [db, wg_dashboard]
