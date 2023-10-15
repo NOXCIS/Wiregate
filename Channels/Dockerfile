@@ -6,7 +6,7 @@ WORKDIR /usr/src/app
 
 # Install packages neccessary to build
 RUN apk add --update --no-cache build-base libffi-dev postgresql-dev zlib-dev jpeg-dev chromium chromium-chromedriver && \
-    apk add --no-cache python3 py3-pip python3-dev py3-virtualenv py3-semver
+    apk add --no-cache python3 py3-pip python3-dev py3-virtualenv py3-semver gcc curl rustup
 
 COPY . /usr/src/app
 # Install pip and Python dependencies
