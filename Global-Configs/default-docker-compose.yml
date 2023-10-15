@@ -22,8 +22,8 @@ services:
     
   wg_dashboard:
     depends_on: [unbound, pihole]
-    #build: ./WG-Dash
-    image: noxcis/wg-dashboard:squid-multi-arch
+    build: ./WG-Dash
+    #image: noxcis/wg-dashboard:squid-multi-arch
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
