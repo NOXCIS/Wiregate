@@ -18,7 +18,6 @@ src/db/wgdashboard.db
 .jshintrc
 wireguard/
 Global-Configs/Pihole/etc-dnsmasq.d/*
-!etc-dnsmasq.d/01-pihole.conf
 Global-Configs/Pihole/etc-pihole/*
 !Global-Configs/Pihole/etc-pihole/custom.list
 etc-dnsmasq.d/
