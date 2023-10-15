@@ -57,7 +57,7 @@ services:
       - 10.2.0.200 # Points to unbound
     environment:
       TZ: "America/Chicago"
-      WEBPASSWORD: ${WEBPASSWORD}
+      WEBPASSWORD: ${PI_HOLE_PASS}
       ServerIP: 10.2.0.100 # Internal IP of pihole
       DNS1: 10.2.0.200 # Unbound IP
       DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
