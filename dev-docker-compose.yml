@@ -40,7 +40,7 @@ services:
     restart: unless-stopped
     hostname: "unbound"
     volumes:
-      - ./Global-Configs/Unbound/unbound.conf:/etc/unbound/custom.conf.d/unbound.conf
+      - ./Global-Configs/Unbound/custom-unbound.conf:/etc/unbound/custom.conf.d/custom-unbound.conf
       - ./Global-Configs/Unbound/root.hints:/etc/unbound/root.hints
     networks:
       private_network:
