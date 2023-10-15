@@ -17,10 +17,10 @@ release/*
 src/db/wgdashboard.db
 .jshintrc
 wireguard/
-etc-dnsmasq.d/*
+Global-Configs/Pihole/etc-dnsmasq.d/*
 !etc-dnsmasq.d/01-pihole.conf
-etc-pihole/*
-!etc-pihole/custom.list
+Global-Configs/Pihole/etc-pihole/*
+!Global-Configs/Pihole/etc-pihole/custom.list
 etc-dnsmasq.d/
 WG-Dash/config/*.conf
 data/
@@ -30,13 +30,14 @@ test.sh
 Unbound-Custom-Config/root.hints
 .gitignore
 .idea/
-Channels/web/venv/
-Channels/web/node_modules
-Channels/web/flask_session
-Channels/web/app/static/dist
-Channels/web/Channels notebook.ipynb
-Channels/web/.pytest_cache/
-Channels/web/.mypy_cache/
-Channels/web/.ipynb_checkpoints/
+Channels/venv/
+Channels/node_modules
+Channels/flask_session
+Channels/app/static/dist
+Channels/Channels notebook.ipynb
+Channels/.pytest_cache/
+Channels/.mypy_cache/
+Channels/.ipynb_checkpoints/
 
 wget-log
+

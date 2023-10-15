@@ -9,17 +9,6 @@ networks:
         - subnet: 10.2.0.0/24
 
 services:
-  unbound:
-    image: "klutchell/unbound:build-f8c51b61d4f1d86a54d8a27047827d3c20d5a04a"
-    container_name: unbound
-    restart: unless-stopped
-    hostname: "unbound"
-    volumes:
-      - ./Global-Configs/Unbound/custom-unbound.conf:/etc/unbound/custom.conf.d/custom-unbound.conf
-     # - ./Global-Configs/Unbound/root.hints:/etc/unbound/root.hints
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.200
 
   wg_dashboard:
     depends_on: [unbound, pihole]
@@ -33,11 +22,11 @@ services:
     volumes:
       - ./WG-Dash/master-key:/home/app/master-key
     environment:
-      - SERVER_IP=${SERVER_IP}
-      - CONFIG_CT=${INTERFACE_COUNT}
-      - START_PORT=${PORT_RANGE_START}
+      - SERVER_IP=0.0.0.0
+      - CONFIG_CT=7
+      - START_PORT=770
     ports:
-      - "${PORT_MAPPINGS}"
+      - "770-777:770-777/udp"
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
@@ -45,7 +34,17 @@ services:
       private_network:
         ipv4_address: 10.2.0.3
 
-  
+  unbound:
+    image: "klutchell/unbound:latest"
+    container_name: unbound
+    restart: unless-stopped
+    hostname: "unbound"
+    volumes:
+      - ./Global-Configs/Unbound/unbound.conf:/etc/unbound/custom.conf.d/unbound.conf
+      - ./Global-Configs/Unbound/root.hints:/etc/unbound/root.hints
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.200
     
   pihole:
     depends_on: [unbound]
@@ -57,7 +56,7 @@ services:
       - 10.2.0.200 # Points to unbound
     environment:
       TZ: "America/Chicago"
-      WEBPASSWORD: ${PI_HOLE_PASS} 
+      WEBPASSWORD: "" 
       ServerIP: 10.2.0.100 # Internal IP of pihole
       DNS1: 10.2.0.200 # Unbound IP
       DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
@@ -84,8 +83,8 @@ services:
       - SQL_HOST=db
       - SQL_PORT=5432
       - DATABASE=postgres
-      - SECRET_KEY=${MSG_SECRET_KEY}
-      - DATABASE_URI=${DB_URI}
+      - SECRET_KEY=foobarwashere
+      - DATABASE_URI=postgresql://user:password@db:5432/db
     networks:
       private_network:
         ipv4_address: 10.2.0.4
@@ -98,8 +97,8 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     environment:
-      - POSTGRES_USER=${MSG_DB_USER}
-      - POSTGRES_PASSWORD=${MSG_DB_PASS}
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
       - POSTGRES_DB=db
     networks:
       private_network:
