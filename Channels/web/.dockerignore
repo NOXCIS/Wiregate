@@ -1,7 +1,0 @@
-node_modules/
-.ipynb_checkpoints/
-.mypy_cache/
-.pytest_cache/
-venv/
-flask_session/
-app/static/dist
