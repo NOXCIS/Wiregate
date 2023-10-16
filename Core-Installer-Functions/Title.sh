@@ -33,14 +33,19 @@ __________________________________________________________________________
         ENVIRONMENT VARIABLES       |   VALUES                   
 ____________________________________|_______________________________________                                                                       
                                     |                                       
-        SERVER IP                   |   \033[33m'"$SERVER_IP"'\033[0m                     
+    SERVER IP                       |   \033[33m'"$SERVER_IP"'\033[0m                     
 ------------------------------------|---------------------------------------
-        PIHOLE PASSWORD             |   \033[33m'"$PI_HOLE_PASS"'\033[0m                  
+    PIHOLE PASSWORD                 |   \033[33m'"$PI_HOLE_PASS"'\033[0m                  
 ------------------------------------|---------------------------------------
-        WIREGUARD PORT MAPPINGS     |   \033[33m'"$PORT_MAPPINGS"'\033[0m              
+    WIREGUARD PORT MAPPINGS         |   \033[33m'"$PORT_MAPPINGS"'\033[0m              
 ------------------------------------|---------------------------------------
-        WIREGUARD INTERFACE COUNT   |   \033[33m'"$INTERFACE_COUNT"'\033[0m               
-____________________________________|_______________________________________'
+    WIREGUARD INTERFACE COUNT       |   \033[33m'"$INTERFACE_COUNT"'\033[0m               
+------------------------------------|---------------------------------------
+    MASTER KEY DECRYPTION PASSWORD  |   \033[33m'"$MASTER_KEY_PASSWORD"'\033[0m              
+------------------------------------|---------------------------------------
+
+
+'
     
 
     echo -e "\033[0m"  # Reset text color to default
@@ -153,5 +158,12 @@ readme_title() {
     echo -e "             \033[32mVPN Connection Required to Access Dashboards\033[0m" 
     echo -e "\033[33m"
     echo "#######################################################################"
+    echo -e "\n\033[0m"
+}
+master_key_pass_title() {
+    echo -e "\033[33m\n" 
+    printf "%s\n" "$dashes"
+    echo "MASTER KEY DECRYPTION PASSWORD: '"$MASTER_KEY_PASSWORD"'   "
+    printf "%s" "$dashes"
     echo -e "\n\033[0m"
 }

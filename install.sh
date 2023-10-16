@@ -94,6 +94,25 @@ export TIMER_VALUE=0
             set_pihole_password &&
             TIMER_VALUE=0
             run_setup 
+        }
+    #PRE_SET
+        predefined_setup () {
+            run_os_update &&
+            install_prerequisites &&
+            TIMER_VALUE=5
+            title &&
+            preset_compose_swap &&
+            set_server_ip_title &&
+            update_server_ip &&
+            set_config_count &&
+            set_port_range &&
+            rm_exst_configs >/dev/null 2>&1 &&
+            run_docker_title &&
+            compose_up &&
+            clear &&
+            generate_wireguard_qr &&
+            readme_title &&
+
 
         }
 #DOCKER FUNCTIONS
@@ -103,50 +122,16 @@ export TIMER_VALUE=0
 
         docker compose up -d --build 
     }
-#MISC
-    update_root_hints() {
-    # Define the URL for the root server hints file and its MD5 hash
-    ROOT_HINTS_URL="https://www.internic.net/domain/named.root"
-    MD5_HASH_URL="https://www.internic.net/domain/named.root.md5"
-
-    # Download the MD5 hash file and send its output to /dev/null
-    if ! curl -s -o "named.root.md5" "$MD5_HASH_URL" > /dev/null 2>&1; then
-        echo "Failed to download MD5 hash file from $MD5_HASH_URL"
-        return 1
-    fi
-
-    # Extract the MD5 hash value from the downloaded file
-    EXPECTED_HASH=$(cat "named.root.md5" | awk '{print $1}')
-
-    # Download the root server hints file and send its output to /dev/null
-    wget -O root.hints "$ROOT_HINTS_URL" > /dev/null 2>&1
-
-    # Calculate the MD5 hash of the downloaded root hints file
-    ACTUAL_HASH=$(md5sum root.hints | awk '{print $1}')
-
-    # Compare the calculated MD5 hash with the expected MD5 hash
-    if [ "$ACTUAL_HASH" = "$EXPECTED_HASH" ]; then
-        echo "Root server hints file downloaded and verified successfully."
-    else
-        echo "Error: Root server hints file download or verification failed."
-        rm -f root.hints  # Remove the file in case of failure
-    fi
-
-    mv root.hints Global-Configs/Unbound/root.hints
-
-    # Clean up the downloaded MD5 hash file
-    rm -f named.root.md5
+    compose_down() {
+        docker compose down --volumes
     }
+#MISC
     rm_exst_configs() {
-    local masterkey_file="./WG-Dash/master-key/master.conf"
-    local config_folder="./WG-Dash/config"
+        local masterkey_file="./WG-Dash/master-key/master.conf"
+        local config_folder="./WG-Dash/config"
+            docker compose down --volumes 
 
-
-    #docker compose down --volumes
-    #sudo sed -i '/ports:/,/sysctls:/ {//!d}; /ports:/a\ \ \ \ \ \ - 51820:51820\/udp' "$yml_file"
-    docker compose down --volumes 
-
-    if [ -f "$masterkey_file" ]; then
+        if [ -f "$masterkey_file" ]; then
             echo "Removing existing '$masterkey_file'..."
             sudo rm "$masterkey_file"
             echo "Existing '$masterkey_file' removed."
@@ -154,6 +139,33 @@ export TIMER_VALUE=0
 
         
     }
+    encrypt_file() {
+    local characters="A-Za-z0-9!@#$%^&*()"    
+    local file_path="./WG-Dash/master-key/master.conf"
+    local password=$(head /dev/urandom | tr -dc "$characters" | head -c 16)
+
+    # Generate a salt
+    salt=$(openssl rand -base64 8)
+
+    # Derive the encryption key from the password and salt using SHA-256
+    encryption_key=$(printf "%s" "$password$salt" | openssl dgst -sha256 -binary)
+
+    # Encrypt the file using aes-256-cbc algorithm with the derived key
+    openssl enc -aes-256-cbc -in "$file_path" -out "${file_path}.enc" -pass "pass:$encryption_key"
+
+    if [ $? -eq 0 ]; then
+        echo "Worm-Hole Master Key encrypted successfully."
+        # You can optionally remove the original unencrypted file
+        # rm "$file_path"
+    else
+        echo "Worm-Hole Master Key encryption failed."
+    fi
+    export MASTER_KEY_PASSWORD="$password"
+
+    }
+
+# Usage: encrypt_file /path/to/file.txt my_password
+
 
 
 
