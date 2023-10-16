@@ -46,7 +46,7 @@ fresh_install() {
         echo "Existing Compose File removed."
 
         echo "Pulling from Default Compose File..."
-        cat Global-Configs/default-docker-compose.yml > "$yml_file"
+        cat Global-Configs/Docker-Compose/default-docker-compose.yml > "$yml_file"
         echo "File successfully pulled from Default Compose File."
         
         clear
@@ -55,4 +55,18 @@ fresh_install() {
         clear
         menu
     fi
+}
+preset_compose_swap() {
+    local yml_file="docker-compose.yml"
+    sudo rm "$yml_file"
+    echo "Pulling from Preset Compose File..."
+    cat Global-Configs/Docker-Compose/custom-docker-compose.yml > "$yml_file"
+    echo "File successfully pulled from Preset Compose File."
+
+}
+compose_reset() {
+    local yml_file="docker-compose.yml"
+    sudo rm "$yml_file"
+    cat Global-Configs/Docker-Compose/default-docker-compose.yml > "$yml_file"
+    
 }
