@@ -1,0 +1,102 @@
+{% extends 'app-layout.html' %}
+
+{% block channels %}
+    <ul class="list-group">
+
+        {% for channel in channels %}
+            <li class="list-group-item d-flex justify-content-between align-items-center channel" data-channel="{{ channel.name }}">
+                {{ channel.name }}
+{#                <span class="badge badge-primary badge-pill">100</span>#}
+            </li>
+        {% else %}
+            <div class="alert alert-danger" role="alert">
+                No channels so far! You need to create a channel.
+            </div>
+        {% endfor %}
+    </ul>
+{% endblock %}
+
+{% block messages %}
+    <div id="channel-info" class="row">
+        <div class="col-lg-3">
+            <div class="hide-switch-channel">
+                <button type="button" id="manage-channel-btn" class="btn btn-secondary btn-sm" disabled>
+                    Manage channel
+                </button>
+                <button type="button" class="btn btn-danger btn-sm ml-2" data-toggle="modal" data-target="#leave-channel-modal">
+                    Leave channel
+                </button>
+            </div>
+        </div>
+        <div class="col-lg-6">
+            <h3><--- Choose a channel</h3>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            {{ message }}
+                            <a href="#" class="close mb-6" data-dismiss="alert" aria-label="close">&times;</a>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+        </div>
+        <div class="col-lg-3">
+            <button type="button" class="btn btn-info btn-sm"
+                    onclick="window.location.href='{{ url_for('api.settings') }}'">
+                <span class="ml-2 mr-2">API</span>
+            </button>
+            <button type="button" class="btn btn-warning ml-2 btn-sm"
+                    onclick="window.location.href='{{ url_for('login.settings') }}'">
+                Settings
+            </button>
+            <button type="button" id="logout-button" class="btn btn-dark ml-2 btn-sm"
+                    onclick="window.location.href='{{ url_for('login.log_out') }}'">
+                Log out
+            </button>
+        </div>
+    </div>
+    <div class="hide-switch-channel">
+        <div id="messages-list">
+            <ul class="list-unstyled">
+
+            </ul>
+        </div>
+
+        <div id="messages-input" class="input-group">
+        <textarea class="form-control" placeholder="Type your message" id="messages-input-text-area" rows="3"
+                  aria-label="Message textarea"></textarea>
+            <div class="input-group-append">
+                <button class="btn btn-outline-success" type="button" id="messages-input-send-button">Send</button>
+            </div>
+        </div>
+    </div>
+
+    <!---------------------- Modals ---------------------->
+
+    <!-- Leave channel modal -->
+    <div class="modal fade" id="leave-channel-modal" tabindex="-1" role="dialog" aria-labelledby="leaveChannelCenterTitle" aria-hidden="true">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="leaveChannelCenterTitle">Are you sure you want to leave the channel?</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+
+                <div class="modal-footer">
+                    <form method="post" action="{{ url_for('main.leave_channel') }}">
+                        <input name="channel" type="hidden" id="leave-channel-input">
+                        <button type="submit" class="btn btn-danger">
+                            Yes, I wanna leave
+                        </button>
+                    </form>
+                    <button type="button" class="btn btn-info" data-dismiss="modal" id="leave-channel-close-button">
+                        No, I'm going back
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

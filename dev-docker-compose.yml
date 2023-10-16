@@ -1,3 +1,4 @@
+
 version: "3"
 
 networks:
@@ -20,33 +21,6 @@ services:
       private_network:
         ipv4_address: 10.2.0.200
 
-  wg_dashboard:
-    depends_on: [unbound, pihole]
-    #build: ./WG-Dash
-    image: noxcis/wg-dashboard:moray-multi-arch
-    container_name: wg_dashboard
-    cap_add:
-      - NET_ADMIN
-      - SYS_MODULE
-    restart: unless-stopped
-    volumes:
-      - ./WG-Dash/master-key:/home/app/master-key
-      #- ./WG-Dash/config:/etc/wireguard
-    environment:
-      - SERVER_IP=${SERVER_IP}
-      - CONFIG_CT=${INTERFACE_COUNT}
-      - START_PORT=${PORT_RANGE_START}
-    ports:
-      - "${PORT_MAPPINGS}"
-    sysctls:
-      - net.ipv4.ip_forward=1
-      - net.ipv4.conf.all.src_valid_mark=1
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.3
-
-
-
   pihole:
     depends_on: [unbound]
     container_name: pihole
@@ -57,7 +31,7 @@ services:
       - 10.2.0.200 # Points to unbound
     environment:
       TZ: "America/Chicago"
-      WEBPASSWORD: ${PI_HOLE_PASS}
+      WEBPASSWORD: "" 
       ServerIP: 10.2.0.100 # Internal IP of pihole
       DNS1: 10.2.0.200 # Unbound IP
       DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
@@ -71,12 +45,36 @@ services:
         ipv4_address: 10.2.0.100
 
 
+  wg_dashboard:
+    depends_on: [unbound, pihole]
+    build: ./WG-Dash
+    #image: noxcis/wg-dashboard:moray-multi-arch
+    container_name: wg_dashboard
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    restart: unless-stopped
+    volumes:
+      - ./WG-Dash/master-key:/home/app/master-key
+    environment:
+      - SERVER_IP=0.0.0.0
+      - CONFIG_CT=7
+      - START_PORT=770
+    ports:
+      - "770-777:770-777/udp"
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.3
+
   channels:
     depends_on: [db, wg_dashboard]
     container_name: channels_messenger
-    #build: ./Channels
-    image: noxcis/channels:moray-multi-arch
+    #image: noxcis/worm-hole-channels:beta-2
     restart: unless-stopped
+    build: ./Channels
     command: python run.py
     environment:
       - IS_DOCKER=1
@@ -85,12 +83,12 @@ services:
       - SQL_HOST=db
       - SQL_PORT=5432
       - DATABASE=postgres
-      - SECRET_KEY=${MSG_SECRET_KEY}
-      - DATABASE_URI=${DB_URI}
+      - SECRET_KEY=foobarwashere
+      - DATABASE_URI=postgresql://user:password@db:5432/db
     networks:
       private_network:
         ipv4_address: 10.2.0.4
-
+    
 
   db:
     container_name: channels_db
@@ -99,8 +97,8 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     environment:
-      - POSTGRES_USER=${MSG_DB_USER}
-      - POSTGRES_PASSWORD=${MSG_DB_PASS}
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
       - POSTGRES_DB=db
     networks:
       private_network:
@@ -108,3 +106,4 @@ services:
 
 volumes:
     postgres_data:
+  

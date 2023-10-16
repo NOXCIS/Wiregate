@@ -1,0 +1,73 @@
+@font-face {
+  font-family: Pacifico;
+  src: url("../../fonts/Pacifico-Regular.ttf");
+}
+
+@keyframes textFromLeft {
+  0%   {  left: 0;}
+  50%  { left: 75%; }
+  100% { left: 50%; }
+}
+
+body {
+  /* Free image from Canva. Autor: Pedro Sandrini */
+  background-image: url("../../img/background.jpg");
+  background-size:cover;
+}
+
+#login-screen {
+  height: 100vh;
+  width: 100vw;
+  background-color: rgba(0, 0, 0, 0.7);
+  vertical-align: middle;
+  position: relative;
+}
+
+#channels-text {
+  color: white;
+  font-family: Pacifico, serif;
+  position: absolute;
+  top: 15%;
+  font-size: 8vh;
+  transform: translate(-50%, -50%);
+  animation-name: textFromLeft;
+  animation-duration: 2s;
+  animation-fill-mode: forwards;
+}
+
+.form-container {
+  box-shadow: 0 19px 38px rgba(0,0,0,0.30), 0 15px 12px rgba(0,0,0,0.22);
+  padding: 3% 6%;
+  background-color: white;
+
+  font-size: 1.4rem;
+  line-height: 3vh;
+
+  input {
+    font-size: 1.4rem !important;
+  }
+
+  legend, #button-div  {
+    text-align: center;
+  }
+
+  #submit {
+    box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
+  }
+}
+
+#login-container {
+  @extend .form-container;
+  position: absolute;
+  top: 60%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+#register-container {
+  @extend .form-container;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
