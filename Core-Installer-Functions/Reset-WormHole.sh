@@ -64,3 +64,9 @@ preset_compose_swap() {
     echo "File successfully pulled from Preset Compose File."
 
 }
+compose_reset() {
+    local yml_file="docker-compose.yml"
+    sudo rm "$yml_file"
+    cat Global-Configs/Docker-Compose/default-docker-compose.yml > "$yml_file"
+    
+}

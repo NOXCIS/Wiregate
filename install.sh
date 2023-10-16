@@ -56,7 +56,8 @@ export TIMER_VALUE=0
             generate_wireguard_qr &&
             readme_title &&
             encrypt_file &&
-            env_var_title 
+            env_var_title &&
+            compose_reset 
             return
     }
 
@@ -114,7 +115,8 @@ export TIMER_VALUE=0
             generate_wireguard_qr &&
             readme_title &&
             encrypt_file &&
-            master_key_pass_title 
+            master_key_pass_title &&
+            compose_reset 
             return
 
         }
@@ -123,7 +125,7 @@ export TIMER_VALUE=0
         sudo sysctl -w net.core.rmem_max=2097152 > /dev/null 2>&1
         sudo sysctl -w kern.ipc.maxsockbuf=1048576 > /dev/null 2>&1
 
-        docker compose up -d --build 
+        docker compose restart -d --build 
     }
     compose_down() {
         docker compose down --volumes
@@ -132,7 +134,7 @@ export TIMER_VALUE=0
     rm_exst_configs() {
         local masterkey_file="./WG-Dash/master-key/master.conf"
         local config_folder="./WG-Dash/config"
-            docker compose down --volumes 
+           
 
         if [ -f "$masterkey_file" ]; then
             echo "Removing existing '$masterkey_file'..."
