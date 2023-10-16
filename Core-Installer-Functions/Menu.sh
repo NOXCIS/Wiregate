@@ -6,7 +6,7 @@ menu() {
     echo "Please choose an option:"
     echo "1. Express Install"
     echo "2. Advanced Install"
-    echo "3. Auto configuration with quickset for # of Server Interfaces to Generate & Pihole Password"
+    echo "3. PreConfigured Install"
     echo "4. Reset Wormhole Deployment"
     echo "5. Exit"
     read -p "Enter your choice: " choice
@@ -15,7 +15,7 @@ menu() {
     case $choice in
         1) express_setup ;;
         2) advanced_setup ;;
-        3) auto_set_wct ;;
+        3) predefined_setup ;;
         4) fresh_install ;;
         5) exit ;;
         *) echo "Invalid choice. Please try again." ;;
