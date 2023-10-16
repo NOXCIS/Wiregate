@@ -85,18 +85,6 @@ export TIMER_VALUE=0
             set_pihole_password &&
             run_setup
         }
-    #QC_SET
-        auto_set_wct() {
-            run_os_update &&
-            install_prerequisites &&
-            TIMER_VALUE=5
-            title &&
-            set_config_count &&
-            set_port_range &&
-            set_pihole_password &&
-            TIMER_VALUE=0
-            run_setup 
-        }
     #PRE_SET
         predefined_setup () {
             run_os_update &&
@@ -183,10 +171,10 @@ export TIMER_VALUE=0
         menu
     else
     case $1 in
-        manual) manual_setup ;;
-        headless) auto_setup ;;
+        advanced) advanced_setup ;;
+        auto) express_setup ;;
         fresh) fresh_install ;;
-        quickcount) auto_set_wct ;;
+        preset) predefined_setup ;;
         *) echo "Invalid choice. Please try again." ;;
     esac
     fi
