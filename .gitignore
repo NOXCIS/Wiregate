@@ -19,7 +19,7 @@ src/db/wgdashboard.db
 wireguard/
 etc-dnsmasq.d/*
 etc-pihole/*
-etc-pihole/custom.list
+!etc-pihole/custom.list
 etc-dnsmasq.d/
 WG-Dash/config/*.conf
 data/
