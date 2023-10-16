@@ -16,8 +16,8 @@ Simply pulling `noxcis/wg-dashboard:squid-multi-arch` should retrieve the correc
 
 | Architecture | Tag |
 | :----: | --- |
-| x86-64 | amd64-latest |
-| arm64 | arm64-latest |
+| amd 64bit | amd64-latest |
+| arm 64bit | arm64-latest |
 
 
 
