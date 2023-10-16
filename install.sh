@@ -125,7 +125,7 @@ export TIMER_VALUE=0
         sudo sysctl -w net.core.rmem_max=2097152 > /dev/null 2>&1
         sudo sysctl -w kern.ipc.maxsockbuf=1048576 > /dev/null 2>&1
 
-        docker compose restart -d --build 
+        docker compose up -d --build 
     }
     compose_down() {
         docker compose down --volumes
