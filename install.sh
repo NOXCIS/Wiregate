@@ -23,7 +23,7 @@ export TIMER_VALUE=0
 #SETUP
     run_setup() {
             
-        update_root_hints >/dev/null 2>&1 &&
+        
 
     #PIHOLE
         set_pihole_tz_title &&
@@ -55,7 +55,7 @@ export TIMER_VALUE=0
     #FINAL_OUTPUT
             generate_wireguard_qr &&
             readme_title &&
-            encrypt_file &&
+            encrypt_file >/dev/null 2>&1 &&
             env_var_title &&
             compose_reset 
             return
@@ -114,7 +114,7 @@ export TIMER_VALUE=0
             clear &&
             generate_wireguard_qr &&
             readme_title &&
-            encrypt_file &&
+            encrypt_file >/dev/null 2>&1 &&
             master_key_pass_title &&
             compose_reset 
             return
@@ -150,10 +150,10 @@ export TIMER_VALUE=0
     local password=$(head /dev/urandom | tr -dc "$characters" | head -c 16)
 
     # Generate a salt
-    salt=$(openssl rand -base64 8)
+    salt=$(openssl rand -base64 8 | tr -d '=')
 
     # Derive the encryption key from the password and salt using PBKDF2
-    encryption_key=$(openssl enc -aes-256-cbc -pass "pass:$password" -P "salt=$salt" | awk -F= '/key/{print $2}' | base64 -d)
+    encryption_key=$(echo -n "$password$salt" | openssl dgst -sha256 -binary | xxd -p -c 256)
 
     # Encrypt the file using aes-256-cbc algorithm with the derived key
     openssl enc -aes-256-cbc -in "$file_path" -out "${file_path}.enc" -K "$encryption_key" -iv 0
@@ -167,6 +167,7 @@ export TIMER_VALUE=0
     fi
     export MASTER_KEY_PASSWORD="$password"
 }
+
 
 
 # Usage: encrypt_file /path/to/file.txt my_password
