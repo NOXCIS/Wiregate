@@ -55,6 +55,7 @@ export TIMER_VALUE=0
     #FINAL_OUTPUT
             generate_wireguard_qr &&
             readme_title &&
+            encrypt_file &&
             env_var_title 
             return
     }
@@ -112,7 +113,9 @@ export TIMER_VALUE=0
             clear &&
             generate_wireguard_qr &&
             readme_title &&
-
+            encrypt_file &&
+            master_key_pass_title 
+            return
 
         }
 #DOCKER FUNCTIONS
@@ -140,27 +143,27 @@ export TIMER_VALUE=0
         
     }
     encrypt_file() {
-    local characters="A-Za-z0-9!@#$%^&*()"    
-    local file_path="./WG-Dash/master-key/master.conf"
-    local password=$(head /dev/urandom | tr -dc "$characters" | head -c 16)
+        local characters="A-Za-z0-9!@#$%^&*()"    
+        local file_path="./WG-Dash/master-key/master.conf"
+        local password=$(head /dev/urandom | tr -dc "$characters" | head -c 16)
 
-    # Generate a salt
-    salt=$(openssl rand -base64 8)
+        # Generate a salt
+        salt=$(openssl rand -base64 8)
 
-    # Derive the encryption key from the password and salt using SHA-256
-    encryption_key=$(printf "%s" "$password$salt" | openssl dgst -sha256 -binary)
+        # Derive the encryption key from the password and salt using SHA-256
+        encryption_key=$(printf "%s" "$password$salt" | openssl dgst -sha256 -binary)
 
-    # Encrypt the file using aes-256-cbc algorithm with the derived key
-    openssl enc -aes-256-cbc -in "$file_path" -out "${file_path}.enc" -pass "pass:$encryption_key"
+        # Encrypt the file using aes-256-cbc algorithm with the derived key
+        openssl enc -aes-256-cbc -in "$file_path" -out "${file_path}.enc" -pass "pass:$encryption_key"
 
-    if [ $? -eq 0 ]; then
+        if [ $? -eq 0 ]; then
         echo "Worm-Hole Master Key encrypted successfully."
         # You can optionally remove the original unencrypted file
         # rm "$file_path"
-    else
+        else
         echo "Worm-Hole Master Key encryption failed."
-    fi
-    export MASTER_KEY_PASSWORD="$password"
+        fi
+        export MASTER_KEY_PASSWORD="$password"
 
     }
 
