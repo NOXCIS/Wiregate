@@ -141,7 +141,7 @@ def read_conf_file_interface(config_name):
     """
 
     conf_location = WG_CONF_PATH + "/" + config_name + ".conf"
-    with open(conf_location, 'r', encoding='utf-8') as file_object:
+    with open(conf_location, 'r', encoding='utf-8') as file_object:  #path traversal
         file = file_object.read().split("\n")
         data = {}
         for i in file:
@@ -164,7 +164,7 @@ def read_conf_file(config_name):
     """
 
     conf_location = WG_CONF_PATH + "/" + config_name + ".conf"
-    f = open(conf_location, 'r')
+    f = open(conf_location, 'r')  #resource Leak
     file = f.read().split("\n")
     conf_peer_data = {
         "Interface": {},
