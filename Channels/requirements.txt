@@ -30,14 +30,12 @@ packaging
 Pillow
 pluggy
 psycopg2
-#py
 pycparser
 pyparsing
 pytest
 pytest-cov
 python-engineio
 python-socketio==5.9.0
-rustc
 selenium
 six
 SQLAlchemy
