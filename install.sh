@@ -65,9 +65,9 @@ export TIMER_VALUE=0
 #SETUP OPTIONS
     #EXP_SET
         express_setup() {
-            compose_down &&
             run_os_update &&
             install_prerequisites &&
+            compose_down &&
             TIMER_VALUE=0
             title &&
             set_config_count &&
@@ -77,9 +77,9 @@ export TIMER_VALUE=0
         }
     #ADV_SET
         advanced_setup() {
-            compose_down &&
             run_os_update &&
             install_prerequisites &&
+            compose_down &&
             title &&
             set_timer_value &&
             set_config_count &&
