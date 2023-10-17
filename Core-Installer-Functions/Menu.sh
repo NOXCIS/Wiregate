@@ -6,7 +6,7 @@ menu() {
     echo "Please choose an option:"
     echo "1. Express Install"
     echo "2. Advanced Install"
-    echo "3. PreConfigured Install"
+    echo "3. Custom PreConfigured Install"
     echo "4. Reset Wormhole Deployment"
     echo "5. Exit"
     read -p "Enter your choice: " choice
