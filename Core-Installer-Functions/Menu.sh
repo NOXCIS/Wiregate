@@ -2,7 +2,9 @@
 
 
 menu() {
+    title
     run_os_update 
+    title
     install_prerequisites 
     clear
     title

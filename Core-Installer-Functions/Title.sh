@@ -106,6 +106,14 @@ ____________________________________|_______________________________________
 ------------------------------------|---------------------------------------
     WIREGUARD INTERFACE COUNT       |   \033[33m'"$INTERFACE_COUNT"'\033[0m               
 ------------------------------------|---------------------------------------
+    CHANNELS SECRET KEY             |   \033[33m'"$MSG_SECRET_KEY"'\033[0m 
+------------------------------------|---------------------------------------
+    CHANNELS DATABASE URI           |   \033[33m'"$DB_URI"'\033[0m 
+------------------------------------|---------------------------------------
+    CHANNELS POSTGRES USER          |   \033[33m'"$MSG_DB_USER"'\033[0m 
+------------------------------------|---------------------------------------
+    CHANNELS POSTGRES_PASSWORD      |   \033[33m'"$MSG_DB_PASS"'\033[0m 
+------------------------------------|---------------------------------------
     MASTER KEY DECRYPTION KEY       |   \033[33m'"$MASTER_KEY_PASSWORD"'\033[0m              
 ------------------------------------|---------------------------------------'
     echo -e "\033[0m"  # Reset text color to default
@@ -129,6 +137,14 @@ ____________________________________|_______________________________________
     WIREGUARD PORT MAPPINGS         |   \033[33m'"$PORT_MAPPINGS"'\033[0m              
 ------------------------------------|---------------------------------------
     WIREGUARD INTERFACE COUNT       |   \033[33m'"$INTERFACE_COUNT"'\033[0m               
+------------------------------------|---------------------------------------
+    CHANNELS SECRET KEY             |   \033[33m'"$MSG_SECRET_KEY"'\033[0m 
+------------------------------------|---------------------------------------
+    CHANNELS DATABASE URI           |   \033[33m'"$DB_URI"'\033[0m 
+------------------------------------|---------------------------------------
+    CHANNELS POSTGRES USER          |   \033[33m'"$MSG_DB_USER"'\033[0m 
+------------------------------------|---------------------------------------
+    CHANNELS POSTGRES_PASSWORD      |   \033[33m'"$MSG_DB_PASS"'\033[0m 
 ------------------------------------|---------------------------------------
     MASTER KEY DECRYPTION KEY       |   \033[33m'"$MASTER_KEY_PASSWORD"'\033[0m              
 ------------------------------------|---------------------------------------'
@@ -236,12 +252,12 @@ readme_title() {
     echo ""
     echo -e "     \033[33mWireGuard Dashboard Address:     \033[32mhttp://worm.hole\033[0m" 
     echo -e "     \033[33mPihole Dashboard Address:        \033[32mhttp://pi.hole\033[0m"
-    echo -e "     \033[33mAdGuard Dashboard Address:        \033[32mhttp://ad.guard\033[0m"
+    echo -e "     \033[33mAdGuard Dashboard Address:       \033[32mhttp://ad.guard\033[0m"
     echo -e "     \033[33mChannels LAN Messenger Address:  \033[32mhttp://channels.msg\033[0m"
     echo ""
     echo -e "     \033[33mLeave A Star on Github:  \033[32mhttps://github.com/NOXCIS/Worm-Hole\033[0m"
     echo ""
-    echo -e "             \033[32mWireGuard Connection Required to Access Dashboards\033[0m" 
+    echo -e "         \033[32mWireGuard Connection Required to Access Dashboards\033[0m" 
     echo -e "\033[33m"
     echo "#######################################################################"
     echo -e "\n\033[0m"

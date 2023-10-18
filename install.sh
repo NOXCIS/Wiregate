@@ -85,7 +85,7 @@ export TIMER_VALUE=0
 
 
         #FINAL_OUTPUT
-                generate_wireguard_qr &&
+                generate_wireguard_qr  &&
                 readme_title &&
                 encrypt_file >/dev/null 2>&1 &&
                 env_var_adguard_title &&

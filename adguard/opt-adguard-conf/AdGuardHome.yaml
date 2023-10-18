@@ -5,8 +5,8 @@ http:
   address: 0.0.0.0:80
   session_ttl: 720h
 users:
-  - name: kilo
-    password: $2y$05$IiGw.TP6sqYGwrdcN6Rxt.2gbuNTv1HLAvIkJ/aP7YU8spScB6XVm
+  - name: whimsical_oddball_496
+    password: $2y$05$ngt5UBy8VTDCKhPSKZ0v7OKveHEQ3u.raGIytqwWGXe/xRzC0gq.i
 auth_attempts: 5
 block_auth_min: 15
 http_proxy: ""
@@ -143,8 +143,8 @@ filtering:
       answer: 10.2.0.3
     - domain: channels.msg
       answer: 10.2.0.4
-    - domain: 10.2.0.100
-      answer: ad.guard
+    - domain: ad.guard
+      answer: 10.2.0.100
   safebrowsing_cache_size: 1048576
   safesearch_cache_size: 1048576
   parental_cache_size: 1048576
