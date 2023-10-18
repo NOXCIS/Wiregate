@@ -5,8 +5,8 @@ http:
   address: 0.0.0.0:80
   session_ttl: 720h
 users:
-  - name: bizarre_offbeat_326
-    password: $2y$10$kI0IY/VjPqfFUJYb1NlOp.g5MwgzWtiyU/SicyeSm5SLPke8CCQhm
+  - name: kilo
+    password: $2y$05$IiGw.TP6sqYGwrdcN6Rxt.2gbuNTv1HLAvIkJ/aP7YU8spScB6XVm
 auth_attempts: 5
 block_auth_min: 15
 http_proxy: ""
@@ -143,6 +143,8 @@ filtering:
       answer: 10.2.0.3
     - domain: channels.msg
       answer: 10.2.0.4
+    - domain: 10.2.0.100
+      answer: ad.guard
   safebrowsing_cache_size: 1048576
   safesearch_cache_size: 1048576
   parental_cache_size: 1048576

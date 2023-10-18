@@ -100,7 +100,7 @@ export TIMER_VALUE=0
         #EXP_SET
             pihole_express_setup() {
                 
-                compose_down >/dev/null 2>&1 &&
+                compose_down 
                 TIMER_VALUE=0
                 clear &&
                 pihole_install_title &&
@@ -112,7 +112,7 @@ export TIMER_VALUE=0
         #ADV_SET
             pihole_advanced_setup() {
                 
-                compose_down >/dev/null 2>&1 &&
+                compose_down 
                 clear &&
                 pihole_install_title &&
                 set_timer_value &&
@@ -139,7 +139,7 @@ export TIMER_VALUE=0
                 generate_wireguard_qr &&
                 readme_title &&
                 encrypt_file >/dev/null 2>&1 &&
-                master_key_pass_title &&
+                env_var_pihole_title &&
                 pihole_compose_swap 
                 return
         }
@@ -147,7 +147,7 @@ export TIMER_VALUE=0
         #EXP_SET
             adguard_express_setup() {
                 
-                compose_down >/dev/null 2>&1 &&
+                compose_down 
                 TIMER_VALUE=0
                 clear &&
                 adguard_install_title &&
@@ -160,7 +160,7 @@ export TIMER_VALUE=0
         #ADV_SET
             adguard_advanced_setup() {
                 
-                compose_down #>/dev/null 2>&1 &&
+                compose_down 
                 clear &&
                 adguard_install_title &&
                 set_timer_value &&
@@ -174,6 +174,7 @@ export TIMER_VALUE=0
             adguard_predefined_setup () {
                 
                 TIMER_VALUE=5
+                compose_down 
                 clear &&
                 adguard_install_title &&
                 adguard_preset_compose_swap &&
@@ -181,6 +182,8 @@ export TIMER_VALUE=0
                 update_server_ip &&
                 set_config_count &&
                 set_port_range &&
+                set_adguard_user &&
+                set_adguard_pass &&
                 rm_exst_configs >/dev/null 2>&1 &&
                 run_docker_title &&
                 compose_up &&
@@ -188,7 +191,7 @@ export TIMER_VALUE=0
                 generate_wireguard_qr &&
                 readme_title &&
                 encrypt_file >/dev/null 2>&1 &&
-                master_key_pass_title &&
+                env_var_adguard_title &&
                 adguard_compose_swap 
                 return
         }

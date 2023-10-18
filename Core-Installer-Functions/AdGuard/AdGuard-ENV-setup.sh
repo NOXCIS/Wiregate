@@ -29,7 +29,7 @@ set_adguard_pass() {
 
         plaintext_adguard_pass=$(head /dev/urandom | tr -dc "$characters" | head -c 16)
         
-        output=$(htpasswd -nbBC 10 "$username" "$plaintext_adguard_pass")
+        output=$(htpasswd -B -n -b "$username" "$plaintext_adguard_pass")
 
         # Use sed to delete the first 5 characters of $output and assign it to adguard_password
         adguard_password=$(echo "$output" | sed 's/.....//')
@@ -65,7 +65,7 @@ set_adguard_pass() {
             else
                 # Passwords match, set the Database Password
                 
-                output=$(htpasswd -nbBC "$username" "$adguard_pass")
+                output=$(htpasswd -B -n -b "$username" "$adguard_pass")
                 
                 # Use sed to delete the first 5 characters of $output and assign it to adguard_password
                 manual_adguard_password=$(echo "$output" | sed 's/.....//')
