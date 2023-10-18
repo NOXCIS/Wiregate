@@ -1116,7 +1116,7 @@ def add_peer_bulk(config_name):
         keys[i]['allowed_ips'] = ips.pop(0)
         if enable_preshared_key:
             keys[i]['psk_file'] = f"{keys[i]['name']}.txt"
-            f = open(keys[i]['psk_file'], "w+")
+            f = open(keys[i]['psk_file'], "w+") #path tranversal
             f.write(keys[i]['presharedKey'])
             f.close()
             wg_command.append("preshared-key")
