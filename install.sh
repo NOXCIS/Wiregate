@@ -260,10 +260,13 @@ export TIMER_VALUE=0
         menu
     else
     case $1 in
-        advanced) advanced_setup ;;
-        auto) express_setup ;;
+        pi-exp) pihole_express_setup ;;
+        pi-adv) pihole_advanced_setup ;;
+        pi-predef) pihole_predefined_setup ;;
+        ad-exp) adguard_express_setup ;;
+        ad-adv) adguard_advanced_setup ;;
+        ad-predef) adguard_predefined_setup ;;
         fresh) fresh_install ;;
-        preset) predefined_setup ;;
         *) echo "Invalid choice. Please try again." ;;
     esac
     fi
