@@ -67,15 +67,8 @@ services:
     image: noxcis/channels:moray-multi-arch
     restart: unless-stopped
     command: python run.py
-    environment:
-      - IS_DOCKER=1
-      - FLASK_APP=app/__init__.py
-      - FLASK_ENV=development
-      - SQL_HOST=db
-      - SQL_PORT=5432
-      - DATABASE=postgres
-      - SECRET_KEY=${MSG_SECRET_KEY}
-      - DATABASE_URI=${DB_URI}
+    env_file:
+      - ./Global-Configs/ENV-FILES/channels.env.dev
     networks:
       private_network:
         ipv4_address: 10.2.0.4
@@ -87,10 +80,8 @@ services:
     restart: unless-stopped
     volumes:
       - postgres_data:/var/lib/postgresql/data/
-    environment:
-      - POSTGRES_USER=${MSG_DB_USER}
-      - POSTGRES_PASSWORD=${MSG_DB_PASS}
-      - POSTGRES_DB=db
+    env_file:
+      - ./Global-Configs/ENV-FILES/channels_db.env.dev
     networks:
       private_network:
         ipv4_address: 10.2.0.5

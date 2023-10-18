@@ -21,34 +21,25 @@ services:
       private_network:
         ipv4_address: 10.2.0.200
 
-  pihole:
+  adguard:
     depends_on: [unbound]
-    container_name: pihole
-    image: pihole/pihole:latest
+    container_name: adguard
+    image: adguard/adguardhome
     restart: unless-stopped
-    hostname: pihole
-    dns:
-      - 10.2.0.200 # Points to unbound
-    environment:
-      TZ: "America/Chicago"
-      WEBPASSWORD: "" 
-      ServerIP: 10.2.0.100 # Internal IP of pihole
-      DNS1: 10.2.0.200 # Unbound IP
-      DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
+    hostname: adguard
+    # Volumes store your data between container upgrades
     volumes:
-      - "./etc-pihole/:/etc/pihole/"
-      - "./etc-dnsmasq.d/:/etc/dnsmasq.d/"
-    cap_add:
-      - NET_ADMIN
+      - "./adguard/opt-adguard-work:/opt/adguardhome/work"
+      - "./adguard/opt-adguard-conf:/opt/adguardhome/conf"
     networks:
       private_network:
         ipv4_address: 10.2.0.100
 
 
   wg_dashboard:
-    depends_on: [unbound, pihole]
-    build: ./WG-Dash
-    #image: noxcis/wg-dashboard:moray-multi-arch
+    depends_on: [unbound, adguard]
+    #build: ./WG-Dash
+    image: noxcis/wg-dashboard:moray-multi-arch
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
@@ -57,7 +48,7 @@ services:
     volumes:
       - ./WG-Dash/master-key:/home/app/master-key
     environment:
-      - SERVER_IP=0.0.0.0
+      - SERVER_IP=172.26.192.233
       - CONFIG_CT=7
       - START_PORT=770
     ports:
@@ -72,9 +63,9 @@ services:
   channels:
     depends_on: [db, wg_dashboard]
     container_name: channels_messenger
-    #image: noxcis/worm-hole-channels:beta-2
+    image: noxcis/channels:moray-multi-arch
     restart: unless-stopped
-    build: ./Channels
+    #build: ./Channels
     command: python run.py
     environment:
       - IS_DOCKER=1
@@ -83,7 +74,7 @@ services:
       - SQL_HOST=db
       - SQL_PORT=5432
       - DATABASE=postgres
-      - SECRET_KEY=foobarwashere
+      - SECRET_KEY=ed215f114bd528c0870a9c4900c69a1e
       - DATABASE_URI=postgresql://user:password@db:5432/db
     networks:
       private_network:
