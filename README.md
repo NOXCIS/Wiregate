@@ -28,6 +28,7 @@ Wormhole also acts as a ISP DNS query logging bypass. Wormhole by default is con
 |AdGuard|✅|0|adguard/adguardhome:latest |
 |Channels|✅|0|noxcis/channels:moray-multi-arch |
 |Unbound|✅|0| klutchell/unbound:latest |
+|Postgres|✅|0|postgres:13-alpine|
 
 The WireGuard Dashboard image supports the `x86-64` and `arm64` CPU architectures . 
 
