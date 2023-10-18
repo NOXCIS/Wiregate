@@ -27,7 +27,7 @@ fresh_install() {
 
     if [[ $answer == [Yy] || -z $answer ]]; then
         sudo sed -i '/ports:/,/sysctls:/ {//!d}; /ports:/a\ \ \ \ \ \ - 51820:51820\/udp' "$yml_file"
-        docker compose down --volumes
+        docker compose down --volumes --remove-orphans
 
         if [ -f "$masterkey_file" ]; then
             echo "Removing existing '$masterkey_file'..."
@@ -46,7 +46,7 @@ fresh_install() {
         echo "Existing Compose File removed."
 
         echo "Pulling from Default Compose File..."
-        cat Global-Configs/Docker-Compose/default-docker-compose.yml > "$yml_file"
+        cat Global-Configs/Docker-Compose/pihole-docker-compose.yml > "$yml_file"
         echo "File successfully pulled from Default Compose File."
         
         clear
@@ -56,17 +56,32 @@ fresh_install() {
         menu
     fi
 }
-preset_compose_swap() {
+pihole_preset_compose_swap() {
     local yml_file="docker-compose.yml"
     sudo rm "$yml_file"
     echo "Pulling from Preset Compose File..."
-    cat Global-Configs/Docker-Compose/custom-docker-compose.yml > "$yml_file"
+    cat Global-Configs/Docker-Compose/pihole-custom-docker-compose.yml > "$yml_file"
     echo "File successfully pulled from Preset Compose File."
 
 }
-compose_reset() {
+adguard_preset_compose_swap() {
     local yml_file="docker-compose.yml"
     sudo rm "$yml_file"
-    cat Global-Configs/Docker-Compose/default-docker-compose.yml > "$yml_file"
+    echo "Pulling from Preset Compose File..."
+    cat Global-Configs/Docker-Compose/adguard-custom-docker-compose.yml > "$yml_file"
+    echo "File successfully pulled from Preset Compose File."
+
+}
+adguard_compose_swap() {
+    local yml_file="docker-compose.yml"
+    sudo rm "$yml_file"
+    echo "Pulling from Preset Compose File..."
+    cat Global-Configs/Docker-Compose/adguard-docker-compose.yml > "$yml_file"
+    echo "File successfully pulled from Preset Compose File."
+}
+pihole_compose_swap() {
+    local yml_file="docker-compose.yml"
+    sudo rm "$yml_file"
+    cat Global-Configs/Docker-Compose/pihole-docker-compose.yml > "$yml_file"
     
 }
