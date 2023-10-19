@@ -97,7 +97,9 @@ set_port_range() {
     done
     
     if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
-        HOST_PORT_START=$((1 + RANDOM % 65535))
+        while [[ $HOST_PORT_START -eq 53 || $HOST_PORT_START -eq 67 || $HOST_PORT_START -eq 68 || $HOST_PORT_START -eq 69 || $HOST_PORT_START -eq 161 || $HOST_PORT_START -eq 162 || $HOST_PORT_START -eq 123 || $HOST_PORT_START -eq 514 || $HOST_PORT_START -eq 1812 || $HOST_PORT_START -eq 1813 || $HOST_PORT_START -eq 137 || $HOST_PORT_START -eq 138 || $HOST_PORT_START -eq 139 || $HOST_PORT_START -eq 162 || $HOST_PORT_START -eq 1900 || ($HOST_PORT_START >= 33434 && $HOST_PORT_START <= 33534) ]]; do
+            HOST_PORT_START=$((1 + RANDOM % 65535))
+        done
         pcount=$INTERFACE_COUNT
         HOST_PORT_END=$((HOST_PORT_START + pcount))  
         port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
