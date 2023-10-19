@@ -75,7 +75,6 @@ set_config_count() {
 
 }
 set_port_range() {
-
     local timer=$TIMER_VALUE
     local user_activity=false
 
@@ -87,7 +86,7 @@ set_port_range() {
         echo "Press Enter to set starting port for WireGuard Server interface's Port Range $(tput setaf 1)timeout in ($(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1)) seconds : $(tput sgr0)"
         
         # Decrement the timer value by 1
-        timer=$((timer - 1))
+        timer=$((timer - 1)
 
         # Check for user activity
         if read -t 1 -n 1; then
@@ -97,34 +96,33 @@ set_port_range() {
     done
     
     if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
-        while [[ $HOST_PORT_START -eq 53 || $HOST_PORT_START -eq 67 || $HOST_PORT_START -eq 68 || $HOST_PORT_START -eq 69 || $HOST_PORT_START -eq 161 || $HOST_PORT_START -eq 162 || $HOST_PORT_START -eq 123 || $HOST_PORT_START -eq 514 || $HOST_PORT_START -eq 1812 || $HOST_PORT_START -eq 1813 || $HOST_PORT_START -eq 137 || $HOST_PORT_START -eq 138 || $HOST_PORT_START -eq 139 || $HOST_PORT_START -eq 162 || $HOST_PORT_START -eq 1900 || ($HOST_PORT_START >= 33434 && $HOST_PORT_START <= 33534) ]]; do
+        while [[ $HOST_PORT_START -eq 53 || $HOST_PORT_START -eq 67 || $HOST_PORT_START -eq 68 || $HOST_PORT_START -eq 69 || $HOST_PORT_START -eq 161 || $HOST_PORT_START -eq 162 || $HOST_PORT_START -eq 123 || $HOST_PORT_START -eq 514 || $HOST_PORT_START -eq 1812 || $HOST_PORT_START -eq 1813 || $HOST_PORT_START -eq 137 || $HOST_PORT_START -eq 138 || $HOST_PORT_START -eq 139 || $HOST_PORT_START -eq 162 || $HOST_PORT_START -eq 1900 || (HOST_PORT_START >= 33434 && HOST_PORT_START <= 33534) ]]; do
             HOST_PORT_START=$((1 + RANDOM % 65535))
         done
         pcount=$INTERFACE_COUNT
-        HOST_PORT_END=$((HOST_PORT_START + pcount))  
+        HOST_PORT_END=$((HOST_PORT_START + pcount)  
         port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
         echo -e "Wireguard Port Range Set To: \033[32m$port_mappings\033[0m"
         export PORT_RANGE_START="$HOST_PORT_START"
         export PORT_MAPPINGS="$port_mappings"
     fi
 
-
-    if [[ "$user_activity" == true ]]; then
+    if [ "$user_activity" = true ]; then
         # Prompt user to enter and confirm their password
         while true; do
             read -p "$(tput setaf 3)Enter the starting port for WireGuard Server interface's Port Range: $(tput sgr0)" HOST_PORT_START
-        
-        pcount=$INTERFACE_COUNT
-        HOST_PORT_END=$((HOST_PORT_START + pcount))  
-        port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
-        echo -e "Wireguard Port Range Set To: \033[32m$port_mappings\033[0m"
-        export PORT_RANGE_START="$HOST_PORT_START"
-        export PORT_MAPPINGS="$port_mappings"
-        break
+            pcount=$INTERFACE_COUNT
+            HOST_PORT_END=$((HOST_PORT_START + pcount)  
+            port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
+            echo -e "Wireguard Port Range Set To: \033[32m$port_mappings\033[0m"
+            export PORT_RANGE_START="$HOST_PORT_START"
+            export PORT_MAPPINGS="$port_mappings"
+            break
         done
-    fi
+    }
 
-}
+
+
 generate_wireguard_qr() {
     local config_file="./WG-Dash/master-key/master.conf"
 
