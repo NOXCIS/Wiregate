@@ -276,6 +276,7 @@ readme_title() {
     echo ""
     echo -e "     \033[33mWireGuard Dashboard Address:     \033[32mhttp://worm.hole\033[0m" 
     echo -e "     \033[33mPihole Dashboard Address:        \033[32mhttp://pi.hole\033[0m"
+    echo -e "     \033[33mPihole Dashboard Address:        \033[32mhttp://ad.guard\033[0m"    
     echo -e "     \033[33mChannels LAN Messenger Address:  \033[32mhttp://channels.msg\033[0m"
     echo ""
     echo -e "     \033[33mLeave A Star on Github:  \033[32mhttps://github.com/NOXCIS/Worm-Hole\033[0m"
