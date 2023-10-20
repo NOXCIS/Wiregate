@@ -32,7 +32,7 @@ set_channels_DB_pass() {
         characters="A-Za-z0-9"
         db_password=$(head /dev/urandom | tr -dc "$characters" | head -c 32)
         export MSG_DB_PASS="$db_password"
-        echo ""
+    
         echo -e "\033[32mPassword has been randomly Gernerated.\033[0m"
     fi
 
@@ -94,7 +94,7 @@ set_channels_DB_user() {
         characters="A-Za-z0-9"
         db_user=$(head /dev/urandom | tr -dc "$characters" | head -c 32)
         export MSG_DB_USER="$db_user"
-        echo ""
+    
         echo -e "\033[32mUsername has been randomly Gernerated.\033[0m"
     fi
 

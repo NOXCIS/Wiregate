@@ -42,7 +42,7 @@ set_pihole_password() {
         characters="A-Za-z0-9!@#$%^&*()"
         password=$(head /dev/urandom | tr -dc "$characters" | head -c 16)
         export PI_HOLE_PASS="$password"
-        echo ""
+
         echo -e "\033[32mPassword has been randomly Gernerated.\033[0m"
     fi
 
@@ -50,14 +50,14 @@ set_pihole_password() {
         # Prompt user to enter and confirm their password
         while true; do
             read -sp "$(tput setaf 3)Enter password for Pihole Dashboard:$(tput sgr0)" password 
-            echo ""
+    
 
             if [ -z "$password" ]; then
                 echo -e "\033[31mPassword cannot be empty. Please try again.\033[0m"
                 continue
             fi
 
-            echo ""
+    
             read -sp "$(tput setaf 3)Confirm password for Pihole Dashboard:$(tput sgr0) " confirm_password
 
             if [ "$password" != "$confirm_password" ]; then

@@ -40,7 +40,7 @@ set_adguard_pass() {
         export AD_GUARD_PASS="$plaintext_adguard_pass"
 
 
-        echo ""
+        
         echo -e "\033[32mPassword has been randomly Gernerated.\033[0m"
     fi
 
@@ -128,7 +128,7 @@ set_adguard_user() {
         export AD_GUARD_USER="$adguard_user"
 
 
-        echo ""
+        
         echo -e "\033[32mUsername has been randomly Gernerated.\033[0m"
     fi
 
