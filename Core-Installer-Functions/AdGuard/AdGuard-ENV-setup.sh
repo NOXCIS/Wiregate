@@ -10,7 +10,7 @@ set_adguard_pass() {
         clear  # Clear the screen
 
         # Print the updated timer value
-        set_pass_channel_title
+        set_pass_adguard_title
         echo "Press Enter to set Adguard Password  $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for no password: $(tput sgr0)"
         
         # Decrement the timer value by 1
@@ -40,7 +40,7 @@ set_adguard_pass() {
         export AD_GUARD_PASS="$plaintext_adguard_pass"
 
 
-        echo ""
+        
         echo -e "\033[32mPassword has been randomly Gernerated.\033[0m"
     fi
 
@@ -95,7 +95,7 @@ set_adguard_user() {
         clear  # Clear the screen
 
         # Print the updated timer value
-        set_uname_channel_title
+        set_uname_adguard_title
         echo "Press Enter to set AdGuard Username $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for no password: $(tput sgr0)"
         
         # Decrement the timer value by 1
@@ -128,7 +128,7 @@ set_adguard_user() {
         export AD_GUARD_USER="$adguard_user"
 
 
-        echo ""
+        
         echo -e "\033[32mUsername has been randomly Gernerated.\033[0m"
     fi
 

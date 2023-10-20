@@ -16,7 +16,6 @@ services:
     hostname: "unbound"
     volumes:
       - ./Global-Configs/Unbound/custom-unbound.conf:/etc/unbound/custom.conf.d/custom-unbound.conf
-      - ./Global-Configs/Unbound/root.hints:/etc/unbound/root.hints
     networks:
       private_network:
         ipv4_address: 10.2.0.200
@@ -38,8 +37,8 @@ services:
 
   wg_dashboard:
     depends_on: [unbound, adguard]
-    #build: ./WG-Dash
-    image: noxcis/wg-dashboard:moray-multi-arch
+    build: ./WG-Dash
+    #image: noxcis/wg-dashboard:moray-multi-arch
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
@@ -49,7 +48,7 @@ services:
       - ./WG-Dash/master-key:/home/app/master-key
     environment:
       - SERVER_IP=172.26.192.233
-      - CONFIG_CT=7
+      - CONFIG_CT=60
       - START_PORT=770
     ports:
       - "770-777:770-777/udp"
