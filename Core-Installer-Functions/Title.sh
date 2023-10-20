@@ -177,6 +177,25 @@ set_pass_channel_title() {
     echo -e "\n\033[0m"
 
 }
+set_uname_adguard_title() {
+
+    echo -e "\033[33m\n" 
+    printf "%s\n" "$dashes"
+    echo "                       SET USERNAME FOR ADGUARD"
+    printf "%s" "$dashes"
+    echo -e "\n\033[0m"
+
+}
+
+set_pass_adguard_title() {
+    
+    echo -e "\033[33m\n" 
+    printf "%s\n" "$dashes"
+    echo "                       SET PASSWORD FOR ADGUARD"
+    printf "%s" "$dashes"
+    echo -e "\n\033[0m"
+
+}
 set_pass_pihole_title() {
     
     echo -e "\033[33m\n" 

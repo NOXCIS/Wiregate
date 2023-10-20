@@ -10,7 +10,7 @@ set_adguard_pass() {
         clear  # Clear the screen
 
         # Print the updated timer value
-        set_pass_channel_title
+        set_pass_adguard_title
         echo "Press Enter to set Adguard Password  $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for no password: $(tput sgr0)"
         
         # Decrement the timer value by 1
@@ -95,7 +95,7 @@ set_adguard_user() {
         clear  # Clear the screen
 
         # Print the updated timer value
-        set_uname_channel_title
+        set_uname_adguard_title
         echo "Press Enter to set AdGuard Username $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for no password: $(tput sgr0)"
         
         # Decrement the timer value by 1
