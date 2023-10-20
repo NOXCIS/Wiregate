@@ -16,7 +16,7 @@ set_channels_DB_pass() {
 
         # Print the updated timer value
         set_pass_channel_title
-        echo "Press Enter to set Channels Database Password  $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for no password: $(tput sgr0)"
+        echo "Press Enter to set Channels Database Password  $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for a random password: $(tput sgr0)"
         
         # Decrement the timer value by 1
         timer=$((timer - 1))
@@ -78,7 +78,7 @@ set_channels_DB_user() {
 
         # Print the updated timer value
         set_uname_channel_title
-        echo "Press Enter to set Channels Database Username $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for no password: $(tput sgr0)"
+        echo "Press Enter to set Channels Database Username $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for a random username: $(tput sgr0)"
         
         # Decrement the timer value by 1
         timer=$((timer - 1))
