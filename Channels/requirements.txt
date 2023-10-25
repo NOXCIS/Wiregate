@@ -43,6 +43,6 @@ typed-ast
 typing-extensions
 urllib3
 wcwidth
-Werkzeug==2.3.6
+Werkzeug==3.0.1
 wheel
 WTForms
