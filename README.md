@@ -20,6 +20,7 @@ Wormhole also acts as a ISP DNS query logging bypass. Wormhole by default is con
   
 
 ### Supported Architectures
+The WireGuard Dashboard image supports the `x86-64` and `arm64` CPU architectures . 32bit Raspeberry Pi's are NOT SUPPORTED
 
 |Container| Status |Know Image CVE's|Tag|
 |--|--|--|--|
@@ -30,7 +31,7 @@ Wormhole also acts as a ISP DNS query logging bypass. Wormhole by default is con
 |Unbound|✅|0| klutchell/unbound:latest |
 |Postgres|✅|0|postgres:13-alpine|
 
-The WireGuard Dashboard image supports the `x86-64` and `arm64` CPU architectures . 
+
 
 ### Show your support
 
