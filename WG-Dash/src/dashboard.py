@@ -6,7 +6,6 @@ Under Apache-2.0 License
 import sqlite3
 import configparser
 import bcrypt 
-import hashlib
 import ipaddress
 import json
 # Python Built-in Library
