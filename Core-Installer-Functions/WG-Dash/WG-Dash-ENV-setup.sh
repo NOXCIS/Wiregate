@@ -314,7 +314,12 @@ set_wg-dash_user() {
     fi
 
 }
-
+set_wg-dash_key() {
+    # Generate a 512-bit random key using OpenSSL and convert it to hexadecimal
+    secret_key_hex=$(openssl rand -hex 64)
+    # Export the key to the MSG_SECRET_KEY variable
+    export WGDASH_SECRET_KEY="$secret_key_hex"
+}
 
 
 

@@ -3,9 +3,9 @@
 
 menu() {
     title
-    run_os_update 
+    #run_os_update 
     title
-    install_prerequisites 
+    #install_prerequisites 
     clear
     title
     echo "Please choose an DNS Provider:"

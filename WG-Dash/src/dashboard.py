@@ -49,7 +49,11 @@ UPDATE = None
 # Flask App Configuration
 app = Flask("WGDashboard")
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 5206928
-app.secret_key = secrets.token_urlsafe(16)
+
+wg_dash_appkey = os.environ.get('WGDASH_SECRET_KEY')
+app.secret_key = wg_dash_appkey
+#app.secret_key = secrets.token_urlsafe(16)
+
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 # Enable QR Code Generator

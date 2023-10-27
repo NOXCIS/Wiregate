@@ -29,6 +29,7 @@ export TIMER_VALUE=0
             set_pihole_tz &&
                 
         #WIREGUARD
+            set_wg-dash_key &&
             set_server_ip_title &&
             update_server_ip &&
             set_wg-dash_user &&
@@ -63,6 +64,7 @@ export TIMER_VALUE=0
     #RUN_ADGUARD_SETUP
         run_adguard_setup() {
         #WIREGUARD
+            set_wg-dash_key &&
             set_server_ip_title &&
             update_server_ip &&
             set_wg-dash_user &&
@@ -183,18 +185,13 @@ export TIMER_VALUE=0
                 clear &&
                 adguard_install_title &&
                 adguard_preset_compose_swap &&
-                set_server_ip_title &&
-                update_server_ip &&
-                set_config_count &&
-                set_port_range &&
-                set_wg-dash_user &&
-                set_wg-dash_pass &&
                 set_adguard_user &&
                 set_adguard_pass &&
+                set_wg-dash_pass &&
                 rm_exst_configs >/dev/null 2>&1 &&
                 run_docker_title &&
                 compose_up &&
-                clear &&
+                #clear &&
                 generate_wireguard_qr &&
                 readme_title &&
                 encrypt_file >/dev/null 2>&1 &&
