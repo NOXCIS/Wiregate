@@ -5,6 +5,7 @@ Under Apache-2.0 License
 
 import sqlite3
 import configparser
+import bcrypt 
 import hashlib
 import ipaddress
 import json
@@ -705,14 +706,17 @@ def auth():
     """
     data = request.get_json()
     config = get_dashboard_conf()
-    password = hashlib.sha256(data['password'].encode())
-    if password.hexdigest() == config["Account"]["password"] \
-            and data['username'] == config["Account"]["username"]:
+    saved_password_hash = config["Account"]["password"]
+    
+    # Verify the password using bcrypt
+    if bcrypt.checkpw(data['password'].encode(), saved_password_hash.encode()):
         session['username'] = data['username']
         config.clear()
         return jsonify({"status": True, "msg": ""})
+    
     config.clear()
     return jsonify({"status": False, "msg": "Username or Password is incorrect."})
+
 
 
 """
@@ -866,10 +870,19 @@ def update_pwd():
     """
 
     config = get_dashboard_conf()
-    if hashlib.sha256(request.form['currentpass'].encode()).hexdigest() == config.get("Account", "password"):
-        if hashlib.sha256(request.form['newpass'].encode()).hexdigest() == hashlib.sha256(
-                request.form['repnewpass'].encode()).hexdigest():
-            config.set("Account", "password", hashlib.sha256(request.form['repnewpass'].encode()).hexdigest())
+    saved_password_hash = config.get("Account", "password")
+    current_password = request.form['currentpass']
+    new_password = request.form['newpass']
+    rep_new_password = request.form['repnewpass']
+
+    # Verify the current password using bcrypt
+    if bcrypt.checkpw(current_password.encode(), saved_password_hash.encode()):
+        # Check if the new passwords match
+        if new_password == rep_new_password:
+            # Hash the new password and update the config
+            new_password_hash = bcrypt.hashpw(new_password.encode(), bcrypt.gensalt())
+            config.set("Account", "password", new_password_hash.decode())
+
             try:
                 set_dashboard_conf(config)
                 session['message'] = "Password update successfully!"
@@ -1116,7 +1129,7 @@ def add_peer_bulk(config_name):
         keys[i]['allowed_ips'] = ips.pop(0)
         if enable_preshared_key:
             keys[i]['psk_file'] = f"{keys[i]['name']}.txt"
-            f = open(keys[i]['psk_file'], "w+") #path tranversal
+            f = open(keys[i]['psk_file'], "w+")
             f.write(keys[i]['presharedKey'])
             f.close()
             wg_command.append("preshared-key")
@@ -1609,8 +1622,16 @@ def init_dashboard():
         config['Account'] = {}
     if "username" not in config['Account']:
         config['Account']['username'] = 'admin'
+        wg_dash_user = os.environ.get('WG_DASH_USER')
+        config['Account']['username'] = wg_dash_user
+
     if "password" not in config['Account']:
-        config['Account']['password'] = '8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918'
+        wg_dash_pass = os.environ.get('WG_DASH_PASS_ENCRYPTED')
+        config['Account']['password'] = wg_dash_pass
+        #config['Account']['password'] = '$2a$10$INBGqDOt9Lz2Gs2yy4hXZ.CxRM9R90zHmkk..lj2FG0L9aJ6y/MpC'
+
+        
+
     # Default dashboard server setting
     if "Server" not in config:
         config['Server'] = {}

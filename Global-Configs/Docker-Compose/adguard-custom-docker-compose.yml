@@ -31,6 +31,8 @@ services:
     volumes:
       - ./WG-Dash/master-key:/home/app/master-key
     environment:
+      - WG_DASH_USER=${WG_DASH_USER}
+      - WG_DASH_PASS_ENCRYPTED=${WG_DASH_PASS_ENCRYPTED}
       - SERVER_IP=${SERVER_IP}
       - CONFIG_CT=${INTERFACE_COUNT}
       - START_PORT=${PORT_RANGE_START}

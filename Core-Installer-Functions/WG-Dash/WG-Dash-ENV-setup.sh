@@ -147,3 +147,175 @@ generate_wireguard_qr() {
         return 1
     fi
 }
+set_wg-dash_pass() {
+    #local adguard_yaml_file="./adguard/opt-adguard-conf/AdGuardHome.yaml"
+    local timer=$TIMER_VALUE
+    local user_activity=false
+    local username="USER"
+
+    while [ $timer -gt 0 ]; do
+        clear  # Clear the screen
+
+        # Print the updated timer value
+        set_pass_wgdash_title
+        echo "Press Enter to set Wireguard Dashboard Password  $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for no password: $(tput sgr0)"
+        
+        # Decrement the timer value by 1
+        timer=$((timer - 1))
+
+        # Check for user activity
+        if read -t 1 -n 1; then
+            user_activity=true
+            break
+        fi
+    done
+    
+    if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
+    
+        characters="A-Za-z0-9!@#$%^&*()"
+
+        plaintext_wgdash_pass=$(head /dev/urandom | tr -dc "$characters" | head -c 16)
+        
+        output=$(htpasswd -B -n -b "$username" "$plaintext_wgdash_pass")
+
+        # Use sed to delete the first 5 characters of $output and assign it to wgdash_password
+        wgdash_password=$(echo "$output" | sed 's/.....//')
+
+
+        #sed -i -E "s|^( *password: ).*|\1$wgdash_password|" "$adguard_yaml_file"
+
+        export WG_DASH_PASS="$plaintext_wgdash_pass"
+        export WG_DASH_PASS_ENCRYPTED="$wgdash_password"
+
+
+        
+        echo -e "\033[32mPassword has been randomly Gernerated.\033[0m"
+    fi
+
+    if [[ "$user_activity" == true ]]; then
+        # Prompt user to enter and confirm their password
+        while true; do
+            read -sp "$(tput setaf 3)Enter password for Wireguard Dashboard:$(tput sgr0)" wgdash_pass 
+            printf "%s\n" "$short_stars"
+            
+
+            if [[ -z "$wgdash_pass" ]]; then
+                echo -e "\033[31mPassword cannot be empty. Please try again.\033[0m"
+                continue
+            fi
+            
+            read -sp "$(tput setaf 3)Confirm password for Wireguard Dashboard:$(tput sgr0) " confirm_wgdash_pass
+            printf "%s\n" "$short_stars"
+            
+
+            if [[ "$wgdash_pass" != "$confirm_wgdash_pass" ]]; then
+                echo -e "\033[31mPasswords do not match. Please try again.\033[0m"
+            else
+                # Passwords match, set the Database Password
+                
+                output=$(htpasswd -B -n -b "$username" "$wgdash_pass")
+                
+                # Use sed to delete the first 5 characters of $output and assign it to wgdash_password
+                manual_adguard_password=$(echo "$output" | sed 's/.....//')
+                
+
+                #sed -i -E "s|^( *password: ).*|\1$manual_adguard_password|" "$adguard_yaml_file"
+
+
+
+                export WG_DASH_PASS="$wgdash_pass"
+                export WG_DASH_PASS_ENCRYPTED="$manual_adguard_password"
+
+
+                break
+            fi
+        done
+    fi
+
+}
+set_wg-dash_user() {
+    #local adguard_yaml_file="./adguard/opt-adguard-conf/AdGuardHome.yaml"
+    local timer=$TIMER_VALUE
+    local user_activity=false
+
+
+    while [ $timer -gt 0 ]; do
+        clear  # Clear the screen
+
+        # Print the updated timer value
+        set_uname_wgdash_title
+        echo "Press Enter to set Wireguard Dashboard Username $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for no password: $(tput sgr0)"
+        
+        # Decrement the timer value by 1
+        timer=$((timer - 1))
+
+        # Check for user activity
+        if read -t 1 -n 1; then
+            user_activity=true
+            break
+        fi
+    done
+    
+    if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
+
+
+        quirky_words=("funky" "zany" "bizarre" "whimsical" "kooky" "offbeat" "wacky" "eccentric" "oddball" "quirky")
+
+        # Randomly select two quirky words
+        word1="${quirky_words[$(shuf -i 0-9 -n 1)]}"
+        word2="${quirky_words[$(shuf -i 0-9 -n 1)]}"
+
+        # Generate a random number between 100 and 999
+        random_number=$(shuf -i 100-999 -n 1)
+
+        # Combine words and number to create a quirky username
+        wgdash_user="${word1}_${word2}_${random_number}"
+
+        #sed -i -E "s|^( *- name: ).*|\1$wgdash_user|" "$adguard_yaml_file"
+
+        export WG_DASH_USER="$wgdash_user"
+
+
+        
+        echo -e "\033[32mUsername has been randomly Gernerated.\033[0m"
+    fi
+
+
+    if [[ "$user_activity" == true ]]; then
+        # Prompt user to enter and confirm their password
+        while true; do
+            read -p "$(tput setaf 3)Enter Username for Wireguard Dashboard:$(tput sgr0)" wgdash_user 
+            
+            
+
+            if [[ -z "$wgdash_user" ]]; then
+                echo -e "\033[31mUsername cannot be empty. Please try again.\033[0m"
+                continue
+            fi
+            
+            read -p "$(tput setaf 3)Confirm Username for Wireguard Dashboard:$(tput sgr0) " confirm_user
+            
+            
+
+            if [[ "$wgdash_user" != "$confirm_user" ]]; then
+                echo -e "\033[31mUsernames do not match. Please try again.\033[0m"
+            else
+                # Passwords match, set the Database Password
+
+
+                #sed -i -E "s|^( *- name: ).*|\1$wgdash_user|" "$adguard_yaml_file"
+
+
+
+                export WG_DASH_USER="$wgdash_user"
+                break
+            fi
+        done
+    fi
+
+}
+
+
+
+
+

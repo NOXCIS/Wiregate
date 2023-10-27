@@ -31,7 +31,8 @@ export TIMER_VALUE=0
         #WIREGUARD
             set_server_ip_title &&
             update_server_ip &&
-                
+            set_wg-dash_user &&
+            set_wg-dash_pass &&
         #CHANNELS_MESSENGER
             #CM_APP
                 set_channels_key &&
@@ -64,6 +65,8 @@ export TIMER_VALUE=0
         #WIREGUARD
             set_server_ip_title &&
             update_server_ip &&
+            set_wg-dash_user &&
+            set_wg-dash_pass &&
                 
         #CHANNELS_MESSENGER
             #CM_APP
@@ -132,6 +135,8 @@ export TIMER_VALUE=0
                 update_server_ip &&
                 set_config_count &&
                 set_port_range &&
+                set_wg-dash_user &&
+                set_wg-dash_pass &&
                 rm_exst_configs >/dev/null 2>&1 &&
                 run_docker_title &&
                 compose_up &&
@@ -182,6 +187,8 @@ export TIMER_VALUE=0
                 update_server_ip &&
                 set_config_count &&
                 set_port_range &&
+                set_wg-dash_user &&
+                set_wg-dash_pass &&
                 set_adguard_user &&
                 set_adguard_pass &&
                 rm_exst_configs >/dev/null 2>&1 &&
