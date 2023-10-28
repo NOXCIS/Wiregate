@@ -37,7 +37,6 @@ install_prerequisites() {
         gnupg-agent
         software-properties-common
         openssl
-        apache2
     )
     # Define ANSI color codes
     GREEN=$(tput setaf 2)
@@ -55,7 +54,7 @@ install_prerequisites() {
         fi
     done
 
-        
+        install_docker
     
 }
 install_docker() {
@@ -98,11 +97,4 @@ install_docker() {
             echo "${GREEN}$docreqs is already installed.${RESET} ${YELLOW}Skipping...${RESET}"
     fi
     done
-}
-
-install_requirements() {
-    run_os_update &&
-    install_prerequisites &&
-    install_docker &&
-    menu
 }

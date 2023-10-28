@@ -13,7 +13,6 @@ export TIMER_VALUE=0
     source ./Core-Installer-Functions/Channels/Channels-ENV-setup.sh
     source ./Core-Installer-Functions/Pihole/Pihole-ENV-setup.sh
     source ./Core-Installer-Functions/WG-Dash/WG-Dash-ENV-setup.sh
-    source ./Core-Installer-Functions/AdGuard/AdGuard-ENV-setup.sh
 
 
 
@@ -22,186 +21,95 @@ export TIMER_VALUE=0
 
 
 #SETUP
-    #RUN_PIHOLE_SETUP
-        run_pihole_setup() {
-        #PIHOLE
-            set_pihole_tz_title &&
-            set_pihole_tz &&
-                
-        #WIREGUARD
-            set_wg-dash_key &&
-            set_server_ip_title &&
-            update_server_ip &&
-            set_wg-dash_user &&
-            set_wg-dash_pass &&
-        #CHANNELS_MESSENGER
-            #CM_APP
-                set_channels_key &&
-            #CM_DB
-                set_uname_channel_title &&
-                set_channels_DB_user &&
-                set_pass_channel_title &&
-                set_channels_DB_pass &&
-            #CM_DB_URI    
-                set_channels_DB_URI &&
-
-                rm_exst_configs >/dev/null 2>&1 &&
+    run_setup() {
+            
         
-        #DOCKER
-                run_docker_title &&
-                compose_up &&
-                clear &&
+
+    #PIHOLE
+        set_pihole_tz_title &&
+        set_pihole_tz &&
+            
+    #WIREGUARD
+        set_server_ip_title &&
+        update_server_ip &&
+            
+    #CHANNELS_MESSENGER
+        #CM_APP
+            set_channels_key &&
+        #CM_DB
+            set_uname_channel_title &&
+            set_channels_DB_user &&
+            set_pass_channel_title &&
+            set_channels_DB_pass &&
+        #CM_DB_URI    
+            set_channels_DB_URI &&
+
+            rm_exst_configs >/dev/null 2>&1 &&
+    
+    #DOCKER
+            run_docker_title &&
+            compose_up &&
+            clear &&
 
 
-        #FINAL_OUTPUT
-                generate_wireguard_qr &&
-                readme_title &&
-                encrypt_file >/dev/null 2>&1 &&
-                env_var_pihole_title &&
-                pihole_compose_swap >/dev/null 2>&1
-                return
-        }
-    #RUN_ADGUARD_SETUP
-        run_adguard_setup() {
-        #WIREGUARD
-            set_wg-dash_key &&
-            set_server_ip_title &&
-            update_server_ip &&
-            set_wg-dash_user &&
-            set_wg-dash_pass &&
-                
-        #CHANNELS_MESSENGER
-            #CM_APP
-                set_channels_key &&
-            #CM_DB
-                set_uname_channel_title &&
-                set_channels_DB_user &&
-                set_pass_channel_title &&
-                set_channels_DB_pass &&
-            #CM_DB_URI    
-                set_channels_DB_URI &&
-
-                rm_exst_configs >/dev/null 2>&1 &&
-        
-        #DOCKER
-                run_docker_title &&
-                compose_up &&
-                clear &&
-
-
-        #FINAL_OUTPUT
-                generate_wireguard_qr  &&
-                readme_title &&
-                encrypt_file >/dev/null 2>&1 &&
-                env_var_adguard_title &&
-                adguard_compose_swap >/dev/null 2>&1
-                return
-        }
-
+    #FINAL_OUTPUT
+            generate_wireguard_qr &&
+            readme_title &&
+            encrypt_file >/dev/null 2>&1 &&
+            env_var_title &&
+            compose_reset 
+            return
+    }
 
 
 #SETUP OPTIONS
-    #PIHOLE
-        #EXP_SET
-            pihole_express_setup() {
-                
-                compose_down 
-                clear &&
-                TIMER_VALUE=0
-                clear &&
-                pihole_install_title &&
-                set_config_count &&
-                set_port_range &&
-                set_pihole_password &&
-                run_pihole_setup 
-            }
-        #ADV_SET
-            pihole_advanced_setup() {
-                
-                compose_down 
-                clear &&
-                pihole_install_title &&
-                set_timer_value &&
-                set_config_count &&
-                set_port_range &&
-                set_pihole_password &&
-                run_pihole_setup
-            }
-        #PRE_SET
-            pihole_predefined_setup () {
-                
-                TIMER_VALUE=5
-                compose_down 
-                clear &&
-                pihole_install_title &&
-                pihole_preset_compose_swap &&
-                set_pihole_password &&
-                set_wg-dash_user &&
-                set_wg-dash_pass &&
-                rm_exst_configs >/dev/null 2>&1 &&
-                run_docker_title &&
-                compose_up &&
-                clear &&
-                generate_wireguard_qr &&
-                readme_title &&
-                encrypt_file >/dev/null 2>&1 &&
-                env_var_pihole_title &&
-                pihole_compose_swap >/dev/null 2>&1
-                return
+    #EXP_SET
+        express_setup() {
+            run_os_update &&
+            install_prerequisites &&
+            compose_down &&
+            TIMER_VALUE=0
+            title &&
+            set_config_count &&
+            set_port_range &&
+            set_pihole_password &&
+            run_setup 
         }
-    #ADGUARD
-        #EXP_SET
-            adguard_express_setup() {
-                
-                compose_down 
-                clear &&
-                TIMER_VALUE=0
-                clear &&
-                adguard_install_title &&
-                set_config_count &&
-                set_port_range &&
-                set_adguard_user &&
-                set_adguard_pass &&
-                run_adguard_setup 
-            }
-        #ADV_SET
-            adguard_advanced_setup() {
-                
-                compose_down 
-                clear &&
-                adguard_install_title &&
-                set_timer_value &&
-                set_config_count &&
-                set_port_range &&
-                set_adguard_user &&
-                set_adguard_pass &&
-                run_adguard_setup
-            }
-        #PRE_SET
-            adguard_predefined_setup () {
-                
-                TIMER_VALUE=5
-                compose_down 
-                clear &&
-                adguard_install_title &&
-                adguard_preset_compose_swap &&
-                sqwip &&
-                set_adguard_user &&
-                set_adguard_pass &&
-                set_wg-dash_user &&
-                set_wg-dash_pass &&
-                rm_exst_configs >/dev/null 2>&1 &&
-                run_docker_title &&
-                compose_up &&
-                clear &&
-                generate_wireguard_qr &&
-                readme_title &&
-                encrypt_file >/dev/null 2>&1 &&
-                env_var_adguard_title &&
-                adguard_compose_swap >/dev/null 2>&1
-                return
+    #ADV_SET
+        advanced_setup() {
+            run_os_update &&
+            install_prerequisites &&
+            compose_down &&
+            title &&
+            set_timer_value &&
+            set_config_count &&
+            set_port_range &&
+            set_pihole_password &&
+            run_setup
         }
+    #PRE_SET
+        predefined_setup () {
+            run_os_update &&
+            install_prerequisites &&
+            TIMER_VALUE=5
+            title &&
+            preset_compose_swap &&
+            set_server_ip_title &&
+            update_server_ip &&
+            set_config_count &&
+            set_port_range &&
+            rm_exst_configs >/dev/null 2>&1 &&
+            run_docker_title &&
+            compose_up &&
+            clear &&
+            generate_wireguard_qr &&
+            readme_title &&
+            encrypt_file >/dev/null 2>&1 &&
+            master_key_pass_title &&
+            compose_reset 
+            return
 
+        }
 #DOCKER FUNCTIONS
     compose_up() {
         sudo sysctl -w net.core.rmem_max=2097152 > /dev/null 2>&1
@@ -210,11 +118,7 @@ export TIMER_VALUE=0
         docker compose up -d --build 
     }
     compose_down() {
-        local yml_file="docker-compose.yml"
-        port_mappings="770-777:770-777/udp"
-        export PORT_MAPPINGS="$port_mappings"
-        docker compose down --volumes --remove-orphans
-
+        docker compose down --volumes
     }
 #MISC
     rm_exst_configs() {
@@ -269,14 +173,10 @@ export TIMER_VALUE=0
         menu
     else
     case $1 in
-        pi-exp) pihole_express_setup ;;
-        pi-adv) pihole_advanced_setup ;;
-        pi-predef) pihole_predefined_setup ;;
-        ad-exp) adguard_express_setup ;;
-        ad-adv) adguard_advanced_setup ;;
-        ad-predef) adguard_predefined_setup ;;
-        install_requirements) install_requirements ;;
+        advanced) advanced_setup ;;
+        auto) express_setup ;;
         fresh) fresh_install ;;
+        preset) predefined_setup ;;
         *) echo "Invalid choice. Please try again." ;;
     esac
     fi
