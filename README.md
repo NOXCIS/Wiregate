@@ -13,21 +13,20 @@
 
 ### What Is Worm-Hole?
 
-Worm-Hole is an **intranet deployment** application that allows users to host web other applications on their existing server and be able to securely connect to said web applications without exposing them to the open internet. This is done by utilizing the **WireGuard protocol** in conjunction with **Docker Networks and Containers**. Hence applications hosted behind the worm-hole private network *need not expose any ports* and can only be accessed via a *WireGuard* connection.
-
-Wormhole also acts as a ISP DNS query logging bypass. Wormhole by default is configured to have minimal logging.
+Worm-Hole is a fully automated Docker Based **intranet deployment**  that allows users to host web other applications on their existing server and be able to securely connect to said web applications without exposing them to the open internet. This is done by utilizing the **WireGuard protocol** in conjunction with **Docker Networks and Containers**. Hence applications hosted behind the worm-hole private network *`need not expose any ports`* and can only be accessed via a *WireGuard* connection already registered to to an existing server interface on the deployed worm-hole instance. Secure by Design, the WireGuard Dashboard & other services are only accessible on first deployment via the **master configuration** that is generated at install and `encrypted after being outputted to the console.`  Wormhole also acts as a ISP DNS query logging bypass. Wormhole by default is configured to have minimal logging.
 
   
 
 ### Supported Architectures
-The WireGuard Dashboard image supports the `x86-64` and `arm64` CPU architectures . 32bit Raspeberry Pi's are NOT SUPPORTED
+The WireGuard Dashboard image supports the `x86-64` and `arm64` CPU architectures . Tested on **Ubuntu LTS**
 
-|Container| Status |Know Image CVE's|Tag|
+
+|Container| Status |Know Image CVE's|Tag| 
 |--|--|--|--|
-| WG-Dashboard | ✅ | 0 | noxcis/wg-dashboard:moray-multi-arch
+| WG-Dashboard | ✅ | 0 | noxcis/wg-dashboard:orca
 |Pihole|✅|30|pihole/pihole:latest|
 |AdGuard|✅|0|adguard/adguardhome:latest |
-|Channels|✅|0|noxcis/channels:moray-multi-arch |
+|Channels|✅|0|noxcis/channels:orca |
 |Unbound|✅|0| klutchell/unbound:latest |
 |Postgres|✅|0|postgres:13-alpine|
 
