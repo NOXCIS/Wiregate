@@ -22,7 +22,7 @@ services:
   wg_dashboard:
     depends_on: [unbound, pihole]
     #build: ./WG-Dash
-    image: noxcis/wg-dashboard:moray-multi-arch
+    image: noxcis/wg-dashboard:moray
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
@@ -73,7 +73,7 @@ services:
     depends_on: [db, wg_dashboard]
     container_name: channels_messenger
     #build: ./Channels
-    image: noxcis/channels:moray-multi-arch
+    image: noxcis/channels:moray
     restart: unless-stopped
     command: python run.py
     environment:
