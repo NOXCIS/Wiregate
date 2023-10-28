@@ -48,7 +48,8 @@ services:
       - ./WG-Dash/master-key:/home/app/master-key
     environment:
       - WG_DASH_USER=admin
-      - WG_DASH_PASS_ENCRYPTED=${WG_DASH_PASS_ENCRYPTED}
+      - WG_DASH_PASS_ENCRYPTED="$$2a$$12$$DqKBORUB7.3sBiUXNQ8Fg.mX861V0jI3qwVGAAjNt9UCBjdMRLHeW"
+
       - WGDASH_SECRET_KEY=nidfsnnsknfkscsnksjnjc
       - SERVER_IP=0.0.0.0
       - CONFIG_CT=6
