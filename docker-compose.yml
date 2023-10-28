@@ -1,3 +1,4 @@
+
 version: "3"
 
 networks:
@@ -14,15 +15,15 @@ services:
     restart: unless-stopped
     hostname: "unbound"
     volumes:
-      - ./Global-Configs/Unbound/custom-unbound.conf:/etc/unbound/custom.conf.d/custom-unbound.conf
+      - ./Unbound-Custom-Config/unbound.conf:/etc/unbound/custom.conf.d/unbound.conf
     networks:
       private_network:
         ipv4_address: 10.2.0.200
-
+    
   wg_dashboard:
-    depends_on: [unbound, adguard]
+    depends_on: [unbound, pihole]
     #build: ./WG-Dash
-    image: noxcis/wg-dashboard:moray-multi-arch
+    image: noxcis/wg-dashboard:squid-multi-arch
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
@@ -30,15 +31,12 @@ services:
     restart: unless-stopped
     volumes:
       - ./WG-Dash/master-key:/home/app/master-key
+      - ./WG-Dash/config:/etc/wireguard
     environment:
-      - WG_DASH_USER=${WG_DASH_USER}
-      - WG_DASH_PASS_ENCRYPTED=${WG_DASH_PASS_ENCRYPTED}
-      - WGDASH_SECRET_KEY=${WGDASH_SECRET_KEY}
-      - SERVER_IP=${SERVER_IP}
-      - CONFIG_CT=${INTERFACE_COUNT}
-      - START_PORT=${PORT_RANGE_START}
+      - SERVER_IP=127.0.0.1
+      - CONFIG_CT=1
     ports:
-      - "${PORT_MAPPINGS}"
+      - 51820:51820/udp
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
@@ -48,56 +46,30 @@ services:
 
 
 
-
-  adguard:
+  pihole:
     depends_on: [unbound]
-    container_name: adguard
-    image: adguard/adguardhome
+    container_name: pihole
+    image: pihole/pihole:latest
     restart: unless-stopped
-    hostname: adguard
-    # Volumes store your data between container upgrades
+    hostname: pihole
+    dns:
+      - 10.2.0.200 # Points to unbound
+    environment:
+      TZ: "America/Chicago"
+      WEBPASSWORD: ""
+      ServerIP: 10.2.0.100 # Internal IP of pihole
+      DNS1: 10.2.0.200 # Unbound IP
+      DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
     volumes:
-      - "./adguard/opt-adguard-work:/opt/adguardhome/work"
-      - "./adguard/opt-adguard-conf:/opt/adguardhome/conf"
+      - "./etc-pihole/:/etc/pihole/"
+      - "./etc-dnsmasq.d/:/etc/dnsmasq.d/"
+    cap_add:
+      - NET_ADMIN
     networks:
       private_network:
         ipv4_address: 10.2.0.100
+      
 
+      
 
-  channels:
-    depends_on: [db, wg_dashboard]
-    container_name: channels_messenger
-    #build: ./Channels
-    image: noxcis/channels:moray-multi-arch
-    restart: unless-stopped
-    command: python run.py
-    environment:
-      - IS_DOCKER=1
-      - FLASK_APP=app/__init__.py
-      - FLASK_ENV=development
-      - SQL_HOST=db
-      - SQL_PORT=5432
-      - DATABASE=postgres
-      - SECRET_KEY=${MSG_SECRET_KEY}
-      - DATABASE_URI=${DB_URI}
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.4
-
-
-  db:
-    container_name: channels_db
-    image: postgres:13-alpine
-    restart: unless-stopped
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    environment:
-      - POSTGRES_USER=${MSG_DB_USER}
-      - POSTGRES_PASSWORD=${MSG_DB_PASS}
-      - POSTGRES_DB=db
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.5
-
-volumes:
-    postgres_data:
+  

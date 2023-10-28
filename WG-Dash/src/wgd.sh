@@ -23,7 +23,7 @@ start_wgd () {
 }
 newconf_wgd() {
   local num_configs=$CONFIG_CT
-  local listen_port=$START_PORT
+  local listen_port=51820
   local address_prefix="10."
 
   for ((i = 0; i < num_configs; i++)); do
@@ -88,7 +88,7 @@ make_master_config() {
     echo -e "\n[Peer]" >> "$svr_config"
     echo "PublicKey = $peer_public_key" >> "$svr_config"
     echo "PresharedKey = $preshared_key" >> "$svr_config"
-    echo "AllowedIPs = 10.0.0.254/32" >> "$svr_config"
+    echo "AllowedIPs = 10.0.0.2/24" >> "$svr_config"
 
 
     server_public_key=$(grep -E '^PrivateKey' "$svr_config" | awk '{print $NF}')
@@ -106,7 +106,7 @@ MTU = 1420
 [Peer]
 PublicKey = $svrpublic_key
 AllowedIPs = 0.0.0.0/0
-Endpoint = $SERVER_IP:$START_PORT
+Endpoint = $SERVER_IP:51820
 PersistentKeepalive = 21
 PresharedKey = $preshared_key
 EOF
