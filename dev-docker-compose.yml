@@ -47,8 +47,11 @@ services:
     volumes:
       - ./WG-Dash/master-key:/home/app/master-key
     environment:
-      - SERVER_IP=172.26.192.233
-      - CONFIG_CT=60
+      - WG_DASH_USER=admin
+      - WG_DASH_PASS_ENCRYPTED=${WG_DASH_PASS_ENCRYPTED}
+      - WGDASH_SECRET_KEY=nidfsnnsknfkscsnksjnjc
+      - SERVER_IP=0.0.0.0
+      - CONFIG_CT=6
       - START_PORT=770
     ports:
       - "770-777:770-777/udp"

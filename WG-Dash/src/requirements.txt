@@ -1,5 +1,6 @@
 Flask
 ifcfg
+bcrypt
 icmplib
 flask-qrcode
 uWSGI
