@@ -22,7 +22,7 @@ services:
   wg_dashboard:
     depends_on: [unbound, adguard]
     #build: ./WG-Dash
-    image: noxcis/wg-dashboard:orca
+    image: noxcis/wg-dashboard:stingray
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
@@ -30,10 +30,12 @@ services:
     restart: unless-stopped
     volumes:
       - ./WG-Dash/master-key:/home/app/master-key
-    env_file:
-      - ./Global-Configs/ENV-FILES/worm-hole.env
+    environment:
+      - SERVER_IP=${SERVER_IP}
+      - CONFIG_CT=${INTERFACE_COUNT}
+      - START_PORT=${PORT_RANGE_START}
     ports:
-      - "770-777:770-777/udp"
+      - "${PORT_MAPPINGS}"
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
@@ -62,11 +64,11 @@ services:
     depends_on: [db, wg_dashboard]
     container_name: channels_messenger
     #build: ./Channels
-    image: noxcis/channels:moray-multi-arch
+    image: noxcis/channels:stingray
     restart: unless-stopped
     command: python run.py
     env_file:
-      - ./Global-Configs/ENV-FILES/worm-hole.env
+      - ./Global-Configs/ENV-FILES/channels.env.dev
     networks:
       private_network:
         ipv4_address: 10.2.0.4
@@ -79,7 +81,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     env_file:
-      - ./Global-Configs/ENV-FILES/worm-hole.env
+      - ./Global-Configs/ENV-FILES/channels_db.env.dev
     networks:
       private_network:
         ipv4_address: 10.2.0.5

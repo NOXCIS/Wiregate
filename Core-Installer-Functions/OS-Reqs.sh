@@ -55,7 +55,7 @@ install_prerequisites() {
         fi
     done
 
-        
+        install_docker
     
 }
 install_docker() {
@@ -98,11 +98,4 @@ install_docker() {
             echo "${GREEN}$docreqs is already installed.${RESET} ${YELLOW}Skipping...${RESET}"
     fi
     done
-}
-
-install_requirements() {
-    run_os_update &&
-    install_prerequisites &&
-    install_docker &&
-    menu
 }

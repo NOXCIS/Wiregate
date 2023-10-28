@@ -29,11 +29,9 @@ export TIMER_VALUE=0
             set_pihole_tz &&
                 
         #WIREGUARD
-            set_wg-dash_key &&
             set_server_ip_title &&
             update_server_ip &&
-            set_wg-dash_user &&
-            set_wg-dash_pass &&
+                
         #CHANNELS_MESSENGER
             #CM_APP
                 set_channels_key &&
@@ -64,11 +62,8 @@ export TIMER_VALUE=0
     #RUN_ADGUARD_SETUP
         run_adguard_setup() {
         #WIREGUARD
-            set_wg-dash_key &&
             set_server_ip_title &&
             update_server_ip &&
-            set_wg-dash_user &&
-            set_wg-dash_pass &&
                 
         #CHANNELS_MESSENGER
             #CM_APP
@@ -106,7 +101,6 @@ export TIMER_VALUE=0
             pihole_express_setup() {
                 
                 compose_down 
-                clear &&
                 TIMER_VALUE=0
                 clear &&
                 pihole_install_title &&
@@ -131,13 +125,13 @@ export TIMER_VALUE=0
             pihole_predefined_setup () {
                 
                 TIMER_VALUE=5
-                compose_down 
                 clear &&
                 pihole_install_title &&
                 pihole_preset_compose_swap &&
-                set_pihole_password &&
-                set_wg-dash_user &&
-                set_wg-dash_pass &&
+                set_server_ip_title &&
+                update_server_ip &&
+                set_config_count &&
+                set_port_range &&
                 rm_exst_configs >/dev/null 2>&1 &&
                 run_docker_title &&
                 compose_up &&
@@ -146,7 +140,7 @@ export TIMER_VALUE=0
                 readme_title &&
                 encrypt_file >/dev/null 2>&1 &&
                 env_var_pihole_title &&
-                pihole_compose_swap >/dev/null 2>&1
+                pihole_compose_swap 
                 return
         }
     #ADGUARD
@@ -154,7 +148,6 @@ export TIMER_VALUE=0
             adguard_express_setup() {
                 
                 compose_down 
-                clear &&
                 TIMER_VALUE=0
                 clear &&
                 adguard_install_title &&
@@ -185,11 +178,12 @@ export TIMER_VALUE=0
                 clear &&
                 adguard_install_title &&
                 adguard_preset_compose_swap &&
-                sqwip &&
+                set_server_ip_title &&
+                update_server_ip &&
+                set_config_count &&
+                set_port_range &&
                 set_adguard_user &&
                 set_adguard_pass &&
-                set_wg-dash_user &&
-                set_wg-dash_pass &&
                 rm_exst_configs >/dev/null 2>&1 &&
                 run_docker_title &&
                 compose_up &&
@@ -198,7 +192,7 @@ export TIMER_VALUE=0
                 readme_title &&
                 encrypt_file >/dev/null 2>&1 &&
                 env_var_adguard_title &&
-                adguard_compose_swap >/dev/null 2>&1
+                adguard_compose_swap 
                 return
         }
 
@@ -275,7 +269,6 @@ export TIMER_VALUE=0
         ad-exp) adguard_express_setup ;;
         ad-adv) adguard_advanced_setup ;;
         ad-predef) adguard_predefined_setup ;;
-        install_requirements) install_requirements ;;
         fresh) fresh_install ;;
         *) echo "Invalid choice. Please try again." ;;
     esac

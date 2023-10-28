@@ -1,7 +1,7 @@
-FROM node:18-alpine3.18
-
+FROM node:lts-alpine3.18
+#FROM alpine:3.18.4
+#FROM python:3.10-alpine
 RUN npm install -g npm@latest
-
 WORKDIR /usr/src/app
 
 # Install packages neccessary to build

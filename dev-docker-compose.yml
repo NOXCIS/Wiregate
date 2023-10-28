@@ -38,7 +38,7 @@ services:
   wg_dashboard:
     depends_on: [unbound, adguard]
     build: ./WG-Dash
-    #image: noxcis/wg-dashboard:moray-multi-arch
+    #image: noxcis/wg-dashboard:stingray
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
@@ -47,12 +47,8 @@ services:
     volumes:
       - ./WG-Dash/master-key:/home/app/master-key
     environment:
-      - WG_DASH_USER=admin
-      - WG_DASH_PASS_ENCRYPTED="$$2a$$12$$DqKBORUB7.3sBiUXNQ8Fg.mX861V0jI3qwVGAAjNt9UCBjdMRLHeW"
-
-      - WGDASH_SECRET_KEY=nidfsnnsknfkscsnksjnjc
-      - SERVER_IP=0.0.0.0
-      - CONFIG_CT=6
+      - SERVER_IP=172.26.192.233
+      - CONFIG_CT=60
       - START_PORT=770
     ports:
       - "770-777:770-777/udp"
@@ -66,9 +62,9 @@ services:
   channels:
     depends_on: [db, wg_dashboard]
     container_name: channels_messenger
-    #image: noxcis/channels:moray-multi-arch
+    #image: noxcis/channels:stingray
     restart: unless-stopped
-    build: ./Channels
+    #build: ./Channels
     command: python run.py
     environment:
       - IS_DOCKER=1

@@ -3,14 +3,16 @@
 
 menu() {
     title
+    run_os_update 
+    title
+    install_prerequisites 
     clear
     title
     echo "Please choose an DNS Provider:"
     echo "1. Pihole Install"
     echo "2. AdGuard Install"
     echo "3. Reset Wormhole Deployment"
-    echo "4. Install Prerequisites"
-    echo "5. Exit"
+    echo "4. Exit"
     read -p "Enter your choice: " choice
     echo ""
 
@@ -18,8 +20,7 @@ menu() {
         1) pihole_install_menu ;;
         2) adguard_install_menu ;;
         3) fresh_install ;;
-        4) install_requirements ;;
-        5) exit ;;
+        4) exit ;;
         *) echo "Invalid choice. Please try again." ;;
     esac
 }
@@ -43,7 +44,7 @@ pihole_install_menu() {
         2) pihole_advanced_setup ;;
         3) pihole_predefined_setup ;;
         4) fresh_install ;;
-        5) menu ;;
+        5) exit ;;
         *) echo "Invalid choice. Please try again." ;;
     esac
 }
@@ -66,7 +67,7 @@ adguard_install_menu() {
         2) adguard_advanced_setup ;;
         3) adguard_predefined_setup ;;
         4) fresh_install ;;
-        5) menu ;;
+        5) exit ;;
         *) echo "Invalid choice. Please try again." ;;
     esac
 }

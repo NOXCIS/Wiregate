@@ -86,8 +86,3 @@ pihole_compose_swap() {
     cat Global-Configs/Docker-Compose/pihole-docker-compose.yml > "$yml_file"
     
 }
-sqwip() {
-    TIMER_VALUE=0
-    set_pihole_password &&
-    TIMER_VALUE=5
-}
