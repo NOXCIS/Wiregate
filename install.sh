@@ -48,6 +48,7 @@ export TIMER_VALUE=0
                 rm_exst_configs >/dev/null 2>&1 &&
         
         #DOCKER
+                clear &&
                 run_docker_title &&
                 compose_up &&
                 clear &&
@@ -84,6 +85,7 @@ export TIMER_VALUE=0
                 rm_exst_configs >/dev/null 2>&1 &&
         
         #DOCKER
+                clear &&
                 run_docker_title &&
                 compose_up &&
                 clear &&
@@ -139,6 +141,7 @@ export TIMER_VALUE=0
                 set_wg-dash_user &&
                 set_wg-dash_pass &&
                 rm_exst_configs >/dev/null 2>&1 &&
+                clear &&
                 run_docker_title &&
                 compose_up &&
                 clear &&
@@ -191,6 +194,7 @@ export TIMER_VALUE=0
                 set_wg-dash_user &&
                 set_wg-dash_pass &&
                 rm_exst_configs >/dev/null 2>&1 &&
+                clear &&
                 run_docker_title &&
                 compose_up &&
                 clear &&
