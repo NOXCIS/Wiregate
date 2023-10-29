@@ -37,7 +37,7 @@ install_prerequisites() {
         gnupg-agent
         software-properties-common
         openssl
-        apache2
+        apache2-utils
     )
     # Define ANSI color codes
     GREEN=$(tput setaf 2)
