@@ -1,9 +1,9 @@
   
 
-# Worm-Hole
+# wirehole
 
   
-![GitHub Repo stars](https://img.shields.io/github/stars/NOXCIS/Worm-Hole?style=social) ![Docker Pulls](https://img.shields.io/docker/pulls/noxcis/wg-dashboard.svg?style=flat&label=pulls&logo=docker) ![Docker Image Size (tag)](https://img.shields.io/docker/image-size/noxcis/wg-dashboard.svg?style=flat&label=image&logo=docker) ![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https://github.com/NOXCIS/Worm-Hole&icon=github.svg&icon_color=%23FFFFFF&title=hits&edge_flat=false) ![GitHub Clones](https://img.shields.io/badge/dynamic/json?color=success&label=Clone&query=count&url=https://gist.githubusercontent.com/NOXCIS/a08fe945ac095cea4f3cc21178ee43fb/raw/clone.json&logo=github)
+![GitHub Repo stars](https://img.shields.io/github/stars/NOXCIS/wirehole?style=social) ![Docker Pulls](https://img.shields.io/docker/pulls/noxcis/wg-dashboard.svg?style=flat&label=pulls&logo=docker) ![Docker Image Size (tag)](https://img.shields.io/docker/image-size/noxcis/wg-dashboard.svg?style=flat&label=image&logo=docker) ![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https://github.com/NOXCIS/wirehole&icon=github.svg&icon_color=%23FFFFFF&title=hits&edge_flat=false) ![GitHub Clones](https://img.shields.io/badge/dynamic/json?color=success&label=Clone&query=count&url=https://gist.githubusercontent.com/NOXCIS/a08fe945ac095cea4f3cc21178ee43fb/raw/clone.json&logo=github)
 
   
 
@@ -11,9 +11,9 @@
   
   
 
-### What Is Worm-Hole?
+### What Is wirehole?
 
-Worm-Hole is a fully automated Docker Based **intranet deployment**  that allows users to host web other applications on their existing server and be able to securely connect to said web applications without exposing them to the open internet. This is done by utilizing the **WireGuard protocol** in conjunction with **Docker Networks and Containers**. Hence applications hosted behind the worm-hole private network *`need not expose any ports`* and can only be accessed via a *WireGuard* connection already registered to to an existing server interface on the deployed worm-hole instance. Secure by Design, the WireGuard Dashboard & other services are only accessible on first deployment via the **master configuration** that is generated at install and `encrypted after being outputted to the console.`  Wormhole also acts as a ISP DNS query logging bypass. Wormhole by default is configured to have minimal logging.
+wirehole is a fully automated Docker Based **intranet deployment**  that allows users to host web other applications on their existing server and be able to securely connect to said web applications without exposing them to the open internet. This is done by utilizing the **WireGuard protocol** in conjunction with **Docker Networks and Containers**. Hence applications hosted behind the wirehole private network *`need not expose any ports`* and can only be accessed via a *WireGuard* connection already registered to to an existing server interface on the deployed wirehole instance. Secure by Design, the WireGuard Dashboard & other services are only accessible on first deployment via the **master configuration** that is generated at install and `encrypted after being outputted to the console.`  Wormhole also acts as a ISP DNS query logging bypass. Wormhole by default is configured to have minimal logging.
 
   
 
@@ -51,8 +51,8 @@ Give a ⭐ if this project helped you!
 Run these commands to install WormHole.
 ```bash
 #!/bin/bash
-git  clone  https://github.com/NOXCIS/Worm-Hole.git
-cd  Worm-Hole
+git  clone  https://github.com/NOXCIS/wirehole.git
+cd  wirehole
 chmod  +x  install.sh
 sudo  ./install.sh
 ```
@@ -121,7 +121,7 @@ sudo  ./install.sh
 
 
   
-### Reset Worm-Hole Deployment
+### Reset wirehole Deployment
 
   
 
@@ -150,9 +150,9 @@ The installer will output a master client config similar to the one below. The m
 
 ## Access Channels Messenger
 
-While connected to Worm-Hole, navigate to http://channels.msg/
+While connected to wirehole, navigate to http://channels.msg/
 
-Worm-Hole has a updated version of Channels messenger by [dzionek](https://github.com/dzionek) built in, to felicitate secure encrypted communication via the Worm-Hole network.
+wirehole has a updated version of Channels messenger by [dzionek](https://github.com/dzionek) built in, to felicitate secure encrypted communication via the wirehole network.
 
 ![enter image description here](https://github.com/dzionek/channels/raw/master/readme_screenshots/screenshot-1.png)
 
@@ -170,7 +170,7 @@ Inspired by the Project 2 of Harvard's [CS50’s Web Programming with Python and
 
   
 
-While connected to Worm-Hole, navigate to http://worm.hole/
+While connected to wirehole, navigate to http://worm.hole/
 
 *The password & username is **admin**.*
 
@@ -195,7 +195,7 @@ While connected to Worm-Hole, navigate to http://worm.hole/
  
 
 ## Access Adguard (If Selected)
-While connected to Worm-Hole, navigate to http://ad.guard/
+While connected to wirehole, navigate to http://ad.guard/
 *The **password** is randomly generated and **provided in the final output** if not set manually.*
 
 ![enter image description here](https://i.postimg.cc/4y7SKQ9s/Screenshot-2023-10-18-at-10-37-21-AM.png)
@@ -203,7 +203,7 @@ While connected to Worm-Hole, navigate to http://ad.guard/
 
 ## Access PiHole (If Selected)
 
-While connected to Worm-Hole, navigate to http://pi.hole/
+While connected to wirehole, navigate to http://pi.hole/
 
 *The **password** is randomly generated and **provided in the final output** if not set manually.*
 
@@ -266,7 +266,7 @@ The code in this repo is influenced by [IAmStoxe's Wirehole](https://github.com/
 
 Wirehole lacked the ability to easily generate new users and has recenlty stopped working due to updates to the parent project of Unbound-Docker, [Unbound-Docker by MatthewVance](https://github.com/MatthewVance/unbound-docker) .
  
-Therefore with the help of klutchell's unbound-docker Docker image & donaldzou's WGDashboard Dockerized by Noxcis, Wirehole was recreated as Worm-Hole.
+Therefore with the help of klutchell's unbound-docker Docker image & donaldzou's WGDashboard Dockerized by Noxcis, Wirehole was recreated as wirehole.
 However, the upstream projects and their authors most certainly also deserve credit for making this all possible.
 
   
