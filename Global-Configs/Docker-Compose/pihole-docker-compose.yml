@@ -77,7 +77,7 @@ services:
     depends_on: [db, wg_dashboard]
     container_name: channels_messenger
     #build: ./Channels
-    image: noxcis/channels:moray-multi-arch
+    image: noxcis/channels:orca
     restart: unless-stopped
     command: python run.py
     environment:
