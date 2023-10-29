@@ -80,7 +80,7 @@ def set_dashboard_conf(config):
     """
     with open(DASHBOARD_CONF, "w", encoding='utf-8') as conf_object:
         config.write(conf_object)
-        
+
 def init_dashboard():
     """
     Create dashboard default configuration.
@@ -144,9 +144,23 @@ def init_dashboard():
     set_dashboard_conf(config)
     config.clear()
 
+def run_dashboard():
+    init_dashboard()
+    global UPDATE
+    UPDATE = check_update()
+    config = configparser.ConfigParser(strict=False)
+    config.read('wg-dashboard.ini')
+    # global app_ip
+    app_ip = config.get("Server", "app_ip")
+    # global app_port
+    app_port = config.get("Server", "app_port")
+    global WG_CONF_PATH
+    WG_CONF_PATH = config.get("Server", "wg_conf_path")
+    config.clear()
+    return app
 
 init_dashboard()
-
+run_dashboard()
 
 def connect_db():
     """
@@ -1690,20 +1704,7 @@ Configure DashBoard before start web-server
 """
 
 
-def run_dashboard():
-    init_dashboard()
-    global UPDATE
-    UPDATE = check_update()
-    config = configparser.ConfigParser(strict=False)
-    config.read('wg-dashboard.ini')
-    # global app_ip
-    app_ip = config.get("Server", "app_ip")
-    # global app_port
-    app_port = config.get("Server", "app_port")
-    global WG_CONF_PATH
-    WG_CONF_PATH = config.get("Server", "wg_conf_path")
-    config.clear()
-    return app
+
 
 
 """
