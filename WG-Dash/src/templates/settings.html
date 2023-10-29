@@ -77,11 +77,11 @@
                 </div>
 
                 <div class="card mb-3">
-                    <h6 class="card-header">Account</h6>
+                    <h6 class="card-header">Username</h6>
                     <div class="card-body">
                         <form action="/update_acct" method="post">
                             <div class="form-group">
-                                <label for="username">Username</label>
+                                <label for="username"></label>
                                 <input type="text" class="form-control mb-4" id="username" name="username"
                                        value="{{ session['username'] }}" required>
                                 <button type="submit" class="btn btn-danger">Update Account</button>
