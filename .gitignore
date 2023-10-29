@@ -47,3 +47,5 @@ WG-Dash/master-key/master.conf.enc
 WG-Dash/master-key/master.conf.enc
 WG-Dash/master-key/master.conf.enc
 *.enc
+WG-Dash/src/env
+WG-Dash/src/wg-dashboard.ini

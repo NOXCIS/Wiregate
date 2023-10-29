@@ -19,7 +19,7 @@ _check_and_set_venv(){
     . ${VIRTUAL_ENV}/bin/activate
 }
 start_wgd () {
-      uwsgi -i wg-uwsgi.ini
+      uwsgi --ini wg-uwsgi.ini
 }
 newconf_wgd() {
   local num_configs=$CONFIG_CT
@@ -132,7 +132,7 @@ if [ "$#" != 1 ];
         printf "%s\n" "$dashes"
 
       elif [ "$1" = "debug" ]; then
-            start_wgd_debug
+            start_wgd
 
       elif [ "$1" = "newconfig" ]; then
         newconf_wgd

@@ -4,3 +4,4 @@ bcrypt
 icmplib
 flask-qrcode
 uWSGI
+wheel
