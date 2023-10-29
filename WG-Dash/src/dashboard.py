@@ -29,6 +29,8 @@ from icmplib import ping, traceroute
 from util import regex_match, check_DNS, check_Allowed_IPs, check_remote_endpoint, \
     check_IP_with_range, clean_IP_with_range
 
+
+
 # Dashboard Version
 DASHBOARD_VERSION = 'v3.0.6'
 
@@ -61,14 +63,6 @@ QRcode(app)
 
 # TODO: use class and object oriented programming
 
-def connect_db():
-    """
-    Connect to the database
-    @return: sqlite3.Connection
-    """
-    return sqlite3.connect(os.path.join(configuration_path, 'db', 'wgdashboard.db'))
-
-
 def get_dashboard_conf():
     """
     Get dashboard configuration
@@ -86,6 +80,83 @@ def set_dashboard_conf(config):
     """
     with open(DASHBOARD_CONF, "w", encoding='utf-8') as conf_object:
         config.write(conf_object)
+        
+def init_dashboard():
+    """
+    Create dashboard default configuration.
+    """
+
+    # Set Default INI File
+    if not os.path.isfile(DASHBOARD_CONF):
+        open(DASHBOARD_CONF, "w+").close()
+    config = get_dashboard_conf()
+    # Default dashboard account setting
+    if "Account" not in config:
+        config['Account'] = {}
+    if "username" not in config['Account']:
+        config['Account']['username'] = 'admin'
+        wg_dash_user = os.environ.get('WG_DASH_USER')
+        config['Account']['username'] = wg_dash_user
+
+    if "password" not in config['Account']:
+        wg_dash_pass = os.environ.get('WG_DASH_PASS_ENCRYPTED')
+        config['Account']['password'] = wg_dash_pass
+        #config['Account']['password'] = '$2a$10$INBGqDOt9Lz2Gs2yy4hXZ.CxRM9R90zHmkk..lj2FG0L9aJ6y/MpC'
+
+        
+
+    # Default dashboard server setting
+    if "Server" not in config:
+        config['Server'] = {}
+    if 'wg_conf_path' not in config['Server']:
+        config['Server']['wg_conf_path'] = '/etc/wireguard'
+    if 'app_ip' not in config['Server']:
+        config['Server']['app_ip'] = '0.0.0.0'
+    if 'app_port' not in config['Server']:
+        config['Server']['app_port'] = '80'
+    if 'auth_req' not in config['Server']:
+        config['Server']['auth_req'] = 'true'
+    if 'version' not in config['Server'] or config['Server']['version'] != DASHBOARD_VERSION:
+        config['Server']['version'] = DASHBOARD_VERSION
+    if 'dashboard_refresh_interval' not in config['Server']:
+        config['Server']['dashboard_refresh_interval'] = '60000'
+    if 'dashboard_sort' not in config['Server']:
+        config['Server']['dashboard_sort'] = 'status'
+    # Default dashboard peers setting
+    if "Peers" not in config:
+        config['Peers'] = {}
+    if 'peer_global_DNS' not in config['Peers']:
+        config['Peers']['peer_global_DNS'] = '10.2.0.100, 10.2.0.100'
+    if 'peer_endpoint_allowed_ip' not in config['Peers']:
+        config['Peers']['peer_endpoint_allowed_ip'] = '0.0.0.0/0'
+    if 'peer_display_mode' not in config['Peers']:
+        config['Peers']['peer_display_mode'] = 'grid'
+    if 'remote_endpoint' not in config['Peers']:
+
+        server_ip = os.environ.get('SERVER_IP')
+
+        config['Peers']['remote_endpoint'] = server_ip
+        #config['Peers']['remote_endpoint'] = ifcfg.default_interface()['inet']
+    if 'peer_MTU' not in config['Peers']:
+        config['Peers']['peer_MTU'] = "1420"
+    if 'peer_keep_alive' not in config['Peers']:
+        config['Peers']['peer_keep_alive'] = "21"
+    set_dashboard_conf(config)
+    config.clear()
+
+
+init_dashboard()
+
+
+def connect_db():
+    """
+    Connect to the database
+    @return: sqlite3.Connection
+    """
+    return sqlite3.connect(os.path.join(configuration_path, 'db', 'wgdashboard.db'))
+
+
+
 
 
 # Get all keys from a configuration
@@ -1611,68 +1682,6 @@ Dashboard Initialization
 """
 
 
-def init_dashboard():
-    """
-    Create dashboard default configuration.
-    """
-
-    # Set Default INI File
-    if not os.path.isfile(DASHBOARD_CONF):
-        open(DASHBOARD_CONF, "w+").close()
-    config = get_dashboard_conf()
-    # Default dashboard account setting
-    if "Account" not in config:
-        config['Account'] = {}
-    if "username" not in config['Account']:
-        config['Account']['username'] = 'admin'
-        wg_dash_user = os.environ.get('WG_DASH_USER')
-        config['Account']['username'] = wg_dash_user
-
-    if "password" not in config['Account']:
-        wg_dash_pass = os.environ.get('WG_DASH_PASS_ENCRYPTED')
-        config['Account']['password'] = wg_dash_pass
-        #config['Account']['password'] = '$2a$10$INBGqDOt9Lz2Gs2yy4hXZ.CxRM9R90zHmkk..lj2FG0L9aJ6y/MpC'
-
-        
-
-    # Default dashboard server setting
-    if "Server" not in config:
-        config['Server'] = {}
-    if 'wg_conf_path' not in config['Server']:
-        config['Server']['wg_conf_path'] = '/etc/wireguard'
-    if 'app_ip' not in config['Server']:
-        config['Server']['app_ip'] = '0.0.0.0'
-    if 'app_port' not in config['Server']:
-        config['Server']['app_port'] = '80'
-    if 'auth_req' not in config['Server']:
-        config['Server']['auth_req'] = 'true'
-    if 'version' not in config['Server'] or config['Server']['version'] != DASHBOARD_VERSION:
-        config['Server']['version'] = DASHBOARD_VERSION
-    if 'dashboard_refresh_interval' not in config['Server']:
-        config['Server']['dashboard_refresh_interval'] = '60000'
-    if 'dashboard_sort' not in config['Server']:
-        config['Server']['dashboard_sort'] = 'status'
-    # Default dashboard peers setting
-    if "Peers" not in config:
-        config['Peers'] = {}
-    if 'peer_global_DNS' not in config['Peers']:
-        config['Peers']['peer_global_DNS'] = '10.2.0.100, 10.2.0.100'
-    if 'peer_endpoint_allowed_ip' not in config['Peers']:
-        config['Peers']['peer_endpoint_allowed_ip'] = '0.0.0.0/0'
-    if 'peer_display_mode' not in config['Peers']:
-        config['Peers']['peer_display_mode'] = 'grid'
-    if 'remote_endpoint' not in config['Peers']:
-
-        server_ip = os.environ.get('SERVER_IP')
-
-        config['Peers']['remote_endpoint'] = server_ip
-        #config['Peers']['remote_endpoint'] = ifcfg.default_interface()['inet']
-    if 'peer_MTU' not in config['Peers']:
-        config['Peers']['peer_MTU'] = "1420"
-    if 'peer_keep_alive' not in config['Peers']:
-        config['Peers']['peer_keep_alive'] = "21"
-    set_dashboard_conf(config)
-    config.clear()
 
 
 

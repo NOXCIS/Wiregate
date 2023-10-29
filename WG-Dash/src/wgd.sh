@@ -7,17 +7,7 @@ dashes='------------------------------------------------------------'
 equals='============================================================'
 
 
-_check_and_set_venv(){
-    # This function will not be using in v3.0
-    # deb/ubuntu users: might need a 'apt install python3.8-venv'
-    # set up the local environment
-    APP_ROOT=`pwd`
-    VIRTUAL_ENV="${APP_ROOT%/*}/venv"
-    if [ ! -d $VIRTUAL_ENV ]; then
-        python3 -m venv $VIRTUAL_ENV
-    fi
-    . ${VIRTUAL_ENV}/bin/activate
-}
+
 start_wgd () {
       uwsgi --ini wg-uwsgi.ini
 }
