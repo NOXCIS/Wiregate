@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 chmod u+x /home/app/wgd.sh
 
 if [ ! -f "/etc/wireguard/wg0.conf" ]; then
@@ -18,13 +17,11 @@ run_wireguard_up() {
   done
 }
 
-cout_master_key() {
-    cat ./master-key/master.conf 
-}
+
 
 
 run_wireguard_up 
 
 
 
-/home/app/wgd.sh debug
+/home/app/wgd.sh start

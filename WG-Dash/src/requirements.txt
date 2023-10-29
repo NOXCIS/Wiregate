@@ -1,6 +1,8 @@
 Flask
+configparser
 ifcfg
 bcrypt
 icmplib
 flask-qrcode
 uWSGI
+wheel
