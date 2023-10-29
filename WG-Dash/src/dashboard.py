@@ -81,6 +81,12 @@ def set_dashboard_conf(config):
     with open(DASHBOARD_CONF, "w", encoding='utf-8') as conf_object:
         config.write(conf_object)
 
+
+"""
+Dashboard Initialization
+"""
+
+
 def init_dashboard():
     """
     Create dashboard default configuration.
@@ -144,6 +150,12 @@ def init_dashboard():
     set_dashboard_conf(config)
     config.clear()
 
+
+
+"""
+Configure DashBoard before start web-server
+"""
+
 def run_dashboard():
     init_dashboard()
     global UPDATE
@@ -158,6 +170,7 @@ def run_dashboard():
     WG_CONF_PATH = config.get("Server", "wg_conf_path")
     config.clear()
     return app
+
 
 init_dashboard()
 run_dashboard()
@@ -1691,17 +1704,6 @@ def traceroute_ip():
         return "Error"
 
 
-"""
-Dashboard Initialization
-"""
-
-
-
-
-
-"""
-Configure DashBoard before start web-server
-"""
 
 
 
