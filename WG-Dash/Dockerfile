@@ -5,17 +5,15 @@ RUN apk update && \
     apk add --no-cache build-base wireguard-tools iproute2 iptables && \ 
     apk add --no-cache nano net-tools py3-virtualenv procps openresolv && \
     apk add --no-cache inotify-tools linux-headers libc-dev pcre-dev && \
-    apk add --no-cache libffi-dev zlib-dev jpeg-dev openssl-dev curl libqrencode
+    apk add --no-cache libffi-dev zlib-dev jpeg-dev openssl-dev curl libqrencode && \
+    rm -rf /var/cache/apk/* && \
+    mkdir /home/app && \
+    mkdir /home/app/master-key 
     
-RUN rm -rf /var/cache/apk/*
-
-RUN mkdir /home/app 
-RUN mkdir /home/app/master-key
-
 COPY ./src /home/app 
 
-RUN pip install --upgrade pip       
-RUN python3 -m pip install -r /home/app/requirements.txt 
+RUN pip install --upgrade pip   && \    
+    python3 -m pip install -r /home/app/requirements.txt 
 
 COPY ./entrypoint.sh /home/app/entrypoint.sh
 RUN chmod u+x /home/app/entrypoint.sh
