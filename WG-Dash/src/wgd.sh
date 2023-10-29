@@ -9,7 +9,7 @@ equals='============================================================'
 
 
 start_wgd () {
-      uwsgi --ini wg-uwsgi.ini
+     uwsgi --ini wg-uwsgi.ini
 }
 newconf_wgd() {
   local num_configs=$CONFIG_CT
@@ -117,13 +117,11 @@ if [ "$#" != 1 ];
     help
   
       elif [ "$1" = "install" ]; then
-        printf "%s\n" "$dashes"
         install_wgd
-        printf "%s\n" "$dashes"
-
       elif [ "$1" = "debug" ]; then
-            start_wgd
-
+        start_wgd_debug
+      elif [ "$1" = "start" ]; then
+        start_wgd
       elif [ "$1" = "newconfig" ]; then
         newconf_wgd
       else
