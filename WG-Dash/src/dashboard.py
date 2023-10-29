@@ -159,7 +159,7 @@ Configure DashBoard before start web-server
 def run_dashboard():
     init_dashboard()
     global UPDATE
-    UPDATE = check_update()
+    #UPDATE = check_update()
     config = configparser.ConfigParser(strict=False)
     config.read('wg-dashboard.ini')
     # global app_ip
