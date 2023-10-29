@@ -1,5 +1,5 @@
 """
-< WGDashboard > - Copyright(C) 2021 Donald Zou [https://github.com/donaldzou]
+< WGDashboard > - Copyright(C) 2023 NOXCIS [https://github.com/NOXCIS]
 Under Apache-2.0 License
 """
 
