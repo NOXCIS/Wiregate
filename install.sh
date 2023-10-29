@@ -245,8 +245,8 @@ export TIMER_VALUE=0
     # Derive the encryption key from the password and salt using PBKDF2
     encryption_key=$(echo -n "$password$salt" | openssl dgst -sha256 -binary | xxd -p -c 256)
 
-    # Encrypt the file using blowfish-cbc algorithm with the derived key
-    openssl enc -bf-cbc -in "$file_path" -out "${file_path}.enc" -K "$encryption_key" -iv 0
+    # Encrypt the file using aes-256-cbc algorithm with the derived key
+    openssl enc -aes-256-cbc -in "$file_path" -out "${file_path}.enc" -K "$encryption_key" -iv 0
 
     if [ $? -eq 0 ]; then
         echo "Worm-Hole Master Key encrypted successfully."
