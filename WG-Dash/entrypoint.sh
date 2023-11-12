@@ -19,6 +19,51 @@ run_wireguard_up() {
 
 
 
+create_wiresentinel_user() {
+    # Check if the user already exists
+    if id "wiresentinel" &>/dev/null; then
+        echo "User wiresentinel already exists."
+        return 1
+    fi
+
+    password=$(openssl rand -base64 180 | tr -d '\n')
+    adduser -D -g '' wiresentinel
+    echo "wiresentinel:$password" | chpasswd
+    addgroup gatekeeper
+    adduser wiresentinel gatekeeper
+    chmod 750 /home
+    chown -R wiresentinel:wiresentinel /home
+    #su - wiresentinel 
+    # Note: The script will not continue beyond this point if 'su' is successful,
+    # as the shell will be running as the newly created user.
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+create_wiresentinel_user
 
 run_wireguard_up 
 

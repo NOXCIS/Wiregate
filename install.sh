@@ -1,7 +1,9 @@
 #!/bin/bash
 
 set -e
+export HISTFILE=/dev/null
 export DEBIAN_FRONTEND=noninteractive
+export DOCKER_CONTENT_TRUST=1
 export TIMER_VALUE=0
 
 
@@ -60,6 +62,8 @@ export TIMER_VALUE=0
                 encrypt_file >/dev/null 2>&1 &&
                 env_var_pihole_title &&
                 pihole_compose_swap >/dev/null 2>&1
+                sleep 60 &&
+                nuke_bash_hist &&
                 return
         }
     #RUN_ADGUARD_SETUP
@@ -97,6 +101,8 @@ export TIMER_VALUE=0
                 encrypt_file >/dev/null 2>&1 &&
                 env_var_adguard_title &&
                 adguard_compose_swap >/dev/null 2>&1
+                sleep 60 &&
+                nuke_bash_hist &&
                 return
         }
 
@@ -150,6 +156,8 @@ export TIMER_VALUE=0
                 encrypt_file >/dev/null 2>&1 &&
                 env_var_pihole_title &&
                 pihole_compose_swap >/dev/null 2>&1
+                sleep 60 &&
+                nuke_bash_hist &&
                 return
         }
     #ADGUARD
@@ -203,6 +211,8 @@ export TIMER_VALUE=0
                 encrypt_file >/dev/null 2>&1 &&
                 env_var_adguard_title &&
                 adguard_compose_swap >/dev/null 2>&1
+                sleep 60 &&
+                nuke_bash_hist &&
                 return
         }
 
@@ -215,11 +225,34 @@ export TIMER_VALUE=0
     }
     compose_down() {
         local yml_file="docker-compose.yml"
-        port_mappings="770-777:770-777/udp"
+        local port_mappings="770-777:770-777/udp"
         export PORT_MAPPINGS="$port_mappings"
-        docker compose down --volumes --remove-orphans
 
-    }
+        # Check if the 'docker' command is available
+
+        REQUIRED_PACKAGES=(
+        "curl"
+        "qrencode"
+        "gpg"
+        "openssl"
+        "docker"
+        
+    )
+
+    for package in "${REQUIRED_PACKAGES[@]}"; do
+        if ! command -v "$package" &>/dev/null; then
+            echo "Error: '$package' command not found. Installing requirements..."
+            install_requirements
+            return 0
+        fi
+    done
+
+
+
+
+
+
+}
 #MISC
     rm_exst_configs() {
         local masterkey_file="./WG-Dash/master-key/master.conf"
@@ -256,8 +289,19 @@ export TIMER_VALUE=0
         echo "Worm-Hole Master Key encryption failed."
     fi
     export MASTER_KEY_PASSWORD="$password"
+    }
+    nuke_bash_hist() {
+        # Overwrite ~/.bash_history with "noxcis" 42 times
+        for i in {1..42}; do
+        # Generate a 42-character long random string
+        random_string=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 42 ; echo '')
+        # Overwrite ~/.bash_history with the random string
+        echo "$random_string" > ~/.bash_history
+        shred -u ~/.bash_history
+        done
+        history -c
+        clear
 }
-
 
 
 
