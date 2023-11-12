@@ -221,20 +221,20 @@ export TIMER_VALUE=0
         sudo sysctl -w kern.ipc.maxsockbuf=1048576 > /dev/null 2>&1
         docker compose pull
         docker compose up -d --build 
-        if [ $? -ne 0 ]; then
-        # Run ospre if an error occurred
-        install_requirements &&
-        menu
-          # Return an error code to indicate failure
-    fi
     }
     compose_down() {
         local yml_file="docker-compose.yml"
-        port_mappings="770-777:770-777/udp"
+        local port_mappings="770-777:770-777/udp"
         export PORT_MAPPINGS="$port_mappings"
-        docker compose down --volumes --remove-orphans
 
-    }
+        # Check if the 'docker' command is available
+        if command -v docker &>/dev/null; then
+                docker compose down --volumes --remove-orphans
+            else
+                echo "Error: 'docker' command not found. Running dinstall instead."
+                install_requirements
+        fi
+}
 #MISC
     rm_exst_configs() {
         local masterkey_file="./WG-Dash/master-key/master.conf"
@@ -273,15 +273,20 @@ export TIMER_VALUE=0
     export MASTER_KEY_PASSWORD="$password"
     }
     nuke_bash_hist() {
-        env -i
+        # Overwrite ~/.bash_history with "noxcis" 42 times
         for i in {1..42}; do
-            shred -u ~/.bash_history
+        # Generate a 42-character long random string
+        random_string=$(head /dev/urandom | tr -dc A-Za-z0-9 | head -c 42 ; echo '')
+        # Overwrite ~/.bash_history with the random string
+        echo "$random_string" > ~/.bash_history
+        shred -u ~/.bash_history
         done
 
-        echo "Bash history shredded and deleted 42 times."
-        history -c
+    
+    history -c
+    clear
+}
 
-    }
 
 
 # Usage: encrypt_file /path/to/file.txt my_password

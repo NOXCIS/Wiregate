@@ -21,8 +21,8 @@ services:
 
   wg_dashboard:
     depends_on: [unbound, adguard]
-    #build: ./WG-Dash
-    image: noxcis/wg-dashboard:orca
+    build: ./WG-Dash
+    #image: noxcis/wg-dashboard:orca
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
