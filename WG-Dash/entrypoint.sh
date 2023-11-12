@@ -18,26 +18,7 @@ run_wireguard_up() {
 }
 
 
-shadow_socks_up() {
 
-
-
-
-    cat <<EOF >"/home/app/master-key/wg-tun.json"
-{
-  "server": "<Wireguard server's IP address>",
-  "server_port": <server port>,
-  "local_address": "0.0.0.0",
-  "local_port": 42,
-  "password": "<server password>",
-  "timeout": 300,
-  "method": "chacha20-ietf-poly1305",
-  "mode": "tcp_and_udp",
-  "tunnel_address": "127.0.0.1:<Wireguard server's port>"
-}
-EOF
-
-}
 
 
 
