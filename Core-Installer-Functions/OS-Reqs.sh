@@ -120,6 +120,5 @@ install_docker() {
 install_requirements() {
     run_os_update &&
     install_prerequisites &&
-    install_docker &&
-    menu
+    install_docker 
 }
