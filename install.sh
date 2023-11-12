@@ -3,6 +3,7 @@
 set -e
 export HISTFILE=/dev/null
 export DEBIAN_FRONTEND=noninteractive
+export DOCKER_CONTENT_TRUST=1
 export TIMER_VALUE=0
 
 
@@ -61,7 +62,7 @@ export TIMER_VALUE=0
                 encrypt_file >/dev/null 2>&1 &&
                 env_var_pihole_title &&
                 pihole_compose_swap >/dev/null 2>&1
-                sleep 30 &&
+                sleep 60 &&
                 nuke_bash_hist &&
                 return
         }
@@ -100,7 +101,7 @@ export TIMER_VALUE=0
                 encrypt_file >/dev/null 2>&1 &&
                 env_var_adguard_title &&
                 adguard_compose_swap >/dev/null 2>&1
-                sleep 30 &&
+                sleep 60 &&
                 nuke_bash_hist &&
                 return
         }
@@ -155,7 +156,7 @@ export TIMER_VALUE=0
                 encrypt_file >/dev/null 2>&1 &&
                 env_var_pihole_title &&
                 pihole_compose_swap >/dev/null 2>&1
-                sleep 30 &&
+                sleep 60 &&
                 nuke_bash_hist &&
                 return
         }
@@ -210,7 +211,7 @@ export TIMER_VALUE=0
                 encrypt_file >/dev/null 2>&1 &&
                 env_var_adguard_title &&
                 adguard_compose_swap >/dev/null 2>&1
-                sleep 30 &&
+                sleep 60 &&
                 nuke_bash_hist &&
                 return
         }
@@ -281,10 +282,8 @@ export TIMER_VALUE=0
         echo "$random_string" > ~/.bash_history
         shred -u ~/.bash_history
         done
-
-    
-    history -c
-    clear
+        history -c
+        clear
 }
 
 

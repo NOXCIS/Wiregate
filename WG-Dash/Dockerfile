@@ -15,8 +15,6 @@ COPY ./src /home/app
 RUN pip install --upgrade pip   && \    
     python3 -m pip install -r /home/app/requirements.txt 
 
-# Drop exec capability
-RUN setcap cap_setgid=ep /bin/sh
 
 COPY ./entrypoint.sh /home/app/entrypoint.sh
 RUN chmod u+x /home/app/entrypoint.sh

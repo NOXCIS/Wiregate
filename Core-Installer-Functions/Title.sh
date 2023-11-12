@@ -287,7 +287,7 @@ master_key_title() {
 readme_title() {
     echo -e "\033[33m\n" 
     echo "#######################################################################"
-    echo ""
+    echo "        THIS MESSAGE SELF DESTRUCTS IN 60 seconds"
     echo "        Copy Master Key to empty WireGuard .conf file"
     echo "        Connect to Wireguard and access the Dashboard" 
     echo ""
