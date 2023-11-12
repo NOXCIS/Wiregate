@@ -247,11 +247,11 @@ export TIMER_VALUE=0
         if ! command -v "$package" &>/dev/null; then
             echo "Error: '$package' command not found. Installing requirements..."
             install_requirements
-            return 1
+            return 0
         fi
     done
 
-    return 0
+
 
 
 
