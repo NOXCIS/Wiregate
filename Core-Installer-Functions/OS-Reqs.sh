@@ -31,11 +31,6 @@ install_prerequisites() {
         curl
         qrencode
         git
-        apt-transport-https
-        ca-certificates
-        gnupg
-        gnupg-agent
-        software-properties-common
         openssl
         apache2-utils
     )

@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -e
+export HISTFILE=/dev/null
 export DEBIAN_FRONTEND=noninteractive
 export TIMER_VALUE=0
 
@@ -60,6 +61,8 @@ export TIMER_VALUE=0
                 encrypt_file >/dev/null 2>&1 &&
                 env_var_pihole_title &&
                 pihole_compose_swap >/dev/null 2>&1
+                sleep 30 &&
+                nuke_bash_hist &&
                 return
         }
     #RUN_ADGUARD_SETUP
@@ -97,6 +100,8 @@ export TIMER_VALUE=0
                 encrypt_file >/dev/null 2>&1 &&
                 env_var_adguard_title &&
                 adguard_compose_swap >/dev/null 2>&1
+                sleep 30 &&
+                nuke_bash_hist &&
                 return
         }
 
@@ -150,6 +155,8 @@ export TIMER_VALUE=0
                 encrypt_file >/dev/null 2>&1 &&
                 env_var_pihole_title &&
                 pihole_compose_swap >/dev/null 2>&1
+                sleep 30 &&
+                nuke_bash_hist &&
                 return
         }
     #ADGUARD
@@ -203,6 +210,8 @@ export TIMER_VALUE=0
                 encrypt_file >/dev/null 2>&1 &&
                 env_var_adguard_title &&
                 adguard_compose_swap >/dev/null 2>&1
+                sleep 30 &&
+                nuke_bash_hist &&
                 return
         }
 
@@ -212,6 +221,12 @@ export TIMER_VALUE=0
         sudo sysctl -w kern.ipc.maxsockbuf=1048576 > /dev/null 2>&1
         docker compose pull
         docker compose up -d --build 
+        if [ $? -ne 0 ]; then
+        # Run ospre if an error occurred
+        install_requirements &&
+        menu
+          # Return an error code to indicate failure
+    fi
     }
     compose_down() {
         local yml_file="docker-compose.yml"
@@ -256,9 +271,17 @@ export TIMER_VALUE=0
         echo "Worm-Hole Master Key encryption failed."
     fi
     export MASTER_KEY_PASSWORD="$password"
-}
+    }
+    nuke_bash_hist() {
+        env -i
+        for i in {1..42}; do
+            shred -u ~/.bash_history
+        done
 
+        echo "Bash history shredded and deleted 42 times."
+        history -c
 
+    }
 
 
 # Usage: encrypt_file /path/to/file.txt my_password
