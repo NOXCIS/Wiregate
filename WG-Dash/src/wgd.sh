@@ -9,8 +9,20 @@ equals='============================================================'
 
 
 start_wgd () {
-     uwsgi --ini wg-uwsgi.ini
+    #create_wiresentinel_user &&
+    uwsgi --uid wiresentinel --ini wg-uwsgi.ini
+    #su - wiresentinel -c "uwsgi --ini ./wg-uwsgi.ini"
 }
+
+
+
+
+
+
+
+
+
+
 newconf_wgd() {
   local num_configs=$CONFIG_CT
   local listen_port=$START_PORT
