@@ -235,12 +235,8 @@ export TIMER_VALUE=0
         "qrencode"
         "gpg"
         "openssl"
-        "apache2-utils"
-        "docker-ce"
-        "docker-ce-cli"
-        "containerd.io"
-        "docker-buildx-plugin"
-        "docker-compose-plugin"
+        "docker"
+        
     )
 
     for package in "${REQUIRED_PACKAGES[@]}"; do
