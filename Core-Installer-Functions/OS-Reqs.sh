@@ -30,7 +30,12 @@ install_prerequisites() {
     PREREQUISITES=(
         curl
         qrencode
-        gpg
+        git
+        apt-transport-https
+        ca-certificates
+        gnupg
+        gnupg-agent
+        software-properties-common
         openssl
         apache2-utils
     )
@@ -55,50 +60,28 @@ install_prerequisites() {
 }
 install_docker() {
     if [ -f /etc/apt/keyrings/docker.gpg ]; then
-        sudo rm /etc/apt/keyrings/docker.gpg
+       sudo rm /etc/apt/keyrings/docker.gpg 
     fi
-
-    for pkg in docker.io docker-doc docker-compose podman-docker containerd runc; do
-        sudo apt-get remove -y $pkg > /dev/null 2>&1
-    done
-
+    for pkg in docker.io docker-doc docker-compose podman-docker containerd runc; do sudo apt-get remove -y $pkg; done  > /dev/null 2>&1
     sudo install -m 0755 -d /etc/apt/keyrings
     sleep 0.25s
-
-    # Get Linux distribution information
-    distro=$(lsb_release -is)
-    codename=$(lsb_release -cs)
-
-    case $distro in
-    "Ubuntu")
-        repo_url="https://download.docker.com/linux/ubuntu"
-        ;;
-    "Debian")
-        repo_url="https://download.docker.com/linux/debian"
-        ;;
-    *)
-        echo "Unsupported Linux distribution: $distro"
-        return 1
-        ;;
-    esac
-
-    sudo curl -fsSL "$repo_url/gpg" | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+    sudo curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg 
     sleep 0.25s
     sudo chmod a+r /etc/apt/keyrings/docker.gpg
+    sleep 0.25s   
+    echo \
+    "deb [arch="$(dpkg --print-architecture)" signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+    "$(. /etc/os-release && echo "$VERSION_CODENAME")" stable" | \
+    sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
     sleep 0.25s
-
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] $repo_url $codename stable" |
-        sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-    sleep 0.25s
-
     sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy update > /dev/null 2>&1
     sleep 0.25s
 
     DOCREQS=(
-        docker-ce
-        docker-ce-cli
-        containerd.io
-        docker-buildx-plugin
+        docker-ce 
+        docker-ce-cli 
+        containerd.io 
+        docker-buildx-plugin 
         docker-compose-plugin
     )
 
@@ -106,19 +89,20 @@ install_docker() {
     GREEN=$(tput setaf 2)
     RESET=$(tput sgr0)
 
-    for docreqs in "${DOCREQS[@]}"; do
+    for docreqs in "${DOCREQS[@]}" 
+    do
         if ! dpkg -s "$docreqs" > /dev/null 2>&1; then
-            echo "${GREEN}Docker is not installed. Installing...${RESET}"
-            sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy install "$docreqs"
-        else
+        echo "${GREEN}Docker is not installed. Installing...${RESET}"
+        sudo DEBIAN_FRONTEND=noninteractive apt-get -o Dpkg::Options::="--force-confdef" -o Dpkg::Options::="--force-confold" -qy install "$docreqs" 
+    else
             echo "${GREEN}$docreqs is already installed.${RESET} ${YELLOW}Skipping...${RESET}"
-        fi
+    fi
     done
 }
-
 
 install_requirements() {
     run_os_update &&
     install_prerequisites &&
-    install_docker 
+    install_docker &&
+    menu
 }

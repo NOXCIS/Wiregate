@@ -229,12 +229,33 @@ export TIMER_VALUE=0
         export PORT_MAPPINGS="$port_mappings"
 
         # Check if the 'docker' command is available
-        if command -v docker &>/dev/null; then
-                docker compose down --volumes --remove-orphans
-            else
-                echo "Error: 'docker' command not found. Running dinstall instead."
-                install_requirements
+
+        REQUIRED_PACKAGES=(
+        "curl"
+        "qrencode"
+        "gpg"
+        "openssl"
+        "apache2-utils"
+        "docker-ce"
+        "docker-ce-cli"
+        "containerd.io"
+        "docker-buildx-plugin"
+        "docker-compose-plugin"
+    )
+
+    for package in "${REQUIRED_PACKAGES[@]}"; do
+        if ! command -v "$package" &>/dev/null; then
+            echo "Error: '$package' command not found. Installing requirements..."
+            install_requirements
+            return 1
         fi
+    done
+
+    return 0
+
+
+
+
 }
 #MISC
     rm_exst_configs() {
