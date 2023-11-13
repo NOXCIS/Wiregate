@@ -42,27 +42,6 @@ create_wiresentinel_user() {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 create_wiresentinel_user
 
 run_wireguard_up 
