@@ -8,12 +8,12 @@ coverage
 dnspython
 email-validator
 eventlet==0.33.3
-Flask==2.3.2
+Flask==2.3.3
 Flask-Bcrypt
 Flask-Login
 flask-marshmallow
 Flask-SocketIO
-Flask-SQLAlchemy
+Flask-SQLAlchemy==3.1.1
 Flask-WTF
 greenlet
 idna
@@ -29,7 +29,7 @@ mypy-extensions
 packaging
 Pillow
 pluggy
-psycopg2
+psycopg2==2.9.9
 pycparser
 pyparsing
 pytest
@@ -43,6 +43,6 @@ typed-ast
 typing-extensions
 urllib3
 wcwidth
-Werkzeug==2.3.6
+Werkzeug==3.0.1
 wheel
 WTForms

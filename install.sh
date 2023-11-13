@@ -227,7 +227,7 @@ export TIMER_VALUE=0
         local yml_file="docker-compose.yml"
         local port_mappings="770-777:770-777/udp"
         export PORT_MAPPINGS="$port_mappings"
-
+        docker compose down --volumes --remove-orphans
         # Check if the 'docker' command is available
 
         REQUIRED_PACKAGES=(

@@ -92,7 +92,7 @@ services:
     networks:
       private_network:
         ipv4_address: 10.2.0.4
-
+    dns: 10.2.0.100
 
   db:
     container_name: channels_db
@@ -107,6 +107,6 @@ services:
     networks:
       private_network:
         ipv4_address: 10.2.0.5
-
+    dns: 10.2.0.100
 volumes:
     postgres_data:

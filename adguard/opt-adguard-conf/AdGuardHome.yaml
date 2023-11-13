@@ -5,8 +5,8 @@ http:
   address: 0.0.0.0:80
   session_ttl: 720h
 users:
-  - name: whimsical_kooky_381
-    password: $2y$05$v1ayLbQkarj.xw8BTf9pgOLewJFBZVLkGiT3hyAet3KMHezOm/YCq
+  - name: zany_quirky_107
+    password: $2y$05$Z8EcnrKoEfRtFbYPPkPInetcZyeugsGpCPOnrnJLzmxu1MNnxOeUi
 auth_attempts: 5
 block_auth_min: 15
 http_proxy: ""

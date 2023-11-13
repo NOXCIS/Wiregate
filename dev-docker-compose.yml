@@ -7,6 +7,14 @@ networks:
       driver: default
       config:
         - subnet: 10.2.0.0/24
+      driver_opts:
+        com.docker.network.bridge.name: private_network_bridge
+        com.docker.network.bridge.enable_icc: "true"
+        com.docker.network.bridge.enable_ip_masquerade: "true"
+        com.docker.network.bridge.host_binding_ipv4: "0.0.0.0"
+      dns:
+        - 8.8.8.8
+        - 8.8.4.4
 
 services:
   unbound:
