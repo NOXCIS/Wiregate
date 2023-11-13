@@ -69,8 +69,8 @@ services:
   channels:
     depends_on: [db, wg_dashboard]
     container_name: channels_messenger
-    build: ./Channels
-    #image: noxcis/channels:marlin
+    #build: ./Channels
+    image: noxcis/channels:marlin
     restart: unless-stopped
     command: python run.py
     environment:
