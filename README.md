@@ -13,7 +13,7 @@
 
 ### What Is WireGate?
 
-WireGate is a fully automated Docker Based **intranet deployment**  that allows users to host web other applications on their existing server and be able to securely connect to said web applications without exposing them to the open internet. This is done by utilizing the **WireGuard protocol** in conjunction with **Docker Networks and Containers**. Hence applications hosted behind the WireGate private network *`need not expose any ports`* and can only be accessed via a *WireGuard* connection already registered to to an existing server interface on the deployed WireGate instance. Secure by Design, the WireGuard Dashboard & other services are only accessible on first deployment via the **master configuration** that is generated at install and `encrypted after being outputted to the console.`  Wormhole also acts as a ISP DNS query logging bypass. Wormhole by default is configured to have minimal logging.
+WireGate is a fully automated Docker Based **intranet deployment**  that allows users to host web other applications on their existing server and be able to securely connect to said web applications without exposing them to the open internet. This is done by utilizing the **WireGuard protocol** in conjunction with **Docker Networks and Containers**. Hence applications hosted behind the WireGate private network *`need not expose any ports`* and can only be accessed via a *WireGuard* connection already registered to to an existing server interface on the deployed WireGate instance. Secure by Design, the WireGuard Dashboard & other services are only accessible on first deployment via the **master configuration** that is generated at install and `encrypted after being outputted to the console.`  Wiregate also acts as a ISP DNS query logging bypass. Wiregate by default is configured to have minimal logging.
 
   
 
@@ -30,6 +30,15 @@ The WireGuard Dashboard image supports the `x86-64` and `arm64` CPU architecture
 |Unbound|✅|0| klutchell/unbound:latest |
 |Postgres|✅|0|postgres:13-alpine|
 
+### Wiregate Use Cases
+
+|Use Case | Description  |
+|--|--|
+| Authentication | Access to service can be limited by requiring a WireGuard client config as well as a registered account on said service  |
+|Secure Self Hosted VPN|  Self Explanatory|
+|Local Network Filter Proxy | By using a raspberry Pi ruining on the same local network your able to pre proxy all network traffic through your desired device using adguard/pihole & unbound. The unbound config will need to be modified to use an upstream DNS server for this to work, unless a cloud based Wiregate Node  is used in conjunction with the Raspeberry Pi. |
+|Secure Invite Only Messaging Service | This is done via channels and allows all members of the Wiregate Private Network to communicate under the same secure umbrella.|
+|||
 
 
 ### Show your support
