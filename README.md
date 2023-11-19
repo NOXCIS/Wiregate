@@ -292,4 +292,6 @@ However, the upstream projects and their authors most certainly also deserve cre
 
 - [Bartosz Dzionek](https://github.com/dzionek) -Channels Messenger
 
+Nox 2002-2023
+
  
