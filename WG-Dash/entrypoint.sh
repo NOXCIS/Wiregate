@@ -32,7 +32,8 @@ create_wiresentinel_user() {
     addgroup gatekeeper
     adduser wiresentinel gatekeeper
     chmod 750 /home
-    chown -R wiresentinel:wiresentinel /home
+    chown -R wiresentinel:gatekeeper /home
+    chown -R wiresentinel:gatekeeper /etc/wireguard
     #su - wiresentinel 
     # Note: The script will not continue beyond this point if 'su' is successful,
     # as the shell will be running as the newly created user.
