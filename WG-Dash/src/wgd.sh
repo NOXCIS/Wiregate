@@ -10,7 +10,8 @@ equals='============================================================'
 
 start_wgd () {
     #create_wiresentinel_user &&
-    uwsgi --uid wiresentinel --ini wg-uwsgi.ini
+    uwsgi --ini wg-uwsgi.ini
+    #uwsgi --uid wiresentinel --ini wg-uwsgi.ini
     #su - wiresentinel -c "uwsgi --ini ./wg-uwsgi.ini"
 }
 
