@@ -64,8 +64,6 @@ PrivateKey = $private_key
 Address = 10.0.1.1/24
 ListenPort = 771
 SaveConfig = true
-
-PreDown = iptables -t nat -D POSTROUTING -o eth0.20 -j MASQUERADE
 EOF
 }
 
@@ -82,8 +80,6 @@ PrivateKey = $private_key
 Address = 10.0.2.1/24
 ListenPort = 772
 SaveConfig = true
-
-PreDown = iptables -t nat -D POSTROUTING -o eth0.30 -j MASQUERADE
 EOF
 }
 

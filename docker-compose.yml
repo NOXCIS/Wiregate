@@ -23,8 +23,8 @@ services:
 
   wg_dashboard:
     depends_on: [unbound, adguard]
-    #build: ./WG-Dash
-    image: noxcis/wg-dashboard:marlin
+    build: ./WG-Dash
+    #image: noxcis/wg-dashboard:marlin
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
@@ -37,10 +37,10 @@ services:
       - WG_DASH_PASS_ENCRYPTED=${WG_DASH_PASS_ENCRYPTED}
       - WGDASH_SECRET_KEY=${WGDASH_SECRET_KEY}
       - SERVER_IP=${SERVER_IP}
-      - CONFIG_CT=${INTERFACE_COUNT}
-      - START_PORT=${PORT_RANGE_START}
+      - CONFIG_CT=3
+      - START_PORT=770
     ports:
-      - "${PORT_MAPPINGS}"
+      - "770-772:770-772/udp"
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
@@ -66,42 +66,4 @@ services:
         ipv4_address: 10.2.0.100
 
 
-  channels:
-    depends_on: [db, wg_dashboard]
-    container_name: channels_messenger
-    build: ./Channels
-    #image: noxcis/channels:marlin
-    restart: unless-stopped
-    command: python run.py
-    environment:
-      - IS_DOCKER=1
-      - FLASK_APP=app/__init__.py
-      - FLASK_ENV=development
-      - SQL_HOST=db
-      - SQL_PORT=5432
-      - DATABASE=postgres
-      - SECRET_KEY=${MSG_SECRET_KEY}
-      - DATABASE_URI=${DB_URI}
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.4
-    dns: 10.2.0.100
-
-
-  db:
-    container_name: channels_db
-    image: postgres:13-alpine
-    restart: unless-stopped
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    environment:
-      - POSTGRES_USER=${MSG_DB_USER}
-      - POSTGRES_PASSWORD=${MSG_DB_PASS}
-      - POSTGRES_DB=db
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.5
-    dns: 10.2.0.100
-
-volumes:
-    postgres_data:
+ 

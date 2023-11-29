@@ -37,10 +37,10 @@ services:
       - WG_DASH_PASS_ENCRYPTED=${WG_DASH_PASS_ENCRYPTED}
       - WGDASH_SECRET_KEY=${WGDASH_SECRET_KEY}
       - SERVER_IP=${SERVER_IP}
-      - CONFIG_CT=${INTERFACE_COUNT}
-      - START_PORT=${PORT_RANGE_START}
+      - CONFIG_CT=3
+      - START_PORT=770
     ports:
-      - "${PORT_MAPPINGS}"
+      - "770-772:770-772/udp"
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1

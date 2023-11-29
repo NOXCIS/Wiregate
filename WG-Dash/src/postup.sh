@@ -19,14 +19,14 @@ iptables -A $CHAIN_NAME -o $WIREGUARD_INTERFACE -m conntrack --ctstate RELATED,E
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -j ACCEPT
 
 # Drop everything else coming through the Wireguard interface
-iptables -A $CHAIN_NAME -i $WIREGUARD_INTERFACE -j DROP
+#iptables -A $CHAIN_NAME -i $WIREGUARD_INTERFACE -j DROP
 
 # DNS
 iptables -A $CHAIN_NAME -s 10.0.1.1/24 -i wg1 -d 10.2.0.3 -p udp --dport 53 -j ACCEPT
 # Drop traffic to your any private IP address
-iptables -A $CHAIN_NAME -s 10.0.1.1/24 -i $WIREGUARD_INTERFACE -d 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16 -j DROP
+iptables -A $CHAIN_NAME -s 10.0.1.1/24 -i wg1 -d 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16 -j DROP
 # Accept outgoing connections to HTTP(S) ports to any IP address (public because of rule above)
-iptables -A $CHAIN_NAME -s 10.0.1.1/24 -i $WIREGUARD_INTERFACE -d 0.0.0.0/0 -p tcp -m multiport --dports 80,443 -j ACCEPT
+iptables -A $CHAIN_NAME -s 10.0.1.1/24 -i wg1 -d 0.0.0.0/0 -p tcp -m multiport --dports 80,443 -j ACCEPT
 
 # Return to FORWARD chain
 iptables -A $CHAIN_NAME -j RETURN
