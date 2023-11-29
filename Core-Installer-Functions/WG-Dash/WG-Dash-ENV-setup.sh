@@ -128,7 +128,7 @@ generate_wireguard_qr() {
 
     if ! [ -f "$config_file" ]; then
         echo "Error: Config file not found thi."
-        return 1
+        #return 1
     fi
 
     # Generate the QR code and display it in the CLI
