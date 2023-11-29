@@ -20,45 +20,73 @@ start_wgd () {
 
 
 
+newconf_wgd () {
+  newconf_wgd0
+  newconf_wgd1
+  newconf_wgd2
+}
 
 
 
-
-newconf_wgd() {
-  local num_configs=$CONFIG_CT
-  local listen_port=$START_PORT
-  local address_prefix="10."
-
-  for ((i = 0; i < num_configs; i++)); do
-    local listen_port_str="$listen_port"
-    local address_str="${address_prefix}$((i / 256)).$((i % 256)).1/24"
+newconf_wgd0() {
+  local num_configs=$CONFIG_
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
-    local file_number=$((i))
-    if [[ $file_number -eq 0 ]]; then
-      file_number="0"
-    fi
+  
 
-    cat <<EOF >"/etc/wireguard/wg$file_number.conf"
+    cat <<EOF >"/etc/wireguard/wg0.conf"
 [Interface]
 PrivateKey = $private_key
-Address = $address_str
-ListenPort = $listen_port_str
+Address = 10.0.0.1/24
+ListenPort = 770
 SaveConfig = true
-PostUp = /home/app/postup.sh
+PostUp =  /home/app/postup.sh
 PreDown = iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
 EOF
 
-    #echo "Generated wg$file_number.conf"
-    ((listen_port++))
-
-  done
+   
 
   if [ ! -f "/master-key/master.conf" ]; then
-    make_master_config # Only call make_master_config if master.conf doesn't exist
+    make_master_config  # Only call make_master_config if master.conf doesn't exist
   fi 
 }
+
+
+newconf_wgd1() {
+  local num_configs=$CONFIG_
+    private_key=$(wg genkey)
+    public_key=$(echo "$private_key" | wg pubkey)
+
+    cat <<EOF >"/etc/wireguard/wg1.conf"
+[Interface]
+PrivateKey = $private_key
+Address = 10.0.1.1/24
+ListenPort = 771
+SaveConfig = true
+
+PreDown = iptables -t nat -D POSTROUTING -o eth0.20 -j MASQUERADE
+EOF
+}
+
+
+
+newconf_wgd2() {
+  local num_configs=$CONFIG_
+    private_key=$(wg genkey)
+    public_key=$(echo "$private_key" | wg pubkey)
+
+    cat <<EOF >"/etc/wireguard/wg2.conf"
+[Interface]
+PrivateKey = $private_key
+Address = 10.0.2.1/24
+ListenPort = 772
+SaveConfig = true
+
+PreDown = iptables -t nat -D POSTROUTING -o eth0.30 -j MASQUERADE
+EOF
+}
+
 
 make_master_config() {
         local svr_config="/etc/wireguard/wg0.conf"
