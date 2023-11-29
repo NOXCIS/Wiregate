@@ -125,7 +125,7 @@ set_port_range() {
 }
 generate_wireguard_qr() {
     local config_file="./WG-Dash/master-key/master.conf"
-
+    sleep 2s
     if ! [ -f "$config_file" ]; then
         echo "Error: Config file not found thi."
         #return 1
