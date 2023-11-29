@@ -119,7 +119,7 @@ def init_dashboard():
     if 'app_ip' not in config['Server']:
         config['Server']['app_ip'] = '0.0.0.0'
     if 'app_port' not in config['Server']:
-        config['Server']['app_port'] = '80'
+        config['Server']['app_port'] = '8080'
     if 'auth_req' not in config['Server']:
         config['Server']['auth_req'] = 'true'
     if 'version' not in config['Server'] or config['Server']['version'] != DASHBOARD_VERSION:
