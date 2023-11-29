@@ -1,5 +1,5 @@
 #!/bin/bash
-
+chmod u+x /home/app/postup.sh
 chmod u+x /home/app/wgd.sh
 
 if [ ! -f "/etc/wireguard/wg0.conf" ]; then
@@ -43,7 +43,7 @@ create_wiresentinel_user() {
 
 
 
-create_wiresentinel_user
+#create_wiresentinel_user
 
 run_wireguard_up 
 

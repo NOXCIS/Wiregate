@@ -46,7 +46,7 @@ PrivateKey = $private_key
 Address = $address_str
 ListenPort = $listen_port_str
 SaveConfig = true
-PostUp = iptables -t nat -I POSTROUTING -o eth0 -j MASQUERADE
+PostUp = /home/app/postup.sh
 PreDown = iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
 EOF
 
