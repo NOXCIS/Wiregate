@@ -36,5 +36,5 @@ jobs:
         with:
           context: WG-Dash/  # Path to the directory containing the Dockerfile (subfolder)
           push: true
-          tags: noxcis/wg-dashboard:marlin
+          tags: noxcis/wg-dashboard:mantis-shrimp
           platforms: linux/amd64,linux/arm64
