@@ -15,6 +15,9 @@ iptables -A FORWARD -j $CHAIN_NAME
 # Accept related or established traffic
 iptables -A $CHAIN_NAME -o $WIREGUARD_INTERFACE -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 
+# Drop incoming traffic from wg1 to wg-dashboard
+iptables -A INPUT -i wg3 -j DROP
+
 # DNS
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.100 -p udp --dport 53 -j ACCEPT
 # Drop traffic to your any private IP address
