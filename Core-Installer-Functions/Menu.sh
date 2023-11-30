@@ -4,7 +4,7 @@
 menu() {
     run_animation
     cat <<EOF >"run-log.txt"
-     Anim Tribute has been ran!!!
+    JRC Weir Tribute Animation has been ran!!!!!!
 EOF
    
     title
