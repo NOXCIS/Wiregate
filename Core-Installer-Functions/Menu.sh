@@ -2,7 +2,6 @@
 
 
 menu() {
-    clear
     run_animation
     cat <<EOF >"run-log.txt"
      Anim Tribute has been ran!!!
