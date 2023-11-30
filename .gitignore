@@ -50,3 +50,4 @@ WG-Dash/master-key/master.conf.enc
 WG-Dash/src/env
 WG-Dash/src/wg-dashboard.ini
 run-log.txt
+Global-Configs/Master-Key/master.conf
