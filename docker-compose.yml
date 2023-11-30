@@ -31,7 +31,8 @@ services:
       - SYS_MODULE
     restart: unless-stopped
     volumes:
-      - ./WG-Dash/master-key:/home/app/master-key
+      - ./Global-Configs/Master-Key:/home/app/master-key
+      - ./Global-Configs/Firewall-Rules:/home/app/FIREWALLS
     environment:
       - WG_DASH_USER=${WG_DASH_USER}
       - WG_DASH_PASS_ENCRYPTED=${WG_DASH_PASS_ENCRYPTED}

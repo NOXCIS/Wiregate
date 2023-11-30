@@ -294,7 +294,7 @@ readme_title() {
     echo "        Copy Master Key to empty WireGuard .conf file"
     echo "        Connect to Wireguard and access the Dashboard" 
     echo ""
-    echo -e "     \033[33mWireGuard Dashboard Address:     \033[32mhttp://worm.hole\033[0m" 
+    echo -e "     \033[33mWireGuard Dashboard Address:     \033[32mhttp://wire.gate\033[0m" 
     echo -e "     \033[33mPihole Dashboard Address:        \033[32mhttp://pi.hole\033[0m"
     echo -e "     \033[33mPihole Dashboard Address:        \033[32mhttp://ad.guard\033[0m"    
     echo -e "     \033[33mChannels LAN Messenger Address:  \033[32mhttp://channels.msg\033[0m"
@@ -312,4 +312,19 @@ master_key_pass_title() {
     echo "MASTER KEY DECRYPTION PASSWORD: '"$MASTER_KEY_PASSWORD"'   "
     printf "%s" "$dashes"
     echo -e "\n\033[0m"
+}
+
+leave_a_star_title() {
+
+title
+echo -e "\033[33m\n" 
+    echo ""
+    echo -e "\033[33mLeave A Star on Github:  \033[32mhttps://github.com/NOXCIS/Worm-Hole\033[0m"
+    echo ""
+    echo -e "\033[33m"
+    echo "#######################################################################"
+    echo -e "\n\033[0m"
+
+
+
 }

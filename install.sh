@@ -43,7 +43,6 @@ export TIMER_VALUE=0
         
         #DOCKER
                 clear &&
-                run_docker_title &&
                 compose_up &&
                 clear &&
 
@@ -56,6 +55,7 @@ export TIMER_VALUE=0
                 pihole_compose_swap >/dev/null 2>&1
                 sleep 60 &&
                 nuke_bash_hist &&
+                leave_a_star_title &&
                 return
         }
 
@@ -79,19 +79,19 @@ export TIMER_VALUE=0
         
         #DOCKER
                 clear &&
-                run_docker_title &&
                 compose_up &&
                 clear &&
 
 
         #FINAL_OUTPUT
                 generate_wireguard_qr  &&
-                #readme_title &&
-                #encrypt_file >/dev/null 2>&1 &&
+                readme_title &&
+                encrypt_file >/dev/null 2>&1 &&
                 env_var_adguard_title &&
                 adguard_compose_swap >/dev/null 2>&1
                 sleep 60 &&
                 nuke_bash_hist &&
+                leave_a_star_title &&
                 return
         }
 
@@ -178,6 +178,7 @@ adguard_predefined_setup () {
                 adguard_compose_swap >/dev/null 2>&1
                 sleep 60 &&
                 nuke_bash_hist &&
+                leave_a_star_title &&
                 return
         }
 
@@ -203,6 +204,7 @@ pihole_predefined_setup () {
                 pihole_compose_swap >/dev/null 2>&1
                 sleep 60 &&
                 nuke_bash_hist &&
+                leave_a_star_title &&
                 return
         }
 

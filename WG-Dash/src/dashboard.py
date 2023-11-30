@@ -32,7 +32,7 @@ from util import regex_match, check_DNS, check_Allowed_IPs, check_remote_endpoin
 
 
 # Dashboard Version
-DASHBOARD_VERSION = 'v3.0.6'
+DASHBOARD_VERSION = 'v4.0.0'
 
 # WireGuard's configuration path
 WG_CONF_PATH = None
@@ -119,7 +119,7 @@ def init_dashboard():
     if 'app_ip' not in config['Server']:
         config['Server']['app_ip'] = '0.0.0.0'
     if 'app_port' not in config['Server']:
-        config['Server']['app_port'] = '8080'
+        config['Server']['app_port'] = '80'
     if 'auth_req' not in config['Server']:
         config['Server']['auth_req'] = 'true'
     if 'version' not in config['Server'] or config['Server']['version'] != DASHBOARD_VERSION:
