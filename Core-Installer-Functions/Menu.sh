@@ -2,15 +2,19 @@
 
 
 menu() {
-    title
-    clear
+    run_animation
+    cat <<EOF >"run-log.txt"
+    JRC Weir Tribute Animation has been ran!!!!!!
+EOF
+   
     title
     echo "Please choose an DNS Provider:"
     echo "1. Pihole Install"
     echo "2. AdGuard Install"
     echo "3. Reset Wormhole Deployment"
-    echo "4. Install Prerequisites"
-    echo "5. Exit"
+    echo "4. Switch to local deploy I.E RaspberryPi"
+    echo "5. Switch to Cloud deploy I.E AWS" 
+    echo "6. Exit"
     read -p "Enter your choice: " choice
     echo ""
 
@@ -18,8 +22,9 @@ menu() {
         1) pihole_install_menu ;;
         2) adguard_install_menu ;;
         3) fresh_install ;;
-        4) install_requirements ;;
-        5) exit ;;
+        4) unbound_config_swap ;;
+        5) unbound_config_swapback ;;
+        6) exit ;;
         *) echo "Invalid choice. Please try again." ;;
     esac
 }

@@ -5,8 +5,8 @@ http:
   address: 0.0.0.0:80
   session_ttl: 720h
 users:
-  - name: zany_quirky_107
-    password: $2y$05$Z8EcnrKoEfRtFbYPPkPInetcZyeugsGpCPOnrnJLzmxu1MNnxOeUi
+  - name: quirky_zany_468
+    password: $2y$05$vPJ.Cima31xPHV5p.gceledKFjRxLAsC5YhgEX7XlCuVoh1bskkkO
 auth_attempts: 5
 block_auth_min: 15
 http_proxy: ""
@@ -18,6 +18,8 @@ dns:
   port: 53
   anonymize_client_ip: false
   ratelimit: 20
+  ratelimit_subnet_len_ipv4: 24
+  ratelimit_subnet_len_ipv6: 56
   ratelimit_whitelist: []
   refuse_any: true
   upstream_dns:
@@ -139,7 +141,7 @@ filtering:
   parental_block_host: family-block.dns.adguard.com
   safebrowsing_block_host: standard-block.dns.adguard.com
   rewrites:
-    - domain: worm.hole
+    - domain: wire.gate
       answer: 10.2.0.3
     - domain: channels.msg
       answer: 10.2.0.4

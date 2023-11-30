@@ -144,30 +144,21 @@ set_adguard_user() {
                 echo -e "\033[31mUsername cannot be empty. Please try again.\033[0m"
                 continue
             fi
-            
-            read -p "$(tput setaf 3)Confirm Username for AdGuard:$(tput sgr0) " confirm_user
-            
-            
-
-            if [[ "$adguard_user" != "$confirm_user" ]]; then
-                echo -e "\033[31mUsernames do not match. Please try again.\033[0m"
-            else
-                # Passwords match, set the Database Password
-
 
                 sed -i -E "s|^( *- name: ).*|\1$adguard_user|" "$adguard_yaml_file"
 
-
-
                 export AD_GUARD_USER="$adguard_user"
                 break
-            fi
+            
         done
     fi
 
 }
-
-
-
+set_adguard_config() {
+    clear
+    adguard_install_title
+    set_adguard_user
+    set_adguard_pass
+}
 
 

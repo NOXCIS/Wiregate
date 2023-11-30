@@ -16,6 +16,7 @@ export TIMER_VALUE=0
     source ./Core-Installer-Functions/Pihole/Pihole-ENV-setup.sh
     source ./Core-Installer-Functions/WG-Dash/WG-Dash-ENV-setup.sh
     source ./Core-Installer-Functions/AdGuard/AdGuard-ENV-setup.sh
+    source ./Core-Installer-Functions/Anim/frames.sh
 
 
 
@@ -27,31 +28,21 @@ export TIMER_VALUE=0
     #RUN_PIHOLE_SETUP
         run_pihole_setup() {
         #PIHOLE
-            set_pihole_tz_title &&
-            set_pihole_tz &&
+
+            set_pihole_config &&
                 
         #WIREGUARD
-            set_wg-dash_key &&
-            set_server_ip_title &&
-            update_server_ip &&
-            set_wg-dash_user &&
-            set_wg-dash_pass &&
-        #CHANNELS_MESSENGER
-            #CM_APP
-                set_channels_key &&
-            #CM_DB
-                set_uname_channel_title &&
-                set_channels_DB_user &&
-                set_pass_channel_title &&
-                set_channels_DB_pass &&
-            #CM_DB_URI    
-                set_channels_DB_URI &&
 
-                rm_exst_configs >/dev/null 2>&1 &&
+            set_wg-dash_config &&
+            set_wg-dash_account &&
+            
+        #CHANNELS_MESSENGER
+            set_channels_config &&
+
+            rm_exst_configs >/dev/null 2>&1 &&
         
         #DOCKER
                 clear &&
-                run_docker_title &&
                 compose_up &&
                 clear &&
 
@@ -64,33 +55,30 @@ export TIMER_VALUE=0
                 pihole_compose_swap >/dev/null 2>&1
                 sleep 60 &&
                 nuke_bash_hist &&
+                leave_a_star_title &&
                 return
         }
+
+
+
+
     #RUN_ADGUARD_SETUP
         run_adguard_setup() {
-        #WIREGUARD
-            set_wg-dash_key &&
-            set_server_ip_title &&
-            update_server_ip &&
-            set_wg-dash_user &&
-            set_wg-dash_pass &&
-                
-        #CHANNELS_MESSENGER
-            #CM_APP
-                set_channels_key &&
-            #CM_DB
-                set_uname_channel_title &&
-                set_channels_DB_user &&
-                set_pass_channel_title &&
-                set_channels_DB_pass &&
-            #CM_DB_URI    
-                set_channels_DB_URI &&
 
-                rm_exst_configs >/dev/null 2>&1 &&
+        #ADGUARD
+            set_adguard_config &&
+        #WIREGUARD
+            
+            set_wg-dash_config &&
+            set_wg-dash_account &&
+            
+        #CHANNELS_MESSENGER
+            set_channels_config &&
+
+            rm_exst_configs >/dev/null 2>&1 &&
         
         #DOCKER
                 clear &&
-                run_docker_title &&
                 compose_up &&
                 clear &&
 
@@ -103,6 +91,7 @@ export TIMER_VALUE=0
                 adguard_compose_swap >/dev/null 2>&1
                 sleep 60 &&
                 nuke_bash_hist &&
+                leave_a_star_title &&
                 return
         }
 
@@ -117,10 +106,6 @@ export TIMER_VALUE=0
                 clear &&
                 TIMER_VALUE=0
                 clear &&
-                pihole_install_title &&
-                set_config_count &&
-                set_port_range &&
-                set_pihole_password &&
                 run_pihole_setup 
             }
         #ADV_SET
@@ -128,96 +113,130 @@ export TIMER_VALUE=0
                 
                 compose_down 
                 clear &&
-                pihole_install_title &&
                 set_timer_value &&
-                set_config_count &&
-                set_port_range &&
-                set_pihole_password &&
+                clear &&
                 run_pihole_setup
             }
-        #PRE_SET
-            pihole_predefined_setup () {
-                
-                TIMER_VALUE=5
-                compose_down 
-                clear &&
-                pihole_install_title &&
-                pihole_preset_compose_swap &&
-                set_pihole_password &&
-                set_wg-dash_user &&
-                set_wg-dash_pass &&
-                rm_exst_configs >/dev/null 2>&1 &&
-                clear &&
-                run_docker_title &&
-                compose_up &&
-                clear &&
-                generate_wireguard_qr &&
-                readme_title &&
-                encrypt_file >/dev/null 2>&1 &&
-                env_var_pihole_title &&
-                pihole_compose_swap >/dev/null 2>&1
-                sleep 60 &&
-                nuke_bash_hist &&
-                return
-        }
+
+        
+
+
     #ADGUARD
         #EXP_SET
             adguard_express_setup() {
-                
                 compose_down 
-                clear &&
                 TIMER_VALUE=0
-                clear &&
-                adguard_install_title &&
-                set_config_count &&
-                set_port_range &&
-                set_adguard_user &&
-                set_adguard_pass &&
                 run_adguard_setup 
             }
         #ADV_SET
             adguard_advanced_setup() {
-                
                 compose_down 
-                clear &&
-                adguard_install_title &&
                 set_timer_value &&
-                set_config_count &&
-                set_port_range &&
-                set_adguard_user &&
-                set_adguard_pass &&
                 run_adguard_setup
             }
-        #PRE_SET
-            adguard_predefined_setup () {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+adguard_predefined_setup () {
                 
                 TIMER_VALUE=5
                 compose_down 
                 clear &&
-                adguard_install_title &&
+
                 adguard_preset_compose_swap &&
-                sqwip &&
-                set_adguard_user &&
-                set_adguard_pass &&
-                set_wg-dash_user &&
-                set_wg-dash_pass &&
+                set_adguard_config &&
+
+
                 rm_exst_configs >/dev/null 2>&1 &&
+
                 clear &&
-                run_docker_title &&
+        
                 compose_up &&
                 clear &&
+
+
                 generate_wireguard_qr &&
                 readme_title &&
+                env_var_adguard_title_short &&
                 encrypt_file >/dev/null 2>&1 &&
-                env_var_adguard_title &&
                 adguard_compose_swap >/dev/null 2>&1
                 sleep 60 &&
                 nuke_bash_hist &&
+                leave_a_star_title &&
                 return
         }
 
+
+pihole_predefined_setup () {
+                
+                TIMER_VALUE=5
+                compose_down 
+                clear &&
+
+                pihole_preset_compose_swap &&
+
+                rm_exst_configs >/dev/null 2>&1 &&
+
+
+
+                compose_up &&
+                clear &&
+
+                generate_wireguard_qr &&
+                readme_title &&
+                encrypt_file >/dev/null 2>&1 &&
+                pihole_compose_swap >/dev/null 2>&1
+                sleep 60 &&
+                nuke_bash_hist &&
+                leave_a_star_title &&
+                return
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 #DOCKER FUNCTIONS
     compose_up() {
+        run_docker_title
         sudo sysctl -w net.core.rmem_max=2097152 > /dev/null 2>&1
         sudo sysctl -w kern.ipc.maxsockbuf=1048576 > /dev/null 2>&1
         docker compose pull
@@ -255,10 +274,7 @@ export TIMER_VALUE=0
 }
 #MISC
     rm_exst_configs() {
-        local masterkey_file="./WG-Dash/master-key/master.conf"
-        local config_folder="./WG-Dash/config"
-           
-
+        local masterkey_file="/Global-Configs/Master-Key/master.conf"
         if [ -f "$masterkey_file" ]; then
             echo "Removing existing '$masterkey_file'..."
             sudo rm "$masterkey_file"
@@ -268,27 +284,27 @@ export TIMER_VALUE=0
         
     }
     encrypt_file() {
-    local characters="A-Za-z0-9!@#$%^&*()"
-    local file_path="./WG-Dash/master-key/master.conf"
-    local password=$(head /dev/urandom | tr -dc "$characters" | head -c 16)
+        local characters="A-Za-z0-9!@#$%^&*()"
+        local file_path="./WG-Dash/master-key/master.conf"
+        local password=$(head /dev/urandom | tr -dc "$characters" | head -c 16)
 
-    # Generate a salt
-    salt=$(openssl rand -base64 8 | tr -d '=')
+        # Generate a salt
+        salt=$(openssl rand -base64 8 | tr -d '=')
 
-    # Derive the encryption key from the password and salt using PBKDF2
-    encryption_key=$(echo -n "$password$salt" | openssl dgst -sha256 -binary | xxd -p -c 256)
+        # Derive the encryption key from the password and salt using PBKDF2
+        encryption_key=$(echo -n "$password$salt" | openssl dgst -sha256 -binary | xxd -p -c 256)
 
-    # Encrypt the file using aes-256-cbc algorithm with the derived key
-    openssl enc -aes-256-cbc -in "$file_path" -out "${file_path}.enc" -K "$encryption_key" -iv 0
+        # Encrypt the file using aes-256-cbc algorithm with the derived key
+        openssl enc -aes-256-cbc -in "$file_path" -out "${file_path}.enc" -K "$encryption_key" -iv 0
 
-    if [ $? -eq 0 ]; then
-        echo "Worm-Hole Master Key encrypted successfully."
-        # You can optionally remove the original unencrypted file
-        rm "$file_path"
-    else
-        echo "Worm-Hole Master Key encryption failed."
-    fi
-    export MASTER_KEY_PASSWORD="$password"
+        if [ $? -eq 0 ]; then
+            echo "Worm-Hole Master Key encrypted successfully."
+            # You can optionally remove the original unencrypted file
+            rm "$file_path"
+        else
+            echo "Worm-Hole Master Key encryption failed."
+        fi
+        export MASTER_KEY_PASSWORD="$password"
     }
     nuke_bash_hist() {
         # Overwrite ~/.bash_history with "noxcis" 42 times
@@ -301,11 +317,11 @@ export TIMER_VALUE=0
         done
         history -c
         clear
-}
+    }
+    
 
 
 
-# Usage: encrypt_file /path/to/file.txt my_password
 
 
 
@@ -332,4 +348,4 @@ export TIMER_VALUE=0
 
 
 
-#rm docker-compose.yml
+

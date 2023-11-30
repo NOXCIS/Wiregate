@@ -7,14 +7,7 @@ networks:
       driver: default
       config:
         - subnet: 10.2.0.0/24
-      driver_opts:
-        com.docker.network.bridge.name: private_network_bridge
-        com.docker.network.bridge.enable_icc: "true"
-        com.docker.network.bridge.enable_ip_masquerade: "true"
-        com.docker.network.bridge.host_binding_ipv4: "0.0.0.0"
-      dns:
-        - 8.8.8.8
-        - 8.8.4.4
+     
 
 services:
   unbound:
@@ -45,24 +38,25 @@ services:
 
   wg_dashboard:
     depends_on: [unbound, adguard]
-    #build: ./WG-Dash
-    image: noxcis/wg-dashboard:orca
+    build: ./WG-Dash
+    #image: noxcis/wg-dashboard:orca
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
     restart: unless-stopped
     volumes:
-      - ./WG-Dash/master-key:/home/app/master-key
+      - ./Global-Configs/Master-Key:/home/app/master-key
+      - ./Global-Configs/Firewall-Rules:/home/app/FIREWALLS
     environment:
       - WG_DASH_USER=admin
       - WG_DASH_PASS_ENCRYPTED="$$2a$$12$$DqKBORUB7.3sBiUXNQ8Fg.mX861V0jI3qwVGAAjNt9UCBjdMRLHeW"
       - WGDASH_SECRET_KEY=nidfsnnsknfkscsnksjnjc
       - SERVER_IP=0.0.0.0
-      - CONFIG_CT=6000
-      - START_PORT=770
+      - CONFIG_CT=4
+      - START_PORT=7700
     ports:
-      - "770-777:770-777/udp"
+      - "770-772:770-772/udp"
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
@@ -70,41 +64,5 @@ services:
       private_network:
         ipv4_address: 10.2.0.3
 
-  channels:
-    depends_on: [db, wg_dashboard]
-    container_name: channels_messenger
-    #image: noxcis/channels:orca
-    restart: unless-stopped
-    build: ./Channels
-    command: python run.py
-    environment:
-      - IS_DOCKER=1
-      - FLASK_APP=app/__init__.py
-      - FLASK_ENV=development
-      - SQL_HOST=db
-      - SQL_PORT=5432
-      - DATABASE=postgres
-      - SECRET_KEY=ed215f114bd528c0870a9c4900c69a1e
-      - DATABASE_URI=postgresql://user:password@db:5432/db
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.4
-    
 
-  db:
-    container_name: channels_db
-    image: postgres:13-alpine
-    restart: unless-stopped
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=db
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.5
-
-volumes:
-    postgres_data:
   

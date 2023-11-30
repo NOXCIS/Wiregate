@@ -132,3 +132,12 @@ set_channels_DB_URI() {
     export DB_URI="$db_uri"
 
 }
+
+set_channels_config() {
+    set_channels_key
+    set_channels_DB_user
+    set_channels_DB_pass
+    set_channels_DB_URI
+}
+
+

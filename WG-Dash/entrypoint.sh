@@ -2,6 +2,19 @@
 
 chmod u+x /home/app/wgd.sh
 
+chmod u+x /home/app/FIREWALLS/Admins/wg0-dwn.sh
+chmod u+x /home/app/FIREWALLS/Admins/wg0-nat.sh
+
+chmod u+x /home/app/FIREWALLS/Members/wg1-dwn.sh
+chmod u+x /home/app/FIREWALLS/Members/wg1-nat.sh
+
+chmod u+x /home/app/FIREWALLS/LAN-only-users/wg2-dwn.sh
+chmod u+x /home/app/FIREWALLS/LAN-only-users/wg2-nat.sh
+
+chmod u+x /home/app/FIREWALLS/Guest/wg3-dwn.sh
+chmod u+x /home/app/FIREWALLS/Guest/wg3-nat.sh
+
+
 if [ ! -f "/etc/wireguard/wg0.conf" ]; then
     /home/app/wgd.sh newconfig
 
@@ -43,7 +56,7 @@ create_wiresentinel_user() {
 
 
 
-create_wiresentinel_user
+#create_wiresentinel_user
 
 run_wireguard_up 
 

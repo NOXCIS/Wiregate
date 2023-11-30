@@ -22,14 +22,15 @@ services:
   wg_dashboard:
     depends_on: [unbound, pihole]
     #build: ./WG-Dash
-    image: noxcis/wg-dashboard:marlin
+    image: noxcis/wg-dashboard:mantis-shrimp
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
     restart: unless-stopped
     volumes:
-      - ./WG-Dash/master-key:/home/app/master-key
+      - ./Global-Configs/Master-Key:/home/app/master-key
+      - ./Global-Configs/Firewall-Rules:/home/app/FIREWALLS
     env_file:
       - ./Global-Configs/ENV-FILES/worm-hole.env
     ports:

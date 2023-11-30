@@ -32,7 +32,7 @@ from util import regex_match, check_DNS, check_Allowed_IPs, check_remote_endpoin
 
 
 # Dashboard Version
-DASHBOARD_VERSION = 'v3.0.6'
+DASHBOARD_VERSION = 'v0.1.3 Mantis-Shrimp'
 
 # WireGuard's configuration path
 WG_CONF_PATH = None
@@ -100,7 +100,7 @@ def init_dashboard():
     if "Account" not in config:
         config['Account'] = {}
     if "username" not in config['Account']:
-        config['Account']['username'] = 'admin'
+        #config['Account']['username'] = 'admin'
         wg_dash_user = os.environ.get('WG_DASH_USER')
         config['Account']['username'] = wg_dash_user
 

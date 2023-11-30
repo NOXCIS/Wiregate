@@ -103,3 +103,11 @@ set_pihole_password() {
     fi
 
 }
+
+set_pihole_config() {
+    clear
+    pihole_install_title
+    set_pihole_tz
+    set_pihole_password
+}
+

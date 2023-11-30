@@ -1,67 +1,103 @@
 #!/bin/bash
 
-app_name="dashboard.py"
-app_official_name="WGDashboard"
-
-dashes='------------------------------------------------------------'
-equals='============================================================'
-
-
-
 start_wgd () {
     #create_wiresentinel_user &&
+    iptables -L
     uwsgi --ini wg-uwsgi.ini
     #uwsgi --uid wiresentinel --ini wg-uwsgi.ini
     #su - wiresentinel -c "uwsgi --ini ./wg-uwsgi.ini"
 }
 
+newconf_wgd () {
+  newconf_wgd0
+  newconf_wgd1
+  newconf_wgd2
+  newconf_wgd3
+}
 
 
 
-
-
-
-
-
-
-newconf_wgd() {
-  local num_configs=$CONFIG_CT
-  local listen_port=$START_PORT
-  local address_prefix="10."
-
-  for ((i = 0; i < num_configs; i++)); do
-    local listen_port_str="$listen_port"
-    local address_str="${address_prefix}$((i / 256)).$((i % 256)).1/24"
+newconf_wgd0() {
+    local port_wg0=$START_PORT
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
-    local file_number=$((i))
-    if [[ $file_number -eq 0 ]]; then
-      file_number="0"
-    fi
 
-    cat <<EOF >"/etc/wireguard/wg$file_number.conf"
+    cat <<EOF >"/etc/wireguard/admins.conf"
 [Interface]
 PrivateKey = $private_key
-Address = $address_str
-ListenPort = $listen_port_str
+Address = 10.0.0.1/24
+ListenPort = $port_wg0
 SaveConfig = true
-PostUp = iptables -t nat -I POSTROUTING -o eth0 -j MASQUERADE
-PreDown = iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+PostUp =  /home/app/FIREWALLS/Admins/wg0-nat.sh
+PreDown = /home/app/FIREWALLS/Admins/wg0-dwn.sh
+
 EOF
-
-    #echo "Generated wg$file_number.conf"
-    ((listen_port++))
-
-  done
-
-  if [ ! -f "/master-key/master.conf" ]; then
-    make_master_config # Only call make_master_config if master.conf doesn't exist
-  fi 
+    if [ ! -f "/master-key/master.conf" ]; then
+        make_master_config  # Only call make_master_config if master.conf doesn't exist
+    fi 
 }
 
+
+newconf_wgd1() {
+    local port_wg1=$START_PORT
+    local port_wg1=$((port_wg1 + 1))
+    private_key=$(wg genkey)
+    public_key=$(echo "$private_key" | wg pubkey)
+
+    cat <<EOF >"/etc/wireguard/members.conf"
+[Interface]
+PrivateKey = $private_key
+Address = 192.168.10.1/24
+ListenPort = $port_wg1
+SaveConfig = true
+PostUp =  /home/app/FIREWALLS/Members/wg1-nat.sh
+PreDown = /home/app/FIREWALLS/Members/wg1-dwn.sh
+
+EOF
+}
+
+
+
+newconf_wgd2() {
+    local port_wg2=$START_PORT
+    local port_wg2=$((port_wg2 + 2))
+    private_key=$(wg genkey)
+    public_key=$(echo "$private_key" | wg pubkey)
+
+    cat <<EOF >"/etc/wireguard/lans.conf"
+[Interface]
+PrivateKey = $private_key
+Address = 172.16.0.1/24
+ListenPort = $port_wg2
+SaveConfig = true
+PostUp =  /home/app/FIREWALLS/LAN-only-users/wg2-nat.sh
+PreDown = /home/app/FIREWALLS/LAN-only-users/wg2-dwn.sh
+
+EOF
+}
+
+newconf_wgd3() {
+    local port_wg3=$START_PORT
+    local port_wg3=$((port_wg3 + 3))
+    private_key=$(wg genkey)
+    public_key=$(echo "$private_key" | wg pubkey)
+
+    cat <<EOF >"/etc/wireguard/guests.conf"
+[Interface]
+PrivateKey = $private_key
+Address = 192.168.20.1/24
+ListenPort = $port_wg3
+SaveConfig = true
+PostUp =  /home/app/FIREWALLS/Guest/wg3-nat.sh
+PreDown = /home/app/FIREWALLS/Guest/wg3-dwn.sh
+
+EOF
+}
+
+
 make_master_config() {
-        local svr_config="/etc/wireguard/wg0.conf"
+        local svr_config="/etc/wireguard/admins.conf"
         # Check if the specified config file exists
         if [ ! -f "$svr_config" ]; then
             echo "Error: Config file $svr_config not found."
@@ -115,12 +151,7 @@ PresharedKey = $preshared_key
 EOF
 }
 
-start_wgd_debug() {
-  printf "%s\n" "$dashes" > /dev/null 2>&1
-  printf "| Starting WGDashboard in the foreground.                  |\n" > /dev/null 2>&1
-  python3 "$app_name" > /dev/null 2>&1
-  printf "%s\n" "$dashes" > /dev/null 2>&1
-}
+
 
 
 
