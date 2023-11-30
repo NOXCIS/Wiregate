@@ -41,8 +41,9 @@ PrivateKey = $private_key
 Address = 10.0.0.1/24
 ListenPort = 770
 SaveConfig = true
-PostUp =  /home/app/wg0-nat.sh
-PreDown = iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
+PostUp =  /home/app/Admins/wg0-nat.sh
+PreDown = /home/app/Admins/wg0-dwn.sh
+
 EOF
 
    
@@ -64,7 +65,8 @@ PrivateKey = $private_key
 Address = 192.168.0.1/24
 ListenPort = 771
 SaveConfig = true
-PostUp =  /home/app/wg1-nat.sh
+PostUp =  /home/app/Guest/wg1-nat.sh
+PreDown = /home/app/Guest/wg1-dwn.sh
 
 EOF
 }
@@ -82,7 +84,8 @@ PrivateKey = $private_key
 Address = 172.16.0.1/24
 ListenPort = 772
 SaveConfig = true
-PostUp =  /home/app/wg2-nat.sh
+PostUp =  /home/app/Resdnts/wg2-nat.sh
+PreDown = /home/app/Resdnts/wg2-dwn.sh
 
 EOF
 }
