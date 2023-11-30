@@ -23,57 +23,6 @@ update_server_ip() {
         echo "$yml_file not found."
     fi
 }
-set_config_count() {
-    local count=""
-    local timer=$TIMER_VALUE
-    local user_activity=false
-
-    set_config_count_title
-
-    while [ $timer -gt 0 ]; do
-        clear  # Clear the screen
-
-        # Print the updated timer value
-        set_config_count_title
-        echo "Press Enter to set the amount of WireGuard Server Interfaces to generate $(tput setaf 1)timeout in ($(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1)) seconds : $(tput sgr0)"
-        
-        # Decrement the timer value by 1
-        timer=$((timer - 1))
-
-        # Check for user activity
-        if read -t 1 -n 1; then
-            user_activity=true
-            break
-        fi
-    done
-    
-    if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
-        count=1
-        export INTERFACE_COUNT="$count"
-    fi
-
-    if [[ "$user_activity" == true ]]; then
-        # Prompt user to enter and confirm their password
-        while true; do
-            read -p "$(tput setaf 3)Enter # of WireGuard Interfaces to generate: $(tput sgr0)" count 
-            
-            
-
-            if [[ -z "$$count" ]]; then
-                echo -e "\033[31mValue cannot be empty. Please try again.\033[0m"
-                continue
-            fi
-            
-                # Passwords match, set the Database Password
-                export INTERFACE_COUNT="$count"
-                break
-            
-        done
-    fi
-
-
-
-}
 set_port_range() {
 
     local timer=$TIMER_VALUE
@@ -292,20 +241,6 @@ set_wg-dash_user() {
                 echo -e "\033[31mUsername cannot be empty. Please try again.\033[0m"
                 continue
             fi
-            
-            read -p "$(tput setaf 3)Confirm Username for Wireguard Dashboard:$(tput sgr0) " confirm_user
-            
-            
-
-            if [[ "$wgdash_user" != "$confirm_user" ]]; then
-                echo -e "\033[31mUsernames do not match. Please try again.\033[0m"
-            else
-                # Passwords match, set the Database Password
-
-
-                #sed -i -E "s|^( *- name: ).*|\1$wgdash_user|" "$adguard_yaml_file"
-
-
 
                 export WG_DASH_USER="$wgdash_user"
                 break

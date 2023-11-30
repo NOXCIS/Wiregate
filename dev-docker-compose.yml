@@ -52,8 +52,8 @@ services:
       - WG_DASH_PASS_ENCRYPTED="$$2a$$12$$DqKBORUB7.3sBiUXNQ8Fg.mX861V0jI3qwVGAAjNt9UCBjdMRLHeW"
       - WGDASH_SECRET_KEY=nidfsnnsknfkscsnksjnjc
       - SERVER_IP=0.0.0.0
-      - CONFIG_CT=3
-      - START_PORT=770
+      - CONFIG_CT=4
+      - START_PORT=7700
     ports:
       - "770-772:770-772/udp"
     sysctls:

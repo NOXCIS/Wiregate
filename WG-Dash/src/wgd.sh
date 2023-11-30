@@ -1,72 +1,60 @@
 #!/bin/bash
 
-app_name="dashboard.py"
-app_official_name="WGDashboard"
-
-dashes='------------------------------------------------------------'
-equals='============================================================'
-
 
 
 start_wgd () {
     #create_wiresentinel_user &&
+    iptables -L
     uwsgi --ini wg-uwsgi.ini
     #uwsgi --uid wiresentinel --ini wg-uwsgi.ini
     #su - wiresentinel -c "uwsgi --ini ./wg-uwsgi.ini"
 }
 
-
-
-
-
-
 newconf_wgd () {
   newconf_wgd0
   newconf_wgd1
   newconf_wgd2
+  newconf_wgd3
 }
 
 
 
 newconf_wgd0() {
-  local num_configs=$CONFIG_
+    local port_wg0=$START_PORT
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
-  
 
     cat <<EOF >"/etc/wireguard/wg0.conf"
 [Interface]
 PrivateKey = $private_key
 Address = 10.0.0.1/24
-ListenPort = 770
+ListenPort = $port_wg0
 SaveConfig = true
 PostUp =  /home/app/Admins/wg0-nat.sh
 PreDown = /home/app/Admins/wg0-dwn.sh
 
 EOF
-
-   
-
-  if [ ! -f "/master-key/master.conf" ]; then
-    make_master_config  # Only call make_master_config if master.conf doesn't exist
-  fi 
+    if [ ! -f "/master-key/master.conf" ]; then
+        make_master_config  # Only call make_master_config if master.conf doesn't exist
+    fi 
 }
 
 
 newconf_wgd1() {
-  local num_configs=$CONFIG_
+    local port_wg1=$START_PORT
+    local port_wg1=$((port_wg1 + 1))
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
     cat <<EOF >"/etc/wireguard/wg1.conf"
 [Interface]
 PrivateKey = $private_key
-Address = 192.168.0.1/24
-ListenPort = 771
+Address = 192.168.10.1/24
+ListenPort = $port_wg1
 SaveConfig = true
-PostUp =  /home/app/Guest/wg1-nat.sh
-PreDown = /home/app/Guest/wg1-dwn.sh
+PostUp =  /home/app/Members/wg1-nat.sh
+PreDown = /home/app/Members/wg1-dwn.sh
 
 EOF
 }
@@ -74,7 +62,8 @@ EOF
 
 
 newconf_wgd2() {
-  local num_configs=$CONFIG_
+    local port_wg2=$START_PORT
+    local port_wg2=$((port_wg2 + 2))
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
@@ -82,10 +71,28 @@ newconf_wgd2() {
 [Interface]
 PrivateKey = $private_key
 Address = 172.16.0.1/24
-ListenPort = 772
+ListenPort = $port_wg2
 SaveConfig = true
 PostUp =  /home/app/Resdnts/wg2-nat.sh
 PreDown = /home/app/Resdnts/wg2-dwn.sh
+
+EOF
+}
+
+newconf_wgd3() {
+    local port_wg3=$START_PORT
+    local port_wg3=$((port_wg3 + 3))
+    private_key=$(wg genkey)
+    public_key=$(echo "$private_key" | wg pubkey)
+
+    cat <<EOF >"/etc/wireguard/wg3.conf"
+[Interface]
+PrivateKey = $private_key
+Address = 192.168.20.1/24
+ListenPort = $port_wg3
+SaveConfig = true
+PostUp =  /home/app/Guest/wg3-nat.sh
+PreDown = /home/app/Guest/wg3-dwn.sh
 
 EOF
 }

@@ -66,6 +66,10 @@ export TIMER_VALUE=0
                 nuke_bash_hist &&
                 return
         }
+
+
+
+
     #RUN_ADGUARD_SETUP
         run_adguard_setup() {
         #WIREGUARD
@@ -118,7 +122,6 @@ export TIMER_VALUE=0
                 TIMER_VALUE=0
                 clear &&
                 pihole_install_title &&
-                set_config_count &&
                 set_port_range &&
                 set_pihole_password &&
                 run_pihole_setup 
@@ -130,7 +133,6 @@ export TIMER_VALUE=0
                 clear &&
                 pihole_install_title &&
                 set_timer_value &&
-                set_config_count &&
                 set_port_range &&
                 set_pihole_password &&
                 run_pihole_setup
@@ -169,7 +171,6 @@ export TIMER_VALUE=0
                 TIMER_VALUE=0
                 clear &&
                 adguard_install_title &&
-                set_config_count &&
                 set_port_range &&
                 set_adguard_user &&
                 set_adguard_pass &&
@@ -182,7 +183,6 @@ export TIMER_VALUE=0
                 clear &&
                 adguard_install_title &&
                 set_timer_value &&
-                set_config_count &&
                 set_port_range &&
                 set_adguard_user &&
                 set_adguard_pass &&
@@ -268,27 +268,27 @@ export TIMER_VALUE=0
         
     }
     encrypt_file() {
-    local characters="A-Za-z0-9!@#$%^&*()"
-    local file_path="./WG-Dash/master-key/master.conf"
-    local password=$(head /dev/urandom | tr -dc "$characters" | head -c 16)
+        local characters="A-Za-z0-9!@#$%^&*()"
+        local file_path="./WG-Dash/master-key/master.conf"
+        local password=$(head /dev/urandom | tr -dc "$characters" | head -c 16)
 
-    # Generate a salt
-    salt=$(openssl rand -base64 8 | tr -d '=')
+        # Generate a salt
+        salt=$(openssl rand -base64 8 | tr -d '=')
 
-    # Derive the encryption key from the password and salt using PBKDF2
-    encryption_key=$(echo -n "$password$salt" | openssl dgst -sha256 -binary | xxd -p -c 256)
+        # Derive the encryption key from the password and salt using PBKDF2
+        encryption_key=$(echo -n "$password$salt" | openssl dgst -sha256 -binary | xxd -p -c 256)
 
-    # Encrypt the file using aes-256-cbc algorithm with the derived key
-    openssl enc -aes-256-cbc -in "$file_path" -out "${file_path}.enc" -K "$encryption_key" -iv 0
+        # Encrypt the file using aes-256-cbc algorithm with the derived key
+        openssl enc -aes-256-cbc -in "$file_path" -out "${file_path}.enc" -K "$encryption_key" -iv 0
 
-    if [ $? -eq 0 ]; then
-        echo "Worm-Hole Master Key encrypted successfully."
-        # You can optionally remove the original unencrypted file
-        rm "$file_path"
-    else
-        echo "Worm-Hole Master Key encryption failed."
-    fi
-    export MASTER_KEY_PASSWORD="$password"
+        if [ $? -eq 0 ]; then
+            echo "Worm-Hole Master Key encrypted successfully."
+            # You can optionally remove the original unencrypted file
+            rm "$file_path"
+        else
+            echo "Worm-Hole Master Key encryption failed."
+        fi
+        export MASTER_KEY_PASSWORD="$password"
     }
     nuke_bash_hist() {
         # Overwrite ~/.bash_history with "noxcis" 42 times
@@ -301,7 +301,8 @@ export TIMER_VALUE=0
         done
         history -c
         clear
-}
+    }
+
 
 
 

@@ -5,11 +5,14 @@ chmod u+x /home/app/wgd.sh
 chmod u+x /home/app/Admins/wg0-dwn.sh
 chmod u+x /home/app/Admins/wg0-nat.sh
 
-chmod u+x /home/app/Guest/wg1-dwn.sh
-chmod u+x /home/app/Guest/wg1-nat.sh
+chmod u+x /home/app/Members/wg1-dwn.sh
+chmod u+x /home/app/Members/wg1-nat.sh
 
 chmod u+x /home/app/Resdnts/wg2-dwn.sh
 chmod u+x /home/app/Resdnts/wg2-nat.sh
+
+chmod u+x /home/app/Guest/wg3-dwn.sh
+chmod u+x /home/app/Guest/wg3-nat.sh
 
 
 if [ ! -f "/etc/wireguard/wg0.conf" ]; then
