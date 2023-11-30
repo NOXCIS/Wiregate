@@ -1,6 +1,9 @@
 #!/bin/bash
-chmod u+x /home/app/postup.sh
+
 chmod u+x /home/app/wgd.sh
+chmod u+x /home/app/wg0-nat.sh
+chmod u+x /home/app/wg1-nat.sh
+chmod u+x /home/app/wg2-nat.sh
 
 if [ ! -f "/etc/wireguard/wg0.conf" ]; then
     /home/app/wgd.sh newconfig

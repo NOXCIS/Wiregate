@@ -41,7 +41,7 @@ PrivateKey = $private_key
 Address = 10.0.0.1/24
 ListenPort = 770
 SaveConfig = true
-PostUp =  /home/app/postup.sh
+PostUp =  /home/app/wg0-nat.sh
 PreDown = iptables -t nat -D POSTROUTING -o eth0 -j MASQUERADE
 EOF
 
@@ -61,9 +61,11 @@ newconf_wgd1() {
     cat <<EOF >"/etc/wireguard/wg1.conf"
 [Interface]
 PrivateKey = $private_key
-Address = 10.0.1.1/24
+Address = 192.168.0.1/24
 ListenPort = 771
 SaveConfig = true
+PostUp =  /home/app/wg1-nat.sh
+
 EOF
 }
 
@@ -77,9 +79,11 @@ newconf_wgd2() {
     cat <<EOF >"/etc/wireguard/wg2.conf"
 [Interface]
 PrivateKey = $private_key
-Address = 10.0.2.1/24
+Address = 172.16.0.1/24
 ListenPort = 772
 SaveConfig = true
+PostUp =  /home/app/wg2-nat.sh
+
 EOF
 }
 
