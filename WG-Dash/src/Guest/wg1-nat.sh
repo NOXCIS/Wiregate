@@ -16,7 +16,7 @@ iptables -A FORWARD -j $CHAIN_NAME
 iptables -A $CHAIN_NAME -o $WIREGUARD_INTERFACE -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 
 # Accept traffic from any Wireguard IP address connected to the Wireguard server
-iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -j ACCEPT
+#iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -j ACCEPT
 
 
 # DNS
