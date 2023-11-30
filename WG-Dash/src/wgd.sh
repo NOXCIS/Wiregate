@@ -1,7 +1,5 @@
 #!/bin/bash
 
-
-
 start_wgd () {
     #create_wiresentinel_user &&
     iptables -L
@@ -73,8 +71,8 @@ PrivateKey = $private_key
 Address = 172.16.0.1/24
 ListenPort = $port_wg2
 SaveConfig = true
-PostUp =  /home/app/FIREWALLS/Resdnts/wg2-nat.sh
-PreDown = /home/app/FIREWALLS/Resdnts/wg2-dwn.sh
+PostUp =  /home/app/FIREWALLS/LAN-only-users/wg2-nat.sh
+PreDown = /home/app/FIREWALLS/LAN-only-users/wg2-dwn.sh
 
 EOF
 }
@@ -153,12 +151,7 @@ PresharedKey = $preshared_key
 EOF
 }
 
-start_wgd_debug() {
-  printf "%s\n" "$dashes" > /dev/null 2>&1
-  printf "| Starting WGDashboard in the foreground.                  |\n" > /dev/null 2>&1
-  python3 "$app_name" > /dev/null 2>&1
-  printf "%s\n" "$dashes" > /dev/null 2>&1
-}
+
 
 
 

@@ -8,8 +8,8 @@ chmod u+x /home/app/FIREWALLS/Admins/wg0-nat.sh
 chmod u+x /home/app/FIREWALLS/Members/wg1-dwn.sh
 chmod u+x /home/app/FIREWALLS/Members/wg1-nat.sh
 
-chmod u+x /home/app/FIREWALLS/Resdnts/wg2-dwn.sh
-chmod u+x /home/app/FIREWALLS/Resdnts/wg2-nat.sh
+chmod u+x /home/app/FIREWALLS/LAN-only-users/wg2-dwn.sh
+chmod u+x /home/app/FIREWALLS/LAN-only-users/wg2-nat.sh
 
 chmod u+x /home/app/FIREWALLS/Guest/wg3-dwn.sh
 chmod u+x /home/app/FIREWALLS/Guest/wg3-nat.sh

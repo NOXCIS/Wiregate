@@ -86,8 +86,24 @@ pihole_compose_swap() {
     cat Global-Configs/Docker-Compose/pihole-docker-compose.yml > "$yml_file"
     
 }
-sqwip() {
-    TIMER_VALUE=0
-    set_pihole_password &&
-    TIMER_VALUE=5
+unbound_config_swap() {
+    local yml_file="Global-Configs/Unbound/custom-unbound.conf"
+    cat "$yml_file" > Global-Configs/Unbound/cloud-deploy/cloud-unbound.conf
+    sudo rm "$yml_file"
+    cat Global-Configs/Unbound/local-deploy/local-unbound.conf > "$yml_file"
+    clear
+    echo "Successfully swapped to Local Deployment."
+    menu
+    
+}
+
+
+unbound_config_swapback() {
+    local yml_file="Global-Configs/Unbound/custom-unbound.conf"
+    sudo rm "$yml_file"
+    cat Global-Configs/Unbound/cloud-deploy/cloud-unbound.conf > "$yml_file"
+    clear
+    echo "Successfully swapped to Cloud Deployment."
+    menu
+    
 }

@@ -1,27 +1,10 @@
 #!/bin/bash
 
 update_server_ip() {
-    local yml_file="docker-compose.yml"
-    local ip
 
-        read -t $TIMER_VALUE -p "Do you want to automatically set the server IP address? $(tput setaf 1)(y/n)$(tput sgr0) " auto_ip
-        
-    if [[ $auto_ip =~ ^[Nn]$ ]]; then
-        read -p "Please enter the server IP address $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)127.0.0.1$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " ip
-        ip=${ip:-127.0.0.1}
-        
-    else
         ip=$(hostname -I | awk '{print $1}')
-    fi
-
-    if [[ -f "$yml_file" ]]; then
-
         export SERVER_IP="$ip"
-        echo -e "Server IP address has been set to \033[32m$ip\033[0m"
-        
-    else
-        echo "$yml_file not found."
-    fi
+
 }
 set_port_range() {
 
@@ -73,7 +56,7 @@ set_port_range() {
 
 }
 generate_wireguard_qr() {
-    local config_file="./WG-Dash/master-key/master.conf"
+    local config_file="./Global-Configs/Master-Key/master.conf"
     sleep 2s
     if ! [ -f "$config_file" ]; then
         echo "Error: Config file not found thi."
@@ -84,7 +67,7 @@ generate_wireguard_qr() {
     master_key_title
     printf "%s\n" "$stars"
     printf "%s\n" "$dashes"
-    cat ./WG-Dash/master-key/master.conf | sed 's/.*/\x1b[33m&\x1b[0m/'
+    cat ./Global-Configs/Master-Key/master.conf | sed 's/.*/\x1b[33m&\x1b[0m/'
     printf "%s\n" "$equals"
     printf "%s\n"
     qrencode -t ANSIUTF8 < "$config_file"

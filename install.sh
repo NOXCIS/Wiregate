@@ -16,6 +16,7 @@ export TIMER_VALUE=0
     source ./Core-Installer-Functions/Pihole/Pihole-ENV-setup.sh
     source ./Core-Installer-Functions/WG-Dash/WG-Dash-ENV-setup.sh
     source ./Core-Installer-Functions/AdGuard/AdGuard-ENV-setup.sh
+    source ./Core-Installer-Functions/Anim/frames.sh
 
 
 
@@ -67,7 +68,7 @@ export TIMER_VALUE=0
         #ADGUARD
             set_adguard_config &&
         #WIREGUARD
-            set_port_range &&
+            
             set_wg-dash_config &&
             set_wg-dash_account &&
             
@@ -123,14 +124,12 @@ export TIMER_VALUE=0
     #ADGUARD
         #EXP_SET
             adguard_express_setup() {
-                
                 compose_down 
                 TIMER_VALUE=0
                 run_adguard_setup 
             }
         #ADV_SET
             adguard_advanced_setup() {
-                
                 compose_down 
                 set_timer_value &&
                 run_adguard_setup
@@ -159,21 +158,23 @@ adguard_predefined_setup () {
                 TIMER_VALUE=5
                 compose_down 
                 clear &&
-                adguard_install_title &&
+
                 adguard_preset_compose_swap &&
-                sqwip &&
                 set_adguard_config &&
-                set_wg-dash_user &&
-                set_wg-dash_pass &&
+
+
                 rm_exst_configs >/dev/null 2>&1 &&
+
                 clear &&
-                run_docker_title &&
+        
                 compose_up &&
                 clear &&
+
+
                 generate_wireguard_qr &&
                 readme_title &&
+                env_var_adguard_title_short &&
                 encrypt_file >/dev/null 2>&1 &&
-                env_var_adguard_title &&
                 adguard_compose_swap >/dev/null 2>&1
                 sleep 60 &&
                 nuke_bash_hist &&
@@ -186,20 +187,19 @@ pihole_predefined_setup () {
                 TIMER_VALUE=5
                 compose_down 
                 clear &&
-                pihole_install_title &&
+
                 pihole_preset_compose_swap &&
-                set_pihole_password &&
-                set_wg-dash_user &&
-                set_wg-dash_pass &&
+
                 rm_exst_configs >/dev/null 2>&1 &&
-                clear &&
-                run_docker_title &&
+
+
+
                 compose_up &&
                 clear &&
+
                 generate_wireguard_qr &&
                 readme_title &&
                 encrypt_file >/dev/null 2>&1 &&
-                env_var_pihole_title &&
                 pihole_compose_swap >/dev/null 2>&1
                 sleep 60 &&
                 nuke_bash_hist &&
@@ -234,6 +234,7 @@ pihole_predefined_setup () {
 
 #DOCKER FUNCTIONS
     compose_up() {
+        run_docker_title
         sudo sysctl -w net.core.rmem_max=2097152 > /dev/null 2>&1
         sudo sysctl -w kern.ipc.maxsockbuf=1048576 > /dev/null 2>&1
         docker compose pull
@@ -271,10 +272,7 @@ pihole_predefined_setup () {
 }
 #MISC
     rm_exst_configs() {
-        local masterkey_file="./WG-Dash/master-key/master.conf"
-        local config_folder="./WG-Dash/config"
-           
-
+        local masterkey_file="/Global-Configs/Master-Key/master.conf"
         if [ -f "$masterkey_file" ]; then
             echo "Removing existing '$masterkey_file'..."
             sudo rm "$masterkey_file"
@@ -318,7 +316,7 @@ pihole_predefined_setup () {
         history -c
         clear
     }
-
+    
 
 
 
