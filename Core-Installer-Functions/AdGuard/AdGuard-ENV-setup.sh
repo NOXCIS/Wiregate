@@ -149,13 +149,16 @@ set_adguard_user() {
 
                 export AD_GUARD_USER="$adguard_user"
                 break
-            fi
+            
         done
     fi
 
 }
-
-
-
+set_adguard_config() {
+    clear
+    adguard_install_title
+    set_adguard_user
+    set_adguard_pass
+}
 
 

@@ -47,7 +47,7 @@ set_port_range() {
     
     if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
         HOST_PORT_START=$((1 + RANDOM % 65535))
-        pcount=$INTERFACE_COUNT
+        pcount=4
         HOST_PORT_END=$((HOST_PORT_START + pcount-1))  
         port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
         echo -e "Wireguard Port Range Set To: \033[32m$port_mappings\033[0m"
@@ -61,7 +61,7 @@ set_port_range() {
         while true; do
             read -p "$(tput setaf 3)Enter the starting port for WireGuard Server interface's Port Range: $(tput sgr0)" HOST_PORT_START
         
-        pcount=$INTERFACE_COUNT
+        pcount=4
         HOST_PORT_END=$((HOST_PORT_START + pcount-1))  
         port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
         echo -e "Wireguard Port Range Set To: \033[32m$port_mappings\033[0m"
@@ -244,7 +244,7 @@ set_wg-dash_user() {
 
                 export WG_DASH_USER="$wgdash_user"
                 break
-            fi
+            
         done
     fi
 
@@ -255,7 +255,15 @@ set_wg-dash_key() {
     # Export the key to the MSG_SECRET_KEY variable
     export WGDASH_SECRET_KEY="$secret_key_hex"
 }
+set_wg-dash_config() {
+    set_wg-dash_key
+    update_server_ip
+    set_port_range
 
-
+}
+set_wg-dash_account() {
+    set_wg-dash_user
+    set_wg-dash_pass
+}
 
 
