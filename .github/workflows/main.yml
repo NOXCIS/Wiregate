@@ -36,5 +36,5 @@ jobs:
         with:
           context: Channels/  # Path to the directory containing the Dockerfile (subfolder)
           push: true
-          tags: noxcis/channels:mantis-shrimp
+          tags: noxcis/channels:marlin
           platforms: linux/amd64,linux/arm64
