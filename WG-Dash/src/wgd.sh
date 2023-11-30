@@ -23,7 +23,7 @@ newconf_wgd0() {
     public_key=$(echo "$private_key" | wg pubkey)
 
 
-    cat <<EOF >"/etc/wireguard/wg0.conf"
+    cat <<EOF >"/etc/wireguard/admins.conf"
 [Interface]
 PrivateKey = $private_key
 Address = 10.0.0.1/24
@@ -45,7 +45,7 @@ newconf_wgd1() {
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
-    cat <<EOF >"/etc/wireguard/wg1.conf"
+    cat <<EOF >"/etc/wireguard/members.conf"
 [Interface]
 PrivateKey = $private_key
 Address = 192.168.10.1/24
@@ -65,7 +65,7 @@ newconf_wgd2() {
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
-    cat <<EOF >"/etc/wireguard/wg2.conf"
+    cat <<EOF >"/etc/wireguard/lans.conf"
 [Interface]
 PrivateKey = $private_key
 Address = 172.16.0.1/24
@@ -83,7 +83,7 @@ newconf_wgd3() {
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
-    cat <<EOF >"/etc/wireguard/wg3.conf"
+    cat <<EOF >"/etc/wireguard/guests.conf"
 [Interface]
 PrivateKey = $private_key
 Address = 192.168.20.1/24
@@ -97,7 +97,7 @@ EOF
 
 
 make_master_config() {
-        local svr_config="/etc/wireguard/wg0.conf"
+        local svr_config="/etc/wireguard/admins.conf"
         # Check if the specified config file exists
         if [ ! -f "$svr_config" ]; then
             echo "Error: Config file $svr_config not found."

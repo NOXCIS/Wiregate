@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-WIREGUARD_INTERFACE=wg3
+WIREGUARD_INTERFACE=guests
 WIREGUARD_LAN=192.168.20.1/24
 MASQUERADE_INTERFACE=eth0
 
@@ -15,8 +15,8 @@ iptables -A FORWARD -j $CHAIN_NAME
 # Accept related or established traffic
 iptables -A $CHAIN_NAME -o $WIREGUARD_INTERFACE -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 
-# Drop incoming traffic from wg1 to wg-dashboard
-iptables -A INPUT -i wg3 -j DROP
+# Drop incoming traffic from guests to wg-dashboard
+iptables -A INPUT -i $WIREGUARD_INTERFACE -j DROP
 
 # DNS
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.100 -p udp --dport 53 -j ACCEPT

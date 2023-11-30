@@ -1,7 +1,7 @@
 #!/bin/bash
 
 
-WIREGUARD_INTERFACE=wg2
+WIREGUARD_INTERFACE=lans
 WIREGUARD_LAN=172.16.0.1/24
 MASQUERADE_INTERFACE=eth0
 
@@ -15,9 +15,7 @@ iptables -A FORWARD -j $CHAIN_NAME
 # Accept related or established traffic
 iptables -A $CHAIN_NAME -o $WIREGUARD_INTERFACE -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 
-# Accept traffic from any Wireguard IP address connected to the Wireguard server
-#iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -j ACCEPT
-
+#Accept on connections to peers of LAN zone only
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 172.16.0.1/24 -j ACCEPT
 
 # Drop everything else coming through the Wireguard interface

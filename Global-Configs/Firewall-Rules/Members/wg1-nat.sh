@@ -1,5 +1,5 @@
 #!/bin/bash
-WIREGUARD_INTERFACE=wg1
+WIREGUARD_INTERFACE=members
 WIREGUARD_LAN=192.168.10.1/24
 MASQUERADE_INTERFACE=eth0
 
@@ -14,7 +14,7 @@ iptables -A FORWARD -j $CHAIN_NAME
 iptables -A $CHAIN_NAME -o $WIREGUARD_INTERFACE -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
 
 # Drop incoming traffic from wg1 to wg-dashboard
-iptables -A INPUT -i wg1 -j DROP
+iptables -A INPUT -i $WIREGUARD_INTERFACE -j DROP
 
 # DNS
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.100 -p udp --dport 53 -j ACCEPT
