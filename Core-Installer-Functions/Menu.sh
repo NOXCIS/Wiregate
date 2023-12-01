@@ -39,7 +39,7 @@ pihole_install_menu() {
     echo "2. Advanced Install"
     echo "3. Custom PreConfigured Install"
     echo "4. Reset Wormhole Deployment"
-    echo "5. Exit"
+    echo "5. Back to Main Menu"
     read -p "Enter your choice: " choice
     echo ""
 
@@ -62,7 +62,7 @@ adguard_install_menu() {
     echo "2. Advanced Install"
     echo "3. Custom PreConfigured Install"
     echo "4. Reset Wormhole Deployment"
-    echo "5. Exit"
+    echo "5. Back to Main Menu"
     read -p "Enter your choice: " choice
     echo ""
 
