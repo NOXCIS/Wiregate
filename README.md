@@ -279,15 +279,28 @@ Inspired by the Project 2 of Harvard's [CS50’s Web Programming with Python and
 
 ## Access WG-DashBoard
 
-  
-
-  
-
-While connected to WireGate, navigate to http://wire.gate/
-
-  
-
+While connected to WireGate, navigate to http://wire.gate/  
 *The **password** & **username** are randomly generated and **provided in the final output** if not set manually.*
+
+WireGate uses a modified version of WG-Dashboard by [Donald Zou](https://github.com/donaldzou), with the following modifications.
+
+- **Dockerized** (For isolation from the main host and easy deployment)
+- **User Interface Modification** (for readability)
+- **Auto Generate and Start Wireguard Configs**
+-  **Added Postup and Postdown Firewall Rules** for  generated wireguard configs (ZONES)
+- **Flask App Secret Key** passed as shell generated environment variable (because flask-key relied on the website URL to be generated)
+- **Username & Password** passed as shell generated environment variable (because of hard coded admin defaults)
+- **UWSGI** instead of Gunicorn
+- **Refactored Code based** (For UWSGI compatibility)
+- **Bcrypt** instead of SHA256 (because of hard coded password)
+- **Removed Update checks** to [Donald Zou](https://github.com/donaldzou) WG-Dashboard repo (because of 
+cybersecurity paranoia)  
+
+
+
+  
+
+
 
   
 
