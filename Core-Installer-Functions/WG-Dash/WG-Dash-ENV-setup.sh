@@ -138,13 +138,7 @@ set_wg-dash_pass() {
             else
                 # Passwords match, set the Database Password
                 
-                output=$(htpasswd -B -n -b "$username" "$wgdash_pass")
-                
-                # Use sed to delete the first 5 characters of $output and assign it to wgdash_password
-                manual_adguard_password=$(echo "$output" | sed 's/.....//')
-                
 
-                #sed -i -E "s|^( *password: ).*|\1$manual_adguard_password|" "$adguard_yaml_file"
 
 
 
