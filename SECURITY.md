@@ -4,7 +4,7 @@ Versions currently being supported with security updates.
 
 | Version | Supported          |
 | ------- | ------------------ |
-| 0.0.9   | :white_check_mark: |
-| 0.0.8   | :white_check_mark: |
-| < 0.0.8   | :x:                |
+| 0.1.4   | :white_check_mark: |
+| 0.1.3   | :white_check_mark: |
+| < 0.1.2   | :x:                |
 
