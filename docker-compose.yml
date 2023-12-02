@@ -7,6 +7,8 @@ networks:
       config:
         - subnet: 10.2.0.0/24
 
+    
+
 services:
   unbound:
     image: "klutchell/unbound:latest"
@@ -20,21 +22,22 @@ services:
         ipv4_address: 10.2.0.200
 
   wg_dashboard:
-    depends_on: [unbound, pihole]
-    #build: ./WG-Dash
-    image: noxcis/wg-dashboard:mantis-shrimp
+    depends_on: [unbound, adguard]
+    build: ./WG-Dash
+    #image: noxcis/wg-dashboard:mantis-shrimp
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
     restart: unless-stopped
     volumes:
+      - ./Global-Configs/Wiregate-Database:/home/app/db
       - ./Global-Configs/Master-Key:/home/app/master-key
       - ./Global-Configs/Firewall-Rules:/home/app/FIREWALLS
     environment:
       - WG_DASH_USER=${WG_DASH_USER}
       - WG_DASH_PASS=${WG_DASH_PASS}
-      - WGDASH_SECRET_KEY=${WGDASH_SECRET_KEY}
+      - WG_DASH_SECRET_KEY=${WG_DASH_SECRET_KEY}
       - WG_DASH_SERVER_IP=${WG_DASH_SERVER_IP}
       - WG_DASH_DNS=10.2.0.100, 10.2.0.100
       - WG_DASH_PEER_ENDPOINT_ALLOWED_IP=0.0.0.0/0
@@ -53,25 +56,16 @@ services:
 
 
 
-  pihole:
+  adguard:
     depends_on: [unbound]
-    container_name: pihole
-    image: pihole/pihole:latest
+    container_name: adguard
+    image: adguard/adguardhome
     restart: unless-stopped
-    hostname: pihole
-    dns:
-      - 10.2.0.200 # Points to unbound
-    environment:
-      TZ: "America/Chicago"
-      WEBPASSWORD: ${PI_HOLE_PASS}
-      ServerIP: 10.2.0.100 # Internal IP of pihole
-      DNS1: 10.2.0.200 # Unbound IP
-      DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
+    hostname: adguard
+    # Volumes store your data between container upgrades
     volumes:
-      - "./etc-pihole/:/etc/pihole/"
-      - "./etc-dnsmasq.d/:/etc/dnsmasq.d/"
-    cap_add:
-      - NET_ADMIN
+      - "./adguard/opt-adguard-work:/opt/adguardhome/work"
+      - "./adguard/opt-adguard-conf:/opt/adguardhome/conf"
     networks:
       private_network:
         ipv4_address: 10.2.0.100
@@ -98,6 +92,7 @@ services:
         ipv4_address: 10.2.0.4
     dns: 10.2.0.100
 
+
   db:
     container_name: channels_db
     image: postgres:13-alpine
@@ -112,5 +107,6 @@ services:
       private_network:
         ipv4_address: 10.2.0.5
     dns: 10.2.0.100
+
 volumes:
     postgres_data:

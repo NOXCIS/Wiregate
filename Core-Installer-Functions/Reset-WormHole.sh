@@ -1,6 +1,6 @@
 fresh_install() {
-    local masterkey_file="./WG-Dash/master-key/master.conf"
-    local config_folder="./WG-Dash/config"
+    local masterkey_file="./Global-Configs/Master-Key/master.conf"
+    local database_folder="./Global-Configs/Wiregate-Database"
     local yml_file="docker-compose.yml"
     
     clear
@@ -36,10 +36,10 @@ fresh_install() {
             echo "Existing '$masterkey_file' removed."
         fi
 
-        if [ -d "$config_folder" ]; then
-            echo "Removing existing '$config_folder'..."
-            sudo rm -r "$config_folder"
-            echo "Existing '$config_folder' removed."
+        if [ -d "$database_folder" ]; then
+            echo "Removing existing '$database_folder'..."
+            sudo rm -r "$database_folder"
+            echo "Existing '$database_folder' removed."
         fi
 
         echo "Removing existing Compose File"
