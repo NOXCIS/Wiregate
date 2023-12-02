@@ -278,6 +278,7 @@ pihole_predefined_setup () {
     dev_build() {
         compose_down &&
         docker-compose -f dev-docker-compose.yml up -d
+        echo -e "\033[33m"'Wireguard DashBoard Available at http://localhost:8080'
 
 
 
