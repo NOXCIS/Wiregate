@@ -32,7 +32,7 @@ from util import regex_match, check_DNS, check_Allowed_IPs, check_remote_endpoin
 
 
 # Dashboard Version
-DASHBOARD_VERSION = 'v0.1.3 Mantis-Shrimp'
+DASHBOARD_VERSION = 'v0.1.4 Cetus'
 
 # WireGuard's configuration path
 WG_CONF_PATH = None
