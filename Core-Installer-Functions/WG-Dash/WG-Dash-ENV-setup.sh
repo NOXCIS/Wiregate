@@ -34,8 +34,8 @@ set_port_range() {
         HOST_PORT_END=$((HOST_PORT_START + pcount-1))  
         port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
         echo -e "Wireguard Port Range Set To: \033[32m$port_mappings\033[0m"
-        export PORT_RANGE_START="$HOST_PORT_START"
-        export PORT_MAPPINGS="$port_mappings"
+        export WG_DASH_PORT_RANGE_STARTPORT="$HOST_PORT_START"
+        export WG_DASH_PORT_MAPPINGS="$port_mappings"
     fi
 
 
@@ -48,7 +48,7 @@ set_port_range() {
         HOST_PORT_END=$((HOST_PORT_START + pcount-1))  
         port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
         echo -e "Wireguard Port Range Set To: \033[32m$port_mappings\033[0m"
-        export WG_DASH_PORT_RANGE_START="$HOST_PORT_START"
+        export WG_DASH_PORT_RANGE_STARTPORT="$HOST_PORT_START"
         export WG_DASH_PORT_MAPPINGS="$port_mappings"
         break
         done

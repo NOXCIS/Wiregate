@@ -34,7 +34,7 @@ services:
     env_file:
       - ./Global-Configs/ENV-FILES/worm-hole.env
     ports:
-      - "770-777:770-777/udp"
+      - "${WG_DASH_PORT_MAPPINGS}"
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1

@@ -27,7 +27,7 @@ fresh_install() {
 
     if [[ $answer == [Yy] || -z $answer ]]; then
         port_mappings="770-777:770-777/udp"
-        export PORT_MAPPINGS="$port_mappings"
+        export WG_DASH_PORT_MAPPINGS="$port_mappings"
         docker compose down --volumes --remove-orphans
 
         if [ -f "$masterkey_file" ]; then

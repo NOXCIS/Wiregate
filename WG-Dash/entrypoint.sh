@@ -22,12 +22,15 @@ fi
 
 run_wireguard_up() {
   config_files=$(find /etc/wireguard -type f -name "*.conf")
-  
+
   for file in $config_files; do
     config_name=$(basename "$file" ".conf")
     chmod 600 "/etc/wireguard/$config_name.conf"
     wg-quick up "$config_name" 
+   
+   
   done
+  
 }
 
 
@@ -49,8 +52,22 @@ ________________________________________________________________________________
   echo ""
 }
 
-
+network_logs_out() {
+  echo ""
+  echo ""
+  echo -e "NETWORK INTERFACES--------------------------------------------------------------------------------\n"
+    ifconfig
+  echo ""
+  echo -e "IPTABLES LIST--------------------------------------------------------------------------------\n"
+    iptables -L
+  echo ""
+  echo -e "IPTABLES NAT LIST--------------------------------------------------------------------------------\n" 
+    iptables -t nat -L
+  echo ""
+}
 
 logs_title &&
-run_wireguard_up && 
-/home/app/wgd.sh start
+run_wireguard_up >/dev/null 2>&1 && 
+network_logs_out &&
+/home/app/wgd.sh start 
+
