@@ -59,10 +59,10 @@ network_logs_out() {
     ifconfig
   echo ""
   echo -e "IPTABLES LIST--------------------------------------------------------------------------------\n"
-    iptables -L
+    iptables -L -n
   echo ""
   echo -e "IPTABLES NAT LIST--------------------------------------------------------------------------------\n" 
-    iptables -t nat -L
+    iptables -t nat -L -n
   echo ""
 }
 
