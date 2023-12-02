@@ -245,10 +245,16 @@ pihole_predefined_setup () {
         docker compose up -d --build 
     }
     compose_down() {
+        local database_folder="./Global-Configs/Wiregate-Database"
         local yml_file="docker-compose.yml"
         local port_mappings="770-777:770-777/udp"
         export WG_DASH_PORT_MAPPINGS="$port_mappings"
         docker compose down --volumes --remove-orphans
+
+        if [ -d "$database_folder" ]; then
+            sudo rm -r "$database_folder"
+        fi
+
         # Check if the 'docker' command is available
 
         REQUIRED_PACKAGES=(
