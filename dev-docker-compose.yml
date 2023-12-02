@@ -52,7 +52,7 @@ services:
     environment:
       - WG_DASH_USER=admin
       - WG_DASH_PASS=admin
-      - WG_DASH_SECRET_KEY=nidfsnnsknfkscsnksjnjc
+      - WG_DASH_SECRET_KEY=some-super-secret_key
       - WG_DASH_SERVER_IP=0.0.0.0
       - WG_DASH_DNS=10.2.0.100, 10.2.0.100
       - WG_DASH_PEER_ENDPOINT_ALLOWED_IP=0.0.0.0/0
