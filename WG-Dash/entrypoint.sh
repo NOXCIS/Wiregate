@@ -22,44 +22,52 @@ fi
 
 run_wireguard_up() {
   config_files=$(find /etc/wireguard -type f -name "*.conf")
-  
+
   for file in $config_files; do
     config_name=$(basename "$file" ".conf")
     chmod 600 "/etc/wireguard/$config_name.conf"
     wg-quick up "$config_name" 
+   
+   
   done
+  
 }
 
 
 
-create_wiresentinel_user() {
-    # Check if the user already exists
-    if id "wiresentinel" &>/dev/null; then
-        echo "User wiresentinel already exists."
-        return 1
-    fi
-
-    password=$(openssl rand -base64 180 | tr -d '\n')
-    adduser -D -g '' wiresentinel
-    echo "wiresentinel:$password" | chpasswd
-    addgroup gatekeeper
-    adduser wiresentinel gatekeeper
-    chmod 750 /home
-    chown -R wiresentinel:gatekeeper /home
-    chown -R wiresentinel:gatekeeper /etc/wireguard
-    #su - wiresentinel 
-    # Note: The script will not continue beyond this point if 'su' is successful,
-    # as the shell will be running as the newly created user.
+logs_title() {
+  echo -e "\033[32m"
+  echo '
+________________________________________________________________________________
+|                                                                               |
+|       ██╗    ██╗██╗██████╗ ███████╗ ██████╗  █████╗ ████████╗███████╗         |
+|       ██║    ██║██║██╔══██╗██╔════╝██╔════╝ ██╔══██╗╚══██╔══╝██╔════╝         |
+|       ██║ █╗ ██║██║██████╔╝█████╗  ██║  ███╗███████║   ██║   █████╗           |
+|       ██║███╗██║██║██╔══██╗██╔══╝  ██║   ██║██╔══██║   ██║   ██╔══╝           |
+|       ╚███╔███╔╝██║██║  ██║███████╗╚██████╔╝██║  ██║   ██║   ███████╗         |
+|        ╚══╝╚══╝ ╚═╝╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝         |
+|                                    LOGS                                       |
+|_______________________________________________________________________________|'                                                               
+  echo -e "\033[33m"
+  echo ""
 }
 
+network_logs_out() {
+  echo ""
+  echo ""
+  echo -e "NETWORK INTERFACES--------------------------------------------------------------------------------\n"
+    ifconfig
+  echo ""
+  echo -e "IPTABLES LIST--------------------------------------------------------------------------------\n"
+    iptables -L -n
+  echo ""
+  echo -e "IPTABLES NAT LIST--------------------------------------------------------------------------------\n" 
+    iptables -t nat -L -n
+  echo ""
+}
 
+logs_title &&
+run_wireguard_up >/dev/null 2>&1 && 
+network_logs_out &&
+/home/app/wgd.sh start 
 
-
-
-#create_wiresentinel_user
-
-run_wireguard_up 
-
-
-
-/home/app/wgd.sh start

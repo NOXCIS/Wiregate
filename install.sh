@@ -124,7 +124,7 @@ export TIMER_VALUE=0
     #ADGUARD
         #EXP_SET
             adguard_express_setup() {
-                compose_down 
+                #compose_down 
                 TIMER_VALUE=0
                 run_adguard_setup 
             }
@@ -160,8 +160,9 @@ adguard_predefined_setup () {
                 clear &&
 
                 adguard_preset_compose_swap &&
+                set_port_range &&
                 set_adguard_config &&
-
+                
 
                 rm_exst_configs >/dev/null 2>&1 &&
 
@@ -190,7 +191,7 @@ pihole_predefined_setup () {
                 clear &&
 
                 pihole_preset_compose_swap &&
-
+                set_port_range &&
                 rm_exst_configs >/dev/null 2>&1 &&
 
 
@@ -200,6 +201,7 @@ pihole_predefined_setup () {
 
                 generate_wireguard_qr &&
                 readme_title &&
+                env_var_pihole_title_short &&
                 encrypt_file >/dev/null 2>&1 &&
                 pihole_compose_swap >/dev/null 2>&1
                 sleep 60 &&
@@ -243,10 +245,16 @@ pihole_predefined_setup () {
         docker compose up -d --build 
     }
     compose_down() {
+        local database_folder="./Global-Configs/Wiregate-Database"
         local yml_file="docker-compose.yml"
         local port_mappings="770-777:770-777/udp"
-        export PORT_MAPPINGS="$port_mappings"
+        export WG_DASH_PORT_MAPPINGS="$port_mappings"
         docker compose down --volumes --remove-orphans
+
+        if [ -d "$database_folder" ]; then
+            sudo rm -r "$database_folder"
+        fi
+
         # Check if the 'docker' command is available
 
         REQUIRED_PACKAGES=(
@@ -273,6 +281,14 @@ pihole_predefined_setup () {
 
 }
 #MISC
+    dev_build() {
+        compose_down &&
+        docker-compose -f dev-docker-compose.yml up -d
+        echo -e "\033[33m"'Wireguard DashBoard Available at http://localhost:8080'
+
+
+
+    }
     rm_exst_configs() {
         local masterkey_file="/Global-Configs/Master-Key/master.conf"
         if [ -f "$masterkey_file" ]; then

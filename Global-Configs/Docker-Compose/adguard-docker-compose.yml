@@ -24,23 +24,28 @@ services:
   wg_dashboard:
     depends_on: [unbound, adguard]
     #build: ./WG-Dash
-    image: noxcis/wg-dashboard:mantis-shrimp
+    image: noxcis/wg-dashboard:cetus
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
     restart: unless-stopped
     volumes:
+      - ./Global-Configs/Wiregate-Database:/home/app/db
       - ./Global-Configs/Master-Key:/home/app/master-key
       - ./Global-Configs/Firewall-Rules:/home/app/FIREWALLS
     environment:
       - WG_DASH_USER=${WG_DASH_USER}
-      - WG_DASH_PASS_ENCRYPTED=${WG_DASH_PASS_ENCRYPTED}
-      - WGDASH_SECRET_KEY=${WGDASH_SECRET_KEY}
-      - SERVER_IP=${SERVER_IP}
-      - START_PORT=${PORT_RANGE_START}
+      - WG_DASH_PASS=${WG_DASH_PASS}
+      - WG_DASH_SECRET_KEY=${WG_DASH_SECRET_KEY}
+      - WG_DASH_SERVER_IP=${WG_DASH_SERVER_IP}
+      - WG_DASH_DNS=10.2.0.100, 10.2.0.100
+      - WG_DASH_PEER_ENDPOINT_ALLOWED_IP=0.0.0.0/0
+      - WG_DASH_KEEP_ALIVE=21
+      - WG_DASH_MTU=1420
+      - WG_DASH_PORT_RANGE_STARTPORT=${WG_DASH_PORT_RANGE_STARTPORT}
     ports:
-      - "${PORT_MAPPINGS}"
+      - "${WG_DASH_PORT_MAPPINGS}"
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
