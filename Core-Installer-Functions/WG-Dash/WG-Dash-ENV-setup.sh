@@ -3,7 +3,7 @@
 update_server_ip() {
 
         ip=$(hostname -I | awk '{print $1}')
-        export SERVER_IP="$ip"
+        export WG_DASH_SERVER_IP="$ip"
 
 }
 set_port_range() {
@@ -48,8 +48,8 @@ set_port_range() {
         HOST_PORT_END=$((HOST_PORT_START + pcount-1))  
         port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
         echo -e "Wireguard Port Range Set To: \033[32m$port_mappings\033[0m"
-        export PORT_RANGE_START="$HOST_PORT_START"
-        export PORT_MAPPINGS="$port_mappings"
+        export WG_DASH_PORT_RANGE_START="$HOST_PORT_START"
+        export WG_DASH_PORT_MAPPINGS="$port_mappings"
         break
         done
     fi
@@ -108,16 +108,9 @@ set_wg-dash_pass() {
 
         plaintext_wgdash_pass=$(head /dev/urandom | tr -dc "$characters" | head -c 16)
         
-        output=$(htpasswd -B -n -b "$username" "$plaintext_wgdash_pass")
-
-        # Use sed to delete the first 5 characters of $output and assign it to wgdash_password
-        wgdash_password=$(echo "$output" | sed 's/.....//')
-
-
-        #sed -i -E "s|^( *password: ).*|\1$wgdash_password|" "$adguard_yaml_file"
-
+    
         export WG_DASH_PASS="$plaintext_wgdash_pass"
-        export WG_DASH_PASS_ENCRYPTED="$wgdash_password"
+
 
 
         
@@ -156,7 +149,7 @@ set_wg-dash_pass() {
 
 
                 export WG_DASH_PASS="$wgdash_pass"
-                export WG_DASH_PASS_ENCRYPTED="$manual_adguard_password"
+                
 
 
                 break
@@ -236,7 +229,7 @@ set_wg-dash_key() {
     # Generate a 512-bit random key using OpenSSL and convert it to hexadecimal
     secret_key_hex=$(openssl rand -hex 64)
     # Export the key to the MSG_SECRET_KEY variable
-    export WGDASH_SECRET_KEY="$secret_key_hex"
+    export WG_DASH_SECRET_KEY="$secret_key_hex"
 }
 set_wg-dash_config() {
     set_wg-dash_key

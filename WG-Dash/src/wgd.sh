@@ -1,11 +1,22 @@
 #!/bin/bash
 
 start_wgd () {
-    #create_wiresentinel_user &&
+  echo ""
+  echo -e "ifconfig--------------------------------------------------------------------------------\n"
+    ifconfig
+  echo ""
+  echo -e "iptables -L--------------------------------------------------------------------------------\n"
     iptables -L
-    uwsgi --ini wg-uwsgi.ini
-    #uwsgi --uid wiresentinel --ini wg-uwsgi.ini
-    #su - wiresentinel -c "uwsgi --ini ./wg-uwsgi.ini"
+  echo ""
+  echo -e "iptables -t nat -L--------------------------------------------------------------------------------\n"
+    iptables -t nat -L
+  echo ""
+  echo -e "Start Dashboard--------------------------------------------------------------------------------\n"
+  echo ""
+  echo ""
+    uwsgi --ini wg-uwsgi.ini 
+  echo "--------------------------------------------------------------------------------"
+ 
 }
 
 newconf_wgd () {
@@ -18,7 +29,7 @@ newconf_wgd () {
 
 
 newconf_wgd0() {
-    local port_wg0=$START_PORT
+    local port_wg0=$WG_DASH_PORT_RANGE_STARTPORT
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
@@ -40,7 +51,7 @@ EOF
 
 
 newconf_wgd1() {
-    local port_wg1=$START_PORT
+    local port_wg1=$WG_DASH_PORT_RANGE_STARTPORT
     local port_wg1=$((port_wg1 + 1))
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
@@ -60,7 +71,7 @@ EOF
 
 
 newconf_wgd2() {
-    local port_wg2=$START_PORT
+    local port_wg2=$WG_DASH_PORT_RANGE_STARTPORT
     local port_wg2=$((port_wg2 + 2))
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
@@ -78,7 +89,7 @@ EOF
 }
 
 newconf_wgd3() {
-    local port_wg3=$START_PORT
+    local port_wg3=$WG_DASH_PORT_RANGE_STARTPORT
     local port_wg3=$((port_wg3 + 3))
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
@@ -145,7 +156,7 @@ MTU = 1420
 [Peer]
 PublicKey = $svrpublic_key
 AllowedIPs = 0.0.0.0/0
-Endpoint = $SERVER_IP:$START_PORT
+Endpoint = $WG_DASH_SERVER_IP:$WG_DASH_PORT_RANGE_STARTPORT
 PersistentKeepalive = 21
 PresharedKey = $preshared_key
 EOF

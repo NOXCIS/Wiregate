@@ -1,5 +1,5 @@
 """
-< WGDashboard > - Copyright(C) 2023 NOXCIS [https://github.com/NOXCIS]
+< WireGate > - Copyright(C) 2023 NOXCIS [https://github.com/NOXCIS]
 Under Apache-2.0 License
 """
 
@@ -48,10 +48,10 @@ DASHBOARD_CONF = os.path.join(configuration_path, 'wg-dashboard.ini')
 UPDATE = None
 
 # Flask App Configuration
-app = Flask("WGDashboard")
+app = Flask("WireGate")
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 5206928
 
-wg_dash_appkey = os.environ.get('WGDASH_SECRET_KEY')
+wg_dash_appkey = os.environ.get('WG_DASH_SECRET_KEY')
 app.secret_key = wg_dash_appkey
 #app.secret_key = secrets.token_urlsafe(16)
 
@@ -103,14 +103,15 @@ def init_dashboard():
         #config['Account']['username'] = 'admin'
         wg_dash_user = os.environ.get('WG_DASH_USER')
         config['Account']['username'] = wg_dash_user
-
     if "password" not in config['Account']:
-        wg_dash_pass = os.environ.get('WG_DASH_PASS_ENCRYPTED')
-        config['Account']['password'] = wg_dash_pass
-        #config['Account']['password'] = '$2a$10$INBGqDOt9Lz2Gs2yy4hXZ.CxRM9R90zHmkk..lj2FG0L9aJ6y/MpC'
-
-        
-
+        wg_dash_pass = os.environ.get('WG_DASH_PASS')
+        # Hash the password using bcrypt
+        salt = bcrypt.gensalt(rounds=12)
+        hashed_password_bytes = bcrypt.hashpw(wg_dash_pass.encode('utf-8'), salt)
+        # Convert the hashed password bytes to a string and remove the leading 'b'
+        hashed_password_str = hashed_password_bytes.decode('utf-8').lstrip('b')
+        hashpassword_output = f"{hashed_password_str}"
+        config['Account']['password'] = hashpassword_output
     # Default dashboard server setting
     if "Server" not in config:
         config['Server'] = {}
@@ -132,21 +133,38 @@ def init_dashboard():
     if "Peers" not in config:
         config['Peers'] = {}
     if 'peer_global_DNS' not in config['Peers']:
-        config['Peers']['peer_global_DNS'] = '10.2.0.100, 10.2.0.100'
+
+        wg_dash_global_dns = os.environ.get('WG_DASH_DNS')
+
+
+
+
+        config['Peers']['peer_global_DNS'] = wg_dash_global_dns
+
+
     if 'peer_endpoint_allowed_ip' not in config['Peers']:
-        config['Peers']['peer_endpoint_allowed_ip'] = '0.0.0.0/0'
+
+        peer_endpoint_allowed_ip = os.environ.get('WG_DASH_PEER_ENDPOINT_ALLOWED_IP')
+        config['Peers']['peer_endpoint_allowed_ip'] = peer_endpoint_allowed_ip
+
+
     if 'peer_display_mode' not in config['Peers']:
         config['Peers']['peer_display_mode'] = 'grid'
     if 'remote_endpoint' not in config['Peers']:
 
-        server_ip = os.environ.get('SERVER_IP')
-
+        server_ip = os.environ.get('WG_DASH_SERVER_IP')
         config['Peers']['remote_endpoint'] = server_ip
-        #config['Peers']['remote_endpoint'] = ifcfg.default_interface()['inet']
+
     if 'peer_MTU' not in config['Peers']:
-        config['Peers']['peer_MTU'] = "1420"
+
+        wg_dash_mtu = os.environ.get('WG_DASH_MTU')
+        config['Peers']['peer_MTU'] = wg_dash_mtu
+
     if 'peer_keep_alive' not in config['Peers']:
-        config['Peers']['peer_keep_alive'] = "21"
+        
+        wg_dash_keep_alive = os.environ.get('WG_DASH_KEEP_ALIVE')
+        config['Peers']['peer_keep_alive'] = wg_dash_keep_alive
+
     set_dashboard_conf(config)
     config.clear()
 
