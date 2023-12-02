@@ -22,7 +22,7 @@ services:
   wg_dashboard:
     depends_on: [unbound, adguard]
     #build: ./WG-Dash
-    image: noxcis/wg-dashboard:mantis-shrimp
+    image: noxcis/wg-dashboard:cetus
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
