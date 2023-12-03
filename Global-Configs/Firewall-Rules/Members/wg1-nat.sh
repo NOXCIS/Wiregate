@@ -15,15 +15,17 @@ iptables -A $CHAIN_NAME -o $WIREGUARD_INTERFACE -m conntrack --ctstate RELATED,E
 
 # Drop incoming traffic from wg1 to wg-dashboard
 iptables -A INPUT -i $WIREGUARD_INTERFACE -j DROP
-
-# DNS
+# Accept DNS from Adguard
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.100 -p udp --dport 53 -j ACCEPT
-
-# Accept outgoing connections to HTTP(S) ports to any IP address (public because of rule above)
-iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 0.0.0.0/0 -p tcp -m multiport --dports 80,443 -j ACCEPT
-
-
-
+# Accept Channels FEC
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.4 -p tcp --dport 80 -j ACCEPT
+# Drop Forward traffic to AdGuard Dashboard
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.100 -j DROP
+# Drop Forward traffic to Unbound (members should be restricted form accesing the means of modifying the network)
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.200 -j DROP
+# Drop Forward traffic to Channels Database
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.5 -j DROP
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.4 -j DROP
 
 # Drop everything else coming through the Wireguard interface
 iptables -A $CHAIN_NAME -i $WIREGUARD_INTERFACE -j DROP

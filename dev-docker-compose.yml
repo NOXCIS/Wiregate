@@ -38,8 +38,8 @@ services:
 
   wg_dashboard:
     depends_on: [unbound, adguard]
-    build: ./WG-Dash
-    #image: noxcis/wg-dashboard:cetus
+    #build: ./WG-Dash
+    image: noxcis/wg-dashboard:cetus
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
@@ -60,7 +60,7 @@ services:
       - WG_DASH_MTU=1420
       - WG_DASH_PORT_RANGE_STARTPORT=770
     ports:
-      - "770-772:770-772/udp"
+      - "770-773:770-773/udp"
       - 8080:80/tcp
     sysctls:
       - net.ipv4.ip_forward=1
