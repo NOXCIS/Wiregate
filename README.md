@@ -1,6 +1,5 @@
   
 
-Give u/thekrautboy on Reddit a Cookie andd tell him have a great Day for me.
 
 # WireGate
 
