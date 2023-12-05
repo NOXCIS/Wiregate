@@ -19,10 +19,47 @@ services:
       private_network:
         ipv4_address: 10.2.0.200
 
+  pihole:
+    depends_on: [unbound]
+    container_name: pihole
+    image: pihole/pihole:nightly
+    restart: unless-stopped
+    hostname: pihole
+    dns:
+      - 10.2.0.200 # Points to unbound
+    environment:
+      TZ: "America/Chicago"
+      WEBPASSWORD: ""
+      ServerIP: 10.2.0.100 # Internal IP of pihole
+      DNS1: 10.2.0.200 # Unbound IP
+      DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
+    volumes:
+      - "./Global-Configs/PiHole/etc-pihole/:/etc/pihole/"
+      - "./Global-Configs/PiHole/etc-pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/"
+    cap_add:
+      - NET_ADMIN
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.100
+
+  dockge:
+    image: louislam/dockge:1
+    container_name: dockge_gated
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./Global-Configs/Dockge/data:/app/data
+      - /opt/stacks:/opt/stacks
+    environment:
+      - DOCKGE_STACKS_DIR=/opt/stacks
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.2
+
+        
   wg_dashboard:
-    depends_on: [unbound, pihole]
     #build: ./WG-Dash
-    image: noxcis/wg-dashboard:cetus
+    image: noxcis/wg-dashboard:kraken
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
@@ -54,28 +91,7 @@ services:
 
 
 
-  pihole:
-    depends_on: [unbound]
-    container_name: pihole
-    image: pihole/pihole:latest
-    restart: unless-stopped
-    hostname: pihole
-    dns:
-      - 10.2.0.200 # Points to unbound
-    environment:
-      TZ: "America/Chicago"
-      WEBPASSWORD: ${PI_HOLE_PASS}
-      ServerIP: 10.2.0.100 # Internal IP of pihole
-      DNS1: 10.2.0.200 # Unbound IP
-      DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
-    volumes:
-      - "./etc-pihole/:/etc/pihole/"
-      - "./etc-dnsmasq.d/:/etc/dnsmasq.d/"
-    cap_add:
-      - NET_ADMIN
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.100
+  
 
 
   channels:

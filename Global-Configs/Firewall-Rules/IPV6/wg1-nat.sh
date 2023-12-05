@@ -26,6 +26,8 @@ ip6tables -A INPUT -i $WIREGUARD_INTERFACE -j DROP
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.100 -p udp --dport 53 -j ACCEPT
 # Accept Channels FEC
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.4 -p tcp --dport 80 -j ACCEPT
+# Drop Direct Forward traffic to Dockge
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.2 -j DROP
 # Drop Forward traffic to AdGuard Dashboard
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.100 -j DROP
 # Drop Forward traffic to Unbound (members should be restricted form accesing the means of modifying the network)

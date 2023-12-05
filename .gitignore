@@ -18,10 +18,10 @@ release/*
 
 .jshintrc
 wireguard/
-etc-dnsmasq.d/*
-etc-pihole/*
-!etc-pihole/custom.list
-etc-dnsmasq.d/
+Global-Configs/PiHole/etc-dnsmasq.d/*
+Global-Configs/PiHole/etc-pihole/*
+!Global-Configs/PiHole/etc-pihole/custom.list
+Global-Configs/PiHole/etc-dnsmasq.d/
 data/
 
 

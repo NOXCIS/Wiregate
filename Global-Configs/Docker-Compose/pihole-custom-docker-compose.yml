@@ -19,10 +19,43 @@ services:
       private_network:
         ipv4_address: 10.2.0.200
 
+  pihole:
+    depends_on: [unbound]
+    container_name: pihole
+    image: pihole/pihole:nightly
+    restart: unless-stopped
+    hostname: pihole
+    dns:
+      - 10.2.0.200 # Points to unbound
+    volumes:
+      - "./Global-Configs/PiHole/etc-pihole/:/etc/pihole/"
+      - "./Global-Configs/PiHole/etc-pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/"
+    env_file:
+      - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
+    cap_add:
+      - NET_ADMIN
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.100
+
+  dockge:
+    image: louislam/dockge:1
+    container_name: dockge_gated
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./Global-Configs/Dockge/data:/app/data
+      - /opt/stacks:/opt/stacks
+    environment:
+      - DOCKGE_STACKS_DIR=/opt/stacks
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.2
+
+        
   wg_dashboard:
-    depends_on: [unbound, pihole]
     #build: ./WG-Dash
-    image: noxcis/wg-dashboard:cetus
+    image: noxcis/wg-dashboard:kraken
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
@@ -33,7 +66,7 @@ services:
       - ./Global-Configs/Master-Key:/home/app/master-key
       - ./Global-Configs/Firewall-Rules:/home/app/FIREWALLS
     env_file:
-      - ./Global-Configs/ENV-FILES/worm-hole.env
+      - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
     ports:
       - "${WG_DASH_PORT_MAPPINGS}"
     sysctls:
@@ -44,29 +77,6 @@ services:
         ipv4_address: 10.2.0.3
 
 
-
-
-  pihole:
-    depends_on: [unbound]
-    container_name: pihole
-    image: pihole/pihole:latest
-    restart: unless-stopped
-    hostname: pihole
-    dns:
-      - 10.2.0.200 # Points to unbound
-    volumes:
-      - "./etc-pihole/:/etc/pihole/"
-      - "./etc-dnsmasq.d/:/etc/dnsmasq.d/"
-    env_file:
-      - ./Global-Configs/ENV-FILES/worm-hole.env
-    
-    cap_add:
-      - NET_ADMIN
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.100
-
-
   channels:
     depends_on: [db, wg_dashboard]
     container_name: channels_messenger
@@ -75,7 +85,7 @@ services:
     restart: unless-stopped
     command: python run.py
     env_file:
-      - ./Global-Configs/ENV-FILES/worm-hole.env
+      - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
     networks:
       private_network:
         ipv4_address: 10.2.0.4
@@ -88,7 +98,7 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     env_file:
-      - ./Global-Configs/ENV-FILES/worm-hole.env
+      - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
     networks:
       private_network:
         ipv4_address: 10.2.0.5
