@@ -103,7 +103,7 @@ newconf_wgd4() {
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
-    cat <<EOF >"/etc/wireguard/IpV6ADMIN.conf"
+    cat <<EOF >"/etc/wireguard/IpV6Admins.conf"
 [Interface]
 PrivateKey = $private_key
 Address = 192.168.30.1/24
@@ -122,7 +122,7 @@ newconf_wgd5() {
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
-    cat <<EOF >"/etc/wireguard/IpV6MEMBERS.conf"
+    cat <<EOF >"/etc/wireguard/IpV6Members.conf"
 [Interface]
 PrivateKey = $private_key
 Address = 192.168.40.1/24
