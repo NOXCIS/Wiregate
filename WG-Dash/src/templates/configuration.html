@@ -415,7 +415,7 @@
 			</div>
 		</div>
 	</div>
-    {% include "modal.html" %}
+    <div class="modal fade" id="peerDataUsage">
         <div class="modal-dialog modal-dialog-centered modal-xl">
             <div class="modal-content">
                 <div class="modal-header">
@@ -461,7 +461,7 @@
     <div class="position-fixed top-0 right-0 p-3" style="z-index: 5; right: 0; top: 50px;">
           <div id="alertToast" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true" data-delay="5000">
             <div class="toast-header">
-                  <strong class="mr-auto">Worm-Hole</strong>
+                  <strong class="mr-auto">WireGate</strong>
                   <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                   </button>
@@ -473,8 +473,6 @@
     {% include "tools.html" %}
 </body>
 {% include "footer.html" %}
-<script src="{{ url_for('static',filename='js/configuration.js') }}"></script>
-<script src="{{ url_for('static',filename='js/wireguard.js') }}"></script>
 <script src="{{ url_for('static',filename='js/wireguard.min.js') }}"></script>
 <script src="{{ url_for('static',filename='js/configuration.min.js') }}"></script>
 <script>
@@ -487,10 +485,5 @@
 	$(function(){
 		configurations.loadPeers($('#search_peer_textbox').val());
 	});
-</script>
-<script>
-    configurations.setConfigurationName("{{ conf_data['name'] }}");
-    configurations.setActiveConfigurationName();
-    configurations.loadPeers($('#search_peer_textbox').val());
 </script>
 </html>	

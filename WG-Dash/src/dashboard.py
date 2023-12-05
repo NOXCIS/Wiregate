@@ -129,40 +129,25 @@ def init_dashboard():
     if 'dashboard_sort' not in config['Server']:
         config['Server']['dashboard_sort'] = 'status'
     if 'dashboard_theme' not in config['Server']:
-        config['Server']['dashboard_theme'] = 'light'
+        config['Server']['dashboard_theme'] = 'dark'
     # Default dashboard peers setting
     if "Peers" not in config:
         config['Peers'] = {}
     if 'peer_global_DNS' not in config['Peers']:
-
         wg_dash_global_dns = os.environ.get('WG_DASH_DNS')
-
-
-
-
         config['Peers']['peer_global_DNS'] = wg_dash_global_dns
-
-
     if 'peer_endpoint_allowed_ip' not in config['Peers']:
-
         peer_endpoint_allowed_ip = os.environ.get('WG_DASH_PEER_ENDPOINT_ALLOWED_IP')
         config['Peers']['peer_endpoint_allowed_ip'] = peer_endpoint_allowed_ip
-
-
     if 'peer_display_mode' not in config['Peers']:
         config['Peers']['peer_display_mode'] = 'grid'
     if 'remote_endpoint' not in config['Peers']:
-
         server_ip = os.environ.get('WG_DASH_SERVER_IP')
         config['Peers']['remote_endpoint'] = server_ip
-
     if 'peer_MTU' not in config['Peers']:
-
         wg_dash_mtu = os.environ.get('WG_DASH_MTU')
         config['Peers']['peer_MTU'] = wg_dash_mtu
-
     if 'peer_keep_alive' not in config['Peers']:
-        
         wg_dash_keep_alive = os.environ.get('WG_DASH_KEEP_ALIVE')
         config['Peers']['peer_keep_alive'] = wg_dash_keep_alive
 
@@ -1645,7 +1630,9 @@ def switch_display_mode(mode):
 Import API
 """
 
+# APIs
 import api
+# TODO: Add configuration prefix to all configuration API
 
 @app.route('/api/settings/setTheme', methods=['POST'])
 def setTheme():
@@ -1655,7 +1642,7 @@ def setTheme():
         return jsonify(api.notEnoughParameter)
     else:
         return api.settings.setTheme(api.settings, data['theme'], get_dashboard_conf(), set_dashboard_conf)
-    
+
 @app.route('/api/getPeerDataUsage', methods=['POST'])
 def getPeerDataUsage():
     data = request.get_json()
@@ -1666,7 +1653,6 @@ def getPeerDataUsage():
     else:
         return jsonify(api.notEnoughParameter)
     return jsonify(returnData)
-
 
 
 """
@@ -1752,121 +1738,6 @@ def traceroute_ip():
         return jsonify(returnjson)
     except Exception:
         return "Error"
-
-
-import atexit
-@atexit.register 
-def goodbye(): 
-    global stop_thread
-    global bgThread
-    stop_thread = True
-    
-    print("Stopping background thread")
-
-def get_all_transfer_thread():
-    print("waiting 15 sec ")
-    time.sleep(7)
-    global stop_thread
-    # with app.app_context():
-    try:
-        db = connect_db()
-        cur = db.cursor()
-        while True:
-            print(stop_thread)
-            # if stop_thread:
-            #     break
-            conf = []
-            for i in os.listdir(WG_CONF_PATH):
-                if regex_match("^(.{1,}).(conf)$", i):
-                    i = i.replace('.conf', '')
-                    create_table = f"""
-                        CREATE TABLE IF NOT EXISTS {i} (
-                            id VARCHAR NOT NULL, private_key VARCHAR NULL, DNS VARCHAR NULL, 
-                            endpoint_allowed_ip VARCHAR NULL, name VARCHAR NULL, total_receive FLOAT NULL, 
-                            total_sent FLOAT NULL, total_data FLOAT NULL, endpoint VARCHAR NULL, 
-                            status VARCHAR NULL, latest_handshake VARCHAR NULL, allowed_ip VARCHAR NULL, 
-                            cumu_receive FLOAT NULL, cumu_sent FLOAT NULL, cumu_data FLOAT NULL, mtu INT NULL, 
-                            keepalive INT NULL, remote_endpoint VARCHAR NULL, preshared_key VARCHAR NULL,
-                            PRIMARY KEY (id)
-                        )
-                    """
-                    cur.execute(create_table)
-                    create_table = f"""
-                        CREATE TABLE IF NOT EXISTS {i}_restrict_access (
-                            id VARCHAR NOT NULL, private_key VARCHAR NULL, DNS VARCHAR NULL, 
-                            endpoint_allowed_ip VARCHAR NULL, name VARCHAR NULL, total_receive FLOAT NULL, 
-                            total_sent FLOAT NULL, total_data FLOAT NULL, endpoint VARCHAR NULL, 
-                            status VARCHAR NULL, latest_handshake VARCHAR NULL, allowed_ip VARCHAR NULL, 
-                            cumu_receive FLOAT NULL, cumu_sent FLOAT NULL, cumu_data FLOAT NULL, mtu INT NULL, 
-                            keepalive INT NULL, remote_endpoint VARCHAR NULL, preshared_key VARCHAR NULL,
-                            PRIMARY KEY (id)
-                        )
-                    """
-                    cur.execute(create_table)
-                    create_table = f"""
-                        CREATE TABLE IF NOT EXISTS {i}_transfer (
-                            id VARCHAR NOT NULL, total_receive FLOAT NULL, 
-                            total_sent FLOAT NULL, total_data FLOAT NULL,
-                            cumu_receive FLOAT NULL, cumu_sent FLOAT NULL, cumu_data FLOAT NULL, time DATETIME
-                        )
-                    """
-                    cur.execute(create_table)
-                    db.commit()
-                    temp = {"conf": i, "status": get_conf_status(i), "public_key": get_conf_pub_key(i), "port": get_conf_listen_port(i)}
-                    if temp['status'] == "running":
-                        temp['checked'] = 'checked'
-                    else:
-                        temp['checked'] = ""
-                    conf.append(temp)
-            if len(conf) > 0:
-                conf = sorted(conf, key=itemgetter('conf'))
-            for i in conf:
-                print(i['conf'])
-                config_name = i['conf']
-                try:
-                    data_usage = subprocess.check_output(f"wg show {config_name} transfer",
-                                                        shell=True, stderr=subprocess.STDOUT)
-                    data_usage = data_usage.decode("UTF-8").split("\n")
-                    final = []
-                    for i in data_usage:
-                        final.append(i.split("\t"))
-                    data_usage = final
-                    for i in range(len(data_usage)):
-                        cur_i = cur.execute(
-                            "SELECT total_receive, total_sent, cumu_receive, cumu_sent, status FROM %s WHERE id='%s'"
-                            % (config_name, data_usage[i][0])).fetchall()
-                        if len(cur_i) > 0:
-                            total_sent = cur_i[0][1]
-                            total_receive = cur_i[0][0]
-                            cur_total_sent = round(int(data_usage[i][2]) / (1024 ** 3), 4)
-                            cur_total_receive = round(int(data_usage[i][1]) / (1024 ** 3), 4)
-                            cumulative_receive = cur_i[0][2] + total_receive
-                            cumulative_sent = cur_i[0][3] + total_sent
-                            if total_sent <= cur_total_sent and total_receive <= cur_total_receive:
-                                total_sent = cur_total_sent
-                                total_receive = cur_total_receive
-                            else:
-                                cur.execute("UPDATE %s SET cumu_receive = %f, cumu_sent = %f, cumu_data = %f WHERE id = '%s'" %
-                                                (config_name, round(cumulative_receive, 4), round(cumulative_sent, 4),
-                                                round(cumulative_sent + cumulative_receive, 4), data_usage[i][0]))
-                                total_sent = 0
-                                total_receive = 0
-                            cur.execute("UPDATE %s SET total_receive = %f, total_sent = %f, total_data = %f WHERE id = '%s'" %
-                                            (config_name, round(total_receive, 4), round(total_sent, 4),
-                                            round(total_receive + total_sent, 4), data_usage[i][0]))
-                            now = datetime.now()
-                            now_string = now.strftime("%d/%m/%Y %H:%M:%S")
-                            cur.execute(f'''
-                            INSERT INTO {config_name}_transfer (id, total_receive, total_sent, total_data, cumu_receive, cumu_sent, cumu_data, time) 
-                            VALUES ('{data_usage[i][0]}', {round(total_receive, 4)}, {round(total_sent, 4)}, {round(total_receive + total_sent, 4)},{round(cumulative_receive, 4)}, {round(cumulative_sent, 4)},
-                                                {round(cumulative_sent + cumulative_receive, 4)}, '{now_string}')
-                            ''')
-                            db.commit()
-                except subprocess.CalledProcessError:
-                    pass
-            time.sleep(30)
-    except KeyboardInterrupt:
-        return True
 
 
 

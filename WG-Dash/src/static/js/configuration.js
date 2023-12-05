@@ -27,6 +27,145 @@
     $("[data-toggle='popover']").popover();
 
 
+
+     /**
+     * Chart!!!!!!
+     * @type {any}
+     */
+     let chartUnit = window.localStorage.chartUnit;
+     let chartUnitAvailable = ["GB", "MB", "KB"];
+ 
+     if (chartUnit === null || !chartUnitAvailable.includes(chartUnit)) {
+         window.localStorage.setItem("chartUnit", "GB");
+         $('.switchUnit[data-unit="GB"]').addClass("active");
+     } else {
+         $(`.switchUnit[data-unit="${chartUnit}"]`).addClass("active");
+     }
+     chartUnit = window.localStorage.getItem("chartUnit");
+ 
+ 
+     const totalDataUsageChart = document.getElementById('totalDataUsageChartObj').getContext('2d');
+     const totalDataUsageChartObj = new Chart(totalDataUsageChart, {
+         type: 'line',
+         data: {
+             labels: [],
+             datasets: [{
+                 label: 'Data Sent',
+                 data: [],
+                 stroke: '#FFFFFF',
+                 borderColor: '#28a745',
+                 backgroundColor: '#28a7452b',
+                 pointRadius: 1,
+                 fill: {target: 'origin'},
+                 tension: 0,
+                 borderWidth: 1
+             },
+             {
+                 label: 'Data Received',
+                 data: [],
+                 stroke: '#FFFFFF',
+                 borderColor: '#007bff',
+                 backgroundColor: '#007bff2b',
+                 pointRadius: 1,
+                 fill: {target: 'origin'},
+                 tension: 0,
+                 borderWidth: 1
+             }
+             ]
+         },
+         options: {
+             maintainAspectRatio: false,
+             showScale: false,
+             responsive: false,
+             scales: {
+                 y: {
+                     min: 0,
+                     ticks: {
+                         min: 0,
+                         callback: function (value, index, ticks) {
+                             return `${value} ${chartUnit}`;
+                         }
+                     }
+                 }
+             },
+             plugins: {
+                 tooltip: {
+                     callbacks: {
+                         label: function (context) {
+                             return `${context.dataset.label}: ${context.parsed.y} ${chartUnit}`;
+                         }
+                     }
+                 }
+             }
+         }
+     });
+ 
+     let $totalDataUsageChartObj = $("#totalDataUsageChartObj");
+     $totalDataUsageChartObj.css("width", "100%");
+     totalDataUsageChartObj.width = $totalDataUsageChartObj.parent().width();
+     totalDataUsageChartObj.resize();
+     $(window).on("resize", function () {
+         totalDataUsageChartObj.resize();
+     });
+ 
+     $(".fullScreen").on("click", function () {
+         let $chartContainer = $(".chartContainer");
+         if ($chartContainer.hasClass("fullScreen")) {
+             $(this).children().removeClass("bi-fullscreen-exit").addClass("bi-fullscreen");
+             $chartContainer.removeClass("fullScreen");
+         } else {
+             $(this).children().removeClass("bi-fullscreen").addClass("bi-fullscreen-exit");
+             $chartContainer.addClass("fullScreen");
+         }
+         totalDataUsageChartObj.resize();
+     });
+ 
+     let mul = 1;
+     $(".switchUnit").on("click", function () {
+         $(".switchUnit").removeClass("active");
+         $(`.switchUnit[data-unit=${$(this).data('unit')}]`).addClass("active");
+         if ($(this).data('unit') !== chartUnit) {
+             switch ($(this).data('unit')) {
+                 case "GB":
+                     if (chartUnit === "MB") {
+                         mul = 1 / 1024;
+                     }
+                     if (chartUnit === "KB") {
+                         mul = 1 / 1048576;
+                     }
+                     break;
+                 case "MB":
+                     if (chartUnit === "GB") {
+                         mul = 1024;
+                     }
+                     if (chartUnit === "KB") {
+                         mul = 1 / 1024;
+                     }
+                     break;
+                 case "KB":
+                     if (chartUnit === "GB") {
+                         mul = 1048576;
+                     }
+                     if (chartUnit === "MB") {
+                         mul = 1024;
+                     }
+                     break;
+                 default:
+                     break;
+             }
+             window.localStorage.setItem("chartUnit", $(this).data('unit'));
+             chartUnit = $(this).data('unit');
+             totalDataUsageChartObj.data.datasets[0].data = totalDataUsageChartObj.data.datasets[0].data.map(x => x * mul);
+             totalDataUsageChartObj.data.datasets[1].data = totalDataUsageChartObj.data.datasets[1].data.map(x => x * mul);
+             totalDataUsageChartObj.update();
+ 
+             peerDataUsageChartObj.data.datasets[0].data = peerDataUsageChartObj.data.datasets[0].data.map(x => x * mul);
+             peerDataUsageChartObj.data.datasets[1].data = peerDataUsageChartObj.data.datasets[1].data.map(x => x * mul);
+             peerDataUsageChartObj.update();
+         }
+     });
+
+
     /**
      * To show alert on the configuration page
      * @param response
@@ -498,6 +637,8 @@
     }
 
     window.configurations = {
+        peerDataUsageChartObj: () => { return peerDataUsageChartObj },
+        peerDataUsageModal: () => { return peerDataUsageModal },
         addModal: () => { return addModal; },
         deleteBulkModal: () => { return deleteBulkModal; },
         deleteModal: () => { return deleteModal; },
@@ -528,6 +669,77 @@
 let $body = $("body");
 let available_ips = [];
 let $add_peer = document.getElementById("save_peer");
+
+function loadPeerDataUsageChartDone(res){
+    if (res.status === true){
+        let t = new Date();
+        let string = `${t.getDate()}/${t.getMonth()}/${t.getFullYear()} ${t.getHours() > 10 ? t.getHours():`0${t.getHours()}`}:${t.getMinutes() > 10 ? t.getMinutes():`0${t.getMinutes()}`}:${t.getSeconds() > 10 ? t.getSeconds():`0${t.getSeconds()}`}`;
+        $(".peerDataUsageUpdateTime").html(`Updated on: ${string}`);
+
+        configurations.peerDataUsageChartObj().data.labels = [];
+        configurations.peerDataUsageChartObj().data.datasets[0].data = [];
+        configurations.peerDataUsageChartObj().data.datasets[1].data = [];
+        console.log(res);
+        let data = res.data;
+        if (data.length > 0){
+            configurations.peerDataUsageChartObj().data.labels.push(data[data.length - 1].time);
+            configurations.peerDataUsageChartObj().data.datasets[0].data.push(0);
+            configurations.peerDataUsageChartObj().data.datasets[1].data.push(0);
+        
+            configurations.peerDataUsageChartObj().data.datasets[0].lastData = data[data.length - 1].total_sent
+            configurations.peerDataUsageChartObj().data.datasets[1].lastData = data[data.length - 1].total_receive
+        
+        
+            for(let i = data.length - 2; i >= 0; i--){
+                let sent = data[i].total_sent - configurations.peerDataUsageChartObj().data.datasets[0].lastData;
+                let receive = data[i].total_receive - configurations.peerDataUsageChartObj().data.datasets[1].lastData;
+                configurations.peerDataUsageChartObj().data.datasets[0].data.push(sent);
+                configurations.peerDataUsageChartObj().data.datasets[1].data.push(receive);
+                configurations.peerDataUsageChartObj().data.labels.push(data[i].time);
+                configurations.peerDataUsageChartObj().data.datasets[0].lastData = data[i].total_sent;
+                configurations.peerDataUsageChartObj().data.datasets[1].lastData = data[i].total_receive;
+            }
+            configurations.peerDataUsageChartObj().update();
+        }
+    }
+}
+
+let peerDataUsageInterval;
+
+$body.on("click", ".btn-data-usage-peer", function(){
+    configurations.peerDataUsageChartObj().data.peerID = $(this).data("peer-id");
+    configurations.peerDataUsageModal().toggle();
+    peerDataUsageInterval = setInterval(function(){
+        ajaxPostJSON("/api/getPeerDataUsage", {"config": configurations.getConfigurationName(), "peerID":  configurations.peerDataUsageChartObj().data.peerID, "interval": window.localStorage.getItem("peerTimePeriod")}, loadPeerDataUsageChartDone); 
+    }, 30000);
+    ajaxPostJSON("/api/getPeerDataUsage", {"config": configurations.getConfigurationName(), "peerID":  configurations.peerDataUsageChartObj().data.peerID, "interval": window.localStorage.getItem("peerTimePeriod")}, loadPeerDataUsageChartDone); 
+});
+
+$('#peerDataUsage').on('shown.bs.modal', function() {
+    configurations.peerDataUsageChartObj().resize();
+}).on('hidden.bs.modal', function() {
+    clearInterval(peerDataUsageInterval);
+    configurations.peerDataUsageChartObj().data.peerID = "";
+    configurations.peerDataUsageChartObj().data.labels = [];
+    configurations.peerDataUsageChartObj().data.datasets[0].data = [];
+    configurations.peerDataUsageChartObj().data.datasets[1].data = [];
+    configurations.peerDataUsageChartObj().update();
+});
+
+$(".switchTimePeriod").on("click", function(){
+    let peerTimePeriod = window.localStorage.peerTimePeriod;
+    $(".switchTimePeriod").removeClass("active");
+    $(this).addClass("active");
+    if ($(this).data('time') !== peerTimePeriod){
+        ajaxPostJSON("/api/getPeerDataUsage", {"config": configurations.getConfigurationName(), "peerID": configurations.peerDataUsageChartObj().data.peerID, "interval": $(this).data('time')}, loadPeerDataUsageChartDone); 
+        window.localStorage.peerTimePeriod = $(this).data('time');
+    }
+    
+})
+
+
+
+
 
 /**
  * ==========
