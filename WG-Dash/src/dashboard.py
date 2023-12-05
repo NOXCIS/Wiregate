@@ -1754,6 +1754,121 @@ def traceroute_ip():
         return "Error"
 
 
+import atexit
+@atexit.register 
+def goodbye(): 
+    global stop_thread
+    global bgThread
+    stop_thread = True
+    
+    print("Stopping background thread")
+
+def get_all_transfer_thread():
+    print("waiting 15 sec ")
+    time.sleep(7)
+    global stop_thread
+    # with app.app_context():
+    try:
+        db = connect_db()
+        cur = db.cursor()
+        while True:
+            print(stop_thread)
+            # if stop_thread:
+            #     break
+            conf = []
+            for i in os.listdir(WG_CONF_PATH):
+                if regex_match("^(.{1,}).(conf)$", i):
+                    i = i.replace('.conf', '')
+                    create_table = f"""
+                        CREATE TABLE IF NOT EXISTS {i} (
+                            id VARCHAR NOT NULL, private_key VARCHAR NULL, DNS VARCHAR NULL, 
+                            endpoint_allowed_ip VARCHAR NULL, name VARCHAR NULL, total_receive FLOAT NULL, 
+                            total_sent FLOAT NULL, total_data FLOAT NULL, endpoint VARCHAR NULL, 
+                            status VARCHAR NULL, latest_handshake VARCHAR NULL, allowed_ip VARCHAR NULL, 
+                            cumu_receive FLOAT NULL, cumu_sent FLOAT NULL, cumu_data FLOAT NULL, mtu INT NULL, 
+                            keepalive INT NULL, remote_endpoint VARCHAR NULL, preshared_key VARCHAR NULL,
+                            PRIMARY KEY (id)
+                        )
+                    """
+                    cur.execute(create_table)
+                    create_table = f"""
+                        CREATE TABLE IF NOT EXISTS {i}_restrict_access (
+                            id VARCHAR NOT NULL, private_key VARCHAR NULL, DNS VARCHAR NULL, 
+                            endpoint_allowed_ip VARCHAR NULL, name VARCHAR NULL, total_receive FLOAT NULL, 
+                            total_sent FLOAT NULL, total_data FLOAT NULL, endpoint VARCHAR NULL, 
+                            status VARCHAR NULL, latest_handshake VARCHAR NULL, allowed_ip VARCHAR NULL, 
+                            cumu_receive FLOAT NULL, cumu_sent FLOAT NULL, cumu_data FLOAT NULL, mtu INT NULL, 
+                            keepalive INT NULL, remote_endpoint VARCHAR NULL, preshared_key VARCHAR NULL,
+                            PRIMARY KEY (id)
+                        )
+                    """
+                    cur.execute(create_table)
+                    create_table = f"""
+                        CREATE TABLE IF NOT EXISTS {i}_transfer (
+                            id VARCHAR NOT NULL, total_receive FLOAT NULL, 
+                            total_sent FLOAT NULL, total_data FLOAT NULL,
+                            cumu_receive FLOAT NULL, cumu_sent FLOAT NULL, cumu_data FLOAT NULL, time DATETIME
+                        )
+                    """
+                    cur.execute(create_table)
+                    db.commit()
+                    temp = {"conf": i, "status": get_conf_status(i), "public_key": get_conf_pub_key(i), "port": get_conf_listen_port(i)}
+                    if temp['status'] == "running":
+                        temp['checked'] = 'checked'
+                    else:
+                        temp['checked'] = ""
+                    conf.append(temp)
+            if len(conf) > 0:
+                conf = sorted(conf, key=itemgetter('conf'))
+            for i in conf:
+                print(i['conf'])
+                config_name = i['conf']
+                try:
+                    data_usage = subprocess.check_output(f"wg show {config_name} transfer",
+                                                        shell=True, stderr=subprocess.STDOUT)
+                    data_usage = data_usage.decode("UTF-8").split("\n")
+                    final = []
+                    for i in data_usage:
+                        final.append(i.split("\t"))
+                    data_usage = final
+                    for i in range(len(data_usage)):
+                        cur_i = cur.execute(
+                            "SELECT total_receive, total_sent, cumu_receive, cumu_sent, status FROM %s WHERE id='%s'"
+                            % (config_name, data_usage[i][0])).fetchall()
+                        if len(cur_i) > 0:
+                            total_sent = cur_i[0][1]
+                            total_receive = cur_i[0][0]
+                            cur_total_sent = round(int(data_usage[i][2]) / (1024 ** 3), 4)
+                            cur_total_receive = round(int(data_usage[i][1]) / (1024 ** 3), 4)
+                            cumulative_receive = cur_i[0][2] + total_receive
+                            cumulative_sent = cur_i[0][3] + total_sent
+                            if total_sent <= cur_total_sent and total_receive <= cur_total_receive:
+                                total_sent = cur_total_sent
+                                total_receive = cur_total_receive
+                            else:
+                                cur.execute("UPDATE %s SET cumu_receive = %f, cumu_sent = %f, cumu_data = %f WHERE id = '%s'" %
+                                                (config_name, round(cumulative_receive, 4), round(cumulative_sent, 4),
+                                                round(cumulative_sent + cumulative_receive, 4), data_usage[i][0]))
+                                total_sent = 0
+                                total_receive = 0
+                            cur.execute("UPDATE %s SET total_receive = %f, total_sent = %f, total_data = %f WHERE id = '%s'" %
+                                            (config_name, round(total_receive, 4), round(total_sent, 4),
+                                            round(total_receive + total_sent, 4), data_usage[i][0]))
+                            now = datetime.now()
+                            now_string = now.strftime("%d/%m/%Y %H:%M:%S")
+                            cur.execute(f'''
+                            INSERT INTO {config_name}_transfer (id, total_receive, total_sent, total_data, cumu_receive, cumu_sent, cumu_data, time) 
+                            VALUES ('{data_usage[i][0]}', {round(total_receive, 4)}, {round(total_sent, 4)}, {round(total_receive + total_sent, 4)},{round(cumulative_receive, 4)}, {round(cumulative_sent, 4)},
+                                                {round(cumulative_sent + cumulative_receive, 4)}, '{now_string}')
+                            ''')
+                            db.commit()
+                except subprocess.CalledProcessError:
+                    pass
+            time.sleep(30)
+    except KeyboardInterrupt:
+        return True
+
+
 
 
 
