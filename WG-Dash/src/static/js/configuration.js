@@ -27,145 +27,7 @@
     $("[data-toggle='popover']").popover();
 
 
-
-     /**
-     * Chart!!!!!!
-     * @type {any}
-     */
-     let chartUnit = window.localStorage.chartUnit;
-     let chartUnitAvailable = ["GB", "MB", "KB"];
- 
-     if (chartUnit === null || !chartUnitAvailable.includes(chartUnit)) {
-         window.localStorage.setItem("chartUnit", "GB");
-         $('.switchUnit[data-unit="GB"]').addClass("active");
-     } else {
-         $(`.switchUnit[data-unit="${chartUnit}"]`).addClass("active");
-     }
-     chartUnit = window.localStorage.getItem("chartUnit");
- 
- 
-     const totalDataUsageChart = document.getElementById('totalDataUsageChartObj').getContext('2d');
-     const totalDataUsageChartObj = new Chart(totalDataUsageChart, {
-         type: 'line',
-         data: {
-             labels: [],
-             datasets: [{
-                 label: 'Data Sent',
-                 data: [],
-                 stroke: '#FFFFFF',
-                 borderColor: '#28a745',
-                 backgroundColor: '#28a7452b',
-                 pointRadius: 1,
-                 fill: {target: 'origin'},
-                 tension: 0,
-                 borderWidth: 1
-             },
-             {
-                 label: 'Data Received',
-                 data: [],
-                 stroke: '#FFFFFF',
-                 borderColor: '#007bff',
-                 backgroundColor: '#007bff2b',
-                 pointRadius: 1,
-                 fill: {target: 'origin'},
-                 tension: 0,
-                 borderWidth: 1
-             }
-             ]
-         },
-         options: {
-             maintainAspectRatio: false,
-             showScale: false,
-             responsive: false,
-             scales: {
-                 y: {
-                     min: 0,
-                     ticks: {
-                         min: 0,
-                         callback: function (value, index, ticks) {
-                             return `${value} ${chartUnit}`;
-                         }
-                     }
-                 }
-             },
-             plugins: {
-                 tooltip: {
-                     callbacks: {
-                         label: function (context) {
-                             return `${context.dataset.label}: ${context.parsed.y} ${chartUnit}`;
-                         }
-                     }
-                 }
-             }
-         }
-     });
- 
-     let $totalDataUsageChartObj = $("#totalDataUsageChartObj");
-     $totalDataUsageChartObj.css("width", "100%");
-     totalDataUsageChartObj.width = $totalDataUsageChartObj.parent().width();
-     totalDataUsageChartObj.resize();
-     $(window).on("resize", function () {
-         totalDataUsageChartObj.resize();
-     });
- 
-     $(".fullScreen").on("click", function () {
-         let $chartContainer = $(".chartContainer");
-         if ($chartContainer.hasClass("fullScreen")) {
-             $(this).children().removeClass("bi-fullscreen-exit").addClass("bi-fullscreen");
-             $chartContainer.removeClass("fullScreen");
-         } else {
-             $(this).children().removeClass("bi-fullscreen").addClass("bi-fullscreen-exit");
-             $chartContainer.addClass("fullScreen");
-         }
-         totalDataUsageChartObj.resize();
-     });
- 
-     let mul = 1;
-     $(".switchUnit").on("click", function () {
-         $(".switchUnit").removeClass("active");
-         $(`.switchUnit[data-unit=${$(this).data('unit')}]`).addClass("active");
-         if ($(this).data('unit') !== chartUnit) {
-             switch ($(this).data('unit')) {
-                 case "GB":
-                     if (chartUnit === "MB") {
-                         mul = 1 / 1024;
-                     }
-                     if (chartUnit === "KB") {
-                         mul = 1 / 1048576;
-                     }
-                     break;
-                 case "MB":
-                     if (chartUnit === "GB") {
-                         mul = 1024;
-                     }
-                     if (chartUnit === "KB") {
-                         mul = 1 / 1024;
-                     }
-                     break;
-                 case "KB":
-                     if (chartUnit === "GB") {
-                         mul = 1048576;
-                     }
-                     if (chartUnit === "MB") {
-                         mul = 1024;
-                     }
-                     break;
-                 default:
-                     break;
-             }
-             window.localStorage.setItem("chartUnit", $(this).data('unit'));
-             chartUnit = $(this).data('unit');
-             totalDataUsageChartObj.data.datasets[0].data = totalDataUsageChartObj.data.datasets[0].data.map(x => x * mul);
-             totalDataUsageChartObj.data.datasets[1].data = totalDataUsageChartObj.data.datasets[1].data.map(x => x * mul);
-             totalDataUsageChartObj.update();
- 
-             peerDataUsageChartObj.data.datasets[0].data = peerDataUsageChartObj.data.datasets[0].data.map(x => x * mul);
-             peerDataUsageChartObj.data.datasets[1].data = peerDataUsageChartObj.data.datasets[1].data.map(x => x * mul);
-             peerDataUsageChartObj.update();
-         }
-     });
-
-
+    
     /**
      * To show alert on the configuration page
      * @param response
@@ -189,6 +51,30 @@
         }
     }
 
+    function setActiveConfigurationName() {
+        $(".nav-conf-link").removeClass("active");
+        $(`.sb-${configuration_name}-url`).addClass("active");
+    }
+
+    let firstLoading = true;
+    $(".nav-conf-link").on("click", function (e) {
+        e.preventDefault();
+        if (configuration_name !== $(this).data("conf-id")) {
+            firstLoading = true;
+            $("#config_body").addClass("firstLoading");
+            configuration_name = $(this).data("conf-id");
+            if (loadPeers($('#search_peer_textbox').val())) {
+                setActiveConfigurationName();
+                window.history.pushState(null, null, `/configuration/${configuration_name}`);
+                $("title").text(`${configuration_name} | WGDashboard`);
+                $(".index-alert").addClass("d-none").text(``);
+                totalDataUsageChartObj.data.labels = [];
+                totalDataUsageChartObj.data.datasets[0].data = [];
+                totalDataUsageChartObj.data.datasets[1].data = [];
+                totalDataUsageChartObj.update();
+            }
+        }
+    });
     /**
      * Parse all responded information onto the configuration header
      * @param response
@@ -201,6 +87,41 @@
             $conf_status_btn.innerHTML = `<a href="#" id="${response.name}" ${response.checked} class="switch text-primary"><i class="bi bi-toggle2-off"></i> OFF</a>`;
         }
         $conf_status_btn.classList.remove("info_loading");
+        if (response.running_peer > 0) {
+            let d = new Date();
+            let time = d.toLocaleString("en-us", { hour: '2-digit', minute: '2-digit', second: "2-digit", hourCycle: 'h23' });
+            totalDataUsageChartObj.data.labels.push(`${time}`);
+
+            if (totalDataUsageChartObj.data.datasets[0].data.length === 0) {
+                totalDataUsageChartObj.data.datasets[1].lastData = response.total_data_usage[2];
+                totalDataUsageChartObj.data.datasets[0].lastData = response.total_data_usage[1];
+                totalDataUsageChartObj.data.datasets[0].data.push(0);
+                totalDataUsageChartObj.data.datasets[1].data.push(0);
+            } else {
+                if (totalDataUsageChartObj.data.datasets[0].data.length === 50 && totalDataUsageChartObj.data.datasets[1].data.length === 50) {
+                    totalDataUsageChartObj.data.labels.shift();
+                    totalDataUsageChartObj.data.datasets[0].data.shift();
+                    totalDataUsageChartObj.data.datasets[1].data.shift();
+                }
+
+                let newTotalReceive = response.total_data_usage[2] - totalDataUsageChartObj.data.datasets[1].lastData;
+                let newTotalSent = response.total_data_usage[1] - totalDataUsageChartObj.data.datasets[0].lastData;
+                let k = 0;
+                if (chartUnit === "MB") {
+                    k = 1024;
+                } else if (chartUnit === "KB") {
+                    k = 1048576;
+                } else {
+                    k = 1;
+                }
+                totalDataUsageChartObj.data.datasets[1].data.push(newTotalReceive * k);
+                totalDataUsageChartObj.data.datasets[0].data.push(newTotalSent * k);
+                totalDataUsageChartObj.data.datasets[0].lastData = response.total_data_usage[1];
+                totalDataUsageChartObj.data.datasets[1].lastData = response.total_data_usage[2];
+            }
+
+            totalDataUsageChartObj.update();
+        }
         document.querySelectorAll("#sort_by_dropdown option").forEach(ele => ele.removeAttribute("selected"));
         document.querySelector(`#sort_by_dropdown option[value="${response.sort_tag}"]`).setAttribute("selected", "selected");
         document.querySelectorAll(".interval-btn-group button").forEach(ele => ele.classList.remove("active"));
@@ -669,74 +590,6 @@
 let $body = $("body");
 let available_ips = [];
 let $add_peer = document.getElementById("save_peer");
-
-function loadPeerDataUsageChartDone(res){
-    if (res.status === true){
-        let t = new Date();
-        let string = `${t.getDate()}/${t.getMonth()}/${t.getFullYear()} ${t.getHours() > 10 ? t.getHours():`0${t.getHours()}`}:${t.getMinutes() > 10 ? t.getMinutes():`0${t.getMinutes()}`}:${t.getSeconds() > 10 ? t.getSeconds():`0${t.getSeconds()}`}`;
-        $(".peerDataUsageUpdateTime").html(`Updated on: ${string}`);
-
-        configurations.peerDataUsageChartObj().data.labels = [];
-        configurations.peerDataUsageChartObj().data.datasets[0].data = [];
-        configurations.peerDataUsageChartObj().data.datasets[1].data = [];
-        console.log(res);
-        let data = res.data;
-        if (data.length > 0){
-            configurations.peerDataUsageChartObj().data.labels.push(data[data.length - 1].time);
-            configurations.peerDataUsageChartObj().data.datasets[0].data.push(0);
-            configurations.peerDataUsageChartObj().data.datasets[1].data.push(0);
-        
-            configurations.peerDataUsageChartObj().data.datasets[0].lastData = data[data.length - 1].total_sent
-            configurations.peerDataUsageChartObj().data.datasets[1].lastData = data[data.length - 1].total_receive
-        
-        
-            for(let i = data.length - 2; i >= 0; i--){
-                let sent = data[i].total_sent - configurations.peerDataUsageChartObj().data.datasets[0].lastData;
-                let receive = data[i].total_receive - configurations.peerDataUsageChartObj().data.datasets[1].lastData;
-                configurations.peerDataUsageChartObj().data.datasets[0].data.push(sent);
-                configurations.peerDataUsageChartObj().data.datasets[1].data.push(receive);
-                configurations.peerDataUsageChartObj().data.labels.push(data[i].time);
-                configurations.peerDataUsageChartObj().data.datasets[0].lastData = data[i].total_sent;
-                configurations.peerDataUsageChartObj().data.datasets[1].lastData = data[i].total_receive;
-            }
-            configurations.peerDataUsageChartObj().update();
-        }
-    }
-}
-
-let peerDataUsageInterval;
-
-$body.on("click", ".btn-data-usage-peer", function(){
-    configurations.peerDataUsageChartObj().data.peerID = $(this).data("peer-id");
-    configurations.peerDataUsageModal().toggle();
-    peerDataUsageInterval = setInterval(function(){
-        ajaxPostJSON("/api/getPeerDataUsage", {"config": configurations.getConfigurationName(), "peerID":  configurations.peerDataUsageChartObj().data.peerID, "interval": window.localStorage.getItem("peerTimePeriod")}, loadPeerDataUsageChartDone); 
-    }, 30000);
-    ajaxPostJSON("/api/getPeerDataUsage", {"config": configurations.getConfigurationName(), "peerID":  configurations.peerDataUsageChartObj().data.peerID, "interval": window.localStorage.getItem("peerTimePeriod")}, loadPeerDataUsageChartDone); 
-});
-
-$('#peerDataUsage').on('shown.bs.modal', function() {
-    configurations.peerDataUsageChartObj().resize();
-}).on('hidden.bs.modal', function() {
-    clearInterval(peerDataUsageInterval);
-    configurations.peerDataUsageChartObj().data.peerID = "";
-    configurations.peerDataUsageChartObj().data.labels = [];
-    configurations.peerDataUsageChartObj().data.datasets[0].data = [];
-    configurations.peerDataUsageChartObj().data.datasets[1].data = [];
-    configurations.peerDataUsageChartObj().update();
-});
-
-$(".switchTimePeriod").on("click", function(){
-    let peerTimePeriod = window.localStorage.peerTimePeriod;
-    $(".switchTimePeriod").removeClass("active");
-    $(this).addClass("active");
-    if ($(this).data('time') !== peerTimePeriod){
-        ajaxPostJSON("/api/getPeerDataUsage", {"config": configurations.getConfigurationName(), "peerID": configurations.peerDataUsageChartObj().data.peerID, "interval": $(this).data('time')}, loadPeerDataUsageChartDone); 
-        window.localStorage.peerTimePeriod = $(this).data('time');
-    }
-    
-})
-
 
 
 
