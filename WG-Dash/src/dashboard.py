@@ -30,6 +30,7 @@ from util import *
 
 
 
+
 # Dashboard Version
 DASHBOARD_VERSION = 'v0.1.4 Kraken'
 
@@ -228,7 +229,7 @@ def read_conf_file_interface(config_name):
     Get interface settings.
     @param config_name: Name of WG interface
     @type config_name: str
-    @return: Dictionary with interface settings
+    @return: Dictionary with interface settings or an empty dictionary if the file is not found
     @rtype: dict
     """
 
@@ -244,9 +245,9 @@ def read_conf_file_interface(config_name):
                             tmp = re.split(r'\s*=\s*', i, 1)
                             if len(tmp) == 2:
                                 data[tmp[0]] = tmp[1]
-    except FileNotFoundError as e:
+        return data
+    except FileNotFoundError:
         return {}
-    return data
 
 def read_conf_file(config_name):
     """
@@ -695,81 +696,52 @@ def check_repeat_allowed_ip(public_key, ip, config_name):
 
 MAX_IP_COUNT = 100
 
-def config_exists(config_name):
-    # Implementation of config_exists function goes here
-    pass
 
-def get_database_connection():
-    # Implementation of get_database_connection function goes here
-    pass
 
 def f_available_ips(config_name):
     """
-    Get a list of available IPs.
-
-    Args:
-        config_name (str): Configuration Name.
-
-    Returns:
-        list: List of available IPs.
+    Get a list of available IPs
+    @param config_name: Configuration Name
+    @return: list
     """
-    # Input validation
-    if not isinstance(config_name, str):
-        raise ValueError("config_name must be a string")
+    config_interface = read_conf_file_interface(config_name)
+    if "Address" in config_interface:
+        available = []
+        existed = []
+        conf_address = config_interface['Address']
+        address = conf_address.split(',')
+        for i in address:
+            add, sub = i.split("/")
+            existed.append(ipaddress.ip_address(add.replace(" ", "")))
+        peers = g.cur.execute("SELECT allowed_ip FROM " + config_name).fetchall()
+        for i in peers:
+            add = i[0].split(",")
+            for k in add:
+                a, s = k.split("/")
+                existed.append(ipaddress.ip_address(a.strip()))
+        count = 0
+        for i in address:
+            tmpIP = ipaddress.ip_network(i.replace(" ", ""), False)
+            if tmpIP.version == 6:
+                for i in tmpIP.hosts():
+                    if i not in existed:
+                        available.append(i)
+                        count += 1
+                    if count > 100000000:
+                        break
+            else:
+                available = available + list(tmpIP.hosts())
 
-    if not config_exists(config_name):
-        raise ValueError(f"Configuration '{config_name}' does not exist")
+        for i in existed:
+            try:
+                available.remove(i)
+            except ValueError:
+                pass
+        available = [str(i) for i in available]
+        return available
+    else:
+        return []
 
-    # Database connection management
-    with get_database_connection() as cur:
-        try:
-            config_interface = read_conf_file_interface(config_name)
-
-            if "Address" not in config_interface:
-                return []
-
-            available = []
-            existed = []
-
-            # Parse existing addresses from configuration
-            conf_address = config_interface['Address']
-            address = conf_address.split(',')
-            for i in address:
-                add, sub = i.split("/")
-                existed.append(ipaddress.ip_address(add.replace(" ", "")))
-
-            # Parse existing addresses from the database
-            peers = cur.execute("SELECT allowed_ip FROM " + config_name).fetchall()
-            for i in peers:
-                add = i[0].split(",")
-                for k in add:
-                    a, s = k.split("/")
-                    existed.append(ipaddress.ip_address(a.strip()))
-
-            count = 0
-            for i in address:
-                tmpIP = ipaddress.ip_network(i.replace(" ", ""), False)
-                if tmpIP.version == 6:
-                    for host in tmpIP.hosts():
-                        if host not in existed:
-                            available.append(host)
-                            count += 1
-                        if count > MAX_IP_COUNT:
-                            break
-                else:
-                    available.extend(list(tmpIP.hosts()))
-
-            # Remove duplicates from the list of available IPs
-            available = list(set(available))
-
-            return [str(ip) for ip in available]
-
-        except Exception as e:
-            # Error handling
-            print(f"An error occurred: {e}")
-            return []
-
-def auto_name_peer(config_name):
 
     """
     Automatically generate a name for a new peer based on a prefix ("node") and an incremental identifier.
