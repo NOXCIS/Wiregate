@@ -64,7 +64,7 @@ network_logs_out() {
 }
 
 logs_title &&
-run_wireguard_up >/dev/null 2>&1 && 
+run_wireguard_up #>/dev/null 2>&1 && 
 network_logs_out &&
 /home/app/wgd.sh start 
 

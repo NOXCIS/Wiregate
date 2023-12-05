@@ -30,9 +30,8 @@ from util import *
 
 
 
-
 # Dashboard Version
-DASHBOARD_VERSION = 'v0.1.4 Kraken'
+DASHBOARD_VERSION = 'v0.1.4 Cetus'
 
 # WireGuard's configuration path
 WG_CONF_PATH = None
@@ -50,14 +49,18 @@ UPDATE = None
 # Flask App Configuration
 app = Flask("WireGate")
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 5206928
+
 wg_dash_appkey = os.environ.get('WG_DASH_SECRET_KEY')
 app.secret_key = wg_dash_appkey
+#app.secret_key = secrets.token_urlsafe(16)
+
 app.config['TEMPLATES_AUTO_RELOAD'] = True
+
+# Enable QR Code Generator
 QRcode(app)
 
 
-
-
+# TODO: use class and object oriented programming
 
 def get_dashboard_conf():
     """
@@ -67,6 +70,7 @@ def get_dashboard_conf():
     r_config = configparser.ConfigParser(strict=False)
     r_config.read(DASHBOARD_CONF)
     return r_config
+
 
 def set_dashboard_conf(config):
     """
@@ -130,22 +134,38 @@ def init_dashboard():
     if "Peers" not in config:
         config['Peers'] = {}
     if 'peer_global_DNS' not in config['Peers']:
+
         wg_dash_global_dns = os.environ.get('WG_DASH_DNS')
+
+
+
+
         config['Peers']['peer_global_DNS'] = wg_dash_global_dns
+
+
     if 'peer_endpoint_allowed_ip' not in config['Peers']:
+
         peer_endpoint_allowed_ip = os.environ.get('WG_DASH_PEER_ENDPOINT_ALLOWED_IP')
         config['Peers']['peer_endpoint_allowed_ip'] = peer_endpoint_allowed_ip
+
+
     if 'peer_display_mode' not in config['Peers']:
         config['Peers']['peer_display_mode'] = 'grid'
     if 'remote_endpoint' not in config['Peers']:
+
         server_ip = os.environ.get('WG_DASH_SERVER_IP')
         config['Peers']['remote_endpoint'] = server_ip
+
     if 'peer_MTU' not in config['Peers']:
+
         wg_dash_mtu = os.environ.get('WG_DASH_MTU')
         config['Peers']['peer_MTU'] = wg_dash_mtu
+
     if 'peer_keep_alive' not in config['Peers']:
+        
         wg_dash_keep_alive = os.environ.get('WG_DASH_KEEP_ALIVE')
         config['Peers']['peer_keep_alive'] = wg_dash_keep_alive
+
     set_dashboard_conf(config)
     config.clear()
 
@@ -170,6 +190,7 @@ def run_dashboard():
     config.clear()
     return app
 
+
 init_dashboard()
 run_dashboard()
 
@@ -180,6 +201,11 @@ def connect_db():
     """
     return sqlite3.connect(os.path.join(configuration_path, 'db', 'wgdashboard.db'))
 
+
+
+
+
+# Get all keys from a configuration
 def get_conf_peer_key(config_name):
     """
     Get the peers keys of wireguard interface.
@@ -213,7 +239,7 @@ def get_conf_running_peer_number(config_name):
         data_usage = subprocess.check_output(f"wg show {config_name} latest-handshakes",
                                              shell=True, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError:
-        return 0
+        return "stopped"
     data_usage = data_usage.decode("UTF-8").split()
     count = 0
     now = datetime.now()
@@ -236,19 +262,16 @@ def read_conf_file_interface(config_name):
     """
 
     conf_location = WG_CONF_PATH + "/" + config_name + ".conf"
-    try:
-        with open(conf_location, 'r', encoding='utf-8') as file_object:
-            file = file_object.read().split("\n")
-            data = {}
-            for i in file:
-                if not regex_match("#(.*)", i):
-                    if len(i) > 0:
-                        if i != "[Interface]":
-                            tmp = re.split(r'\s*=\s*', i, 1)
-                            if len(tmp) == 2:
-                                data[tmp[0]] = tmp[1]
-    except FileNotFoundError as e:
-        return {}
+    with open(conf_location, 'r', encoding='utf-8') as file_object:  #path traversal
+        file = file_object.read().split("\n")
+        data = {}
+        for i in file:
+            if not regex_match("#(.*)", i):
+                if len(i) > 0:
+                    if i != "[Interface]":
+                        tmp = re.split(r'\s*=\s*', i, 1)
+                        if len(tmp) == 2:
+                            data[tmp[0]] = tmp[1]
     return data
 
 
@@ -262,7 +285,7 @@ def read_conf_file(config_name):
     """
 
     conf_location = WG_CONF_PATH + "/" + config_name + ".conf"
-    f = open(conf_location, 'r')
+    f = open(conf_location, 'r')  #resource Leak
     file = f.read().split("\n")
     conf_peer_data = {
         "Interface": {},
@@ -356,32 +379,21 @@ def get_transfer(config_name):
             total_receive = cur_i[0][0]
             cur_total_sent = round(int(data_usage[i][2]) / (1024 ** 3), 4)
             cur_total_receive = round(int(data_usage[i][1]) / (1024 ** 3), 4)
-            # if cur_i[0][4] == "running":
-            cumulative_receive = cur_i[0][2] + total_receive
-            cumulative_sent = cur_i[0][3] + total_sent
-            if total_sent <= cur_total_sent and total_receive <= cur_total_receive:
-                total_sent = cur_total_sent
-                total_receive = cur_total_receive
-            else:
-                # cumulative_receive = cur_i[0][2] + total_receive
-                # cumulative_sent = cur_i[0][3] + total_sent
-                g.cur.execute("UPDATE %s SET cumu_receive = %f, cumu_sent = %f, cumu_data = %f WHERE id = '%s'" %
-                                (config_name, round(cumulative_receive, 4), round(cumulative_sent, 4),
-                                round(cumulative_sent + cumulative_receive, 4), data_usage[i][0]))
-                total_sent = 0
-                total_receive = 0
-            g.cur.execute("UPDATE %s SET total_receive = %f, total_sent = %f, total_data = %f WHERE id = '%s'" %
-                            (config_name, round(total_receive, 4), round(total_sent, 4),
-                            round(total_receive + total_sent, 4), data_usage[i][0]))
-            # now = datetime.now()
-            # now_string = now.strftime("%d/%m/%Y %H:%M:%S")
-            # g.cur.execute(f'''
-            # INSERT INTO {config_name}_transfer (id, total_receive, total_sent, total_data, cumu_receive, cumu_sent, cumu_data, time) 
-            # VALUES ('{data_usage[i][0]}', {round(total_receive, 4)}, {round(total_sent, 4)}, {round(total_receive + total_sent, 4)},{round(cumulative_receive, 4)}, {round(cumulative_sent, 4)},
-            #                     {round(cumulative_sent + cumulative_receive, 4)}, '{now_string}')
-            # ''')
-            
-
+            if cur_i[0][4] == "running":
+                if total_sent <= cur_total_sent and total_receive <= cur_total_receive:
+                    total_sent = cur_total_sent
+                    total_receive = cur_total_receive
+                else:
+                    cumulative_receive = cur_i[0][2] + total_receive
+                    cumulative_sent = cur_i[0][3] + total_sent
+                    g.cur.execute("UPDATE %s SET cumu_receive = %f, cumu_sent = %f, cumu_data = %f WHERE id = '%s'" %
+                                  (config_name, round(cumulative_receive, 4), round(cumulative_sent, 4),
+                                   round(cumulative_sent + cumulative_receive, 4), data_usage[i][0]))
+                    total_sent = 0
+                    total_receive = 0
+                g.cur.execute("UPDATE %s SET total_receive = %f, total_sent = %f, total_data = %f WHERE id = '%s'" %
+                              (config_name, round(total_receive, 4), round(total_sent, 4),
+                               round(total_receive + total_sent, 4), data_usage[i][0]))
 
 
 def get_endpoint(config_name):
@@ -416,7 +428,6 @@ def get_allowed_ip(conf_peer_data, config_name):
     for i in conf_peer_data["Peers"]:
         g.cur.execute("UPDATE " + config_name + " SET allowed_ip = '%s' WHERE id = '%s'"
                       % (i.get('AllowedIPs', '(None)'), i["PublicKey"]))
-
 
 
 def get_all_peers_data(config_name):
@@ -480,12 +491,6 @@ def get_all_peers_data(config_name):
     get_endpoint(config_name)
     get_allowed_ip(conf_peer_data, config_name)
 
-def getLockAccessPeers(config_name):
-    col = g.cur.execute(f"PRAGMA table_info({config_name}_restrict_access)").fetchall()
-    col = [a[1] for a in col]
-    data = g.cur.execute(f"SELECT * FROM {config_name}_restrict_access").fetchall()
-    result = [{col[i]: data[k][i] for i in range(len(col))} for k in range(len(data))]
-    return result
 
 def get_peers(config_name, search, sort_t):
     """
@@ -610,32 +615,12 @@ def get_conf_list():
                     total_sent FLOAT NULL, total_data FLOAT NULL, endpoint VARCHAR NULL, 
                     status VARCHAR NULL, latest_handshake VARCHAR NULL, allowed_ip VARCHAR NULL, 
                     cumu_receive FLOAT NULL, cumu_sent FLOAT NULL, cumu_data FLOAT NULL, mtu INT NULL, 
-                    keepalive INT NULL, remote_endpoint VARCHAR NULL, preshared_key VARCHAR NULL,
+                    keepalive INT NULL, remote_endpoint VARCHAR NULL, preshared_key VARCHAR NULL, 
                     PRIMARY KEY (id)
                 )
             """
             g.cur.execute(create_table)
-            create_table = f"""
-                CREATE TABLE IF NOT EXISTS {i}_restrict_access (
-                    id VARCHAR NOT NULL, private_key VARCHAR NULL, DNS VARCHAR NULL, 
-                    endpoint_allowed_ip VARCHAR NULL, name VARCHAR NULL, total_receive FLOAT NULL, 
-                    total_sent FLOAT NULL, total_data FLOAT NULL, endpoint VARCHAR NULL, 
-                    status VARCHAR NULL, latest_handshake VARCHAR NULL, allowed_ip VARCHAR NULL, 
-                    cumu_receive FLOAT NULL, cumu_sent FLOAT NULL, cumu_data FLOAT NULL, mtu INT NULL, 
-                    keepalive INT NULL, remote_endpoint VARCHAR NULL, preshared_key VARCHAR NULL,
-                    PRIMARY KEY (id)
-                )
-            """
-            g.cur.execute(create_table)
-            create_table = f"""
-                CREATE TABLE IF NOT EXISTS {i}_transfer (
-                    id VARCHAR NOT NULL, total_receive FLOAT NULL, 
-                    total_sent FLOAT NULL, total_data FLOAT NULL,
-                    cumu_receive FLOAT NULL, cumu_sent FLOAT NULL, cumu_data FLOAT NULL, time DATETIME
-                )
-            """
-            g.cur.execute(create_table)
-            temp = {"conf": i, "status": get_conf_status(i), "public_key": get_conf_pub_key(i), "port": get_conf_listen_port(i)}
+            temp = {"conf": i, "status": get_conf_status(i), "public_key": get_conf_pub_key(i)}
             if temp['status'] == "running":
                 temp['checked'] = 'checked'
             else:
@@ -723,32 +708,19 @@ def f_available_ips(config_name):
     """
     config_interface = read_conf_file_interface(config_name)
     if "Address" in config_interface:
-        available = []
         existed = []
         conf_address = config_interface['Address']
         address = conf_address.split(',')
         for i in address:
             add, sub = i.split("/")
-            existed.append(ipaddress.ip_address(add.replace(" ", "")))
+            existed.append(ipaddress.ip_address(add))
         peers = g.cur.execute("SELECT allowed_ip FROM " + config_name).fetchall()
         for i in peers:
             add = i[0].split(",")
             for k in add:
                 a, s = k.split("/")
                 existed.append(ipaddress.ip_address(a.strip()))
-        count = 0
-        for i in address:
-            tmpIP = ipaddress.ip_network(i.replace(" ", ""), False)
-            if tmpIP.version == 6:
-                for i in tmpIP.hosts():
-                    if i not in existed:
-                        available.append(i)
-                        count += 1
-                    if count > 100:
-                        break
-            else:
-                available = available + list(tmpIP.hosts())
-
+        available = list(ipaddress.ip_network(address[0], False).hosts())
         for i in existed:
             try:
                 available.remove(i)
@@ -760,36 +732,10 @@ def f_available_ips(config_name):
         return []
 
 
-    """
-    Automatically generate a name for a new peer based on a prefix ("node") and an incremental identifier.
-
-    Parameters:
-    - config_name: Name of the WireGuard configuration.
-    
-    Returns:
-    - A generated name for the new peer.
-    """
-    # Use "node" as the prefix
-    prefix = "node"
-
-    # Find the maximum existing identifier and increment by 1
-    max_id_query = g.cur.execute(f"SELECT MAX(CAST(SUBSTR(name, LENGTH('{prefix}') + 1) AS INTEGER)) FROM {config_name}").fetchone()
-    max_id = max_id_query[0] if max_id_query[0] is not None else 0
-    new_id = max_id + 1
-
-    # Concatenate the prefix and the incremented identifier to form the auto-generated name
-    auto_generated_name = f"{prefix}{new_id}"
-
-    return auto_generated_name
-
-
-
-
-
-
 """
 Flask Functions
 """
+
 
 @app.teardown_request
 def close_DB(exception):
@@ -801,6 +747,7 @@ def close_DB(exception):
     if hasattr(g, 'db'):
         g.db.commit()
         g.db.close()
+
 
 @app.before_request
 def auth_req():
@@ -845,6 +792,7 @@ def auth_req():
 Sign In / Sign Out
 """
 
+
 @app.route('/signin', methods=['GET'])
 def signin():
     """
@@ -858,6 +806,8 @@ def signin():
         session.pop("message")
     return render_template('signin.html', message=message, version=DASHBOARD_VERSION)
 
+
+# Sign Out
 @app.route('/signout', methods=['GET'])
 def signout():
     """
@@ -867,6 +817,7 @@ def signout():
     if "username" in session:
         session.pop("username")
     return redirect(url_for('signin'))
+
 
 @app.route('/auth', methods=['POST'])
 def auth():
@@ -893,6 +844,7 @@ def auth():
 Index Page
 """
 
+
 @app.route('/', methods=['GET'])
 def index():
     """
@@ -906,6 +858,8 @@ def index():
 
     return render_template('index.html', conf=get_conf_list(), msg=msg)
 
+
+# Setting Page
 @app.route('/settings', methods=['GET'])
 def settings():
     """
@@ -929,6 +883,7 @@ def settings():
                            peer_mtu=config.get("Peers", "peer_mtu"),
                            peer_keepalive=config.get("Peers", "peer_keep_alive"),
                            peer_remote_endpoint=config.get("Peers", "remote_endpoint"))
+
 
 @app.route('/update_acct', methods=['POST'])
 def update_acct():
@@ -956,6 +911,8 @@ def update_acct():
         config.clear()
         return redirect(url_for("settings"))
 
+
+# Update peer default setting
 @app.route('/update_peer_default_config', methods=['POST'])
 def update_peer_default_config():
     """
@@ -1024,6 +981,8 @@ def update_peer_default_config():
         config.clear()
         return redirect(url_for("settings"))
 
+
+# Update dashboard password
 @app.route('/update_pwd', methods=['POST'])
 def update_pwd():
     """
@@ -1067,6 +1026,7 @@ def update_pwd():
         config.clear()
         return redirect(url_for("settings"))
 
+
 @app.route('/update_app_ip_port', methods=['POST'])
 def update_app_ip_port():
     """
@@ -1082,6 +1042,8 @@ def update_app_ip_port():
     subprocess.Popen('bash wgd.sh restart', shell=True)
     return ""
 
+
+# Update WireGuard configuration file path
 @app.route('/update_wg_conf_path', methods=['POST'])
 def update_wg_conf_path():
     """
@@ -1096,6 +1058,7 @@ def update_wg_conf_path():
     session['message'] = "WireGuard Configuration Path Update Successfully!"
     session['message_status'] = "success"
     subprocess.Popen('bash wgd.sh restart', shell=True)
+
 
 @app.route('/update_dashboard_sort', methods=['POST'])
 def update_dashbaord_sort():
@@ -1115,6 +1078,8 @@ def update_dashbaord_sort():
     config.clear()
     return "true"
 
+
+# Update configuration refresh interval
 @app.route('/update_dashboard_refresh_interval', methods=['POST'])
 def update_dashboard_refresh_interval():
     """
@@ -1133,6 +1098,8 @@ def update_dashboard_refresh_interval():
     else:
         return "false"
 
+
+# Configuration Page
 @app.route('/configuration/<config_name>', methods=['GET'])
 def configuration(config_name):
     """
@@ -1170,6 +1137,8 @@ def configuration(config_name):
                            mtu=peer_mtu,
                            keep_alive=peer_keep_alive)
 
+
+# Get configuration details
 @app.route('/get_config/<config_name>', methods=['GET'])
 def get_conf(config_name):
     """
@@ -1178,60 +1147,43 @@ def get_conf(config_name):
     @type config_name: str
     @return: TODO
     """
-    result = {
-        "status": True,
-        "message": "",
-        "data": {}
-    }
-    if not session:
-        result["status"] = False
-        result["message"] = "Oops! <br> You're not signed in. Please refresh your page."
-        return jsonify(result)
 
-    if getattr(g, 'db', None) is None:
-        g.db = connect_db()
-        g.cur = g.db.cursor()
     config_interface = read_conf_file_interface(config_name)
-
-    if config_interface != {}:
-        search = request.args.get('search')
-        if len(search) == 0:
-            search = ""
-        search = urllib.parse.unquote(search)
-        config = get_dashboard_conf()
-        sort = config.get("Server", "dashboard_sort")
-        peer_display_mode = config.get("Peers", "peer_display_mode")
-        wg_ip = config.get("Peers", "remote_endpoint")
-        if "Address" not in config_interface:
-            conf_address = "N/A"
-        else:
-            conf_address = config_interface['Address']
-        result['data'] = {
-            "peer_data": get_peers(config_name, search, sort),
-            "name": config_name,
-            "status": get_conf_status(config_name),
-            "total_data_usage": get_conf_total_data(config_name),
-            "public_key": get_conf_pub_key(config_name),
-            "listen_port": get_conf_listen_port(config_name),
-            "running_peer": get_conf_running_peer_number(config_name),
-            "conf_address": conf_address,
-            "wg_ip": wg_ip,
-            "sort_tag": sort,
-            "dashboard_refresh_interval": int(config.get("Server", "dashboard_refresh_interval")),
-            "peer_display_mode": peer_display_mode,
-            "lock_access_peers": getLockAccessPeers(config_name)
-        }
-        if result['data']['status'] == "stopped":
-            result['data']['checked'] = "nope"
-        else:
-            result['data']['checked'] = "checked"
-        config.clear()
+    search = request.args.get('search')
+    if len(search) == 0:
+        search = ""
+    search = urllib.parse.unquote(search)
+    config = get_dashboard_conf()
+    sort = config.get("Server", "dashboard_sort")
+    peer_display_mode = config.get("Peers", "peer_display_mode")
+    wg_ip = config.get("Peers", "remote_endpoint")
+    if "Address" not in config_interface:
+        conf_address = "N/A"
     else:
-        result['status'] = False
-        result['message'] = "I cannot find this configuration. <br> Please refresh and try again"
+        conf_address = config_interface['Address']
+    conf_data = {
+        "peer_data": get_peers(config_name, search, sort),
+        "name": config_name,
+        "status": get_conf_status(config_name),
+        "total_data_usage": get_conf_total_data(config_name),
+        "public_key": get_conf_pub_key(config_name),
+        "listen_port": get_conf_listen_port(config_name),
+        "running_peer": get_conf_running_peer_number(config_name),
+        "conf_address": conf_address,
+        "wg_ip": wg_ip,
+        "sort_tag": sort,
+        "dashboard_refresh_interval": int(config.get("Server", "dashboard_refresh_interval")),
+        "peer_display_mode": peer_display_mode
+    }
+    if conf_data['status'] == "stopped":
+        conf_data['checked'] = "nope"
+    else:
+        conf_data['checked'] = "checked"
     config.clear()
-    return jsonify(result)
+    return jsonify(conf_data)
 
+
+# Turn on / off a configuration
 @app.route('/switch/<config_name>', methods=['GET'])
 def switch(config_name):
     """
@@ -1257,6 +1209,7 @@ def switch(config_name):
             session["switch_msg"] = exc.output.strip().decode("utf-8")
             return redirect('/')
     return redirect(request.referrer)
+
 
 @app.route('/add_peer_bulk/<config_name>', methods=['POST'])
 def add_peer_bulk(config_name):
@@ -1324,6 +1277,7 @@ def add_peer_bulk(config_name):
     except subprocess.CalledProcessError as exc:
         return exc.output.strip()
 
+
 @app.route('/add_peer/<config_name>', methods=['POST'])
 def add_peer(config_name):
     """
@@ -1376,11 +1330,10 @@ def add_peer(config_name):
         get_all_peers_data(config_name)
         sql = "UPDATE " + config_name + " SET name = ?, private_key = ?, DNS = ?, endpoint_allowed_ip = ? WHERE id = ?"
         g.cur.execute(sql, (data['name'], data['private_key'], data['DNS'], endpoint_allowed_ip, public_key))
-
-        
         return "true"
     except subprocess.CalledProcessError as exc:
         return exc.output.strip()
+
 
 @app.route('/remove_peer/<config_name>', methods=['POST'])
 def remove_peer(config_name):
@@ -1400,7 +1353,25 @@ def remove_peer(config_name):
     if not isinstance(keys, list):
         return config_name + " is not running."
     else:
-        return deletePeers(config_name, delete_keys, g.cur, g.db)
+        sql_command = []
+        wg_command = ["wg", "set", config_name]
+        for delete_key in delete_keys:
+            if delete_key not in keys:
+                return "This key does not exist"
+            sql_command.append("DELETE FROM " + config_name + " WHERE id = '" + delete_key + "';")
+            wg_command.append("peer")
+            wg_command.append(delete_key)
+            wg_command.append("remove")
+        try:
+            remove_wg = subprocess.check_output(" ".join(wg_command),
+                                                shell=True, stderr=subprocess.STDOUT)
+            save_wg = subprocess.check_output(f"wg-quick save {config_name}", shell=True, stderr=subprocess.STDOUT)
+            g.cur.executescript(' '.join(sql_command))
+            g.db.commit()
+        except subprocess.CalledProcessError as exc:
+            return exc.output.strip()
+        return "true"
+
 
 @app.route('/save_peer_setting/<config_name>', methods=['POST'])
 def save_peer_setting(config_name):
@@ -1462,6 +1433,8 @@ def save_peer_setting(config_name):
     else:
         return jsonify({"status": "failed", "msg": "This peer does not exist."})
 
+
+# Get peer settings
 @app.route('/get_peer_data/<config_name>', methods=['POST'])
 def get_peer_name(config_name):
     """
@@ -1482,14 +1455,14 @@ def get_peer_name(config_name):
             "mtu": result[0][5], "keep_alive": result[0][6], "preshared_key": result[0][7]}
     return jsonify(data)
 
+
+# Return available IPs
 @app.route('/available_ips/<config_name>', methods=['GET'])
 def available_ips(config_name):
-    result = {"status": True, "message":"", "data": f_available_ips(config_name)}
-    if len(result["data"]) == 0:
-        result['status'] = False
-        result['message'] = f"No more available IP for {config_name}."
-    return jsonify(result)
+    return jsonify(f_available_ips(config_name))
 
+
+# Check if both key match
 @app.route('/check_key_match/<config_name>', methods=['POST'])
 def check_key_match(config_name):
     """
@@ -1503,6 +1476,7 @@ def check_key_match(config_name):
     private_key = data['private_key']
     public_key = data['public_key']
     return jsonify(f_check_key_match(private_key, public_key, config_name))
+
 
 @app.route("/qrcode/<config_name>", methods=['GET'])
 def generate_qrcode(config_name):
@@ -1539,6 +1513,7 @@ def generate_qrcode(config_name):
             return render_template("qrcode.html", i=result)
     else:
         return redirect("/configuration/" + config_name)
+
 
 @app.route('/download_all/<config_name>', methods=['GET'])
 def download_all(config_name):
@@ -1589,6 +1564,8 @@ def download_all(config_name):
         data.append({"filename": f"{filename}.conf", "content": return_data})
     return jsonify({"status": True, "peers": data, "filename": f"{config_name}.zip"})
 
+
+# Download configuration file
 @app.route('/download/<config_name>', methods=['GET'])
 def download(config_name):
     """
@@ -1641,6 +1618,7 @@ def download(config_name):
             return jsonify({"status": True, "filename": f"{filename}.conf", "content": return_data})
     return jsonify({"status": False, "filename": "", "content": ""})
 
+
 @app.route('/switch_display_mode/<mode>', methods=['GET'])
 def switch_display_mode(mode):
     """
@@ -1663,9 +1641,21 @@ def switch_display_mode(mode):
 
 
 
-
+"""
+Import API
+"""
 
 import api
+
+@app.route('/api/settings/setTheme', methods=['POST'])
+def setTheme():
+    data = request.get_json()
+    required = ['theme']
+    if not checkJSONAllParameter(required, data):
+        return jsonify(api.notEnoughParameter)
+    else:
+        return api.settings.setTheme(api.settings, data['theme'], get_dashboard_conf(), set_dashboard_conf)
+    
 @app.route('/api/getPeerDataUsage', methods=['POST'])
 def getPeerDataUsage():
     data = request.get_json()
@@ -1677,120 +1667,14 @@ def getPeerDataUsage():
         return jsonify(api.notEnoughParameter)
     return jsonify(returnData)
 
-@app.route('/api/togglePeerAccess', methods=['POST'])
-def togglePeerAccess():
-    data = request.get_json()
-    returnData = {"status": True, "reason": ""}
-    required = ['peerID', 'config']
-    if checkJSONAllParameter(required, data):
-        returnData = api.togglePeerAccess(data, g)
-    else:
-        return jsonify(api.notEnoughParameter)
-    return jsonify(returnData)
-
-@app.route('/api/addConfigurationAddressCheck', methods=['POST'])
-def addConfigurationAddressCheck():
-    data = request.get_json()
-    returnData = {"status": True, "reason": ""}
-    required = ['address']
-    if checkJSONAllParameter(required, data):
-        returnData = api.manageConfiguration.AddressCheck(api.manageConfiguration, data)
-    else:
-        return jsonify(api.notEnoughParameter)
-    return jsonify(returnData)
-
-@app.route('/api/addConfigurationPortCheck', methods=['POST'])
-def addConfigurationPortCheck():
-    data = request.get_json()
-    returnData = {"status": True, "reason": ""}
-    required = ['port']
-    if checkJSONAllParameter(required, data):
-        returnData = api.manageConfiguration.PortCheck(api.manageConfiguration, data, get_conf_list())
-    else:
-        return jsonify(api.notEnoughParameter)
-    return jsonify(returnData)
-
-@app.route('/api/addConfigurationNameCheck', methods=['POST'])
-def addConfigurationNameCheck():
-    data = request.get_json()
-    returnData = {"status": True, "reason": ""}
-    required = ['name']
-    if checkJSONAllParameter(required, data):
-        returnData = api.manageConfiguration.NameCheck(api.manageConfiguration, data, get_conf_list())
-    else:
-        return jsonify(api.notEnoughParameter)
-    return jsonify(returnData)
-
-@app.route('/api/addConfiguration', methods=["POST"])
-def addConfiguration():
-    data = request.get_json()
-    returnData = {"status": True, "reason": ""}
-    required = ['addConfigurationPrivateKey', 'addConfigurationName', 'addConfigurationListenPort', 
-                'addConfigurationAddress', 'addConfigurationPreUp', 'addConfigurationPreDown', 
-                'addConfigurationPostUp', 'addConfigurationPostDown']
-    needFilled = ['addConfigurationPrivateKey', 'addConfigurationName', 'addConfigurationListenPort', 
-                'addConfigurationAddress']
-    if not checkJSONAllParameter(needFilled, data):
-        return jsonify(api.notEnoughParameter)
-    for i in required:
-        if i not in data.keys():
-            return jsonify(api.notEnoughParameter)
-    config = get_conf_list()
-    nameCheck = api.manageConfiguration.NameCheck(api.manageConfiguration, {"name": data['addConfigurationName']}, config)
-    if not nameCheck['status']:
-        return nameCheck
-
-    portCheck = api.manageConfiguration.PortCheck(api.manageConfiguration, {"port": data['addConfigurationListenPort']}, config)
-    if not portCheck['status']:
-        return portCheck
-
-    addressCheck = api.manageConfiguration.AddressCheck(api.manageConfiguration, {"address": data['addConfigurationAddress']})
-    if not addressCheck['status']:
-        return addressCheck
-
-    returnData = api.manageConfiguration.addConfiguration(api.manageConfiguration, data, config, WG_CONF_PATH)
-    return jsonify(returnData)
-
-@app.route('/api/saveConfiguration', methods=["POST"])
-def saveConfiguration():
-    data = request.get_json()
-    required = ['configurationName', 'ListenPort']
-    if not checkJSONAllParameter(required, data):
-        return jsonify(api.notEnoughParameter)
-    return api.manageConfiguration.saveConfiguration(api.manageConfiguration, data, WG_CONF_PATH, get_conf_list())
-
-@app.route('/api/deleteConfiguration', methods=['POST'])
-def deleteConfiguration():
-    data = request.get_json()
-    required = ['name']
-    if not checkJSONAllParameter(required, data):
-        return jsonify(api.notEnoughParameter)
-    returnData = api.manageConfiguration.deleteConfiguration(api.manageConfiguration, data, get_conf_list(), g, WG_CONF_PATH)
-    return returnData
-
-@app.route('/api/getConfigurationInfo', methods=['GET'])
-def getConfigurationInfo():
-    data = request.args.to_dict()
-    required = ['configName']
-    if not checkJSONAllParameter(required, data):
-        return jsonify(api.notEnoughParameter)
-    else:
-        return api.manageConfiguration.getConfigurationInfo(api.manageConfiguration, data['configName'], WG_CONF_PATH)
-
-@app.route('/api/settings/setTheme', methods=['POST'])
-def setTheme():
-    data = request.get_json()
-    required = ['theme']
-    if not checkJSONAllParameter(required, data):
-        return jsonify(api.notEnoughParameter)
-    else:
-        return api.settings.setTheme(api.settings, data['theme'], get_dashboard_conf(), set_dashboard_conf)
 
 
 """
 Dashboard Tools Related
 """
 
+
+# Get all IP for ping
 @app.route('/get_ping_ip', methods=['POST'])
 def get_ping_ip():
     # TODO: convert return to json object
@@ -1816,6 +1700,8 @@ def get_ping_ip():
         html += "</optgroup>"
     return html
 
+
+# Ping IP
 @app.route('/ping_ip', methods=['POST'])
 def ping_ip():
     """
@@ -1842,6 +1728,8 @@ def ping_ip():
     except Exception:
         return "Error"
 
+
+# Traceroute IP
 @app.route('/traceroute_ip', methods=['POST'])
 def traceroute_ip():
     """
@@ -1866,9 +1754,15 @@ def traceroute_ip():
         return "Error"
 
 
+
+
+
+
+
 """
 Get host and port for web-server
 """
+
 
 def get_host_bind():
     init_dashboard()

@@ -25,7 +25,7 @@ newconf_wgd0() {
     public_key=$(echo "$private_key" | wg pubkey)
 
 
-    cat <<EOF >"/etc/wireguard/Admins.conf"
+    cat <<EOF >"/etc/wireguard/admins.conf"
 [Interface]
 PrivateKey = $private_key
 Address = 10.0.0.1/24
@@ -47,7 +47,7 @@ newconf_wgd1() {
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
-    cat <<EOF >"/etc/wireguard/Members.conf"
+    cat <<EOF >"/etc/wireguard/members.conf"
 [Interface]
 PrivateKey = $private_key
 Address = 192.168.10.1/24
@@ -67,7 +67,7 @@ newconf_wgd2() {
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
-    cat <<EOF >"/etc/wireguard/P2P.conf"
+    cat <<EOF >"/etc/wireguard/p2p.conf"
 [Interface]
 PrivateKey = $private_key
 Address = 172.16.0.1/24
@@ -85,7 +85,7 @@ newconf_wgd3() {
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
-    cat <<EOF >"/etc/wireguard/Guests.conf"
+    cat <<EOF >"/etc/wireguard/guests.conf"
 [Interface]
 PrivateKey = $private_key
 Address = 192.168.20.1/24
@@ -103,7 +103,7 @@ newconf_wgd4() {
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
-    cat <<EOF >"/etc/wireguard/IpV6Admins.conf"
+    cat <<EOF >"/etc/wireguard/ipv6admins.conf"
 [Interface]
 PrivateKey = $private_key
 Address = 192.168.30.1/24
@@ -122,7 +122,7 @@ newconf_wgd5() {
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
-    cat <<EOF >"/etc/wireguard/IpV6Members.conf"
+    cat <<EOF >"/etc/wireguard/ipv6members.conf"
 [Interface]
 PrivateKey = $private_key
 Address = 192.168.40.1/24
@@ -136,7 +136,7 @@ EOF
 }
 
 make_master_config() {
-        local svr_config="/etc/wireguard/Admins.conf"
+        local svr_config="/etc/wireguard/admins.conf"
         # Check if the specified config file exists
         if [ ! -f "$svr_config" ]; then
             echo "Error: Config file $svr_config not found."
