@@ -21,6 +21,7 @@ services:
       private_network:
         ipv4_address: 10.2.0.200
 
+
   adguard:
     depends_on: [unbound]
     container_name: adguard
@@ -60,7 +61,7 @@ services:
       - WG_DASH_MTU=1420
       - WG_DASH_PORT_RANGE_STARTPORT=770
     ports:
-      - "770-773:770-773/udp"
+      - "770-775:770-775/udp"
       - 8080:80/tcp
     sysctls:
       - net.ipv4.ip_forward=1

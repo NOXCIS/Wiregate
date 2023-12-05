@@ -1,5 +1,6 @@
 #!/bin/bash
 
+
 start_wgd () {
   echo -e "Start Dashboard--------------------------------------------------------------------------------\n"
   echo ""
@@ -110,8 +111,8 @@ Address = 192.168.30.1/24
 Address = 2001:db8:30:1::/64
 ListenPort = $port_wg4
 SaveConfig = true
-PostUp =  /home/app/FIREWALLS/Guest/wg3-nat.sh
-PreDown = /home/app/FIREWALLS/Guest/wg3-dwn.sh
+PostUp =  /home/app/FIREWALLS/IPV6/wg0-nat.sh
+PreDown = /home/app/FIREWALLS/IPV6/wg0-dwn.sh
 
 EOF
 }
@@ -129,8 +130,8 @@ Address = 192.168.40.1/24
 Address = 2001:db8:40:1::/64
 ListenPort = $port_wg5
 SaveConfig = true
-PostUp =  /home/app/FIREWALLS/Guest/wg3-nat.sh
-PreDown = /home/app/FIREWALLS/Guest/wg3-dwn.sh
+PostUp =  /home/app/FIREWALLS/IPV6/wg1-nat.sh
+PreDown = /home/app/FIREWALLS/IPV6/wg1-dwn.sh
 
 EOF
 }
