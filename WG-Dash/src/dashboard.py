@@ -197,6 +197,7 @@ def get_conf_peer_key(config_name):
     except subprocess.CalledProcessError:
         return config_name + " is not running."
 
+
 def get_conf_running_peer_number(config_name):
     """
     Get number of running peers on wireguard interface.
@@ -224,12 +225,13 @@ def get_conf_running_peer_number(config_name):
         count += 2
     return running
 
+
 def read_conf_file_interface(config_name):
     """
     Get interface settings.
     @param config_name: Name of WG interface
     @type config_name: str
-    @return: Dictionary with interface settings or an empty dictionary if the file is not found
+    @return: Dictionary with interface settings
     @rtype: dict
     """
 
@@ -245,9 +247,10 @@ def read_conf_file_interface(config_name):
                             tmp = re.split(r'\s*=\s*', i, 1)
                             if len(tmp) == 2:
                                 data[tmp[0]] = tmp[1]
-        return data
-    except FileNotFoundError:
+    except FileNotFoundError as e:
         return {}
+    return data
+
 
 def read_conf_file(config_name):
     """
@@ -294,6 +297,7 @@ def read_conf_file(config_name):
     # Read Configuration File End
     return conf_peer_data
 
+
 def get_latest_handshake(config_name):
     """
     Get the latest handshake from all peers of a configuration
@@ -324,6 +328,7 @@ def get_latest_handshake(config_name):
             g.cur.execute("UPDATE %s SET latest_handshake = '(None)', status = '%s' WHERE id='%s'"
             % (config_name, status, data_usage[count]))
         count += 2
+
 
 def get_transfer(config_name):
     """
@@ -375,6 +380,9 @@ def get_transfer(config_name):
             # VALUES ('{data_usage[i][0]}', {round(total_receive, 4)}, {round(total_sent, 4)}, {round(total_receive + total_sent, 4)},{round(cumulative_receive, 4)}, {round(cumulative_sent, 4)},
             #                     {round(cumulative_sent + cumulative_receive, 4)}, '{now_string}')
             # ''')
+            
+
+
 
 def get_endpoint(config_name):
     """
@@ -395,6 +403,8 @@ def get_endpoint(config_name):
                       % (data_usage[count + 1], data_usage[count]))
         count += 2
 
+
+
 def get_allowed_ip(conf_peer_data, config_name):
     """
     Get allowed ips from all peers of a configuration
@@ -406,6 +416,8 @@ def get_allowed_ip(conf_peer_data, config_name):
     for i in conf_peer_data["Peers"]:
         g.cur.execute("UPDATE " + config_name + " SET allowed_ip = '%s' WHERE id = '%s'"
                       % (i.get('AllowedIPs', '(None)'), i["PublicKey"]))
+
+
 
 def get_all_peers_data(config_name):
     """
@@ -506,6 +518,7 @@ def get_peers(config_name, search, sort_t):
     print(f"Finish fetching peers in {toc - tic:0.4f} seconds")
     return result
 
+
 def get_conf_pub_key(config_name):
     """
     Get public key for configuration.
@@ -524,6 +537,7 @@ def get_conf_pub_key(config_name):
         return pub.decode().strip("\n")
     except configparser.NoSectionError:
         return ""
+
 
 def get_conf_listen_port(config_name):
     """
@@ -547,6 +561,7 @@ def get_conf_listen_port(config_name):
     conf.clear()
     return port
 
+
 def get_conf_total_data(config_name):
     """
     Get configuration's total amount of data
@@ -566,6 +581,7 @@ def get_conf_total_data(config_name):
     download_total = round(download_total, 4)
     return [total, upload_total, download_total]
 
+
 def get_conf_status(config_name):
     """
     Check if the configuration is running or not
@@ -574,6 +590,7 @@ def get_conf_status(config_name):
     """
     ifconfig = dict(ifcfg.interfaces().items())
     return "running" if config_name in ifconfig.keys() else "stopped"
+
 
 def get_conf_list():
     """Get all wireguard interfaces with status.
@@ -628,6 +645,7 @@ def get_conf_list():
         conf = sorted(conf, key=itemgetter('conf'))
     return conf
 
+
 def gen_public_key(private_key):
     """Generate the public key.
 
@@ -649,6 +667,7 @@ def gen_public_key(private_key):
     except subprocess.CalledProcessError:
         os.remove('private_key.txt')
         return {"status": 'failed', "msg": "Key is not the correct length or format", "data": ""}
+
 
 def f_check_key_match(private_key, public_key, config_name):
     """
@@ -674,6 +693,7 @@ def f_check_key_match(private_key, public_key, config_name):
         else:
             return {'status': 'success'}
 
+
 def check_repeat_allowed_ip(public_key, ip, config_name):
     """
     Check if there are repeated IPs
@@ -693,9 +713,6 @@ def check_repeat_allowed_ip(public_key, ip, config_name):
             return {'status': 'failed', 'msg': "Allowed IP already taken by another peer."}
         else:
             return {'status': 'success'}
-
-MAX_IP_COUNT = 100
-
 
 
 def f_available_ips(config_name):
@@ -727,7 +744,7 @@ def f_available_ips(config_name):
                     if i not in existed:
                         available.append(i)
                         count += 1
-                    if count > 100000000:
+                    if count > 100:
                         break
             else:
                 available = available + list(tmpIP.hosts())

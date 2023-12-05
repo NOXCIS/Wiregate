@@ -80,6 +80,7 @@ def check_remote_endpoint(address):
     return (check_IP(address) or regex_match("(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z][a-z]{0,61}[a-z]",
                                              address))
 
+
 def deletePeers(config_name, delete_keys, cur, db):
     sql_command = []
     wg_command = ["wg", "set", config_name]
@@ -101,32 +102,6 @@ def deletePeers(config_name, delete_keys, cur, db):
         return exc.output.strip()
     return "true"
 
-def deactivatePeers(config_name, deactivate_keys, cur, db):
-    sql_command = []
-    wg_command = ["wg", "set", config_name]
-
-    for deactivate_key in deactivate_keys:
-        if deactivate_key not in dashboard.get_conf_peer_key(config_name):
-            return "This key does not exist"
-
-        # Instead of deleting, deactivate by removing allowed IPs
-        sql_command.append(f"UPDATE {config_name} SET allowed_ips='' WHERE id = '{deactivate_key}';")
-        wg_command.append("peer")
-        wg_command.append(deactivate_key)
-        wg_command.append("allowed-ips")
-        wg_command.append("''")
-
-    try:
-        print("deactivating...")
-        subprocess.check_output(" ".join(wg_command), shell=True, stderr=subprocess.STDOUT)
-        save_wg = subprocess.check_output(f"wg-quick save {config_name}", shell=True, stderr=subprocess.STDOUT)
-        cur.executescript(' '.join(sql_command))
-        db.commit()
-    except subprocess.CalledProcessError as exc:
-        return exc.output.strip()
-
-    return "true"
-
 def checkJSONAllParameter(required, data):
     if len(data) == 0:
         return False
@@ -134,3 +109,4 @@ def checkJSONAllParameter(required, data):
         if i not in list(data.keys()) or len(data[i]) == 0:
             return False
     return True
+
