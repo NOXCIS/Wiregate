@@ -16,6 +16,26 @@
             {% endif %}
             <h1 class="">Settings</h1>
             <hr>
+            <div class="card mb-3">
+                <h6 class="card-header">Dashboard Theme</h6>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <button class='btn btn-outline-primary theme-switch-btn {% if session["theme"] == "light" %} {{ "active" }} {% endif %}' data-theme="light">
+                                <i class="bi bi-sun-fill"></i>
+                                Light
+                            </button>
+                        </div>
+                        <div class="col-6">
+                            <button class='btn btn-outline-primary theme-switch-btn {% if session["theme"] == "dark" %} {{ "active" }} {% endif %}' data-theme="dark">
+                                <i class="bi bi-moon-fill"></i>
+                                Dark
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <hr>
             {% if required_auth == "true" %}
                 <div class="card mb-3">
                     <h6 class="card-header">Peer Default Settings</h6>
@@ -77,11 +97,11 @@
                 </div>
 
                 <div class="card mb-3">
-                    <h6 class="card-header">Username</h6>
+                    <h6 class="card-header">Account</h6>
                     <div class="card-body">
                         <form action="/update_acct" method="post">
                             <div class="form-group">
-                                <label for="username"></label>
+                                <label for="username">Username</label>
                                 <input type="text" class="form-control mb-4" id="username" name="username"
                                        value="{{ session['username'] }}" required>
                                 <button type="submit" class="btn btn-danger">Update Account</button>
@@ -161,44 +181,9 @@
     </div>
 </div>
 {% include "tools.html" %}
+<div class="position-fixed top-0 right-0 p-3 toastContainer" style="z-index: 5; right: 0; top: 50px;"></div>
 </body>
-
 {% include "footer.html" %}
-<script>
-    $(".sb-settings-url").addClass("active")
-    $(".confirm_modal").click(function () {
-        $(".app_new_ip").html($("#app_ip")[0].value)
-        $(".app_new_port").html($("#app_port")[0].value)
-    })
+<script src="{{ url_for('static',filename='js/settings.js') }}"></script>
 
-    $(".confirm_restart").click(function () {
-        $(".cancel_restart").remove()
-        countdown = 7;
-        $.post('/update_app_ip_port', $('.update_app_ip_port').serialize())
-        url = $("#app_ip")[0].value + ":" + $("#app_port")[0].value;
-        $(".confirm_restart").attr("disabled", "disabled")
-        setInterval(function () {
-            if (countdown === 0) {
-                window.location.replace("http://" + url);
-            }
-            $(".confirm_restart").html("Redirecting you in " + countdown + " seconds.")
-            countdown--;
-        }, 1000)
-    });
-
-    $(".change_path").click(function () {
-        $(this).attr("disabled", "disabled");
-        countdown = 5;
-        setInterval(function () {
-            if (countdown === 0) {
-                location.reload()
-            }
-            $(".change_path").html("Redirecting you in " + countdown + " seconds.")
-            countdown--;
-        }, 1000)
-        $.post('/update_wg_conf_path', $('.update_wg_conf_path').serialize())
-
-    });
-
-</script>
 </html>

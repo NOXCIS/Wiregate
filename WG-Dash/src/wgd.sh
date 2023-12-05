@@ -13,6 +13,8 @@ newconf_wgd () {
   newconf_wgd1
   newconf_wgd2
   newconf_wgd3
+  newconf_wgd4
+  newconf_wgd5
 }
 
 
@@ -23,7 +25,7 @@ newconf_wgd0() {
     public_key=$(echo "$private_key" | wg pubkey)
 
 
-    cat <<EOF >"/etc/wireguard/admins.conf"
+    cat <<EOF >"/etc/wireguard/Admins.conf"
 [Interface]
 PrivateKey = $private_key
 Address = 10.0.0.1/24
@@ -45,7 +47,7 @@ newconf_wgd1() {
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
-    cat <<EOF >"/etc/wireguard/members.conf"
+    cat <<EOF >"/etc/wireguard/Members.conf"
 [Interface]
 PrivateKey = $private_key
 Address = 192.168.10.1/24
@@ -65,7 +67,7 @@ newconf_wgd2() {
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
-    cat <<EOF >"/etc/wireguard/lans.conf"
+    cat <<EOF >"/etc/wireguard/P2P.conf"
 [Interface]
 PrivateKey = $private_key
 Address = 172.16.0.1/24
@@ -83,7 +85,7 @@ newconf_wgd3() {
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
-    cat <<EOF >"/etc/wireguard/guests.conf"
+    cat <<EOF >"/etc/wireguard/Guests.conf"
 [Interface]
 PrivateKey = $private_key
 Address = 192.168.20.1/24
@@ -95,9 +97,46 @@ PreDown = /home/app/FIREWALLS/Guest/wg3-dwn.sh
 EOF
 }
 
+newconf_wgd4() {
+    local port_wg4=$WG_DASH_PORT_RANGE_STARTPORT
+    local port_wg4=$((port_wg4 + 4))
+    private_key=$(wg genkey)
+    public_key=$(echo "$private_key" | wg pubkey)
+
+    cat <<EOF >"/etc/wireguard/IpV6ADMIN.conf"
+[Interface]
+PrivateKey = $private_key
+Address = 192.168.30.1/24
+Address = 2001:db8:30:1::/64
+ListenPort = $port_wg4
+SaveConfig = true
+PostUp =  /home/app/FIREWALLS/Guest/wg3-nat.sh
+PreDown = /home/app/FIREWALLS/Guest/wg3-dwn.sh
+
+EOF
+}
+
+newconf_wgd5() {
+    local port_wg5=$WG_DASH_PORT_RANGE_STARTPORT
+    local port_wg5=$((port_wg5 + 5))
+    private_key=$(wg genkey)
+    public_key=$(echo "$private_key" | wg pubkey)
+
+    cat <<EOF >"/etc/wireguard/IpV6MEMBERS.conf"
+[Interface]
+PrivateKey = $private_key
+Address = 192.168.40.1/24
+Address = 2001:db8:40:1::/64
+ListenPort = $port_wg5
+SaveConfig = true
+PostUp =  /home/app/FIREWALLS/Guest/wg3-nat.sh
+PreDown = /home/app/FIREWALLS/Guest/wg3-dwn.sh
+
+EOF
+}
 
 make_master_config() {
-        local svr_config="/etc/wireguard/admins.conf"
+        local svr_config="/etc/wireguard/Admins.conf"
         # Check if the specified config file exists
         if [ ! -f "$svr_config" ]; then
             echo "Error: Config file $svr_config not found."
