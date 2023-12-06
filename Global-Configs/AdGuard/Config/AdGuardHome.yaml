@@ -143,8 +143,10 @@ filtering:
   rewrites:
     - domain: wire.gate
       answer: 10.2.0.3
-    - domain: channels.msg
+    - domain: wire.chat
       answer: 10.2.0.4
+    - domain: dock.ge.gated
+      answer: 10.2.0.2
     - domain: ad.guard
       answer: 10.2.0.100
   safebrowsing_cache_size: 1048576

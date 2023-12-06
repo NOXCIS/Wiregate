@@ -1,4 +1,4 @@
-<!-- configuration.html - < WireGate > - Copyright(C) 2023 NOXCIS [https://github.com/NOXCIS]-->
+<!-- configuration.html - < WGDashboard > - Copyright(C) 2021 Donald Zou [https://github.com/donaldzou]-->
 <html lang="en">
 {% with title=title%}
     {% include "header.html"%}
@@ -14,14 +14,14 @@
 	<div class="container-fluid" id="right_body">
 		{% include "sidebar.html" %}
         <div class="col-md-9 ml-sm-auto col-lg-10 px-md-4 mt-4 mb-4">
-            <div class="form-group">
-                <input type="text" class="form-control" id="search_peer_textbox" placeholder="Search Peer..." value="">
-            </div>
+
         </div>
 		<div id="config_body">
             <main role="main" class="col-md-9 ml-sm-auto col-lg-10 px-md-4 mt-4 mb-4">
                 <div class="info mt-4">
-                    <div id="config_info_alert"></div>
+                    <div>
+                        <pre class="index-alert d-none" style="margin-bottom: 1rem;"></pre>
+                    </div>
                     <div class="row">
                         <div class="col">
                             <small class="text-muted"><strong>ZONE</strong></small>
@@ -29,9 +29,10 @@
                         </div>
                         <div class="col">
                             <small class="text-muted"><strong>SWITCH</strong></small><br>
-                            <div id="conf_status_btn" class="info_loading"></div>
-                            <div class="spinner-border text-primary" role="status" style="display: none; margin-top: 10px">
-                                <span class="sr-only">Loading...</span>
+                            <!-- <div id="conf_status_btn" class="info_loading"></div> -->
+                            <div id="switch" class="info_loading">
+                                <input type="checkbox" class="toggle--switch" id="toggle--switch">
+                                <label for="toggle--switch" class="toggleLabel"></label>
                             </div>
                         </div>
                         <div class="w-100"></div>
@@ -74,17 +75,49 @@
                     </div>
                 </div>
                 <hr>
+                <div class="row chartContainer">
+                    <div class="col-sm">
+                        <div class="chartTitle">
+                            <h6>Data Usage / Refresh Interval</h6>
+                            <div class="chartControl" style="margin-left: auto">
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-outline-primary btn-sm switchUnit" data-unit="GB">GB</button>
+                                    <button class="btn btn-outline-primary btn-sm switchUnit" data-unit="MB">MB</button>
+                                    <button class="btn btn-outline-primary btn-sm switchUnit" data-unit="KB">KB</button>
+                                    <button class="btn btn-outline-primary btn-sm fullScreen"><i class="bi bi-fullscreen"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="chartCanvasContainer" style="width: 100%; height: 300px">
+                            <canvas id="totalDataUsageChartObj" width="100" height="100"></canvas>
+                        </div>
+                    </div>
+                </div>
+                <hr>
                 <div class="button-div mb-3">
                     <div class="row">
                         <div class="col-sm">
-                             <div class="form-group">
-                                <label for="sort_by_dropdown"><small class="text-muted">Sort Peers By</small></label>
-                                <select class="form-control" id="sort_by_dropdown">
-                                    <option value="status">Status</option>
-                                    <option value="name">Name</option>
-                                    <option value="allowed_ip">Allowed IP</option>
-                                </select>
+                            <div class="row">
+                                <div class="col-sm">
+                                    <div class="form-group">
+                                         <label for="search_peer_textbox"><small class="text-muted">Search Peers</small></label>
+                                        <input type="text" class="form-control" id="search_peer_textbox" placeholder="Enter Peer's Name" value="">
+                                    </div>
+                                </div>
+                                <div class="col-sm">
+                                    <div class="form-group">
+                                        <label for="sort_by_dropdown"><small class="text-muted">Sort Peers By</small></label>
+                                        <select class="form-control" id="sort_by_dropdown">
+                                            <option value="status">Status</option>
+                                            <option value="name">Name</option>
+                                            <option value="allowed_ip">Allowed IP</option>
+                                        </select>
+                                    </div>
+                                </div>
                             </div>
+
+
+
                         </div>
                         <div class="col-sm">
                             <div class="form-group">
@@ -113,6 +146,9 @@
                             <div class="setting_btn_menu">
                                 <a class="text-danger" id="delete_peers_by_bulk_btn"><i class="bi bi-trash-fill"></i> Delete Peers</a>
                                 <a class="text-info" id="download_all_peers" data-url="/download_all/{{conf_data['name']}}"><i class="bi bi-cloud-download-fill"></i> Download All Peers</a>
+                                <hr>
+                                <a class="text-primary" id="configuration_setting"><i class="bi bi-gear-fill"></i> Configration Settings</a>
+                                <a class="text-danger" id="configuration_delete"><i class="bi bi-trash3-fill"></i> Delete Configuration</a>
                             </div>
                         </div>
 
@@ -154,35 +190,35 @@
 						</button>
 					</div>
 					<form id="add_peer_form">
-                        <div class="form-group non-bulk">
+                        <div class="form-group">
                             <div>
                                 <label for="private_key">Private Key</label>
                             </div>
                             <div class="input-group">
-                                <input type="text" class="form-control" id="private_key" aria-describedby="private_key">
+                                <input type="text" class="form-control non-bulk" id="private_key" aria-describedby="private_key">
                                 <div class="input-group-append">
-                                   <button type="button" class="btn btn-danger" id="re_generate_key" data-toggle="tooltip" data-placement="top" title="Regenerate Key"><i class="bi bi-arrow-repeat"></i></button>
+                                   <button type="button" class="btn btn-danger non-bulk" id="re_generate_key" data-toggle="tooltip" data-placement="top" title="Regenerate Key"><i class="bi bi-arrow-repeat"></i></button>
                                 </div>
                             </div>
                         </div>
-						<div class="form-group non-bulk">
+						<div class="form-group">
 							<label for="public_key">Public Key <code>(Required)</code></label>
-							<input type="text" class="form-control" id="public_key" aria-describedby="public_key" disabled>
+							<input type="text" class="form-control non-bulk" id="public_key" aria-describedby="public_key" disabled>
 						</div>
                         <div class="row">
-                            <div class="col-sm-6 non-bulk">
+                            <div class="col-sm-6">
                                  <div class="form-group">
                                     <label for="new_add_name">Name</label>
-                                    <input type="text" class="form-control" id="new_add_name">
+                                    <input type="text" class="form-control non-bulk" id="new_add_name">
                                 </div>
                             </div>
-                            <div class="col-sm-6 non-bulk">
+                            <div class="col-sm-6">
                                 <div class="form-group">
                                     <label for="allowed_ips">Allowed IPs <code>(Required)</code></label>
                                     <div class="input-group">
-                                        <input type="text" class="form-control" id="allowed_ips">
+                                        <input type="text" class="form-control non-bulk" id="allowed_ips">
                                         <div class="input-group-append">
-                                            <button type="button" class="btn btn-primary" id="search_available_ip" data-toggle="tooltip" data-placement="top" title="Search Available IPs">
+                                            <button type="button" class="btn btn-primary non-bulk" id="search_available_ip" data-toggle="tooltip" data-placement="top" title="Search Available IPs">
                                                 <i class="bi bi-search"></i>
                                             </button>
                                         </div>
@@ -226,6 +262,29 @@
 				<div class="modal-footer">
 					<button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
 					<button type="button" class="btn btn-primary" id="save_peer" conf_id={{conf_data['name']}}>Add</button>
+				</div>
+			</div>
+		</div>
+	</div>
+    <div class="modal fade" id="configuration_delete_modal" data-backdrop="static" data-keyboard="false" tabindex="-1"
+		aria-labelledby="staticBackdropLabel" aria-hidden="true">
+		<div class="modal-dialog modal-dialog-centered">
+			<div class="modal-content">
+				<div class="modal-header">
+					<h5 class="modal-title" id="staticBackdropLabel">Are you sure to delete this configuration?</h5>
+					<button type="button" class="close" data-dismiss="modal" aria-label="Close">
+						<span aria-hidden="true">&times;</span>
+					</button>
+				</div>
+				<div class="modal-body">
+					<div id="remove_configuration_alert" class="alert alert-danger alert-dismissible fade show d-none" role="alert">
+
+					</div>
+					<p style="margin: 0">This action is not reversible. The configuration will get toggle off, and delete from database and from the configuration folder.</p>
+				</div>
+				<div class="modal-footer">
+					<button type="button" class="btn btn-secondary" data-dismiss="modal">No</button>
+					<button type="button" class="btn btn-danger" id="sure_delete_configuration">Yes</button>
 				</div>
 			</div>
 		</div>
@@ -281,7 +340,6 @@
                         <input type="text" class="form-control" id="peer_preshared_key_textbox">
                     </div>
                     <hr>
-
                     <div class="row">
                         <div class="col-sm-6">
                             <div class="mb-3">
@@ -395,32 +453,15 @@
 			</div>
 		</div>
 	</div>
-    <div class="position-fixed top-0 right-0 p-3" style="z-index: 5; right: 0; top: 50px;">
-          <div id="alertToast" class="toast hide" role="alert" aria-live="assertive" aria-atomic="true" data-delay="5000">
-            <div class="toast-header">
-                  <strong class="mr-auto">Worm-Hole</strong>
-                  <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                  </button>
-            </div>
-            <div class="toast-body">
-            </div>
-          </div>
-    </div>
+    <div class="position-fixed top-0 right-0 p-3 toastContainer" style="z-index: 5; right: 0; top: 50px;"></div>
     {% include "tools.html" %}
 </body>
 {% include "footer.html" %}
-<script src="{{ url_for('static',filename='js/wireguard.min.js') }}"></script>
 <script src="{{ url_for('static',filename='js/configuration.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/wireguard.min.js') }}"></script>
 <script>
-    /* global peers */
-    let load_timeout;
-    let load_interval = 0;
-    let conf_name = "{{ conf_data['name'] }}"
-    let peers = [];
-    $(".sb-"+conf_name+"-url").addClass("active");
-	$(function(){
-		configurations.loadPeers($('#search_peer_textbox').val());
-	});
+    configurations.setConfigurationName("{{ conf_data['name'] }}");
+    configurations.setActiveConfigurationName();
+    configurations.loadPeers($('#search_peer_textbox').val());
 </script>
 </html>	

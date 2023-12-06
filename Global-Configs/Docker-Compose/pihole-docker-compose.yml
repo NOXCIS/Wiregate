@@ -19,11 +19,48 @@ services:
       private_network:
         ipv4_address: 10.2.0.200
 
-  wg_dashboard:
-    depends_on: [unbound, pihole]
+  pihole:
+    depends_on: [unbound]
+    container_name: pihole
+    image: pihole/pihole:nightly
+    restart: unless-stopped
+    hostname: pihole
+    dns:
+      - 10.2.0.200 # Points to unbound
+    environment:
+      TZ: "America/Chicago"
+      WEBPASSWORD: ""
+      ServerIP: 10.2.0.100 # Internal IP of pihole
+      DNS1: 10.2.0.200 # Unbound IP
+      DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
+    volumes:
+      - "./Global-Configs/PiHole/etc-pihole/:/etc/pihole/"
+      - "./Global-Configs/PiHole/etc-pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/"
+    cap_add:
+      - NET_ADMIN
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.100
+
+  dockge:
+    image: louislam/dockge:1
+    container_name: dockge_gated
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./Global-Configs/Dockge/data:/app/data
+      - /opt/stacks:/opt/stacks
+    environment:
+      - DOCKGE_STACKS_DIR=/opt/stacks
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.2
+
+        
+  wiregate:
     #build: ./WG-Dash
-    image: noxcis/wg-dashboard:cetus
-    container_name: wg_dashboard
+    image: noxcis/wg-dashboard:kraken
+    container_name: wiregate
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
@@ -53,35 +90,14 @@ services:
 
 
 
-  pihole:
-    depends_on: [unbound]
-    container_name: pihole
-    image: pihole/pihole:latest
-    restart: unless-stopped
-    hostname: pihole
-    dns:
-      - 10.2.0.200 # Points to unbound
-    environment:
-      TZ: "America/Chicago"
-      WEBPASSWORD: ${PI_HOLE_PASS}
-      ServerIP: 10.2.0.100 # Internal IP of pihole
-      DNS1: 10.2.0.200 # Unbound IP
-      DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
-    volumes:
-      - "./etc-pihole/:/etc/pihole/"
-      - "./etc-dnsmasq.d/:/etc/dnsmasq.d/"
-    cap_add:
-      - NET_ADMIN
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.100
+  
 
 
   channels:
     depends_on: [db, wg_dashboard]
     container_name: channels_messenger
     #build: ./Channels
-    image: noxcis/channels:marlin
+    image: noxcis/channels:kraken
     restart: unless-stopped
     command: python run.py
     environment:

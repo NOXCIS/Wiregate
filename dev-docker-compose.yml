@@ -21,6 +21,7 @@ services:
       private_network:
         ipv4_address: 10.2.0.200
 
+
   adguard:
     depends_on: [unbound]
     container_name: adguard
@@ -29,26 +30,36 @@ services:
     hostname: adguard
     # Volumes store your data between container upgrades
     volumes:
-      - "./adguard/opt-adguard-work:/opt/adguardhome/work"
-      - "./adguard/opt-adguard-conf:/opt/adguardhome/conf"
+      - "./Global-Configs/AdGuard/Data:/opt/adguardhome/work"
+      - "./Global-Configs/AdGuard/Config:/opt/adguardhome/conf"
     networks:
       private_network:
         ipv4_address: 10.2.0.100
 
+  dockge:
+    image: louislam/dockge:1
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./Global-Configs/Dockge/data:/app/data
+      - /opt/stacks:/opt/stacks
+    environment:
+      - DOCKGE_STACKS_DIR=/opt/stacks
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.2
 
-  wg_dashboard:
-    depends_on: [unbound, adguard]
+  wiregate:
     #build: ./WG-Dash
-    image: noxcis/wg-dashboard:cetus
-    container_name: wg_dashboard
+    image: noxcis/wg-dashboard:kraken
+    container_name: wiregate
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
     restart: unless-stopped
     volumes:
-      - ./Global-Configs/Wiregate-Database:/home/app/db
+      #- ./Global-Configs/Wiregate-Database:/home/app/db
       - ./Global-Configs/Master-Key:/home/app/master-key
-      - ./Global-Configs/Firewall-Rules:/home/app/FIREWALLS
     environment:
       - WG_DASH_USER=admin
       - WG_DASH_PASS=admin
@@ -60,14 +71,46 @@ services:
       - WG_DASH_MTU=1420
       - WG_DASH_PORT_RANGE_STARTPORT=770
     ports:
-      - "770-773:770-773/udp"
+      - "770-775:770-775/udp"
       - 8080:80/tcp
     sysctls:
       - net.ipv4.ip_forward=1
+      - net.ipv6.conf.all.forwarding=1
       - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv6.conf.all.disable_ipv6=0
     networks:
       private_network:
         ipv4_address: 10.2.0.3
 
+  channels:
+    depends_on: [db, wiregate]
+    container_name: channels_messenger
+    build: ./Channels
+    #image: noxcis/channels:marlin
+    restart: unless-stopped
+    command: python run.py
+    env_file:
+      - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
+    ports:
+      - 8082:80/tcp
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.4
+    dns: 10.2.0.100
 
+  db:
+    container_name: channels_db
+    image: postgres:13-alpine
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.5
+    dns: 10.2.0.100
+
+volumes:
+    postgres_data:
   

@@ -31,7 +31,7 @@ services:
       - SYS_MODULE
     restart: unless-stopped
     volumes:
-      - ./Global-Configs/Wiregate-Database:/home/app/db
+      #- ./Global-Configs/Wiregate-Database:/home/app/db
       - ./Global-Configs/Master-Key:/home/app/master-key
       - ./Global-Configs/Firewall-Rules:/home/app/FIREWALLS
     environment:

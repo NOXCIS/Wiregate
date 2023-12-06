@@ -1,6 +1,7 @@
 fresh_install() {
     local masterkey_file="./Global-Configs/Master-Key/master.conf"
     local database_folder="./Global-Configs/Wiregate-Database"
+    local database_folder1="./Global-Configs/Dockge/data"
     local yml_file="docker-compose.yml"
     
     clear
@@ -16,7 +17,7 @@ fresh_install() {
     echo "#######################################################################"
     echo ""
     echo "                  Resetting WireGuard will Delete            "
-    echo "              Your Client, Server, & Master Key Configs         "
+    echo "        Your Client, Server, Master Key Configs, & All Database        "
     echo ""
     echo "#######################################################################"
     echo -e "\n\033[0m"
@@ -40,6 +41,12 @@ fresh_install() {
             echo "Removing existing '$database_folder'..."
             sudo rm -r "$database_folder"
             echo "Existing '$database_folder' removed."
+        fi
+
+        if [ -d "$database_folder1" ]; then
+            echo "Removing existing '$database_folder1'..."
+            sudo rm -r "$database_folder1"
+            echo "Existing '$database_folder1' removed."
         fi
 
         echo "Removing existing Compose File"

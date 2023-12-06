@@ -1,5 +1,6 @@
 """
-< WireGate > - Copyright(C) 2023 NOXCIS [https://github.com/NOXCIS]
+< WGDashboard > - Copyright(C) 2021 Donald Zou [https://github.com/donaldzou]
+< Modified > 2023 NOXCIS [https://github.com/NOXCIS]
 Under Apache-2.0 License
 """
 
@@ -25,14 +26,12 @@ from flask import Flask, request, render_template, redirect, url_for, session, j
 from flask_qrcode import QRcode
 from icmplib import ping, traceroute
 
+
 # Import other python files
-from util import regex_match, check_DNS, check_Allowed_IPs, check_remote_endpoint, \
-    check_IP_with_range, clean_IP_with_range
-
-
+from util import *
 
 # Dashboard Version
-DASHBOARD_VERSION = 'v0.1.4 Cetus'
+DASHBOARD_VERSION = 'v0.1.5 Kraken'
 
 # WireGuard's configuration path
 WG_CONF_PATH = None
@@ -50,18 +49,19 @@ UPDATE = None
 # Flask App Configuration
 app = Flask("WireGate")
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 5206928
-
 wg_dash_appkey = os.environ.get('WG_DASH_SECRET_KEY')
 app.secret_key = wg_dash_appkey
-#app.secret_key = secrets.token_urlsafe(16)
 
 app.config['TEMPLATES_AUTO_RELOAD'] = True
 
 # Enable QR Code Generator
 QRcode(app)
-
+#socketio = SocketIO(app)
 
 # TODO: use class and object oriented programming
+
+
+
 
 def get_dashboard_conf():
     """
@@ -82,6 +82,8 @@ def set_dashboard_conf(config):
         config.write(conf_object)
 
 
+
+
 """
 Dashboard Initialization
 """
@@ -91,7 +93,6 @@ def init_dashboard():
     """
     Create dashboard default configuration.
     """
-
     # Set Default INI File
     if not os.path.isfile(DASHBOARD_CONF):
         open(DASHBOARD_CONF, "w+").close()
@@ -100,7 +101,6 @@ def init_dashboard():
     if "Account" not in config:
         config['Account'] = {}
     if "username" not in config['Account']:
-        #config['Account']['username'] = 'admin'
         wg_dash_user = os.environ.get('WG_DASH_USER')
         config['Account']['username'] = wg_dash_user
     if "password" not in config['Account']:
@@ -129,42 +129,28 @@ def init_dashboard():
         config['Server']['dashboard_refresh_interval'] = '60000'
     if 'dashboard_sort' not in config['Server']:
         config['Server']['dashboard_sort'] = 'status'
+    if 'dashboard_theme' not in config['Server']:
+        config['Server']['dashboard_theme'] = 'dark'
     # Default dashboard peers setting
     if "Peers" not in config:
         config['Peers'] = {}
     if 'peer_global_DNS' not in config['Peers']:
-
         wg_dash_global_dns = os.environ.get('WG_DASH_DNS')
-
-
-
-
         config['Peers']['peer_global_DNS'] = wg_dash_global_dns
-
-
     if 'peer_endpoint_allowed_ip' not in config['Peers']:
-
         peer_endpoint_allowed_ip = os.environ.get('WG_DASH_PEER_ENDPOINT_ALLOWED_IP')
         config['Peers']['peer_endpoint_allowed_ip'] = peer_endpoint_allowed_ip
-
-
     if 'peer_display_mode' not in config['Peers']:
         config['Peers']['peer_display_mode'] = 'grid'
     if 'remote_endpoint' not in config['Peers']:
-
         server_ip = os.environ.get('WG_DASH_SERVER_IP')
         config['Peers']['remote_endpoint'] = server_ip
-
     if 'peer_MTU' not in config['Peers']:
-
         wg_dash_mtu = os.environ.get('WG_DASH_MTU')
         config['Peers']['peer_MTU'] = wg_dash_mtu
-
     if 'peer_keep_alive' not in config['Peers']:
-        
         wg_dash_keep_alive = os.environ.get('WG_DASH_KEEP_ALIVE')
         config['Peers']['peer_keep_alive'] = wg_dash_keep_alive
-
     set_dashboard_conf(config)
     config.clear()
 
@@ -174,10 +160,10 @@ def init_dashboard():
 Configure DashBoard before start web-server
 """
 
+
 def run_dashboard():
     init_dashboard()
-    global UPDATE
-    #UPDATE = check_update()
+    #global UPDATE
     config = configparser.ConfigParser(strict=False)
     config.read('wg-dashboard.ini')
     # global app_ip
@@ -187,11 +173,14 @@ def run_dashboard():
     global WG_CONF_PATH
     WG_CONF_PATH = config.get("Server", "wg_conf_path")
     config.clear()
-    return app
 
+    return app
 
 init_dashboard()
 run_dashboard()
+
+
+
 
 def connect_db():
     """
@@ -199,6 +188,9 @@ def connect_db():
     @return: sqlite3.Connection
     """
     return sqlite3.connect(os.path.join(configuration_path, 'db', 'wgdashboard.db'))
+
+
+
 
 
 
@@ -238,7 +230,7 @@ def get_conf_running_peer_number(config_name):
         data_usage = subprocess.check_output(f"wg show {config_name} latest-handshakes",
                                              shell=True, stderr=subprocess.STDOUT)
     except subprocess.CalledProcessError:
-        return "stopped"
+        return 0
     data_usage = data_usage.decode("UTF-8").split()
     count = 0
     now = datetime.now()
@@ -261,16 +253,19 @@ def read_conf_file_interface(config_name):
     """
 
     conf_location = WG_CONF_PATH + "/" + config_name + ".conf"
-    with open(conf_location, 'r', encoding='utf-8') as file_object:  #path traversal
-        file = file_object.read().split("\n")
-        data = {}
-        for i in file:
-            if not regex_match("#(.*)", i):
-                if len(i) > 0:
-                    if i != "[Interface]":
-                        tmp = re.split(r'\s*=\s*', i, 1)
-                        if len(tmp) == 2:
-                            data[tmp[0]] = tmp[1]
+    try:
+        with open(conf_location, 'r', encoding='utf-8') as file_object:
+            file = file_object.read().split("\n")
+            data = {}
+            for i in file:
+                if not regex_match("#(.*)", i):
+                    if len(i) > 0:
+                        if i != "[Interface]":
+                            tmp = re.split(r'\s*=\s*', i, 1)
+                            if len(tmp) == 2:
+                                data[tmp[0]] = tmp[1]
+    except FileNotFoundError as e:
+        return {}
     return data
 
 
@@ -284,7 +279,7 @@ def read_conf_file(config_name):
     """
 
     conf_location = WG_CONF_PATH + "/" + config_name + ".conf"
-    f = open(conf_location, 'r')  #resource Leak
+    f = open(conf_location, 'r')
     file = f.read().split("\n")
     conf_peer_data = {
         "Interface": {},
@@ -490,6 +485,12 @@ def get_all_peers_data(config_name):
     get_endpoint(config_name)
     get_allowed_ip(conf_peer_data, config_name)
 
+def getLockAccessPeers(config_name):
+    col = g.cur.execute(f"PRAGMA table_info({config_name}_restrict_access)").fetchall()
+    col = [a[1] for a in col]
+    data = g.cur.execute(f"SELECT * FROM {config_name}_restrict_access").fetchall()
+    result = [{col[i]: data[k][i] for i in range(len(col))} for k in range(len(data))]
+    return result
 
 def get_peers(config_name, search, sort_t):
     """
@@ -614,12 +615,24 @@ def get_conf_list():
                     total_sent FLOAT NULL, total_data FLOAT NULL, endpoint VARCHAR NULL, 
                     status VARCHAR NULL, latest_handshake VARCHAR NULL, allowed_ip VARCHAR NULL, 
                     cumu_receive FLOAT NULL, cumu_sent FLOAT NULL, cumu_data FLOAT NULL, mtu INT NULL, 
-                    keepalive INT NULL, remote_endpoint VARCHAR NULL, preshared_key VARCHAR NULL, 
+                    keepalive INT NULL, remote_endpoint VARCHAR NULL, preshared_key VARCHAR NULL,
                     PRIMARY KEY (id)
                 )
             """
             g.cur.execute(create_table)
-            temp = {"conf": i, "status": get_conf_status(i), "public_key": get_conf_pub_key(i)}
+            create_table = f"""
+                CREATE TABLE IF NOT EXISTS {i}_restrict_access (
+                    id VARCHAR NOT NULL, private_key VARCHAR NULL, DNS VARCHAR NULL, 
+                    endpoint_allowed_ip VARCHAR NULL, name VARCHAR NULL, total_receive FLOAT NULL, 
+                    total_sent FLOAT NULL, total_data FLOAT NULL, endpoint VARCHAR NULL, 
+                    status VARCHAR NULL, latest_handshake VARCHAR NULL, allowed_ip VARCHAR NULL, 
+                    cumu_receive FLOAT NULL, cumu_sent FLOAT NULL, cumu_data FLOAT NULL, mtu INT NULL, 
+                    keepalive INT NULL, remote_endpoint VARCHAR NULL, preshared_key VARCHAR NULL,
+                    PRIMARY KEY (id)
+                )
+            """
+            g.cur.execute(create_table)
+            temp = {"conf": i, "status": get_conf_status(i), "public_key": get_conf_pub_key(i), "port": get_conf_listen_port(i)}
             if temp['status'] == "running":
                 temp['checked'] = 'checked'
             else:
@@ -707,19 +720,32 @@ def f_available_ips(config_name):
     """
     config_interface = read_conf_file_interface(config_name)
     if "Address" in config_interface:
+        available = []
         existed = []
         conf_address = config_interface['Address']
         address = conf_address.split(',')
         for i in address:
             add, sub = i.split("/")
-            existed.append(ipaddress.ip_address(add))
+            existed.append(ipaddress.ip_address(add.replace(" ", "")))
         peers = g.cur.execute("SELECT allowed_ip FROM " + config_name).fetchall()
         for i in peers:
             add = i[0].split(",")
             for k in add:
                 a, s = k.split("/")
                 existed.append(ipaddress.ip_address(a.strip()))
-        available = list(ipaddress.ip_network(address[0], False).hosts())
+        count = 0
+        for i in address:
+            tmpIP = ipaddress.ip_network(i.replace(" ", ""), False)
+            if tmpIP.version == 6:
+                for i in tmpIP.hosts():
+                    if i not in existed:
+                        available.append(i)
+                        count += 1
+                    if count > 100:
+                        break
+            else:
+                available = available + list(tmpIP.hosts())
+
         for i in existed:
             try:
                 available.remove(i)
@@ -731,10 +757,10 @@ def f_available_ips(config_name):
         return []
 
 
+
 """
 Flask Functions
 """
-
 
 @app.teardown_request
 def close_DB(exception):
@@ -759,6 +785,7 @@ def auth_req():
         g.cur = g.db.cursor()
     conf = get_dashboard_conf()
     req = conf.get("Server", "auth_req")
+    session['theme'] = conf.get("Server", "dashboard_theme")
     session['update'] = UPDATE
     session['dashboard_version'] = DASHBOARD_VERSION
     if req == "true":
@@ -773,6 +800,7 @@ def auth_req():
             else:
                 session['message'] = ""
             conf.clear()
+
             redirectURL = str(request.url)
             redirectURL = redirectURL.replace("http://", "")
             redirectURL = redirectURL.replace("https://", "")
@@ -835,7 +863,6 @@ def auth():
     
     config.clear()
     return jsonify({"status": False, "msg": "Username or Password is incorrect."})
-
 
 
 """
@@ -1119,7 +1146,7 @@ def configuration(config_name):
         conf_data['checked'] = "checked"
     config_list = get_conf_list()
     if config_name not in [conf['conf'] for conf in config_list]:
-        return render_template('index.html', conf=get_conf_list())
+        return redirect('/')
 
     refresh_interval = int(config.get("Server", "dashboard_refresh_interval"))
     dns_address = config.get("Peers", "peer_global_DNS")
@@ -1137,6 +1164,7 @@ def configuration(config_name):
 
 
 # Get configuration details
+# @socketio.on("get_config")
 @app.route('/get_config/<config_name>', methods=['GET'])
 def get_conf(config_name):
     """
@@ -1145,40 +1173,59 @@ def get_conf(config_name):
     @type config_name: str
     @return: TODO
     """
-
-    config_interface = read_conf_file_interface(config_name)
-    search = request.args.get('search')
-    if len(search) == 0:
-        search = ""
-    search = urllib.parse.unquote(search)
-    config = get_dashboard_conf()
-    sort = config.get("Server", "dashboard_sort")
-    peer_display_mode = config.get("Peers", "peer_display_mode")
-    wg_ip = config.get("Peers", "remote_endpoint")
-    if "Address" not in config_interface:
-        conf_address = "N/A"
-    else:
-        conf_address = config_interface['Address']
-    conf_data = {
-        "peer_data": get_peers(config_name, search, sort),
-        "name": config_name,
-        "status": get_conf_status(config_name),
-        "total_data_usage": get_conf_total_data(config_name),
-        "public_key": get_conf_pub_key(config_name),
-        "listen_port": get_conf_listen_port(config_name),
-        "running_peer": get_conf_running_peer_number(config_name),
-        "conf_address": conf_address,
-        "wg_ip": wg_ip,
-        "sort_tag": sort,
-        "dashboard_refresh_interval": int(config.get("Server", "dashboard_refresh_interval")),
-        "peer_display_mode": peer_display_mode
+    result = {
+        "status": True,
+        "message": "",
+        "data": {}
     }
-    if conf_data['status'] == "stopped":
-        conf_data['checked'] = "nope"
+    if not session:
+        result["status"] = False
+        result["message"] = "Oops! <br> You're not signed in. Please refresh your page."
+        return jsonify(result)
+
+    if getattr(g, 'db', None) is None:
+        g.db = connect_db()
+        g.cur = g.db.cursor()
+    config_interface = read_conf_file_interface(config_name)
+
+    if config_interface != {}:
+        search = request.args.get('search')
+        if len(search) == 0:
+            search = ""
+        search = urllib.parse.unquote(search)
+        config = get_dashboard_conf()
+        sort = config.get("Server", "dashboard_sort")
+        peer_display_mode = config.get("Peers", "peer_display_mode")
+        wg_ip = config.get("Peers", "remote_endpoint")
+        if "Address" not in config_interface:
+            conf_address = "N/A"
+        else:
+            conf_address = config_interface['Address']
+        result['data'] = {
+            "peer_data": get_peers(config_name, search, sort),
+            "name": config_name,
+            "status": get_conf_status(config_name),
+            "total_data_usage": get_conf_total_data(config_name),
+            "public_key": get_conf_pub_key(config_name),
+            "listen_port": get_conf_listen_port(config_name),
+            "running_peer": get_conf_running_peer_number(config_name),
+            "conf_address": conf_address,
+            "wg_ip": wg_ip,
+            "sort_tag": sort,
+            "dashboard_refresh_interval": int(config.get("Server", "dashboard_refresh_interval")),
+            "peer_display_mode": peer_display_mode,
+            "lock_access_peers": getLockAccessPeers(config_name)
+        }
+        if result['data']['status'] == "stopped":
+            result['data']['checked'] = "nope"
+        else:
+            result['data']['checked'] = "checked"
+        config.clear()
     else:
-        conf_data['checked'] = "checked"
+        result['status'] = False
+        result['message'] = "I cannot find this configuration. <br> Please refresh and try again"
     config.clear()
-    return jsonify(conf_data)
+    return jsonify(result)
 
 
 # Turn on / off a configuration
@@ -1197,17 +1244,16 @@ def switch(config_name):
             check = subprocess.check_output("wg-quick down " + config_name,
                                             shell=True, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as exc:
-            session["switch_msg"] = exc.output.strip().decode("utf-8")
-            return redirect('/')
+            # session["switch_msg"] = exc.output.strip().decode("utf-8")
+            return jsonify({"status": False, "reason":"Can't stop configuration", "message": str(exc.output.strip().decode("utf-8"))})
     elif status == "stopped":
         try:
             subprocess.check_output("wg-quick up " + config_name,
                                     shell=True, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as exc:
-            session["switch_msg"] = exc.output.strip().decode("utf-8")
-            return redirect('/')
-    return redirect(request.referrer)
-
+            # session["switch_msg"] = exc.output.strip().decode("utf-8")
+            return jsonify({"status": False, "reason":"Can't turn on configuration", "message": str(exc.output.strip().decode("utf-8"))})
+    return jsonify({"status": True, "reason":""})
 
 @app.route('/add_peer_bulk/<config_name>', methods=['POST'])
 def add_peer_bulk(config_name):
@@ -1351,24 +1397,7 @@ def remove_peer(config_name):
     if not isinstance(keys, list):
         return config_name + " is not running."
     else:
-        sql_command = []
-        wg_command = ["wg", "set", config_name]
-        for delete_key in delete_keys:
-            if delete_key not in keys:
-                return "This key does not exist"
-            sql_command.append("DELETE FROM " + config_name + " WHERE id = '" + delete_key + "';")
-            wg_command.append("peer")
-            wg_command.append(delete_key)
-            wg_command.append("remove")
-        try:
-            remove_wg = subprocess.check_output(" ".join(wg_command),
-                                                shell=True, stderr=subprocess.STDOUT)
-            save_wg = subprocess.check_output(f"wg-quick save {config_name}", shell=True, stderr=subprocess.STDOUT)
-            g.cur.executescript(' '.join(sql_command))
-            g.db.commit()
-        except subprocess.CalledProcessError as exc:
-            return exc.output.strip()
-        return "true"
+        return deletePeers(config_name, delete_keys, g.cur, g.db)
 
 
 @app.route('/save_peer_setting/<config_name>', methods=['POST'])
@@ -1457,7 +1486,11 @@ def get_peer_name(config_name):
 # Return available IPs
 @app.route('/available_ips/<config_name>', methods=['GET'])
 def available_ips(config_name):
-    return jsonify(f_available_ips(config_name))
+    result = {"status": True, "message":"", "data": f_available_ips(config_name)}
+    if len(result["data"]) == 0:
+        result['status'] = False
+        result['message'] = f"No more available IP for {config_name}."
+    return jsonify(result)
 
 
 # Check if both key match
@@ -1637,6 +1670,108 @@ def switch_display_mode(mode):
     return "false"
 
 
+# APIs
+import api
+
+
+@app.route('/api/togglePeerAccess', methods=['POST'])
+def togglePeerAccess():
+    data = request.get_json()
+    returnData = {"status": True, "reason": ""}
+    required = ['peerID', 'config']
+    if checkJSONAllParameter(required, data):
+        returnData = api.togglePeerAccess(data, g)
+    else:
+        return jsonify(api.notEnoughParameter)
+    return jsonify(returnData)
+
+@app.route('/api/addConfigurationAddressCheck', methods=['POST'])
+def addConfigurationAddressCheck():
+    data = request.get_json()
+    returnData = {"status": True, "reason": ""}
+    required = ['address']
+    if checkJSONAllParameter(required, data):
+        returnData = api.addConfiguration.AddressCheck(api.addConfiguration, data)
+    else:
+        return jsonify(api.notEnoughParameter)
+    return jsonify(returnData)
+
+@app.route('/api/addConfigurationPortCheck', methods=['POST'])
+def addConfigurationPortCheck():
+    data = request.get_json()
+    returnData = {"status": True, "reason": ""}
+    required = ['port']
+    if checkJSONAllParameter(required, data):
+        returnData = api.addConfiguration.PortCheck(api.addConfiguration, data, get_conf_list())
+    else:
+        return jsonify(api.notEnoughParameter)
+    return jsonify(returnData)
+
+@app.route('/api/addConfigurationNameCheck', methods=['POST'])
+def addConfigurationNameCheck():
+    data = request.get_json()
+    returnData = {"status": True, "reason": ""}
+    required = ['name']
+    if checkJSONAllParameter(required, data):
+        returnData = api.addConfiguration.NameCheck(api.addConfiguration, data, get_conf_list())
+    else:
+        return jsonify(api.notEnoughParameter)
+    return jsonify(returnData)
+
+@app.route('/api/addConfiguration', methods=["POST"])
+def addConfiguration():
+    data = request.get_json()
+    returnData = {"status": True, "reason": ""}
+    required = ['addConfigurationPrivateKey', 'addConfigurationName', 'addConfigurationListenPort', 
+                'addConfigurationAddress', 'addConfigurationPreUp', 'addConfigurationPreDown', 
+                'addConfigurationPostUp', 'addConfigurationPostDown']
+    needFilled = ['addConfigurationPrivateKey', 'addConfigurationName', 'addConfigurationListenPort', 
+                'addConfigurationAddress']
+    if not checkJSONAllParameter(needFilled, data):
+        return jsonify(api.notEnoughParameter)
+    for i in required:
+        if i not in data.keys():
+            return jsonify(api.notEnoughParameter)
+    config = get_conf_list()
+    nameCheck = api.addConfiguration.NameCheck(api.addConfiguration, {"name": data['addConfigurationName']}, config)
+    if not nameCheck['status']:
+        return nameCheck
+
+    portCheck = api.addConfiguration.PortCheck(api.addConfiguration, {"port": data['addConfigurationListenPort']}, config)
+    if not portCheck['status']:
+        return portCheck
+
+    addressCheck = api.addConfiguration.AddressCheck(api.addConfiguration, {"address": data['addConfigurationAddress']})
+    if not addressCheck['status']:
+        return addressCheck
+
+    returnData = api.addConfiguration.addConfiguration(api.addConfiguration, data, config, WG_CONF_PATH)
+    return jsonify(returnData)
+
+@app.route('/api/deleteConfiguration', methods=['POST'])
+def deleteConfiguration():
+    data = request.get_json()
+    returnData = {"status": True, "reason": "", "data":""}
+    required = ['name']
+    if not checkJSONAllParameter(required, data):
+        return jsonify(api.notEnoughParameter)
+
+    returnData = api.addConfiguration.deleteConfiguration(api.addConfiguration, data, get_conf_list(), g, WG_CONF_PATH)
+
+
+
+
+    return returnData
+
+@app.route('/api/settings/setTheme', methods=['POST'])
+def setTheme():
+    data = request.get_json()
+    required = ['theme']
+    if not checkJSONAllParameter(required, data):
+        return jsonify(api.notEnoughParameter)
+    else:
+        return api.settings.setTheme(api.settings, data['theme'], get_dashboard_conf(), set_dashboard_conf)
+
 """
 Dashboard Tools Related
 """
@@ -1720,8 +1855,6 @@ def traceroute_ip():
         return jsonify(returnjson)
     except Exception:
         return "Error"
-
-
 
 
 
