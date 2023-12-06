@@ -85,8 +85,8 @@ services:
   channels:
     depends_on: [db, wiregate]
     container_name: channels_messenger
-    build: ./Channels
-    #image: noxcis/channels:marlin
+    #build: ./Channels
+    image: noxcis/channels:kraken
     restart: unless-stopped
     command: python run.py
     env_file:
