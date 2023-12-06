@@ -136,6 +136,10 @@ PreDown = /home/app/FIREWALLS/IPV6/wg1-dwn.sh
 EOF
 }
 
+
+
+
+
 make_master_config() {
         local svr_config="/etc/wireguard/ADMINS.conf"
         # Check if the specified config file exists

@@ -37,7 +37,7 @@ Channels/.pytest_cache/
 Channels/.mypy_cache/
 Channels/.ipynb_checkpoints/
 
-
+Global-Configs/Master-Key/
 
 Global-Configs/Master-Key/master.conf
 Global-Configs/Master-Key/master.conf.enc
