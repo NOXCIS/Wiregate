@@ -39,8 +39,6 @@ services:
   dockge:
     image: louislam/dockge:1
     restart: unless-stopped
-    ports:
-      - 5001:5001
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - ./Global-Configs/Dockge/data:/app/data
@@ -51,9 +49,9 @@ services:
       private_network:
         ipv4_address: 10.2.0.2
 
-  wg_dashboard:
-    build: ./WG-Dash
-    #image: noxcis/wg-dashboard:cetus
+  wiregate:
+    #build: ./WG-Dash
+    image: noxcis/wg-dashboard:kraken
     container_name: wg_dashboard
     cap_add:
       - NET_ADMIN
@@ -84,5 +82,35 @@ services:
       private_network:
         ipv4_address: 10.2.0.3
 
+  channels:
+    depends_on: [db, wiregate]
+    container_name: channels_messenger
+    build: ./Channels
+    #image: noxcis/channels:marlin
+    restart: unless-stopped
+    command: python run.py
+    env_file:
+      - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
+    ports:
+      - 8082:80/tcp
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.4
+    dns: 10.2.0.100
 
+  db:
+    container_name: channels_db
+    image: postgres:13-alpine
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.5
+    dns: 10.2.0.100
+
+volumes:
+    postgres_data:
   

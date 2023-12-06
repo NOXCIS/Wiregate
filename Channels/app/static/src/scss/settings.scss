@@ -1,13 +1,26 @@
 .settings-data {
   margin-top: 3%;
   padding: 3%;
+  background-color: #181818;
 }
+
+
+// Dark mode styles
+$background-color: #181818;
+$text-color: #fff;
+
+body {
+  background-color: $background-color;
+  color: $text-color;
+}
+
 
 #settings-container {
   box-shadow: 0 3px 6px rgba(0,0,0,0.16), 0 3px 6px rgba(0,0,0,0.23);
   legend, #button-div  {
     text-align: center;
   }
+  background-color: #181818;
 }
 
 #settings-channel {
