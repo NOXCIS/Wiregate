@@ -111,6 +111,7 @@ install_docker() {
         containerd.io
         docker-buildx-plugin
         docker-compose-plugin
+        docker-compose
     )
 
     for docreqs in "${DOCREQS[@]}"; do
