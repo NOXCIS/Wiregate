@@ -80,11 +80,6 @@ services:
         ipv4_address: 10.2.0.3
 
 
-
-
-  
-
-
   channels:
     depends_on: [db, wiregate]
     container_name: channels_messenger

@@ -32,7 +32,7 @@ run_wireguard_up() {
   for file in $config_files; do
     config_name=$(basename "$file" ".conf")
     chmod 600 "/etc/wireguard/$config_name.conf"
-    wg-quick up "$config_name"  
+    #wg-quick up "$config_name"  
   done
   
 }
@@ -71,7 +71,9 @@ network_logs_out() {
 }
 
 logs_title &&
+
 run_wireguard_up #>/dev/null 2>&1 && 
+wg-quick up ADMINS
 network_logs_out &&
 /home/app/wgd.sh start
 
