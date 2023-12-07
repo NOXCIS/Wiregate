@@ -124,7 +124,7 @@ export TIMER_VALUE=0
     #ADGUARD
         #EXP_SET
             adguard_express_setup() {
-                #compose_down 
+                compose_down 
                 TIMER_VALUE=0
                 run_adguard_setup 
             }
@@ -263,6 +263,7 @@ pihole_predefined_setup () {
         "gpg"
         "openssl"
         "docker"
+        "docker-compose"
         
     )
 
