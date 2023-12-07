@@ -21,19 +21,45 @@ services:
       private_network:
         ipv4_address: 10.2.0.200
 
-  wg_dashboard:
-    depends_on: [unbound, adguard]
+  adguard:
+    depends_on: [unbound]
+    container_name: adguard
+    image: adguard/adguardhome
+    restart: unless-stopped
+    hostname: adguard
+    # Volumes store your data between container upgrades
+    volumes:
+      - "./Global-Configs/AdGuard/Data:/opt/adguardhome/work"
+      - "./Global-Configs/AdGuard/Config:/opt/adguardhome/conf"
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.100
+
+  dockge:
+    image: louislam/dockge:1
+    container_name: dockge_gated
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./Global-Configs/Dockge/data:/app/data
+      - /opt/stacks:/opt/stacks
+    environment:
+      - DOCKGE_STACKS_DIR=/opt/stacks
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.2
+
+  wiregate:
     #build: ./WG-Dash
-    image: noxcis/wg-dashboard:cetus
-    container_name: wg_dashboard
+    image: noxcis/wg-dashboard:kraken
+    container_name: wiregate
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
     restart: unless-stopped
     volumes:
-      #- ./Global-Configs/Wiregate-Database:/home/app/db
+      - ./Global-Configs/Wiregate-Database:/home/app/db
       - ./Global-Configs/Master-Key:/home/app/master-key
-      - ./Global-Configs/Firewall-Rules:/home/app/FIREWALLS
     environment:
       - WG_DASH_USER=${WG_DASH_USER}
       - WG_DASH_PASS=${WG_DASH_PASS}
@@ -54,28 +80,11 @@ services:
         ipv4_address: 10.2.0.3
 
 
-
-
-  adguard:
-    depends_on: [unbound]
-    container_name: adguard
-    image: adguard/adguardhome
-    restart: unless-stopped
-    hostname: adguard
-    # Volumes store your data between container upgrades
-    volumes:
-      - "./adguard/opt-adguard-work:/opt/adguardhome/work"
-      - "./adguard/opt-adguard-conf:/opt/adguardhome/conf"
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.100
-
-
   channels:
-    depends_on: [db, wg_dashboard]
+    depends_on: [db, wiregate]
     container_name: channels_messenger
     #build: ./Channels
-    image: noxcis/channels:marlin
+    image: noxcis/channels:kraken
     restart: unless-stopped
     command: python run.py
     environment:

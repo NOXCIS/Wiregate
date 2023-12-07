@@ -245,43 +245,40 @@ pihole_predefined_setup () {
         docker compose up -d --build 
     }
     compose_down() {
-        local database_folder="./Global-Configs/Wiregate-Database"
-        local yml_file="docker-compose.yml"
-        local port_mappings="770-777:770-777/udp"
-        export WG_DASH_PORT_MAPPINGS="$port_mappings"
-        
+    local install_check="preqsinstalled.txt"
+    local database_file="./Global-Configs/Wiregate-Database/wgdashboard.db"
+    local yml_file="docker-compose.yml"
+    local port_mappings="770-777:770-777/udp"
+    export WG_DASH_PORT_MAPPINGS="$port_mappings"
 
-        if [ -d "$database_folder" ]; then
-            sudo rm -r "$database_folder"
+    run_install() {
+        if [ -f "$install_check" ]; then
+            docker-compose down --volumes --remove-orphans
+        else
+            REQUIRED_PACKAGES=(
+                "curl"
+                "qrencode"
+                "gpg"
+                "openssl"
+                "docker"
+                "docker-compose"
+            )
+
+            for package in "${REQUIRED_PACKAGES[@]}"; do
+                if ! command -v "$package" &>/dev/null; then
+                    echo "Error: '$package' command not found. Installing requirements..."
+                    install_requirements
+                    return 0
+                fi
+            done
         fi
+    }
 
-        # Check if the 'docker' command is available
-
-        REQUIRED_PACKAGES=(
-        "curl"
-        "qrencode"
-        "gpg"
-        "openssl"
-        "docker"
-        "docker-compose"
-        
-    )
-
-    for package in "${REQUIRED_PACKAGES[@]}"; do
-        if ! command -v "$package" &>/dev/null; then
-            echo "Error: '$package' command not found. Installing requirements..."
-            install_requirements
-            return 0
-        fi
-    done
-
-
-    docker compose down --volumes --remove-orphans
-
-
-
-
-
+    if [ -f "$database_file" ] && [ ! -f "$install_check" ]; then
+        sudo rm -r "$database_file"
+    else
+        run_install
+    fi
 }
 #MISC
     dev_build() {
