@@ -4,4 +4,3 @@ configparser
 bcrypt
 icmplib
 flask-qrcode
-uWSGI
