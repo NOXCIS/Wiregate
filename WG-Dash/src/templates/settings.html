@@ -139,11 +139,6 @@
                                     <p><small class="text-danger mb-4">0.0.0.0 means it can be access by anyone with your server
                                         IP Address.</small></p>
                                 </div>
-                                <div class="col-sm">
-                                    <label for="app_port">Dashboard Port</label>
-                                    <input type="text" class="form-control mb-4" id="app_port" name="app_port"
-                                           value="{{ app_port }}">
-                                </div>
                             </div>
                             <button type="button" class="btn btn-danger confirm_modal" data-toggle="modal"
                                     data-target="#confirmModal">Update Configuration & Restart Dashboard
@@ -167,11 +162,6 @@
                     <p>{{ app_ip }}</p>
                     <small style="font-weight: bold" class="text-bold">Dashboard New IP</small>
                     <p class="app_new_ip text-bold text-danger" style="font-weight: bold"></p>
-                    <small>Dashboard Original Port</small>
-                    <p>{{ app_port }}</p>
-                    <small style="font-weight: bold" class="text-bold">Dashboard New Port</small>
-                    <p class="app_new_port text-bold text-danger" style="font-weight: bold"></p>
-                </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary cancel_restart" data-dismiss="modal">Cancel</button>
                     <button type="button" class="btn btn-danger confirm_restart">Confirm & Restart Dashboard</button>

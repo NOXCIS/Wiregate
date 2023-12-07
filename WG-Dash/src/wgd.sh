@@ -5,9 +5,11 @@ start_wgd () {
   echo -e "Start Dashboard--------------------------------------------------------------------------------\n"
   echo ""
   echo ""
-    uwsgi --ini wg-uwsgi.ini 
+    uwsgi --ini wiregate.ini 
   echo "--------------------------------------------------------------------------------"
 }
+
+
 
 newconf_wgd () {
   newconf_wgd0
@@ -209,7 +211,7 @@ if [ "$#" != 1 ];
       elif [ "$1" = "debug" ]; then
         start_wgd_debug
       elif [ "$1" = "start" ]; then
-        start_wgd
+        start_wgd 
       elif [ "$1" = "newconfig" ]; then
         newconf_wgd
       else

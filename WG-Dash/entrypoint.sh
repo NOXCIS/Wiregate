@@ -37,6 +37,19 @@ run_wireguard_up() {
   
 }
 
+config_nginx () {
+    rm /etc/nginx/http.d/default.conf
+    cat <<EOF > "/etc/nginx/http.d/default.conf"
+server {
+    listen 80;
+
+    location / {
+        include uwsgi_params;
+        uwsgi_pass 127.0.0.1:10086;
+    }
+}
+EOF
+}
 
 
 logs_title() {
@@ -75,5 +88,7 @@ logs_title &&
 run_wireguard_up #>/dev/null 2>&1 && 
 wg-quick up ADMINS
 network_logs_out &&
+config_nginx &&
+nginx &&
 /home/app/wgd.sh start
 
