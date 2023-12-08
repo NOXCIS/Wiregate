@@ -56,9 +56,9 @@ services:
       - WG_DASH_PEER_ENDPOINT_ALLOWED_IP=0.0.0.0/0
       - WG_DASH_KEEP_ALIVE=21
       - WG_DASH_MTU=1420
-      - WG_DASH_PORT_RANGE_STARTPORT=770
+      - WG_DASH_PORT_RANGE_STARTPORT=443
     ports:
-      - "770-775:770-775/udp"
+      - "443-453:443-453/udp"
       - 8000:80/tcp
     sysctls:
       - net.ipv4.ip_forward=1
