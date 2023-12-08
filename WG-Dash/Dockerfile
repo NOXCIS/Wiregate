@@ -12,8 +12,8 @@ RUN apk update && \
     
 COPY ./src /home/app 
 
-RUN pip install --upgrade pip   && \    
-    python3 -m pip install -r /home/app/requirements.txt 
+RUN pip install --upgrade pip --break-system-packages     
+RUN  python3 -m pip install -r /home/app/requirements.txt --break-system-packages  
 
 
 COPY ./entrypoint.sh /home/app/entrypoint.sh

@@ -45,9 +45,44 @@ server {
 
     location / {
         include uwsgi_params;
-        uwsgi_pass 0.0.0.0:10086;
+        uwsgi_pass 127.0.0.1:10086;  # uWSGI service address and port
+    }
+
+    # Set the location of the uWSGI static folder
+    location /static/ {
+        alias /home/app/static/;
+    }
+
+    # Set security headers
+    add_header X-Content-Type-Options nosniff;
+    add_header X-Frame-Options DENY;
+    add_header X-XSS-Protection "1; mode=block";
+
+    # Disable server version information
+    server_tokens off;
+
+    # Configure error pages
+    error_page 400 401 402 403 404 /error.html;
+    location = /error.html {
+        root /path/to/error/pages;
+    }
+
+    # Deny access to hidden files
+    location ~ /\. {
+        deny all;
+        access_log off;
+        log_not_found off;
+    }
+
+    error_page 500 502 503 504 /50x.html;
+    location = /50x.html {
+        root /usr/share/nginx/html;
     }
 }
+
+
+
+
 EOF
 }
 
