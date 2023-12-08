@@ -49,10 +49,8 @@ $(".theme-switch-btn").on("click", function(){
             if (res.status == true){
                 if (theme == "light"){
                     $("#darkThemeCSS").remove();
-                    showToast("Switched to light theme");
                 }else{
                     $("head").append('<link rel="stylesheet" type="text/css" href="/static/css/theme/dark.min.css" id="darkThemeCSS">');
-                    showToast("Switched to dark theme");
                 }
             }
         });
