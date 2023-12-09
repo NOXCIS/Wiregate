@@ -697,28 +697,19 @@ let peers = [];
         document.querySelector("#enable_preshare_key").value = keys.presharedKey;
     }
 
-    /**
-     * Show toast
-     * @param msg
-     */
-    let numberToast = 0;
-    function showToast(msg) {
-        $(".toastContainer").append(
-			`<div id="${numberToast}-toast" class="toast hide" role="alert" data-delay="5000">
-				<div class="toast-header">
-					<strong class="mr-auto">WGDashboard</strong>
-					<button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
-						<span aria-hidden="true">&times;</span>
-					</button>
-				</div>
-				<div class="toast-body">${msg}</div>
-				<div class="toast-progressbar"></div>
-			</div>` )
-		$(`#${numberToast}-toast`).toast('show');
-        $(`#${numberToast}-toast .toast-body`).html(msg);
-		$(`#${numberToast}-toast .toast-progressbar`).css("transition", `width ${$(`#${numberToast}-toast .toast-progressbar`).parent().data('delay')}ms cubic-bezier(0, 0, 0, 0)`);
-		$(`#${numberToast}-toast .toast-progressbar`).css("width", "0px");
-		numberToast++;
+
+    let numberToast=0
+    function showToast(a) {
+        $(".toastContainer").append(`<div id="${numberToast}-toast" class="toast hide" role="alert" data-delay="500">
+                <div class="toast-header">
+                    <strong class="mr-auto">WGDashboard</strong>
+                    <button type="button" class="ml-2 mb-1 close" data-dismiss="toast" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="toast-body">${a}</div>
+                <div class="toast-progressbar"></div>
+            </div>`), $(`#${numberToast}-toast`).toast("show"), $(`#${numberToast}-toast .toast-body`).html(a), $(`#${numberToast}-toast .toast-progressbar`).css("transition", `width ${$(`#${numberToast}-toast .toast-progressbar`).parent().data("delay")}ms cubic-bezier(0, 0, 0, 0)`), $(`#${numberToast}-toast .toast-progressbar`).css("width", "0px"), numberToast++
     }
 
     /**

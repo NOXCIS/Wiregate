@@ -457,7 +457,7 @@
     {% include "tools.html" %}
 </body>
 {% include "footer.html" %}
-<script src="{{ url_for('static',filename='js/configuration.min.js') }}"></script>
+<script src="{{ url_for('static',filename='js/configuration.js') }}"></script>
 <script src="{{ url_for('static',filename='js/wireguard.min.js') }}"></script>
 <script>
     configurations.setConfigurationName("{{ conf_data['name'] }}");
