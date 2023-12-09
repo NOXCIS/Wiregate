@@ -4,31 +4,26 @@ $ui-height: 10vh;
   height: 100vh;
 }
 
-// Dark mode styles
-$background-color: #181818;
-$text-color: #fff;
-
-body {
-  background-color: $background-color;
-  color: $text-color;
+#app-container {
+  @extend %container;
 }
 
-#app-container,
-#channels-list,
-#channel-info,
-#messages-list,
-#messages-input {
-  background-color: $background-color;
+#channels {
+  @extend %container;
+  padding: 0;
 }
 
 .channel {
   cursor: pointer;
-  color: $text-color;
-  background-color: #000; // Dark background color for channels
 }
 
 .channel:hover {
-  background-color: #2a2a2a; // Slightly lighter background on hover
+  background-color: #e5edff;
+}
+
+#channels-list {
+  overflow-y: scroll;
+  height: 100vh - $ui-height;
 }
 
 #channels-ui-parent {
@@ -41,19 +36,13 @@ body {
     transform: translate(-50%, -50%);
     width: 100%;
     text-align: center;
-    color: $text-color;
   }
 }
-.body {
-  background-color: #181818;
-}
+
 .modal-body-extended {
   padding: 10%;
 }
 
-.form-control {
-  background-color: #000;
-}
 #channel-info {
   height: $ui-height;
   text-align: center;
@@ -67,9 +56,26 @@ body {
   }
 }
 
+#messages-list {
+  height: 100vh - 15vh - $ui-height;
+  overflow-y: scroll;
+  padding-top: 2.5vh;
+  padding-bottom: 2.5vh;
+  img {
+    height: 60px;
+    width: auto;
+  }
+  small {
+    text-align: right;
+  }
+}
+
+#messages-input {
+  height: $ui-height;
+  padding-bottom: 2.5vh;
+  padding-top: 2.5vh;
+}
+
 #messages-input-text-area {
   resize: none;
 }
-
-// Add more styles for dark mode as needed
-

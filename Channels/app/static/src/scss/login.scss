@@ -8,11 +8,6 @@
   50%  { left: 75%; }
   100% { left: 50%; }
 }
-$background-color: #181818;
-$text-color: #fff;
-
-  
-
 
 body {
   /* Free image from Canva. Autor: Pedro Sandrini */
@@ -30,6 +25,7 @@ body {
 
 #channels-text {
   color: white;
+  font-family: Pacifico, serif;
   position: absolute;
   top: 15%;
   font-size: 8vh;
@@ -66,9 +62,6 @@ body {
   top: 60%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background-color: $background-color;
-  color: $text-color;
-
 }
 
 #register-container {
@@ -77,7 +70,4 @@ body {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  background-color: $background-color;
-  color: $text-color;
-  
 }

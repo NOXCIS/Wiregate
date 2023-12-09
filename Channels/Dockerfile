@@ -3,7 +3,7 @@ FROM node:18-alpine3.18
 WORKDIR /usr/src/app
 
 # Install packages neccessary to build
-RUN apk add --update --no-cache build-base libffi-dev postgresql-dev zlib-dev jpeg-dev chromium chromium-chromedriver && \
+RUN apk add --update --no-cache build-base libffi-dev postgresql-dev zlib-dev jpeg-dev  && \
     apk add --no-cache python3 py3-pip python3-dev py3-virtualenv  && \
     npm install -g npm@latest
 
