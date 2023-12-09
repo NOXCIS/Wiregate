@@ -23,6 +23,11 @@ ip6tables -A $CHAIN_NAME -o $WIREGUARD_INTERFACE -m conntrack --ctstate RELATED,
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -j ACCEPT
 ip6tables -A $CHAIN_NAME -s $WIREGUARD_LAN_IPV6 -i $WIREGUARD_INTERFACE -j ACCEPT
 
+# Allow traffic to the local loopback interface
+iptables -A $CHAIN_NAME -o lo -j ACCEPT
+# Allow traffic to the local loopback interface
+ip6tables -A $CHAIN_NAME -o lo -j ACCEPT
+
 # Drop everything else coming through the Wireguard interface
 iptables -A $CHAIN_NAME -i $WIREGUARD_INTERFACE -j DROP
 ip6tables -A $CHAIN_NAME -i $WIREGUARD_INTERFACE -j DROP
