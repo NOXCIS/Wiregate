@@ -5,8 +5,8 @@ http:
   address: 0.0.0.0:80
   session_ttl: 720h
 users:
-  - name: k
-    password: $2y$05$wZnEPi9uD7Gt74xsMGxfNeHLNMFl2gIePBQ9tTKfZhrxY1kcDdwb6
+  - name: wacky_zany_634
+    password: $2y$05$e3/x.2CjIJ6gPcuYMUSWQu8RDBWHc1fSrMZdjQg2htK3zQKjyqn/S
 auth_attempts: 5
 block_auth_min: 15
 http_proxy: ""
