@@ -38,19 +38,6 @@ services:
       private_network:
         ipv4_address: 10.2.0.100
 
-  dockge:
-    image: louislam/dockge:1
-    container_name: dockge_gated
-    restart: unless-stopped
-    volumes:
-      - /var/run/docker.sock:/var/run/docker.sock
-      - ./Global-Configs/Dockge/data:/app/data
-      - /opt/stacks:/opt/stacks
-    environment:
-      - DOCKGE_STACKS_DIR=/opt/stacks
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.2
 
         
   wiregate:

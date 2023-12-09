@@ -214,28 +214,6 @@ pihole_predefined_setup () {
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 #DOCKER FUNCTIONS
     compose_up() {
         run_docker_title
@@ -252,7 +230,7 @@ pihole_predefined_setup () {
     export WG_DASH_PORT_MAPPINGS="$port_mappings"
 
     run_install() {
-        if [ -f "$install_check" ]; then
+        if [ ! -f "$install_check" ]; then
             docker-compose down --volumes --remove-orphans
         else
             REQUIRED_PACKAGES=(
