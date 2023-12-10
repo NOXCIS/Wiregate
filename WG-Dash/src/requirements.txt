@@ -1,6 +1,5 @@
 Flask
 ifcfg
 configparser
-bcrypt
 icmplib
 flask-qrcode
