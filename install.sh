@@ -94,9 +94,6 @@ export TIMER_VALUE=0
                 leave_a_star_title &&
                 return
         }
-
-
-
 #SETUP OPTIONS
     #PIHOLE
         #EXP_SET
@@ -117,10 +114,6 @@ export TIMER_VALUE=0
                 clear &&
                 run_pihole_setup
             }
-
-        
-
-
     #ADGUARD
         #EXP_SET
             adguard_express_setup() {
@@ -134,24 +127,6 @@ export TIMER_VALUE=0
                 set_timer_value &&
                 run_adguard_setup
             }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 adguard_predefined_setup () {
                 
@@ -223,13 +198,13 @@ pihole_predefined_setup () {
         docker compose up -d --build 
     }
     compose_down() {
-    local install_check="preqsinstalled.txt"
-    local database_file="./Global-Configs/Wiregate-Database/wgdashboard.db"
-    local yml_file="docker-compose.yml"
-    local port_mappings="770-777:770-777/udp"
-    export WG_DASH_PORT_MAPPINGS="$port_mappings"
+        local install_check="preqsinstalled.txt"
+        local database_file="./Global-Configs/Wiregate-Database/wgdashboard.db"
+        local yml_file="docker-compose.yml"
+        local port_mappings="770-777:770-777/udp"
+        export WG_DASH_PORT_MAPPINGS="$port_mappings"
 
-    run_install() {
+        run_install() {
         if [ ! -f "$install_check" ]; then
             docker-compose down --volumes --remove-orphans
         else
@@ -250,19 +225,19 @@ pihole_predefined_setup () {
                 fi
             done
         fi
-    }
+        }
 
-    if [ -f "$database_file" ] && [ ! -f "$install_check" ]; then
-        sudo rm -r "$database_file"
-    else
-        run_install
-    fi
-}
+        if [ -f "$database_file" ] && [ ! -f "$install_check" ]; then
+            sudo rm -r "$database_file"
+        else
+            run_install
+        fi
+    }
 #MISC
     dev_build() {
         compose_down &&
         docker-compose -f dev-docker-compose.yml up -d
-        echo -e "\033[33m"'Wireguard DashBoard Available at http://localhost:8080'
+        echo -e "\033[33m"'Wireguard DashBoard Available at http://localhost:8000'
 
 
 
@@ -313,14 +288,6 @@ pihole_predefined_setup () {
         clear
     }
     
-
-
-
-
-
-
-
-
 
 
 # Main script

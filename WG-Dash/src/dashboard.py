@@ -43,7 +43,6 @@ if not os.path.isdir(DB_PATH):
     os.mkdir(DB_PATH)
 DASHBOARD_CONF = os.path.join(configuration_path, 'wg-dashboard.ini')
 
-# Upgrade Required
 UPDATE = None
 
 # Flask App Configuration
@@ -51,12 +50,9 @@ app = Flask("WireGate")
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 5206928
 wg_dash_appkey = os.environ.get('WG_DASH_SECRET_KEY')
 app.secret_key = wg_dash_appkey
-
 app.config['TEMPLATES_AUTO_RELOAD'] = True
-
-# Enable QR Code Generator
 QRcode(app)
-#socketio = SocketIO(app)
+
 
 # TODO: use class and object oriented programming
 

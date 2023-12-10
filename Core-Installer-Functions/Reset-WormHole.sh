@@ -1,7 +1,6 @@
 fresh_install() {
     local masterkey_file="./Global-Configs/Master-Key/master.conf"
     local database_folder="./Global-Configs/Wiregate-Database"
-    local database_folder1="./Global-Configs/Dockge/data"
     local yml_file="docker-compose.yml"
     
     clear
@@ -43,11 +42,6 @@ fresh_install() {
             echo "Existing '$database_folder' removed."
         fi
 
-        if [ -d "$database_folder1" ]; then
-            echo "Removing existing '$database_folder1'..."
-            sudo rm -r "$database_folder1"
-            echo "Existing '$database_folder1' removed."
-        fi
 
         echo "Removing existing Compose File"
         sudo rm "$yml_file"
