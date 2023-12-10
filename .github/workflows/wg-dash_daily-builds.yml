@@ -14,6 +14,12 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
+      # Use Node.js version 18
+      - name: Use Node.js version 18
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
       # Check out the repository code
       - name: Checkout code
         uses: actions/checkout@v2
@@ -36,5 +42,5 @@ jobs:
         with:
           context: WG-Dash/  # Path to the directory containing the Dockerfile (subfolder)
           push: true
-          tags: noxcis/wg-dashboard:kraken
+          tags: noxcis/wg-dashboard:kraken-auto-build-test
           platforms: linux/amd64,linux/arm64
