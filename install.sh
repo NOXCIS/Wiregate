@@ -204,35 +204,14 @@ pihole_predefined_setup () {
         local port_mappings="770-777:770-777/udp"
         export WG_DASH_PORT_MAPPINGS="$port_mappings"
 
-        run_install() {
         if [ ! -f "$install_check" ]; then
+            # If prerequisites are not installed, install them
+            install_requirements
+        elif [ -f "$install_check" ]; then
+            # If prerequisites are installed, bring down the Docker-compose setup
             docker-compose down --volumes --remove-orphans
-        else
-            REQUIRED_PACKAGES=(
-                "curl"
-                "qrencode"
-                "gpg"
-                "openssl"
-                "docker"
-                "docker-compose"
-            )
-
-            for package in "${REQUIRED_PACKAGES[@]}"; do
-                if ! command -v "$package" &>/dev/null; then
-                    echo "Error: '$package' command not found. Installing requirements..."
-                    install_requirements
-                    return 0
-                fi
-            done
         fi
-        }
-
-        if [ -f "$database_file" ] && [ ! -f "$install_check" ]; then
-            sudo rm -r "$database_file"
-        else
-            run_install
-        fi
-    }
+}
 #MISC
     dev_build() {
         compose_down &&
