@@ -16,8 +16,6 @@ newconf_wgd () {
   newconf_wgd1
   newconf_wgd2
   newconf_wgd3
-  newconf_wgd4
-  newconf_wgd5
 }
 
 
@@ -99,47 +97,6 @@ PreDown = /home/app/FIREWALLS/Guest/wg3-dwn.sh
 
 EOF
 }
-
-newconf_wgd4() {
-    local port_wg4=$WG_DASH_PORT_RANGE_STARTPORT
-    local port_wg4=$((port_wg4 + 4))
-    private_key=$(wg genkey)
-    public_key=$(echo "$private_key" | wg pubkey)
-
-    cat <<EOF >"/etc/wireguard/IPV6ADMINS.conf"
-[Interface]
-PrivateKey = $private_key
-Address = 192.168.30.1/24
-Address = 2001:db8:30:1::/64
-ListenPort = $port_wg4
-SaveConfig = true
-PostUp =  /home/app/FIREWALLS/IPV6/wg0-nat.sh
-PreDown = /home/app/FIREWALLS/IPV6/wg0-dwn.sh
-
-EOF
-}
-
-newconf_wgd5() {
-    local port_wg5=$WG_DASH_PORT_RANGE_STARTPORT
-    local port_wg5=$((port_wg5 + 5))
-    private_key=$(wg genkey)
-    public_key=$(echo "$private_key" | wg pubkey)
-
-    cat <<EOF >"/etc/wireguard/IPV6MEMBERS.conf"
-[Interface]
-PrivateKey = $private_key
-Address = 192.168.40.1/24
-Address = 2001:db8:40:1::/64
-ListenPort = $port_wg5
-SaveConfig = true
-PostUp =  /home/app/FIREWALLS/IPV6/wg1-nat.sh
-PreDown = /home/app/FIREWALLS/IPV6/wg1-dwn.sh
-
-EOF
-}
-
-
-
 
 
 make_master_config() {

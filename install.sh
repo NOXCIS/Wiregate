@@ -207,15 +207,16 @@ pihole_predefined_setup () {
         if [ ! -f "$install_check" ]; then
             # If prerequisites are not installed, install them
             install_requirements
+            docker compose down --volumes --remove-orphans
         elif [ -f "$install_check" ]; then
             # If prerequisites are installed, bring down the Docker-compose setup
-            docker-compose down --volumes --remove-orphans
+            docker compose down --volumes --remove-orphans
         fi
 }
 #MISC
     dev_build() {
         compose_down &&
-        docker-compose -f dev-docker-compose.yml up -d
+        docker compose -f dev-docker-compose.yml up -d
         echo -e "\033[33m"'Wireguard DashBoard Available at http://localhost:8000'
 
 

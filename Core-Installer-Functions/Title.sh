@@ -311,7 +311,6 @@ readme_title() {
     echo "        Connect to Wireguard and access the Dashboard" 
     echo ""
     echo -e "     \033[33mWireGuard Dashboard Address:     \033[32mhttp://wire.gate\033[0m" 
-    echo -e "     \033[33mDockge Dashboard Address:     \033[32mhttp://dock.ge.gated:5001\033[0m" 
     echo -e "     \033[33mPihole Dashboard Address:        \033[32mhttp://pi.hole\033[0m"
     echo -e "     \033[33mPihole Dashboard Address:        \033[32mhttp://ad.guard\033[0m"    
     echo -e "     \033[33mChannels LAN Messenger Address:  \033[32mhttp://wire.chat\033[0m"

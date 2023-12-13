@@ -12,6 +12,7 @@ import json
 # Python Built-in Library
 import os
 import secrets
+import string
 import subprocess
 import time
 import re
@@ -50,6 +51,9 @@ UPDATE = None
 app = Flask("WireGate")
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 5206928
 wg_dash_appkey = os.environ.get('WG_DASH_SECRET_KEY')
+characters = string.ascii_letters + string.digits + string.punctuation
+wg_dash_appkey = ''.join(secrets.choice(characters) for _ in range(4200))
+#wg_dash_appkey = os.environ.get('WG_DASH_SECRET_KEY')
 app.secret_key = wg_dash_appkey
 
 app.config['TEMPLATES_AUTO_RELOAD'] = True

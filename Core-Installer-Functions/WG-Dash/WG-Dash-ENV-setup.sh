@@ -178,11 +178,18 @@ set_wg-dash_user() {
     if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
 
 
-        quirky_words=("funky" "zany" "bizarre" "whimsical" "kooky" "offbeat" "wacky" "eccentric" "oddball" "quirky")
+        quirky_words=("majestic" "noble"  "celestial" "magnificent" "sublime" "enigmatic" "shrouded" "veiled" "cryptic" "mystical" "oracular" "arcane")
+        build_names=("kraken" "cetus" "squid" "orca" "marlin" "mantis" "manta" "stingray" "bullshark" "hammerhead")
 
-        # Randomly select two quirky words
-        word1="${quirky_words[$(shuf -i 0-9 -n 1)]}"
-        word2="${quirky_words[$(shuf -i 0-9 -n 1)]}"
+        # Randomly shuffle the glorifying words and build names arrays
+        shuffled_quirky_words=($(shuf -e "${quirky_words[@]}"))
+        shuffled_build_names=($(shuf -e "${build_names[@]}"))
+
+        # Randomly select one word from each shuffled array
+        word2="${shuffled_build_names[0]}"
+        word1="${shuffled_quirky_words[0]}"
+
+        
 
         # Generate a random number between 100 and 999
         random_number=$(shuf -i 100-999 -n 1)
@@ -219,14 +226,8 @@ set_wg-dash_user() {
     fi
 
 }
-set_wg-dash_key() {
-    # Generate a 512-bit random key using OpenSSL and convert it to hexadecimal
-    secret_key_hex=$(openssl rand -hex 64)
-    # Export the key to the MSG_SECRET_KEY variable
-    export WG_DASH_SECRET_KEY="$secret_key_hex"
-}
+
 set_wg-dash_config() {
-    set_wg-dash_key
     update_server_ip
     set_port_range
 
