@@ -149,12 +149,34 @@ create_swap() {
 
 
 }
+MAX_ATTEMPTS=3  # You can adjust the maximum number of attempts as needed
+
 install_requirements() {
-    run_os_update &&
-    install_prerequisites &&
-    install_docker &&
-    create_swap &&
-    cat <<EOF >"preqsinstalled.txt"
-    !!!!!!
+    attempts=1
+
+    while [ $attempts -le $MAX_ATTEMPTS ]; do
+        echo "Attempt $attempts of $MAX_ATTEMPTS"
+
+        # Attempt the installation
+        run_os_update &&
+        install_prerequisites &&
+        install_docker &&
+        create_swap &&
+        cat <<EOF >"preqsinstalled.txt"
+        !!!!!!
 EOF
+
+        # Check if the installation was successful
+        if [ $? -eq 0 ]; then
+            echo "Installation successful."
+            break  # Exit the loop if successful
+        else
+            echo "Installation failed. Retrying..."
+            ((attempts++))
+        fi
+    done
+
+    if [ $attempts -gt $MAX_ATTEMPTS ]; then
+        echo "Max attempts reached. Installation failed."
+    fi
 }
