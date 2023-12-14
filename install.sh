@@ -199,7 +199,6 @@ pihole_predefined_setup () {
     }
     compose_down() {
         local install_check="preqsinstalled.txt"
-        local database_file="./Global-Configs/Wiregate-Database/wgdashboard.db"
         local yml_file="docker-compose.yml"
         local port_mappings="770-777:770-777/udp"
         export WG_DASH_PORT_MAPPINGS="$port_mappings"
@@ -207,10 +206,10 @@ pihole_predefined_setup () {
         if [ ! -f "$install_check" ]; then
             # If prerequisites are not installed, install them
             install_requirements
-            docker compose down --volumes --remove-orphans
+            docker compose down  --remove-orphans
         elif [ -f "$install_check" ]; then
             # If prerequisites are installed, bring down the Docker-compose setup
-            docker compose down --volumes --remove-orphans
+            docker compose down  --remove-orphans
         fi
 }
 #MISC

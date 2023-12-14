@@ -6,7 +6,7 @@ menu() {
     cat <<EOF >"run-log.txt"
     JRC Weir Tribute Animation has been ran!!!!!!
 EOF
-   
+    clear
     title
     echo "Please choose a DNS Provider:"
     echo "-----------------------------------------------------"

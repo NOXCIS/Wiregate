@@ -41,7 +41,6 @@ services:
 
         
   wiregate:
-    #build: ./WG-Dash
     image: noxcis/wg-dashboard:kraken
     container_name: wiregate
     cap_add:
@@ -49,7 +48,10 @@ services:
       - SYS_MODULE
     restart: unless-stopped
     volumes:
-      - ./Global-Configs/Wiregate-Database:/home/app/db
+      - wg_configs:/etc/wireguard
+      - wg_data:/home/app/dashboard-config
+      - wg_db:/home/app/db
+      - wg_iptables:/home/app/Iptables
       - ./Global-Configs/Master-Key:/home/app/master-key
     env_file:
       - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
@@ -92,3 +94,8 @@ services:
 
 volumes:
     postgres_data:
+    wg_data:
+    wg_configs:
+    wg_db:
+    wg_iptables:
+  

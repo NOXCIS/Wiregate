@@ -1,10 +1,57 @@
 #!/bin/bash
 
 update_server_ip() {
+    local timer=$TIMER_VALUE
+    local user_activity=false
 
+
+    while [ $timer -gt 0 ]; do
+        clear  # Clear the screen
+
+        # Print the updated timer value
+        set_uname_wgdash_title
+        echo "Press Enter to set Wireguard Dashboard Server IP $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for autoset: $(tput sgr0)"
+        
+        # Decrement the timer value by 1
+        timer=$((timer - 1))
+
+        # Check for user activity
+        if read -t 1 -n 1; then
+            user_activity=true
+            break
+        fi
+    done
+    
+    if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
         ip=$(hostname -I | awk '{print $1}')
         export WG_DASH_SERVER_IP="$ip"
+    fi
 
+
+    if [[ "$user_activity" == true ]]; then
+        # Prompt user to enter and confirm their password
+        while true; do
+            read -p "$(tput setaf 3)Enter Wireguard Dashboard Server IP:$(tput sgr0)" ip
+            
+            
+        if [[ -z "$ip" ]]; then
+            echo -e "\033[31mIPv4 address cannot be empty. Please try again.\033[0m"
+            continue
+        fi
+
+        # Regular expression for a valid IPv4 address
+        ipv4_pattern="^([0-9]{1,3}\.){3}[0-9]{1,3}$"
+
+        # Check if the provided IP address matches the pattern
+        if [[ ! "$ip" =~ $ipv4_pattern ]]; then
+            echo -e "\033[31mInvalid IPv4 address format. Please enter a valid IPv4 address.\033[0m"
+            continue
+        fi
+                export WG_DASH_SERVER_IP="$ip"
+                break
+            
+        done
+    fi
 }
 set_port_range() {
 

@@ -5,8 +5,8 @@ http:
   address: 0.0.0.0:80
   session_ttl: 720h
 users:
-  - name: oracular_stingray_193
-    password: $2y$05$aHVhIG3rJAwlGD2/gzInHOhrdtYd5FGBiulXxC8I5N7IUvxT51c8C
+  - name: celestial_stingray_591
+    password: $2y$05$2vq3PCnU4o4FeSeJMfIklu7NYS35onLfdShl9Fb0cKHuMmplErKLS
 auth_attempts: 5
 block_auth_min: 15
 http_proxy: ""

@@ -42,7 +42,8 @@ configuration_path = os.getenv('CONFIGURATION_PATH', '.')
 DB_PATH = os.path.join(configuration_path, 'db')
 if not os.path.isdir(DB_PATH):
     os.mkdir(DB_PATH)
-DASHBOARD_CONF = os.path.join(configuration_path, 'wg-dashboard.ini')
+DASHBOARD_CONF = os.path.join(configuration_path, 'dashboard-config', 'wg-dashboard.ini')
+
 
 # Upgrade Required
 UPDATE = None
@@ -169,7 +170,7 @@ def run_dashboard():
     #init_dashboard()
     #global UPDATE
     config = configparser.ConfigParser(strict=False)
-    config.read('wg-dashboard.ini')
+    config.read('dashboard-config/wg-dashboard.ini')
     # global app_ip
     app_ip = config.get("Server", "app_ip")
     # global app_port

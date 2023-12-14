@@ -241,14 +241,6 @@ set_pass_pihole_title() {
     echo -e "\n\033[0m"
 
 }
-set_config_count_title() {
-    echo -e "\033[33m\n" 
-    printf "%s\n" "$dashes"
-    echo "                       SET SERVER INTEFACE COUNT FOR WIREGUARD"
-    printf "%s" "$dashes"
-    echo -e "\n\033[0m"
-
-}
 set_server_ip_title() {
     echo -e "\033[33m\n" 
     printf "%s\n" "$dashes"
@@ -335,7 +327,7 @@ leave_a_star_title() {
 title
 echo -e "\033[33m\n" 
     echo ""
-    echo -e "\033[33mLeave A Star on Github:  \033[32mhttps://github.com/NOXCIS/Worm-Hole\033[0m"
+    echo -e "\033[33mLeave A Star on Github:  \033[32mhttps://github.com/NOXCIS/Wiregate\033[0m"
     echo ""
     echo -e "\033[33m"
     echo "#######################################################################"

@@ -32,8 +32,8 @@ PrivateKey = $private_key
 Address = 10.0.0.1/24
 ListenPort = $port_wg0
 SaveConfig = true
-PostUp =  /home/app/FIREWALLS/Admins/wg0-nat.sh
-PreDown = /home/app/FIREWALLS/Admins/wg0-dwn.sh
+PostUp =  /home/app/Iptables/fowarding-rules/Admins/postup.sh
+PreDown = /home/app/Iptables/fowarding-rules/Admins/postdown.sh
 
 EOF
     if [ ! -f "/master-key/master.conf" ]; then
@@ -54,8 +54,8 @@ PrivateKey = $private_key
 Address = 192.168.10.1/24
 ListenPort = $port_wg1
 SaveConfig = true
-PostUp =  /home/app/FIREWALLS/Members/wg1-nat.sh
-PreDown = /home/app/FIREWALLS/Members/wg1-dwn.sh
+PostUp =  /home/app/Iptables/fowarding-rules/Members/postup.sh
+PreDown = /home/app/Iptables/fowarding-rules/Members/postdown.sh
 
 EOF
 }
@@ -74,8 +74,8 @@ PrivateKey = $private_key
 Address = 172.16.0.1/24
 ListenPort = $port_wg2
 SaveConfig = true
-PostUp =  /home/app/FIREWALLS/LAN-only-users/wg2-nat.sh
-PreDown = /home/app/FIREWALLS/LAN-only-users/wg2-dwn.sh
+PostUp =  /home/app/Iptables/fowarding-rules/LAN-only-users/postup.sh
+PreDown = /home/app/Iptables/fowarding-rules/LAN-only-users/postdown.sh
 
 EOF
 }
@@ -92,8 +92,8 @@ PrivateKey = $private_key
 Address = 192.168.20.1/24
 ListenPort = $port_wg3
 SaveConfig = true
-PostUp =  /home/app/FIREWALLS/Guest/wg3-nat.sh
-PreDown = /home/app/FIREWALLS/Guest/wg3-dwn.sh
+PostUp =  /home/app/Iptables/fowarding-rules/Guest/postup.sh
+PreDown = /home/app/Iptables/fowarding-rules/Guest/postdown.sh
 
 EOF
 }

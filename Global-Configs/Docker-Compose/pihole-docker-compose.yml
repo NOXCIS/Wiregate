@@ -53,7 +53,10 @@ services:
       - SYS_MODULE
     restart: unless-stopped
     volumes:
-      - ./Global-Configs/Wiregate-Database:/home/app/db
+      - wg_configs:/etc/wireguard
+      - wg_data:/home/app/dashboard-config
+      - wg_db:/home/app/db
+      - wg_iptables:/home/app/Iptables
       - ./Global-Configs/Master-Key:/home/app/master-key
     environment:
       - WG_DASH_USER=${WG_DASH_USER}
@@ -114,5 +117,12 @@ services:
       private_network:
         ipv4_address: 10.2.0.5
     dns: 10.2.0.100
+
+
 volumes:
     postgres_data:
+    wg_data:
+    wg_configs:
+    wg_db:
+    wg_iptables:
+  

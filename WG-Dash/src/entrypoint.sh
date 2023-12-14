@@ -2,23 +2,18 @@
 
 chmod u+x /home/app/wgd.sh
 
-chmod u+x /home/app/FIREWALLS/Admins/wg0-dwn.sh
-chmod u+x /home/app/FIREWALLS/Admins/wg0-nat.sh
+chmod u+x /home/app/Iptables/fowarding-rules/Admins/postup.sh
+chmod u+x /home/app/Iptables/fowarding-rules/Admins/postdown.sh
 
-chmod u+x /home/app/FIREWALLS/Members/wg1-dwn.sh
-chmod u+x /home/app/FIREWALLS/Members/wg1-nat.sh
+chmod u+x /home/app/Iptables/fowarding-rules/Members/postup.sh
+chmod u+x /home/app/Iptables/fowarding-rules/Members/postdown.sh
 
-chmod u+x /home/app/FIREWALLS/LAN-only-users/wg2-dwn.sh
-chmod u+x /home/app/FIREWALLS/LAN-only-users/wg2-nat.sh
+chmod u+x /home/app/Iptables/fowarding-rules/LAN-only-users/postup.sh
+chmod u+x /home/app/Iptables/fowarding-rules/LAN-only-users/postdown.sh
 
-chmod u+x /home/app/FIREWALLS/Guest/wg3-dwn.sh
-chmod u+x /home/app/FIREWALLS/Guest/wg3-nat.sh
+chmod u+x /home/app/Iptables/fowarding-rules/Guest/postup.sh
+chmod u+x /home/app/Iptables/fowarding-rules/Guest/postdown.sh
 
-chmod u+x /home/app/FIREWALLS/IPV6/wg0-dwn.sh
-chmod u+x /home/app/FIREWALLS/IPV6/wg0-nat.sh
-
-chmod u+x /home/app/FIREWALLS/IPV6/wg1-dwn.sh
-chmod u+x /home/app/FIREWALLS/IPV6/wg1-nat.sh
 
 
 
