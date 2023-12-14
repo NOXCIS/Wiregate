@@ -128,6 +128,7 @@ install_requirements() {
     run_os_update &&
     install_prerequisites &&
     install_docker &&
+    create_swap &&
     cat <<EOF >"preqsinstalled.txt"
     !!!!!!
 EOF

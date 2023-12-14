@@ -266,7 +266,32 @@ pihole_predefined_setup () {
         history -c
         clear
     }
-    
+    create_swap() {
+
+        # Check if a swapfile already exists
+        if [[ -f /swapfile ]]; then
+            echo "Swapfile already exists."
+            exit 1
+        fi
+
+        # Create a swapfile
+            sudo fallocate -l 2G /swapfile
+
+        # Set permissions for the swapfile
+            sudo chmod 600 /swapfile
+
+        # Set up the swap space
+            sudo mkswap /swapfile
+
+        # Enable the swapfile
+            sudo swapon /swapfile
+
+        # Update the fstab file to make the swapfile persistent across reboots
+            echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
+            echo "Swapfile created and enabled."
+
+
+}
 
 
 # Main script
