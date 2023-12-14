@@ -77,7 +77,7 @@ set_port_range() {
     
     if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
         HOST_PORT_START=$((1 + RANDOM % 65535))
-        pcount=6
+        pcount=4
         HOST_PORT_END=$((HOST_PORT_START + pcount-1))  
         port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
         echo -e "Wireguard Port Range Set To: \033[32m$port_mappings\033[0m"
@@ -91,7 +91,7 @@ set_port_range() {
         while true; do
             read -p "$(tput setaf 3)Enter the starting port for WireGuard Server interface's Port Range: $(tput sgr0)" HOST_PORT_START
         
-        pcount=6
+        pcount=4
         HOST_PORT_END=$((HOST_PORT_START + pcount-1))  
         port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
         echo -e "Wireguard Port Range Set To: \033[32m$port_mappings\033[0m"
