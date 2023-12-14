@@ -30,9 +30,9 @@ fresh_install() {
         docker compose down --volumes --remove-orphans
 
         if [ -f "$masterkey_file" ]; then
-            echo "Removing existing '$masterkey_file'..."
+            echo "Removing existing maskerkey ..."
             sudo rm "$masterkey_file"
-            echo "Existing '$masterkey_file' removed."
+            echo "Existing masterkey removed."
         fi
 
 

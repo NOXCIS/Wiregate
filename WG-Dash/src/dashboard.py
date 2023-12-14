@@ -448,7 +448,7 @@ def get_all_peers_data(config_name):
                     "private_key": "",
                     "DNS": config.get("Peers", "peer_global_DNS"),
                     "endpoint_allowed_ip": config.get("Peers", "peer_endpoint_allowed_ip"),
-                    "name": "",
+                    "name": "Master Peer",
                     "total_receive": 0,
                     "total_sent": 0,
                     "total_data": 0,
