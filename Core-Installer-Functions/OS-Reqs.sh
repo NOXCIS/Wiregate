@@ -156,9 +156,10 @@ EOF
 }
 
 
-MAX_ATTEMPTS=3
+
 
 install_requirements() {
+    local MAX_ATTEMPTS=3
     local attempts=1
     local install_check="preqsinstalled.txt"
 
