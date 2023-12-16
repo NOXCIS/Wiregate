@@ -154,11 +154,14 @@ install_confirm() {
         !!!!!!
 EOF
 }
-$MAX_ATTEMPTS = 3
+
+
+MAX_ATTEMPTS=3
 
 install_requirements() {
     local attempts=1
     local install_check="preqsinstalled.txt"
+
     while [ $attempts -le $MAX_ATTEMPTS ]; do
         echo "Attempt $attempts of $MAX_ATTEMPTS"
 
@@ -168,13 +171,12 @@ install_requirements() {
         install_docker &&
         create_swap &&
         install_confirm &&
-        
 
         # Check if the installation was successful
-        if [ -f "$install_check"]; then
+        if [ -f "$install_check" ]; then
             echo "Installation successful."
             break  # Exit the loop if successful
-        elif [! -f "$install_check" ]; then
+        elif [ ! -f "$install_check" ]; then
             echo "Installation failed. Retrying..."
             ((attempts++))
         fi
@@ -184,3 +186,4 @@ install_requirements() {
         echo "Max attempts reached. Installation failed."
     fi
 }
+
