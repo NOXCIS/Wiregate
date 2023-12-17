@@ -1,7 +1,7 @@
 #!/bin/bash
 cd ..
 cd home
-git clone https://github.com/NOXCIS/Worm-Hole.git
-cd Worm-Hole 
+git clone https://github.com/NOXCIS/Wiregate.git
+cd Wiregate
 chmod +x install.sh 
-./install.sh auto
+./install.sh ad-exp
