@@ -206,10 +206,10 @@ pihole_predefined_setup () {
         if [ ! -f "$install_check" ]; then
             # If prerequisites are not installed, install them
             install_requirements
-            docker-compose down --remove-orphans && docker volume ls -qf name=wg_data | xargs -r docker volume rm
+            docker compose down --remove-orphans && docker volume ls -qf name=wg_data | xargs -r docker volume rm
         elif [ -f "$install_check" ]; then
             # If prerequisites are installed, bring down the Docker-compose setup
-            docker-compose down --remove-orphans && docker volume ls -qf name=wg_data | xargs -r docker volume rm
+            docker compose down --remove-orphans && docker volume ls -qf name=wg_data | xargs -r docker volume rm
         fi
 }
 #MISC
