@@ -42,9 +42,9 @@ export TIMER_VALUE=0
             rm_exst_configs >/dev/null 2>&1 &&
         
         #DOCKER
-                #clear &&
+                clear &&
                 compose_up &&
-                #clear &&
+                clear &&
 
 
         #FINAL_OUTPUT
@@ -100,9 +100,9 @@ export TIMER_VALUE=0
             pihole_express_setup() {
                 
                 compose_down 
-                #clear &&
+                clear &&
                 TIMER_VALUE=0
-                #clear &&
+                clear &&
                 run_pihole_setup 
             }
         #ADV_SET

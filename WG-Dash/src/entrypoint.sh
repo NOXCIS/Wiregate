@@ -23,7 +23,6 @@ if [ ! -f "/etc/wireguard/ADMINS.conf" ]; then
 fi
 run_wireguard_up() {
   config_files=$(find /etc/wireguard -type f -name "*.conf")
-
   for file in $config_files; do
     config_name=$(basename "$file" ".conf")
     chmod 600 "/etc/wireguard/$config_name.conf"
