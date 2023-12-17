@@ -42,9 +42,9 @@ export TIMER_VALUE=0
             rm_exst_configs >/dev/null 2>&1 &&
         
         #DOCKER
-                clear &&
+                #clear &&
                 compose_up &&
-                clear &&
+                #clear &&
 
 
         #FINAL_OUTPUT
@@ -100,9 +100,9 @@ export TIMER_VALUE=0
             pihole_express_setup() {
                 
                 compose_down 
-                clear &&
+                #clear &&
                 TIMER_VALUE=0
-                clear &&
+                #clear &&
                 run_pihole_setup 
             }
         #ADV_SET
@@ -206,10 +206,12 @@ pihole_predefined_setup () {
         if [ ! -f "$install_check" ]; then
             # If prerequisites are not installed, install them
             install_requirements
-            docker compose down --remove-orphans && docker volume ls -qf name=wg_data | xargs -r docker volume rm
+            docker compose down --remove-orphans && 
+            docker volume ls -q | grep 'wg_data' | xargs -r docker volume rm
         elif [ -f "$install_check" ]; then
             # If prerequisites are installed, bring down the Docker-compose setup
-            docker compose down --remove-orphans && docker volume ls -qf name=wg_data | xargs -r docker volume rm
+            docker compose down --remove-orphans && 
+            docker volume ls -q | grep 'wg_data' | xargs -r docker volume rm
         fi
 }
 #MISC
