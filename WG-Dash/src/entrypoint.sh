@@ -17,7 +17,7 @@ chmod u+x /home/app/Iptables/fowarding-rules/Guest/postdown.sh
 
 
 
-if [ ! -f "/etc/wireguard/wg0.conf" ]; then
+if [ ! -f "/etc/wireguard/ADMINS.conf" ]; then
     /home/app/wgd.sh newconfig
 
 fi
