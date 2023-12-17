@@ -38,10 +38,6 @@ set_adguard_pass() {
         sed -i -E "s|^( *password: ).*|\1$adguard_password|" "$adguard_yaml_file"
 
         export AD_GUARD_PASS="$plaintext_adguard_pass"
-
-
-        
-        echo -e "\033[32mPassword has been randomly Gernerated.\033[0m"
     fi
 
     if [[ "$user_activity" == true ]]; then
@@ -132,9 +128,6 @@ set_adguard_user() {
 
         export AD_GUARD_USER="$adguard_user"
 
-
-        
-        echo -e "\033[32mUsername has been randomly Gernerated.\033[0m"
     fi
 
 

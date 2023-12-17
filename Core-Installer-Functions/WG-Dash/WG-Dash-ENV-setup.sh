@@ -54,7 +54,6 @@ update_server_ip() {
     fi
 }
 set_port_range() {
-
     local timer=$TIMER_VALUE
     local user_activity=false
 
@@ -106,7 +105,7 @@ generate_wireguard_qr() {
     local config_file="./Global-Configs/Master-Key/master.conf"
     sleep 2s
     if ! [ -f "$config_file" ]; then
-        echo "Error: Config file not found thi."
+        echo "Error: Config file not found."
         #return 1
     fi
 
@@ -157,11 +156,6 @@ set_wg-dash_pass() {
         
     
         export WG_DASH_PASS="$plaintext_wgdash_pass"
-
-
-
-        
-        echo -e "\033[32mPassword has been randomly Gernerated.\033[0m"
     fi
 
     if [[ "$user_activity" == true ]]; then
