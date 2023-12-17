@@ -32,8 +32,6 @@ set_channels_DB_pass() {
         characters="A-Za-z0-9"
         db_password=$(head /dev/urandom | tr -dc "$characters" | head -c 32)
         export MSG_DB_PASS="$db_password"
-    
-        echo -e "\033[32mPassword has been randomly Gernerated.\033[0m"
     fi
 
     if [[ "$user_activity" == true ]]; then
@@ -75,7 +73,6 @@ set_channels_DB_user() {
 
     while [ $timer -gt 0 ]; do
         clear  # Clear the screen
-
         # Print the updated timer value
         set_uname_channel_title
         echo "Press Enter to set Channels Database Username $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for a random username: $(tput sgr0)"

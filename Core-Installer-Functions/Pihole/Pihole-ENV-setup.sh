@@ -1,7 +1,6 @@
 #!/bin/bash
 
 set_pihole_tz() {
-    local yml_file="docker-compose.yml"
     read -t $TIMER_VALUE -p "Do you want to automatically get the host timezone? $(tput setaf 1)(y/n)$(tput sgr0) " answer 
     if [[ $answer == [Yy] || -z $answer ]]; then
         timezone=$(cat /etc/timezone)

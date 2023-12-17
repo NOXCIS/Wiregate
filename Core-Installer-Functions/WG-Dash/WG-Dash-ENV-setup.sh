@@ -54,7 +54,6 @@ update_server_ip() {
     fi
 }
 set_port_range() {
-
     local timer=$TIMER_VALUE
     local user_activity=false
 
