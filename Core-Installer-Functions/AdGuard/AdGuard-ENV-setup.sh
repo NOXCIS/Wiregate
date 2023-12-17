@@ -132,9 +132,6 @@ set_adguard_user() {
 
         export AD_GUARD_USER="$adguard_user"
 
-
-        
-        echo -e "\033[32mUsername has been randomly Gernerated.\033[0m"
     fi
 
 

@@ -43,23 +43,8 @@ set_pihole_password() {
     if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
     
         characters="A-Za-z0-9!@#$%^&*()"
-
         plaintext_pihole_pass=$(head /dev/urandom | tr -dc "$characters" | head -c 16)
-        
-        #output=$(htpasswd -B -n -b "$username" "$plaintext_pihole_pass")
-
-        # Use sed to delete the first 5 characters of $output and assign it to pihole_password
-        #pihole_password=$(echo "$output" | sed 's/.....//')
-
-
-        #sed -i -E "s|^( *password: ).*|\1$pihole_password|" "$adguard_yaml_file"
-
         export PI_HOLE_PASS="$plaintext_pihole_pass"
-        #export WG_DASH_PASS_ENCRYPTED="$pihole_password"
-
-
-        
-        echo -e "\033[32mPassword has been randomly Gernerated.\033[0m"
     fi
 
     if [[ "$user_activity" == true ]]; then
@@ -81,22 +66,7 @@ set_pihole_password() {
             if [[ "$pihole_pass" != "$confirm_pihole_pass" ]]; then
                 echo -e "\033[31mPasswords do not match. Please try again.\033[0m"
             else
-                # Passwords match, set the Database Password
-                
-                #output=$(htpasswd -B -n -b "$username" "$pihole_pass")
-                
-                # Use sed to delete the first 5 characters of $output and assign it to pihole_password
-                #manual_adguard_password=$(echo "$output" | sed 's/.....//')
-                
-
-                #sed -i -E "s|^( *password: ).*|\1$manual_adguard_password|" "$adguard_yaml_file"
-
-
-
                 export PI_HOLE_PASS="$pihole_pass"
-                #export WG_DASH_PASS_ENCRYPTED="$manual_adguard_password"
-
-
                 break
             fi
         done
