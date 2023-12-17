@@ -6,6 +6,7 @@ networks:
       driver: default
       config:
         - subnet: 10.2.0.0/24
+  
 
 services:
   unbound:
@@ -28,8 +29,8 @@ services:
     dns:
       - 10.2.0.200 # Points to unbound
     environment:
-      TZ: "America/Chicago"
-      WEBPASSWORD: ""
+      TZ: "${PI_HOLE_TZ}"
+      WEBPASSWORD: "${PI_HOLE_PASS}"
       ServerIP: 10.2.0.100 # Internal IP of pihole
       DNS1: 10.2.0.200 # Unbound IP
       DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
@@ -75,12 +76,7 @@ services:
     networks:
       private_network:
         ipv4_address: 10.2.0.3
-
-
-
-
-  
-
+    dns: 10.2.0.100
 
   channels:
     depends_on: [db, wiregate]

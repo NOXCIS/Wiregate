@@ -1,19 +1,53 @@
 #!/bin/bash
 
 set_pihole_tz() {
-    read -t $TIMER_VALUE -p "Do you want to automatically get the host timezone? $(tput setaf 1)(y/n)$(tput sgr0) " answer 
-    if [[ $answer == [Yy] || -z $answer ]]; then
-        timezone=$(cat /etc/timezone)
-        echo -e "Timezone has been set to \033[32m$timezone\033[0m"
-    else
-        read -p "Enter timezone $(tput setaf 1)(Press enter for default: $(tput sgr0)$(tput setaf 3)America/New_York$(tput sgr0)$(tput setaf 1)): $(tput sgr0) " timezone
-        if [[ -z $timezone ]]; then
-            timezone="America/New_York"
+    local timer=$TIMER_VALUE
+    local user_activity=false
+
+    while [ $timer -gt 0 ]; do
+        clear
+
+        # Print the updated timer value
+        set_pihole_tz_title
+        echo "Press Enter to set Pihole Dashboard Timezone or wait $timer seconds for autoset:"
+
+        # Decrement the timer value by 1
+        timer=$((timer - 1))
+
+        # Check for user activity
+        if read -t 1 -n 1; then
+            user_activity=true
+            break
         fi
-        echo -e "Timezone has been set to \033[32m$timezone\033[0m"
+    done
+
+    if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
+        timezone=$(cat /etc/timezone)
+        export PI_HOLE_TZ="$timezone"
     fi
-    export TIMEZONE="$timezone"
+
+    if [ "$user_activity" = true ]; then
+        # Prompt user to enter and confirm their timezone
+        while true; do
+            read -p "Enter Pihole Dashboard Timezone (e.g., America/New_York): " timezone
+
+            if [ -z "$timezone" ]; then
+                echo -e "\033[31mPihole Dashboard Timezone cannot be empty. Please try again.\033[0m"
+                continue
+            fi
+
+            # Check if the entered timezone is in the "Area/Location" format
+            if [[ ! "$timezone" =~ ^[a-zA-Z]+/[a-zA-Z_]+$ ]]; then
+                echo -e "\033[31mInvalid timezone format. Please enter in the format 'Area/Location' (e.g., America/New_York).\033[0m"
+                continue
+            fi
+
+            export PI_HOLE_TZ="$timezone"
+            break
+        done
+    fi
 }
+
 
 
 set_pihole_password() {
