@@ -38,7 +38,6 @@ iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d $GLOBAL_DNS
 ##############################################################################################################
 
 
-
 # START OF GUEST RULES
 ##############################################################################################################
 # Drop traffic to private IP address ranges

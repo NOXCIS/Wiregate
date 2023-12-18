@@ -42,7 +42,6 @@ iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d $GLOBAL_DNS
 
 # START OF MEMEBRS RULES
 ##############################################################################################################
-
 # Accept Foward traffic to WireChat @ port 80 @ container address on wiregate_private_network
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.4 -p tcp --dport 80 -j ACCEPT
 # Drop Forward traffic to AdGuard Dashboard @ container address on wiregate_private_network
@@ -53,16 +52,19 @@ iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.200 
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.5 -j DROP
 # Drop all other Foward traffic to WireChat @ container address on wiregate_private_network
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.4 -j DROP
+#END OF MEMEBRS RULES
+##############################################################################################################
 
 #PORT FOWARDING RULES
+##############################################################################################################
 # Accept outgoing connections to on the following ports 20,21,22,80,443,3389 to any IP address (public because of rule above)
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 0.0.0.0/0 -p tcp -m multiport --dports 20,21,22,80,443,3389 -j ACCEPT
+##############################################################################################################
+# END OF PORT FOWARDING RULES
+
+
 
 # Drop everything else coming through the Wireguard interface
 iptables -A $CHAIN_NAME -i $WIREGUARD_INTERFACE -j DROP
-
 # Return to FORWARD chain
 iptables -A $CHAIN_NAME -j RETURN
-
-#END OF GUEST RULES
-##############################################################################################################
