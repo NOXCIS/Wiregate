@@ -20,8 +20,6 @@ iptables -A FORWARD -j $CHAIN_NAME
 ##############################################################################################################
 # Accept related or established traffic
 iptables -A $CHAIN_NAME -o $WIREGUARD_INTERFACE -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-# Accept traffic from any Wireguard IP address connected to the Wireguard server
-iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -j ACCEPT
 # Drop traffic to wg-dashboard
 iptables -A INPUT -i $WIREGUARD_INTERFACE -j DROP
 #END OF CORE RULES
@@ -44,6 +42,13 @@ iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d $GLOBAL_DNS
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.0.0.0/8,172.16.0.0/12,192.168.0.0/16 -j DROP
 # Accept outgoing connections to HTTP(S) ports to any IP address (public because of rule above)
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 0.0.0.0/0 -p tcp -m multiport --dports 80,443 -j ACCEPT
+#END OF GUEST RULES
+##############################################################################################################
+
+
+
+# Accept traffic from any Wireguard IP address connected to the Wireguard server
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -j ACCEPT
 # Drop everything else coming through the Wireguard interface
 iptables -A $CHAIN_NAME -i $WIREGUARD_INTERFACE -j DROP
 # Return to FORWARD chain

@@ -20,8 +20,6 @@ iptables -A FORWARD -j $CHAIN_NAME
 ##############################################################################################################
 # Accept related or established traffic
 iptables -A $CHAIN_NAME -o $WIREGUARD_INTERFACE -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-# Accept traffic from any Wireguard IP address connected to the Wireguard server
-iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -j ACCEPT
 # Allow traffic to the local loopback interface
 iptables -A $CHAIN_NAME -o lo -j ACCEPT
 # Drop traffic to wg-dashboard
@@ -63,7 +61,8 @@ iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 0.0.0.0/0 -
 # END OF PORT FOWARDING RULES
 
 
-
+# Accept traffic from any Wireguard IP address connected to the Wireguard server
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -j ACCEPT
 # Drop everything else coming through the Wireguard interface
 iptables -A $CHAIN_NAME -i $WIREGUARD_INTERFACE -j DROP
 # Return to FORWARD chain
