@@ -1,39 +1,61 @@
 #!/bin/bash
+#DEFINE INTERFACE ENVIORNMENT 
+##############################################################################################################
 WIREGUARD_INTERFACE=MEMEBERS
 WIREGUARD_LAN=192.168.10.1/24
 MASQUERADE_INTERFACE=eth0
+GLOBAL_DNS=$WG_DASH_IPTABLES_DNS
 
+
+# Enable NAT on the interface
 iptables -t nat -I POSTROUTING -o $MASQUERADE_INTERFACE -j MASQUERADE -s $WIREGUARD_LAN
 
-# Add a WIREGUARD_wg0 chain to the FORWARD chain
+# Add a WIREGUARD chain to the FORWARD chain
 CHAIN_NAME="WIREGUARD_$WIREGUARD_INTERFACE"
 iptables -N $CHAIN_NAME
 iptables -A FORWARD -j $CHAIN_NAME
 
+
+#START OF CORE RULES 
+##############################################################################################################
 # Accept related or established traffic
 iptables -A $CHAIN_NAME -o $WIREGUARD_INTERFACE -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
-
-# Drop incoming traffic from wg1 to wg-dashboard
+# Accept traffic from any Wireguard IP address connected to the Wireguard server
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -j ACCEPT
+# Allow traffic to the local loopback interface
+iptables -A $CHAIN_NAME -o lo -j ACCEPT
+# Drop traffic to wg-dashboard
 iptables -A INPUT -i $WIREGUARD_INTERFACE -j DROP
-# Accept DNS from Adguard
-iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.100 -p udp --dport 53 -j ACCEPT
+#END OF CORE RULES
+##############################################################################################################
 
 
-# Accept Channels FEC
+#START OF GLOBAL DNS FORWARDING RULES 
+##############################################################################################################
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d $GLOBAL_DNS -p tcp --dport 53 -j ACCEPT
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d $GLOBAL_DNS -p udp --dport 53 -j ACCEPT
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d $GLOBAL_DNS -p tcp --dport 853 -j ACCEPT
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d $GLOBAL_DNS -p udp --dport 853 -j ACCEPT
+#END OF GLOBAL DNS FORWARDING RULES 
+##############################################################################################################
+
+
+# START OF MEMEBRS RULES
+##############################################################################################################
+
+# Accept Foward traffic to WireChat @ port 80 @ container address on wiregate_private_network
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.4 -p tcp --dport 80 -j ACCEPT
-
-# Drop Direct Forward traffic to Dockge
-iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.2 -j DROP
-# Drop Direct Forward traffic to AdGuard Dashboard
+# Drop Forward traffic to AdGuard Dashboard @ container address on wiregate_private_network
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.100 -j DROP
-# Drop Direct Forward traffic to Unbound 
+# Drop Forward traffic to Unbound @ container address on wiregate_private_network
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.200 -j DROP
-# Drop Forward traffic to Channels Database
+# Drop Forward traffic to Channels Database @ container address on wiregate_private_network
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.5 -j DROP
+# Drop all other Foward traffic to WireChat @ container address on wiregate_private_network
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.4 -j DROP
 
-
-# Accept outgoing connections to HTTP(S) ports to any IP address (public because of rule above)
+#PORT FOWARDING RULES
+# Accept outgoing connections to on the following ports 20,21,22,80,443,3389 to any IP address (public because of rule above)
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 0.0.0.0/0 -p tcp -m multiport --dports 20,21,22,80,443,3389 -j ACCEPT
 
 # Drop everything else coming through the Wireguard interface
@@ -41,3 +63,6 @@ iptables -A $CHAIN_NAME -i $WIREGUARD_INTERFACE -j DROP
 
 # Return to FORWARD chain
 iptables -A $CHAIN_NAME -j RETURN
+
+#END OF GUEST RULES
+##############################################################################################################
