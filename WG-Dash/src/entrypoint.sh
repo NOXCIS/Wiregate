@@ -1,33 +1,26 @@
 #!/bin/bash
 
-chmod u+x /home/app/wgd.sh
 
-chmod u+x /home/app/Iptables/fowarding-rules/Admins/postup.sh
-chmod u+x /home/app/Iptables/fowarding-rules/Admins/postdown.sh
-
-chmod u+x /home/app/Iptables/fowarding-rules/Members/postup.sh
-chmod u+x /home/app/Iptables/fowarding-rules/Members/postdown.sh
-
-chmod u+x /home/app/Iptables/fowarding-rules/LAN-only-users/postup.sh
-chmod u+x /home/app/Iptables/fowarding-rules/LAN-only-users/postdown.sh
-
-chmod u+x /home/app/Iptables/fowarding-rules/Guest/postup.sh
-chmod u+x /home/app/Iptables/fowarding-rules/Guest/postdown.sh
-
-
-
-
-if [ ! -f "/etc/wireguard/ADMINS.conf" ]; then
-    /home/app/wgd.sh newconfig
-
-fi
 run_wireguard_up() {
-  config_files=$(find /etc/wireguard -type f -name "*.conf")
-  for file in $config_files; do
-    config_name=$(basename "$file" ".conf")
-    chmod 600 "/etc/wireguard/$config_name.conf"
-  done
-  
+    config_files=$(find /etc/wireguard -type f -name "*.conf")
+
+    if [ ! -f "/etc/wireguard/ADMINS.conf" ]; then
+    /home/app/wgd.sh newconfig
+    
+
+    chmod u+x /home/app/wgd.sh
+
+    for file in $(find /home/app/Iptables -type f -name "*.sh"); do
+        chmod u+x "$file"
+    done
+
+    for file in $config_files; do
+        config_name=$(basename "$file" ".conf")
+        chmod 600 "/etc/wireguard/$config_name.conf"
+    done
+    
+    wg-quick up ADMINS
+    fi
 }
 
 config_nginx () {
@@ -55,12 +48,6 @@ server {
     # Disable server version information
     server_tokens off;
 
-    # Configure error pages
-    error_page 400 401 402 403 404 /error.html;
-    location = /error.html {
-        root /path/to/error/pages;
-    }
-
     # Deny access to hidden files
     location ~ /\. {
         deny all;
@@ -68,26 +55,17 @@ server {
         log_not_found off;
     }
 
-    error_page 500 502 503 504 /50x.html;
-    location = /50x.html {
-        root /usr/share/nginx/html;
-    }
 }
-
-
-
-
 EOF
+nginx 
 }
-
-
 
 
 
 
 run_wireguard_up #>/dev/null 2>&1 && 
-wg-quick up ADMINS
+
 config_nginx &&
-nginx &&
+
 /home/app/wgd.sh start
 
