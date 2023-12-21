@@ -6,7 +6,7 @@ from app import socket_io, app
 
 def run() -> None:
     """Run the Flask app."""
-    socket_io.run(app, host='0.0.0.0',port=80, debug=True)
+    socket_io.run(app, host='0.0.0.0',port=80, debug=False)
 
 
 if __name__ == '__main__':
