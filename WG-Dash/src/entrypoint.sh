@@ -16,7 +16,7 @@ run_wireguard_up() {
         config_name=$(basename "$file" ".conf")
         chmod 600 "/etc/wireguard/$config_name.conf"
     done
-    wg-quick up ADMINS
+    
 }
 
 config_nginx () {
@@ -60,7 +60,7 @@ nginx
 
 
 run_wireguard_up #>/dev/null 2>&1 && 
-
+wg-quick up ADMINS
 config_nginx &&
 
 /home/app/wgd.sh start
