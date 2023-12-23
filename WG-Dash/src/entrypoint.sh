@@ -2,13 +2,11 @@
 
 
 run_wireguard_up() {
-    config_files=$(find /etc/wireguard -type f -name "*.conf")
-
+    local config_files=$(find /etc/wireguard -type f -name "*.conf")
+    chmod u+x /home/app/wgd.sh
+    
     if [ ! -f "/etc/wireguard/ADMINS.conf" ]; then
     /home/app/wgd.sh newconfig
-    
-
-    chmod u+x /home/app/wgd.sh
 
     for file in $(find /home/app/Iptables -type f -name "*.sh"); do
         chmod u+x "$file"
@@ -18,9 +16,7 @@ run_wireguard_up() {
         config_name=$(basename "$file" ".conf")
         chmod 600 "/etc/wireguard/$config_name.conf"
     done
-    
     wg-quick up ADMINS
-    fi
 }
 
 config_nginx () {
