@@ -16,7 +16,7 @@ run_wireguard_up() {
         config_name=$(basename "$file" ".conf")
         chmod 600 "/etc/wireguard/$config_name.conf"
     done
-    
+    fi
 }
 
 config_nginx () {
