@@ -179,6 +179,15 @@ set_pass_pihole_title() {
     echo -e "\n\033[0m"
 
 }
+set_dw_rm_hash_title() {
+    
+    echo -e "\033[33m\n" 
+    printf "%s\n" "$dashes"
+    echo "                       SET ROOM HASH SECRET FOR DARKWIRE"
+    printf "%s" "$dashes"
+    echo -e "\n\033[0m"
+
+}
 set_server_ip_title() {
     echo -e "\033[33m\n" 
     printf "%s\n" "$dashes"

@@ -85,8 +85,8 @@ services:
       - ABUSE_TO_EMAIL_ADDRESS=abuse@darkwire.io
       - ABUSE_FROM_EMAIL_ADDRESS=Darkwire <no-reply@darkwire.io>
       - CLIENT_DIST_DIRECTORY='client/dist'
-      - ROOM_HASH_SECRET='some-uuid'
-      - SITE_URL=https://darkwire.io
+      - ROOM_HASH_SECRET=${DW_ROOM_HASH}
+      - SITE_URL=https://localhost
       - STORE_BACKEND=memory
     networks:
       private_network:

@@ -5,8 +5,8 @@ http:
   address: 0.0.0.0:80
   session_ttl: 720h
 users:
-  - name: veiled_hammerhead_607
-    password: $2y$05$JXEq.Tw9zpvZ7tCnVn15cO6Ivy3rsy8VqkQxY34.TEggfitvzt2wO
+  - name: arcane_cetus_395
+    password: $2y$05$V228pOElAmKc5Ij/923G5.rYPAx.UVd/ZAlhmTPgwrrMw0FF7dibe
 auth_attempts: 5
 block_auth_min: 15
 http_proxy: ""

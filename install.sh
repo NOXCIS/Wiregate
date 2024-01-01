@@ -12,6 +12,7 @@ export DEPLOY_TYPE="CLOUD DEPLOYMENT MODE"
     source ./Core-Installer-Functions/Menu.sh
     source ./Core-Installer-Functions/Title.sh
     source ./Core-Installer-Functions/Reset-WormHole.sh
+    source ./Core-Installer-Functions/Darkwire/Darkwire-ENV-setup.sh
     source ./Core-Installer-Functions/Channels/Channels-ENV-setup.sh
     source ./Core-Installer-Functions/Pihole/Pihole-ENV-setup.sh
     source ./Core-Installer-Functions/WG-Dash/WG-Dash-ENV-setup.sh
@@ -187,6 +188,8 @@ run_pihole_setup() {
     set_pihole_config &&
     set_wg-dash_config &&
     set_wg-dash_account &&
+    set_dwire_config &&
+    set_channels_config &&
     rm_exst_configs >/dev/null 2>&1 &&
     clear &&
     compose_up &&
@@ -208,6 +211,8 @@ run_adguard_setup() {
     set_adguard_config &&
     set_wg-dash_config &&
     set_wg-dash_account &&
+    set_dwire_config &&
+    set_channels_config &&
     rm_exst_configs >/dev/null 2>&1 &&  
     clear &&
     compose_up &&
