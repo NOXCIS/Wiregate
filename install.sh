@@ -204,8 +204,6 @@ run_pihole_setup() {
     leave_a_star_title &&
                 return
 }
-
-
 run_adguard_setup() {
     set_adguard_config &&
     set_wg-dash_config &&
@@ -321,17 +319,27 @@ run_adguard_setup() {
 
 
 
+
+
+
+
 # Main script
     if [ $# -eq 0 ]; then
         menu
     else
     case $1 in
-        pi-exp) pihole_express_setup ;;
-        pi-adv) pihole_advanced_setup ;;
-        pi-predef) pihole_predefined_setup ;;
-        ad-exp) adguard_express_setup ;;
-        ad-adv) adguard_advanced_setup ;;
-        ad-predef) adguard_predefined_setup ;;
+        ad-exp-dwire) Express-AdGuard-Darkwire ;;
+        ad-exp-channl) Express-AdGuard-Channels ;;
+        pi-exp-dwire) Express-Pihole-Darkwire ;;
+        pi-exp-channl) Express-Pihole-Channels ;;
+        ad-adv-dwire) Advanced-AdGuard-Darkwire ;;
+        ad-adv-channl) Advanced-AdGuard-Channels ;;
+        pi-adv-dwire) Advanced-Pihole-Darkwire ;;
+        pi-adv-channl) Advanced-Pihole-Channels ;;
+        ad-predef-dwire) Pre_Configured-AdGuard-Darkwire ;;
+        ad-predef-channl) Pre_Configured-AdGuard-Channels ;;
+        pi-predef-dwire) Pre_Configured-Pihole-Darkwire ;;
+        pi-predef-channl) Pre_Configured-Pihole-Channels ;;    
         install_requirements) install_requirements ;;
         fresh) fresh_install ;;
         *) echo "Invalid choice. Please try again." ;;

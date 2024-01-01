@@ -59,17 +59,17 @@ run_selection() {
 display_menu() {
     clear
     title
-    echo "$(tput setaf 3)Select Install Type:"
+    echo "$(tput setaf 3)1. Select Install Type: "
     echo "------------------------------------------------------------------------------------------"
-    echo "$(tput setaf 2)1$(tput sgr0)[${menu[0]}] Express  |  $(tput setaf 2)2$(tput sgr0)[${menu[1]}] Advanced  |  $(tput setaf 2)3$(tput sgr0)[${menu[2]}] Pre_Configured"
+    echo "$(tput setaf 2)1 $(tput sgr0)[${menu[0]}] $(tput setaf 3)Express$(tput sgr0)    $(tput setaf 3)|  $(tput setaf 2)2 $(tput sgr0)[${menu[1]}] $(tput setaf 3)Advanced$(tput sgr0)  $(tput setaf 3)|  $(tput setaf 2)3 $(tput sgr0)[${menu[2]}] $(tput setaf 3)Pre_Configured$(tput sgr0)"
     echo
-    echo "$(tput setaf 3)Select DNS Setup:"
+    echo "$(tput setaf 3)2. Select DNS Setup:"
     echo "------------------------------------------------------------------------------------------"
-    echo "$(tput setaf 2)1$(tput sgr0)[${dnsMenu[0]}] AdGuard  |  $(tput setaf 2)2$(tput sgr0)[${dnsMenu[1]}] Pihole"
+    echo "$(tput setaf 2)1 $(tput sgr0)[${dnsMenu[0]}] $(tput setaf 3)AdGuard$(tput sgr0)    $(tput setaf 3)|  $(tput setaf 2)2 $(tput sgr0)[${dnsMenu[1]}] $(tput setaf 3)Pihole$(tput sgr0)"
     echo
-    echo "$(tput setaf 3)Select Comms Platform:"
+    echo "$(tput setaf 3)3. Select Comms Platform:"
     echo "------------------------------------------------------------------------------------------"
-    echo "$(tput setaf 2)1$(tput sgr0)[${commsMenu[0]}]  Darkwire  |  $(tput setaf 2)2$(tput sgr0)[${commsMenu[1]}] Channels"
+    echo "$(tput setaf 2)1 $(tput sgr0)[${commsMenu[0]}]  $(tput setaf 3)Darkwire$(tput sgr0)  $(tput setaf 3)|  $(tput setaf 2)2 $(tput sgr0)[${commsMenu[1]}] $(tput setaf 3)Channels$(tput sgr0)"
     echo
 
 }
