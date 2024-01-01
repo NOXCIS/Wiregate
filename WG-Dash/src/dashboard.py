@@ -32,7 +32,7 @@ from icmplib import ping, traceroute
 from util import *
 
 # Dashboard Version
-DASHBOARD_VERSION = 'v0.1.5 Kraken'
+DASHBOARD_VERSION = 'v0.1.6 Hydra'
 
 # WireGuard's configuration path
 WG_CONF_PATH = None
