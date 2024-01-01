@@ -25,7 +25,6 @@ services:
     image: adguard/adguardhome
     restart: unless-stopped
     hostname: adguard
-    # Volumes store your data between container upgrades
     volumes:
       - "./Global-Configs/AdGuard/Data:/opt/adguardhome/work"
       - "./Global-Configs/AdGuard/Config:/opt/adguardhome/conf"
@@ -61,7 +60,6 @@ services:
   channels:
     depends_on: [db, wiregate]
     container_name: channels_messenger
-    #build: ./Channels
     image: noxcis/channels:kraken
     restart: unless-stopped
     command: python run.py

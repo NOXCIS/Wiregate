@@ -9,23 +9,19 @@ start_wgd () {
   echo "--------------------------------------------------------------------------------"
 }
 
-
-
 newconf_wgd () {
   newconf_wgd0
   newconf_wgd1
   newconf_wgd2
   newconf_wgd3
+  return
 }
-
 
 
 newconf_wgd0() {
     local port_wg0=$WG_DASH_PORT_RANGE_STARTPORT
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
-
-
     cat <<EOF >"/etc/wireguard/ADMINS.conf"
 [Interface]
 PrivateKey = $private_key
@@ -59,8 +55,6 @@ PreDown = /home/app/Iptables/fowarding-rules/Members/postdown.sh
 
 EOF
 }
-
-
 
 newconf_wgd2() {
     local port_wg2=$WG_DASH_PORT_RANGE_STARTPORT
@@ -162,11 +156,6 @@ EOF
 if [ "$#" != 1 ];
   then
     help
-  
-      elif [ "$1" = "install" ]; then
-        install_wgd
-      elif [ "$1" = "debug" ]; then
-        start_wgd_debug
       elif [ "$1" = "start" ]; then
         start_wgd 
       elif [ "$1" = "newconfig" ]; then

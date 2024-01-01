@@ -7,7 +7,7 @@ networks:
       driver: default
       config:
         - subnet: 10.2.0.0/24
-     
+
 
 services:
   unbound:
@@ -69,45 +69,6 @@ services:
     networks:
       private_network:
         ipv4_address: 10.2.0.3
-
-  channels:
-    depends_on: [db, wiregate]
-    container_name: channels_messenger
-    build: ./Channels
-    #image: noxcis/channels:kraken
-    restart: unless-stopped
-    command: python run.py
-    environment:
-      - IS_DOCKER=1
-      - FLASK_APP=app/__init__.py
-      - FLASK_ENV=development
-      - SQL_HOST=db
-      - SQL_PORT=5432
-      - DATABASE=postgres
-      - SECRET_KEY=ed215f114bd528c0870a9c4900c69a1e
-      - DATABASE_URI=postgresql://user:password@db:5432/db
-    ports:
-      - 8082:80/tcp
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.4
-    dns: 10.2.0.100
-
-
-  db:
-    container_name: channels_db
-    image: postgres:13-alpine
-    restart: unless-stopped
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    environment:
-      - POSTGRES_USER=user
-      - POSTGRES_PASSWORD=password
-      - POSTGRES_DB=db
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.5
-    dns: 10.2.0.100
 
 volumes:
     postgres_data:

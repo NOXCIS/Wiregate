@@ -19,27 +19,20 @@ services:
       private_network:
         ipv4_address: 10.2.0.200
 
-  pihole:
+  adguard:
     depends_on: [unbound]
-    container_name: pihole
-    image: pihole/pihole:nightly
+    container_name: adguard
+    image: adguard/adguardhome
     restart: unless-stopped
-    hostname: pihole
-    dns:
-      - 10.2.0.200 # Points to unbound
+    hostname: adguard
+    # Volumes store your data between container upgrades
     volumes:
-      - "./Global-Configs/PiHole/etc-pihole/:/etc/pihole/"
-      - "./Global-Configs/PiHole/etc-pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/"
-    env_file:
-      - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
-    cap_add:
-      - NET_ADMIN
+      - "./Global-Configs/AdGuard/Data:/opt/adguardhome/work"
+      - "./Global-Configs/AdGuard/Config:/opt/adguardhome/conf"
     networks:
       private_network:
         ipv4_address: 10.2.0.100
 
-
-        
   wiregate:
     image: noxcis/wg-dashboard:kraken
     container_name: wiregate
@@ -53,10 +46,11 @@ services:
       - wg_db:/home/app/db
       - wg_iptables:/home/app/Iptables
       - ./Global-Configs/Master-Key:/home/app/master-key
+
     env_file:
       - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
     ports:
-      - "${WG_DASH_PORT_MAPPINGS}"
+      - "770-777:770-777/udp"
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
@@ -64,32 +58,28 @@ services:
       private_network:
         ipv4_address: 10.2.0.3
 
-
-  channels:
-    depends_on: [db, wiregate]
-    container_name: channels_messenger
-    #build: ./Channels
-    image: noxcis/channels:kraken
-    restart: unless-stopped
-    command: python run.py
-    env_file:
-      - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
+  darkwire:
+    depends_on: [wiregate]
+    container_name: darkwire
+    image: noxcis/darkwire:blue-ring-octo
+    environment:
+      - TZ=UTC
+      - VITE_API_PORT=3001
+      - VITE_API_HOST=localhost
+      - VITE_API_PROTOCOL=http
+      - VITE_COMMIT_SHA=some_sha
+      - VITE_MAX_FILE_SIZE=4
+      - MAILGUN_API_KEY=api-key
+      - MAILGUN_DOMAIN=darkwire.io
+      - ABUSE_TO_EMAIL_ADDRESS=abuse@darkwire.io
+      - ABUSE_FROM_EMAIL_ADDRESS=Darkwire <no-reply@darkwire.io>
+      - CLIENT_DIST_DIRECTORY='client/dist'
+      - ROOM_HASH_SECRET='some-uuid'
+      - SITE_URL=https://darkwire.io
+      - STORE_BACKEND=memory
     networks:
       private_network:
         ipv4_address: 10.2.0.4
-    dns: 10.2.0.100
-
-  db:
-    container_name: channels_db
-    image: postgres:13-alpine
-    restart: unless-stopped
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    env_file:
-      - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.5
     dns: 10.2.0.100
 
 volumes:
@@ -98,4 +88,3 @@ volumes:
     wg_configs:
     wg_db:
     wg_iptables:
-  

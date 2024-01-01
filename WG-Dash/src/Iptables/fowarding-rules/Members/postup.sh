@@ -41,7 +41,7 @@ iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d $GLOBAL_DNS
 # START OF MEMEBRS RULES
 ##############################################################################################################
 # Accept Foward traffic to WireChat @ port 80 @ container address on wiregate_private_network
-iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.4 -p tcp --dport 80 -j ACCEPT
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.4 -p tcp -m multiport --dports 80,443 -j ACCEPT
 # Drop Forward traffic to AdGuard Dashboard @ container address on wiregate_private_network
 iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.100 -j DROP
 # Drop Forward traffic to Unbound @ container address on wiregate_private_network

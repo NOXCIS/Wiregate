@@ -5,8 +5,8 @@ http:
   address: 0.0.0.0:80
   session_ttl: 720h
 users:
-  - name: noble_hammerhead_646
-    password: $2y$05$qP6h1u5Oo91cgIzXHa/Rk.84ai6QFPbTrcu17ZV.YG5gKVr4CAk9i
+  - name: veiled_kraken_204
+    password: $2y$05$qsq5p34kgYrA2LKoi5bPquoLucf9ZPnr9PCGv3fQ3.MYrr3/tvWMS
 auth_attempts: 5
 block_auth_min: 15
 http_proxy: ""
@@ -146,8 +146,8 @@ filtering:
       answer: 10.2.0.3
     - domain: wire.chat
       answer: 10.2.0.4
-    - domain: dock.ge.gated
-      answer: 10.2.0.2
+    - domain: dark.wire
+      answer: 10.2.0.4
     - domain: ad.guard
       answer: 10.2.0.100
   safebrowsing_cache_size: 1048576

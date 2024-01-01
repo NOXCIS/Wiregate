@@ -7,8 +7,6 @@ networks:
       config:
         - subnet: 10.2.0.0/24
 
-
-
 services:
   unbound:
     image: "klutchell/unbound:latest"
@@ -21,19 +19,27 @@ services:
       private_network:
         ipv4_address: 10.2.0.200
 
-  adguard:
+  pihole:
     depends_on: [unbound]
-    container_name: adguard
-    image: adguard/adguardhome
+    container_name: pihole
+    image: pihole/pihole:nightly
     restart: unless-stopped
-    hostname: adguard
+    hostname: pihole
+    dns:
+      - 10.2.0.200 # Points to unbound
     volumes:
-      - "./Global-Configs/AdGuard/Data:/opt/adguardhome/work"
-      - "./Global-Configs/AdGuard/Config:/opt/adguardhome/conf"
+      - "./Global-Configs/PiHole/etc-pihole/:/etc/pihole/"
+      - "./Global-Configs/PiHole/etc-pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/"
+    env_file:
+      - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
+    cap_add:
+      - NET_ADMIN
     networks:
       private_network:
         ipv4_address: 10.2.0.100
 
+
+        
   wiregate:
     image: noxcis/wg-dashboard:kraken
     container_name: wiregate
@@ -47,16 +53,8 @@ services:
       - wg_db:/home/app/db
       - wg_iptables:/home/app/Iptables
       - ./Global-Configs/Master-Key:/home/app/master-key
-    environment:
-      - WG_DASH_USER=${WG_DASH_USER}
-      - WG_DASH_PASS=${WG_DASH_PASS}
-      - WG_DASH_SERVER_IP=${WG_DASH_SERVER_IP}
-      - WG_DASH_DNS=10.2.0.100, 10.2.0.100
-      - WG_DASH_IPTABLES_DNS=10.2.0.100
-      - WG_DASH_PEER_ENDPOINT_ALLOWED_IP=0.0.0.0/0
-      - WG_DASH_KEEP_ALIVE=21
-      - WG_DASH_MTU=1420
-      - WG_DASH_PORT_RANGE_STARTPORT=${WG_DASH_PORT_RANGE_STARTPORT}
+    env_file:
+      - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
     ports:
       - "${WG_DASH_PORT_MAPPINGS}"
     sysctls:
@@ -73,20 +71,12 @@ services:
     image: noxcis/channels:kraken
     restart: unless-stopped
     command: python run.py
-    environment:
-      - IS_DOCKER=1
-      - FLASK_APP=app/__init__.py
-      - FLASK_ENV=development
-      - SQL_HOST=db
-      - SQL_PORT=5432
-      - DATABASE=postgres
-      - SECRET_KEY=${MSG_SECRET_KEY}
-      - DATABASE_URI=${DB_URI}
+    env_file:
+      - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
     networks:
       private_network:
         ipv4_address: 10.2.0.4
     dns: 10.2.0.100
-
 
   db:
     container_name: channels_db
@@ -94,10 +84,8 @@ services:
     restart: unless-stopped
     volumes:
       - postgres_data:/var/lib/postgresql/data/
-    environment:
-      - POSTGRES_USER=${MSG_DB_USER}
-      - POSTGRES_PASSWORD=${MSG_DB_PASS}
-      - POSTGRES_DB=db
+    env_file:
+      - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
     networks:
       private_network:
         ipv4_address: 10.2.0.5

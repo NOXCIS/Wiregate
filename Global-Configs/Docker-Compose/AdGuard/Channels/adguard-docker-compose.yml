@@ -6,7 +6,8 @@ networks:
       driver: default
       config:
         - subnet: 10.2.0.0/24
-  
+
+
 
 services:
   unbound:
@@ -20,33 +21,20 @@ services:
       private_network:
         ipv4_address: 10.2.0.200
 
-  pihole:
+  adguard:
     depends_on: [unbound]
-    container_name: pihole
-    image: pihole/pihole:nightly
+    container_name: adguard
+    image: adguard/adguardhome
     restart: unless-stopped
-    hostname: pihole
-    dns:
-      - 10.2.0.200 # Points to unbound
-    environment:
-      TZ: "${PI_HOLE_TZ}"
-      WEBPASSWORD: "${PI_HOLE_PASS}"
-      ServerIP: 10.2.0.100 # Internal IP of pihole
-      DNS1: 10.2.0.200 # Unbound IP
-      DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
+    hostname: adguard
     volumes:
-      - "./Global-Configs/PiHole/etc-pihole/:/etc/pihole/"
-      - "./Global-Configs/PiHole/etc-pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/"
-    cap_add:
-      - NET_ADMIN
+      - "./Global-Configs/AdGuard/Data:/opt/adguardhome/work"
+      - "./Global-Configs/AdGuard/Config:/opt/adguardhome/conf"
     networks:
       private_network:
         ipv4_address: 10.2.0.100
 
-
-        
   wiregate:
-    #build: ./WG-Dash
     image: noxcis/wg-dashboard:kraken
     container_name: wiregate
     cap_add:
@@ -77,12 +65,11 @@ services:
     networks:
       private_network:
         ipv4_address: 10.2.0.3
-    dns: 10.2.0.100
+
 
   channels:
     depends_on: [db, wiregate]
     container_name: channels_messenger
-    #build: ./Channels
     image: noxcis/channels:kraken
     restart: unless-stopped
     command: python run.py
@@ -100,6 +87,7 @@ services:
         ipv4_address: 10.2.0.4
     dns: 10.2.0.100
 
+
   db:
     container_name: channels_db
     image: postgres:13-alpine
@@ -114,7 +102,6 @@ services:
       private_network:
         ipv4_address: 10.2.0.5
     dns: 10.2.0.100
-
 
 volumes:
     postgres_data:
