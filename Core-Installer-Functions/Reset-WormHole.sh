@@ -131,23 +131,38 @@ adguard_preset_dwire_cswap() {
 
 
 
-unbound_config_swap() {
-    local yml_file="Global-Configs/Unbound/custom-unbound.conf"
-    cat "$yml_file" > Global-Configs/Unbound/cloud-deploy/cloud-unbound.conf
-    sudo rm "$yml_file"
-    cat Global-Configs/Unbound/local-deploy/local-unbound.conf > "$yml_file"
-    clear
-    echo "Successfully swapped to Local Deployment."
-    menu
+unbound_local() {
+    file_path="Global-Configs/Unbound/custom-unbound.conf"
+    section_start="# OPTIONAL:"
+    section_end="#forward-tls-upstream: yes"
+
+    if [[ -f "$file_path" ]]; then
+        # Uncomment the specified section
+        sed -i "/$section_start/,/$section_end/s/^#//" "$file_path"
+        echo "Successfully swapped to Local Deployment."
+        export DEPLOY_TYPE="LOCAL DEPLOYMENT MODE"
+        menu
+    else
+        echo "File not found: $file_path"
+        menu
+    fi
     
 }
-unbound_config_swapback() {
-    local yml_file="Global-Configs/Unbound/custom-unbound.conf"
-    sudo rm "$yml_file"
-    cat Global-Configs/Unbound/cloud-deploy/cloud-unbound.conf > "$yml_file"
-    clear
-    echo "Successfully swapped to Cloud Deployment."
-    menu
-    
+unbound_cloud() {
+    file_path="Global-Configs/Unbound/custom-unbound.conf"
+    section_start="OPTIONAL:"
+    section_end="forward-tls-upstream: yes"
+
+    if [[ -f "$file_path" ]]; then
+        # Comment out the specified section
+        sed -i "/$section_start/,/$section_end/s/^/#/" "$file_path"
+        echo "Successfully swapped to Cloud Deployment."
+        export DEPLOY_TYPE="CLOUD DEPLOYMENT MODE"
+        menu
+    else
+        echo "File not found: $file_path"
+        menu
+    fi
+
 }
 

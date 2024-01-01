@@ -5,8 +5,8 @@ http:
   address: 0.0.0.0:80
   session_ttl: 720h
 users:
-  - name: veiled_kraken_204
-    password: $2y$05$qsq5p34kgYrA2LKoi5bPquoLucf9ZPnr9PCGv3fQ3.MYrr3/tvWMS
+  - name: veiled_hammerhead_607
+    password: $2y$05$JXEq.Tw9zpvZ7tCnVn15cO6Ivy3rsy8VqkQxY34.TEggfitvzt2wO
 auth_attempts: 5
 block_auth_min: 15
 http_proxy: ""

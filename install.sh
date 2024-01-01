@@ -5,7 +5,7 @@ export HISTFILE=/dev/null
 export DEBIAN_FRONTEND=noninteractive
 export DOCKER_CONTENT_TRUST=1
 export TIMER_VALUE=0
-
+export DEPLOY_TYPE="CLOUD DEPLOYMENT MODE"
 
 #CORE_IMPORTS
     source ./Core-Installer-Functions/OS-Reqs.sh
@@ -340,7 +340,7 @@ run_adguard_setup() {
         ad-predef-channl) Pre_Configured-AdGuard-Channels ;;
         pi-predef-dwire) Pre_Configured-Pihole-Darkwire ;;
         pi-predef-channl) Pre_Configured-Pihole-Channels ;;    
-        install_requirements) install_requirements ;;
+        requirements) install_requirements ;;
         fresh) fresh_install ;;
         *) echo "Invalid choice. Please try again." ;;
     esac

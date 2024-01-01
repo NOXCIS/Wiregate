@@ -27,8 +27,8 @@ EOF
     case $choice in
         1) run_selection ;;
         2) dev_build  ;;
-        3) unbound_config_swap ;;
-        4) unbound_config_swapback ;;
+        3) unbound_local ;;
+        4) unbound_cloud ;;
         5) fresh_install ;;
         6) exit ;;
         *) echo "Invalid choice. Please try again." ;;
@@ -61,15 +61,15 @@ display_menu() {
     title
     echo "$(tput setaf 3)1. Select Install Type: "
     echo "------------------------------------------------------------------------------------------"
-    echo "$(tput setaf 2)1 $(tput sgr0)[${menu[0]}] $(tput setaf 3)Express$(tput sgr0)    $(tput setaf 3)|  $(tput setaf 2)2 $(tput sgr0)[${menu[1]}] $(tput setaf 3)Advanced$(tput sgr0)  $(tput setaf 3)|  $(tput setaf 2)3 $(tput sgr0)[${menu[2]}] $(tput setaf 3)Pre_Configured$(tput sgr0)"
+    echo "$(tput setaf 2)1 $(tput sgr0)(${menu[0]}) $(tput setaf 3)Express$(tput sgr0)    $(tput setaf 3)|  $(tput setaf 2)2 $(tput sgr0)(${menu[1]}) $(tput setaf 3)Advanced$(tput sgr0)  $(tput setaf 3)|  $(tput setaf 2)3 $(tput sgr0)(${menu[2]}) $(tput setaf 3)Pre_Configured$(tput sgr0)"
     echo
     echo "$(tput setaf 3)2. Select DNS Setup:"
     echo "------------------------------------------------------------------------------------------"
-    echo "$(tput setaf 2)1 $(tput sgr0)[${dnsMenu[0]}] $(tput setaf 3)AdGuard$(tput sgr0)    $(tput setaf 3)|  $(tput setaf 2)2 $(tput sgr0)[${dnsMenu[1]}] $(tput setaf 3)Pihole$(tput sgr0)"
+    echo "$(tput setaf 2)1 $(tput sgr0)(${dnsMenu[0]}) $(tput setaf 3)AdGuard$(tput sgr0)    $(tput setaf 3)|  $(tput setaf 2)2 $(tput sgr0)(${dnsMenu[1]}) $(tput setaf 3)Pihole$(tput sgr0)"
     echo
     echo "$(tput setaf 3)3. Select Comms Platform:"
     echo "------------------------------------------------------------------------------------------"
-    echo "$(tput setaf 2)1 $(tput sgr0)[${commsMenu[0]}]  $(tput setaf 3)Darkwire$(tput sgr0)  $(tput setaf 3)|  $(tput setaf 2)2 $(tput sgr0)[${commsMenu[1]}] $(tput setaf 3)Channels$(tput sgr0)"
+    echo "$(tput setaf 2)1 $(tput sgr0)(${commsMenu[0]})  $(tput setaf 3)Darkwire$(tput sgr0)  $(tput setaf 3)|  $(tput setaf 2)2 $(tput sgr0)(${commsMenu[1]}) $(tput setaf 3)Channels$(tput sgr0)"
     echo
 
 }
@@ -144,32 +144,36 @@ fi
 
 display_menu
 
-echo
-echo -e "\033[32m"
-echo "################--------------DEPLOYING--------------##################"
-echo "#######################################################################"
-echo "INSTALL_TYPE: $INSTALL_TYPE"
-echo "DNS_SETUP: $DNS_SETUP"
-echo "COMMS_SETUP: $COMMS_SETUP"
-echo "#######################################################################"
-echo -e "\033[0m"
+# Confirm user selection
+read -p "$(tput setaf 1)Are you sure you want to proceed with the selected options? (yes/no): $(tput sgr0)" confirm
+if [ "$confirm" == "yes" ]; then
+    echo
+    echo -e "\033[32m"
+    echo "################--------------DEPLOYING--------------##################"
+    echo "#######################################################################"
+    echo "INSTALL_TYPE: $INSTALL_TYPE"
+    echo "DNS_SETUP: $DNS_SETUP"
+    echo "COMMS_SETUP: $COMMS_SETUP"
+    echo "#######################################################################"
+    echo -e "\033[0m"
 
-
-
-# Call functions based on user selections
-case "$INSTALL_TYPE-$DNS_SETUP-$COMMS_SETUP" in
-    "Express-AdGuard-Darkwire") Express-AdGuard-Darkwire ;;
-    "Express-AdGuard-Channels") Express-AdGuard-Channels ;;
-    "Express-Pihole-Darkwire") Express-Pihole-Darkwire ;;
-    "Express-Pihole-Channels") Express-Pihole-Channels ;;
-    "Advanced-AdGuard-Darkwire") Advanced-AdGuard-Darkwire ;;
-    "Advanced-AdGuard-Channels") Advanced-AdGuard-Channels ;;
-    "Advanced-Pihole-Darkwire") Advanced-Pihole-Darkwire ;;
-    "Advanced-Pihole-Channels") Advanced-Pihole-Channels ;;
-    "Pre_Configured-AdGuard-Darkwire") Pre_Configured-AdGuard-Darkwire ;;
-    "Pre_Configured-AdGuard-Channels") Pre_Configured-AdGuard-Channels ;;
-    "Pre_Configured-Pihole-Darkwire") Pre_Configured-Pihole-Darkwire ;;
-    "Pre_Configured-Pihole-Channels") Pre_Configured-Pihole-Channels ;;
-    *) echo "Invalid combination, no specific action taken." ;;
-esac
+    # Call functions based on user selections
+    case "$INSTALL_TYPE-$DNS_SETUP-$COMMS_SETUP" in
+        "Express-AdGuard-Darkwire") Express-AdGuard-Darkwire ;;
+        "Express-AdGuard-Channels") Express-AdGuard-Channels ;;
+        "Express-Pihole-Darkwire") Express-Pihole-Darkwire ;;
+        "Express-Pihole-Channels") Express-Pihole-Channels ;;
+        "Advanced-AdGuard-Darkwire") Advanced-AdGuard-Darkwire ;;
+        "Advanced-AdGuard-Channels") Advanced-AdGuard-Channels ;;
+        "Advanced-Pihole-Darkwire") Advanced-Pihole-Darkwire ;;
+        "Advanced-Pihole-Channels") Advanced-Pihole-Channels ;;
+        "Pre_Configured-AdGuard-Darkwire") Pre_Configured-AdGuard-Darkwire ;;
+        "Pre_Configured-AdGuard-Channels") Pre_Configured-AdGuard-Channels ;;
+        "Pre_Configured-Pihole-Darkwire") Pre_Configured-Pihole-Darkwire ;;
+        "Pre_Configured-Pihole-Channels") Pre_Configured-Pihole-Channels ;;
+        *) echo "Invalid combination, no specific action taken." ;;
+    esac
+else
+    menu # Call the menu function if the user says 'no'
+fi
 }

@@ -41,7 +41,7 @@ services:
 
         
   wiregate:
-    image: noxcis/wg-dashboard:kraken
+    image: noxcis/wg-dashboard:hydra
     container_name: wiregate
     cap_add:
       - NET_ADMIN

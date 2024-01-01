@@ -34,7 +34,7 @@ services:
         ipv4_address: 10.2.0.100
 
   wiregate:
-    image: noxcis/wg-dashboard:kraken
+    image: noxcis/wg-dashboard:hydra
     container_name: wiregate
     cap_add:
       - NET_ADMIN
@@ -61,7 +61,7 @@ services:
   darkwire:
     depends_on: [wiregate]
     container_name: darkwire
-    image: noxcis/darkwire:blue-ring-octo
+    image: noxcis/darkwire:hydra
     environment:
       - TZ=UTC
       - VITE_API_PORT=3001
