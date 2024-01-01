@@ -8,7 +8,7 @@
 menu() {
     run_animation
     cat <<EOF >"run-log.txt"
-    JRC Weir Tribute Animation has been ran!!!!!!
+    R.I.P JRC Weir Tribute.
 EOF
     clear
     title
@@ -30,7 +30,7 @@ EOF
         3) unbound_local ;;
         4) unbound_cloud ;;
         5) fresh_install ;;
-        6) exit ;;
+        6) clear;exit ;;
         *) echo "Invalid choice. Please try again." ;;
     esac
 }
