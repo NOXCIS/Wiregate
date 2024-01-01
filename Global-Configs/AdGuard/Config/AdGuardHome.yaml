@@ -5,8 +5,8 @@ http:
   address: 0.0.0.0:80
   session_ttl: 720h
 users:
-  - name: veiled_bullshark_164
-    password: $2y$05$XHVJpW6ODjxGJmSrqo705O3fgYPIj7tu.eRmmzGeTHb4fxHKy9iRW
+  - name: admin
+    password: $2a$12$t6CGhUcXtY6lGF2/A9Jd..Wn315A0RIiuhLlHbNHG2EmDbsN7miwO
 auth_attempts: 5
 block_auth_min: 15
 http_proxy: ""

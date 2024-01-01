@@ -268,9 +268,9 @@ run_adguard_setup() {
         local adguard_password='$2a$12$t6CGhUcXtY6lGF2/A9Jd..Wn315A0RIiuhLlHbNHG2EmDbsN7miwO'
         local adguard_user="admin"
         compose_down &&
-        docker compose -f dev-docker-compose.yml up -d
         sed -i -E "s|^( *password: ).*|\1$adguard_password|" "$adguard_yaml_file"
         sed -i -E "s|^( *- name: ).*|\1$adguard_user|" "$adguard_yaml_file"
+        docker compose -f dev-docker-compose.yml up -d
         echo -e "\033[33m"'Wireguard DashBoard Available at http://localhost:8000'
 
 
