@@ -5,8 +5,8 @@ http:
   address: 0.0.0.0:80
   session_ttl: 720h
 users:
-  - name: arcane_cetus_395
-    password: $2y$05$V228pOElAmKc5Ij/923G5.rYPAx.UVd/ZAlhmTPgwrrMw0FF7dibe
+  - name: veiled_bullshark_164
+    password: $2y$05$XHVJpW6ODjxGJmSrqo705O3fgYPIj7tu.eRmmzGeTHb4fxHKy9iRW
 auth_attempts: 5
 block_auth_min: 15
 http_proxy: ""

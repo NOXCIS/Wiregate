@@ -16,7 +16,7 @@ EOF
     echo "-----------------------------------------------------"
     echo "1. Start Install"
     echo "2. Launch Developement Build"
-    echo "3. Switch to Local Install Mode I.E RaspberryPi"
+    echo "3. Switch to Local Install Mode I.E RaspberryPi 64 bit"
     echo "4. Switch to Cloud Install Mode I.E AWS" 
     echo "5. Reset WireGate Deployment"
     echo "6. Exit"

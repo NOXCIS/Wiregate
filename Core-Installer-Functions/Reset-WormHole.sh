@@ -133,7 +133,7 @@ adguard_preset_dwire_cswap() {
 
 unbound_local() {
     file_path="Global-Configs/Unbound/custom-unbound.conf"
-    section_start="# OPTIONAL:"
+    section_start="#    forward-zone:"
     section_end="#forward-tls-upstream: yes"
 
     if [[ -f "$file_path" ]]; then
@@ -150,7 +150,7 @@ unbound_local() {
 }
 unbound_cloud() {
     file_path="Global-Configs/Unbound/custom-unbound.conf"
-    section_start="OPTIONAL:"
+    section_start="forward-zone:"
     section_end="forward-tls-upstream: yes"
 
     if [[ -f "$file_path" ]]; then
