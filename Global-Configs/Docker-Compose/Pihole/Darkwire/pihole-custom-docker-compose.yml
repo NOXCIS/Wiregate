@@ -11,8 +11,6 @@ networks:
       config:
         - subnet: 10.2.0.0/24
 
-
-
 services:
   unbound:
     image: "klutchell/unbound:latest"
@@ -25,25 +23,29 @@ services:
       private_network:
         ipv4_address: 10.2.0.200
 
-
-  adguard:
+  pihole:
     depends_on: [unbound]
-    container_name: adguard
-    image: adguard/adguardhome
+    container_name: pihole
+    image: pihole/pihole:nightly
     restart: unless-stopped
-    hostname: adguard
-    # Volumes store your data between container upgrades
+    hostname: pihole
+    dns:
+      - 10.2.0.200 # Points to unbound
     volumes:
-      - "./Global-Configs/AdGuard/Data:/opt/adguardhome/work"
-      - "./Global-Configs/AdGuard/Config:/opt/adguardhome/conf"
+      - "./Global-Configs/PiHole/etc-pihole/:/etc/pihole/"
+      - "./Global-Configs/PiHole/etc-pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/"
+    env_file:
+      - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
+    cap_add:
+      - NET_ADMIN
     networks:
       private_network:
         ipv4_address: 10.2.0.100
 
+  
   wiregate:
-    build: ./WG-Dash
-    #image: noxcis/wg-dashboard:kraken
     container_name: wiregate
+    image: noxcis/wg-dashboard:hydra
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
@@ -54,49 +56,24 @@ services:
       - wg_db:/home/app/db
       - wg_iptables:/home/app/Iptables
       - ./Global-Configs/Master-Key:/home/app/master-key
-    environment:
-      - WG_DASH_USER=admin
-      - WG_DASH_PASS=admin
-      - WG_DASH_SERVER_IP=0.0.0.0
-      - WG_DASH_DNS=10.2.0.100, 10.2.0.100
-      - WG_DASH_IPTABLES_DNS=10.2.0.100
-      - WG_DASH_PEER_ENDPOINT_ALLOWED_IP=0.0.0.0/0
-      - WG_DASH_KEEP_ALIVE=21
-      - WG_DASH_MTU=1420
-      - WG_DASH_PORT_RANGE_STARTPORT=443
+    env_file:
+      - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
     ports:
-      - "443-448:443-448/udp"
-      - 8000:80/tcp
+      - "${WG_DASH_PORT_MAPPINGS}"
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
     networks:
       private_network:
         ipv4_address: 10.2.0.3
-  
+
+
   darkwire:
     depends_on: [wiregate]
     container_name: darkwire
     image: noxcis/darkwire:hydra
-    environment:
-      - TZ=UTC
-      - VITE_API_PORT=3001
-      - VITE_API_HOST=localhost
-      - VITE_API_PROTOCOL=http
-      - VITE_COMMIT_SHA=some_sha
-      - VITE_MAX_FILE_SIZE=4
-      - MAILGUN_API_KEY=api-key
-      - MAILGUN_DOMAIN=darkwire.io
-      - ABUSE_TO_EMAIL_ADDRESS=abuse@darkwire.io
-      - ABUSE_FROM_EMAIL_ADDRESS=Darkwire <no-reply@darkwire.io>
-      - CLIENT_DIST_DIRECTORY='client/dist'
-      - ROOM_HASH_SECRET='some_uuid'
-      - SITE_URL=https://localhost
-      - STORE_BACKEND=memory
-    ports:
-      - 3001:80
-      - 4001:443
-      - 5001:3001
+    env_file:
+      - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
     networks:
       private_network:
         ipv4_address: 10.2.0.4
@@ -108,5 +85,4 @@ volumes:
     wg_configs:
     wg_db:
     wg_iptables:
-
   

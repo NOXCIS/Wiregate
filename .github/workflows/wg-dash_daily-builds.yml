@@ -42,5 +42,5 @@ jobs:
         with:
           context: WG-Dash/  # Path to the directory containing the Dockerfile (subfolder)
           push: true
-          tags: noxcis/wg-dashboard:kraken
+          tags: noxcis/wg-dashboard:hydra
           platforms: linux/amd64,linux/arm64,linux/arm/v7

@@ -25,14 +25,12 @@ services:
       private_network:
         ipv4_address: 10.2.0.200
 
-
   adguard:
     depends_on: [unbound]
     container_name: adguard
     image: adguard/adguardhome
     restart: unless-stopped
     hostname: adguard
-    # Volumes store your data between container upgrades
     volumes:
       - "./Global-Configs/AdGuard/Data:/opt/adguardhome/work"
       - "./Global-Configs/AdGuard/Config:/opt/adguardhome/conf"
@@ -41,8 +39,7 @@ services:
         ipv4_address: 10.2.0.100
 
   wiregate:
-    build: ./WG-Dash
-    #image: noxcis/wg-dashboard:kraken
+    image: noxcis/wg-dashboard:hydra
     container_name: wiregate
     cap_add:
       - NET_ADMIN
@@ -55,51 +52,59 @@ services:
       - wg_iptables:/home/app/Iptables
       - ./Global-Configs/Master-Key:/home/app/master-key
     environment:
-      - WG_DASH_USER=admin
-      - WG_DASH_PASS=admin
-      - WG_DASH_SERVER_IP=0.0.0.0
+      - WG_DASH_USER=${WG_DASH_USER}
+      - WG_DASH_PASS=${WG_DASH_PASS}
+      - WG_DASH_SERVER_IP=${WG_DASH_SERVER_IP}
       - WG_DASH_DNS=10.2.0.100, 10.2.0.100
       - WG_DASH_IPTABLES_DNS=10.2.0.100
       - WG_DASH_PEER_ENDPOINT_ALLOWED_IP=0.0.0.0/0
       - WG_DASH_KEEP_ALIVE=21
       - WG_DASH_MTU=1420
-      - WG_DASH_PORT_RANGE_STARTPORT=443
+      - WG_DASH_PORT_RANGE_STARTPORT=${WG_DASH_PORT_RANGE_STARTPORT}
     ports:
-      - "443-448:443-448/udp"
-      - 8000:80/tcp
+      - "${WG_DASH_PORT_MAPPINGS}"
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
     networks:
       private_network:
         ipv4_address: 10.2.0.3
-  
-  darkwire:
-    depends_on: [wiregate]
-    container_name: darkwire
-    image: noxcis/darkwire:hydra
+
+
+  channels:
+    depends_on: [db, wiregate]
+    container_name: channels_messenger
+    image: noxcis/channels:kraken
+    restart: unless-stopped
+    command: python run.py
     environment:
-      - TZ=UTC
-      - VITE_API_PORT=3001
-      - VITE_API_HOST=localhost
-      - VITE_API_PROTOCOL=http
-      - VITE_COMMIT_SHA=some_sha
-      - VITE_MAX_FILE_SIZE=4
-      - MAILGUN_API_KEY=api-key
-      - MAILGUN_DOMAIN=darkwire.io
-      - ABUSE_TO_EMAIL_ADDRESS=abuse@darkwire.io
-      - ABUSE_FROM_EMAIL_ADDRESS=Darkwire <no-reply@darkwire.io>
-      - CLIENT_DIST_DIRECTORY='client/dist'
-      - ROOM_HASH_SECRET='some_uuid'
-      - SITE_URL=https://localhost
-      - STORE_BACKEND=memory
-    ports:
-      - 3001:80
-      - 4001:443
-      - 5001:3001
+      - IS_DOCKER=1
+      - FLASK_APP=app/__init__.py
+      - FLASK_ENV=development
+      - SQL_HOST=db
+      - SQL_PORT=5432
+      - DATABASE=postgres
+      - SECRET_KEY=${MSG_SECRET_KEY}
+      - DATABASE_URI=${DB_URI}
     networks:
       private_network:
         ipv4_address: 10.2.0.4
+    dns: 10.2.0.100
+
+
+  db:
+    container_name: channels_db
+    image: postgres:13-alpine
+    restart: unless-stopped
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    environment:
+      - POSTGRES_USER=${MSG_DB_USER}
+      - POSTGRES_PASSWORD=${MSG_DB_PASS}
+      - POSTGRES_DB=db
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.5
     dns: 10.2.0.100
 
 volumes:
@@ -108,5 +113,4 @@ volumes:
     wg_configs:
     wg_db:
     wg_iptables:
-
   

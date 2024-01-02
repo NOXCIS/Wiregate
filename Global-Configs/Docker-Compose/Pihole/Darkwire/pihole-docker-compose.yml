@@ -2,8 +2,12 @@ version: "3"
 
 networks:
   private_network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "true"
+    attachable: true
+    internal: false
     ipam:
-      driver: default
       config:
         - subnet: 10.2.0.0/24
   
@@ -47,7 +51,7 @@ services:
         
   wiregate:
     #build: ./WG-Dash
-    image: noxcis/wg-dashboard:kraken
+    image: noxcis/wg-dashboard:hydra
     container_name: wiregate
     cap_add:
       - NET_ADMIN
@@ -79,42 +83,29 @@ services:
         ipv4_address: 10.2.0.3
     dns: 10.2.0.100
 
-  channels:
-    depends_on: [db, wiregate]
-    container_name: channels_messenger
-    #build: ./Channels
-    image: noxcis/channels:kraken
-    restart: unless-stopped
-    command: python run.py
+  darkwire:
+    depends_on: [wiregate]
+    container_name: darkwire
+    image: noxcis/darkwire:hydra
     environment:
-      - IS_DOCKER=1
-      - FLASK_APP=app/__init__.py
-      - FLASK_ENV=development
-      - SQL_HOST=db
-      - SQL_PORT=5432
-      - DATABASE=postgres
-      - SECRET_KEY=${MSG_SECRET_KEY}
-      - DATABASE_URI=${DB_URI}
+      - TZ=UTC
+      - VITE_API_PORT=3001
+      - VITE_API_HOST=localhost
+      - VITE_API_PROTOCOL=http
+      - VITE_COMMIT_SHA=some_sha
+      - VITE_MAX_FILE_SIZE=4
+      - MAILGUN_API_KEY=api-key
+      - MAILGUN_DOMAIN=darkwire.io
+      - ABUSE_TO_EMAIL_ADDRESS=abuse@darkwire.io
+      - ABUSE_FROM_EMAIL_ADDRESS=Darkwire <no-reply@darkwire.io>
+      - CLIENT_DIST_DIRECTORY='client/dist'
+      - ROOM_HASH_SECRET=${DW_ROOM_HASH}
+      - SITE_URL=https://localhost
+      - STORE_BACKEND=memory
     networks:
       private_network:
         ipv4_address: 10.2.0.4
     dns: 10.2.0.100
-
-  db:
-    container_name: channels_db
-    image: postgres:13-alpine
-    restart: unless-stopped
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    environment:
-      - POSTGRES_USER=${MSG_DB_USER}
-      - POSTGRES_PASSWORD=${MSG_DB_PASS}
-      - POSTGRES_DB=db
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.5
-    dns: 10.2.0.100
-
 
 volumes:
     postgres_data:

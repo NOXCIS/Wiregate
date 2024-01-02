@@ -2,8 +2,12 @@ version: "3"
 
 networks:
   private_network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "true"
+    attachable: true
+    internal: false
     ipam:
-      driver: default
       config:
         - subnet: 10.2.0.0/24
 
@@ -41,7 +45,7 @@ services:
 
         
   wiregate:
-    image: noxcis/wg-dashboard:kraken
+    image: noxcis/wg-dashboard:hydra
     container_name: wiregate
     cap_add:
       - NET_ADMIN
@@ -68,7 +72,6 @@ services:
   channels:
     depends_on: [db, wiregate]
     container_name: channels_messenger
-    #build: ./Channels
     image: noxcis/channels:kraken
     restart: unless-stopped
     command: python run.py

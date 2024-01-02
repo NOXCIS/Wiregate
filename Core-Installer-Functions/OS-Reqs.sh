@@ -148,10 +148,6 @@ install_confirm() {
         !!!!!!
 EOF
 }
-
-
-
-
 install_requirements() {
     local MAX_ATTEMPTS=3
     local attempts=1
