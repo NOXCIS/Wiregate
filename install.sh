@@ -346,7 +346,7 @@ run_adguard_setup() {
         pi-predef-dwire) Pre_Configured-Pihole-Darkwire ;;
         pi-predef-channl) Pre_Configured-Pihole-Channels ;;    
         requirements) install_requirements ;;
-        fresh) fresh_install ;;
+        reset) fresh_install ;;
         *) echo "Invalid choice. Please try again." ;;
     esac
     fi

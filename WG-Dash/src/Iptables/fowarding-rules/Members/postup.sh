@@ -1,7 +1,7 @@
 #!/bin/bash
 #DEFINE INTERFACE ENVIORNMENT 
 ##############################################################################################################
-WIREGUARD_INTERFACE=MEMEBERS
+WIREGUARD_INTERFACE=MEMBERS
 WIREGUARD_LAN=192.168.10.1/24
 MASQUERADE_INTERFACE=eth0
 GLOBAL_DNS=$WG_DASH_IPTABLES_DNS

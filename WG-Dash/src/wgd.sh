@@ -44,7 +44,7 @@ newconf_wgd1() {
     private_key=$(wg genkey)
     public_key=$(echo "$private_key" | wg pubkey)
 
-    cat <<EOF >"/etc/wireguard/MEMEBERS.conf"
+    cat <<EOF >"/etc/wireguard/MEMBERS.conf"
 [Interface]
 PrivateKey = $private_key
 Address = 192.168.10.1/24

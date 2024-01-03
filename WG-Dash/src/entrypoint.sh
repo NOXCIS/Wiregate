@@ -47,8 +47,6 @@ nginx
 }
 
 
-
-
 run_wireguard_up && 
 config_files=$(find /etc/wireguard -type f -name "*.conf")
 for file in $config_files; do
