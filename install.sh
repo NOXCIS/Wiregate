@@ -258,8 +258,8 @@ run_adguard_setup() {
             docker volume ls -q | grep 'wg_data' | xargs -r docker volume rm
         elif [ -f "$install_check" ]; then
             # If prerequisites are installed, bring down the Docker-compose setup
-            docker compose down --remove-orphans && 
-            docker volume ls -q | grep 'wg_data' | xargs -r docker volume rm
+            docker compose down --remove-orphans #&& 
+            #docker volume ls -q | grep 'wg_data' | xargs -r docker volume rm
         fi
 }
 #MISC
