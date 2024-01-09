@@ -1,7 +1,7 @@
 fresh_install() {
     local masterkey_file="./Global-Configs/Master-Key/master.conf"
     local yml_file="docker-compose.yml"
-    
+    set_tag
     clear
     echo -e "\033[33m\n"    
     echo '

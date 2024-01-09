@@ -41,8 +41,8 @@ services:
         ipv4_address: 10.2.0.100
 
   wiregate:
-    build: ./WG-Dash
-    #image: noxcis/wg-dashboard:kraken
+    #build: ./WG-Dash
+    image: noxcis/wg-dashboard:latest
     container_name: wiregate
     cap_add:
       - NET_ADMIN

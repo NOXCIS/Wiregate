@@ -29,6 +29,7 @@ install_prerequisites() {
     # List of prerequisites
     PREREQUISITES=(
         curl
+        jq
         qrencode
         ca-certificates
         gnupg

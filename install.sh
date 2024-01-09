@@ -213,6 +213,7 @@ run_adguard_setup() {
     set_wg-dash_account &&
     set_dwire_config &&
     set_channels_config &&
+
     rm_exst_configs >/dev/null 2>&1 &&  
     clear &&
     compose_up &&
@@ -263,6 +264,26 @@ run_adguard_setup() {
         fi
 }
 #MISC
+    set_tag() {
+        # Docker Hub repository
+        REPO="noxcis/wg-dashboard"
+
+        # Fetch the tags from Docker Hub API
+        response=$(curl -s "https://hub.docker.com/v2/repositories/${REPO}/tags/?page_size=100")
+
+        # Extract the latest updated tag that doesn't contain 'beta' or 'dev' using jq
+        latest_tag=$(echo $response | jq -r '[.results[] | select(.name | test("beta|dev"; "i") | not)] | sort_by(.last_updated) | last(.[]).name')
+
+        # Check if the tag is extracted
+        if [ -z "$latest_tag" ]; then
+            echo "Failed to fetch a non-beta/non-dev latest updated tag."
+            exit 1
+        else
+            echo "Latest non-beta/non-dev updated tag: $latest_tag"
+        fi
+        export TAG="$latest_tag"
+
+    }
     dev_build() {
         local adguard_yaml_file="./Global-Configs/AdGuard/Config/AdGuardHome.yaml"
         local adguard_password='$2a$12$t6CGhUcXtY6lGF2/A9Jd..Wn315A0RIiuhLlHbNHG2EmDbsN7miwO'
@@ -333,18 +354,18 @@ run_adguard_setup() {
         menu
     else
     case $1 in
-        ad-exp-dwire) Express-AdGuard-Darkwire ;;
-        ad-exp-channl) Express-AdGuard-Channels ;;
-        pi-exp-dwire) Express-Pihole-Darkwire ;;
-        pi-exp-channl) Express-Pihole-Channels ;;
-        ad-adv-dwire) Advanced-AdGuard-Darkwire ;;
-        ad-adv-channl) Advanced-AdGuard-Channels ;;
-        pi-adv-dwire) Advanced-Pihole-Darkwire ;;
-        pi-adv-channl) Advanced-Pihole-Channels ;;
-        ad-predef-dwire) Pre_Configured-AdGuard-Darkwire ;;
-        ad-predef-channl) Pre_Configured-AdGuard-Channels ;;
-        pi-predef-dwire) Pre_Configured-Pihole-Darkwire ;;
-        pi-predef-channl) Pre_Configured-Pihole-Channels ;;    
+        ad-exp-dwire) set_tag; Express-AdGuard-Darkwire ;;
+        ad-exp-channl) set_tag; Express-AdGuard-Channels ;;
+        pi-exp-dwire) set_tag; Express-Pihole-Darkwire ;;
+        pi-exp-channl) set_tag; Express-Pihole-Channels ;;
+        ad-adv-dwire) set_tag; Advanced-AdGuard-Darkwire ;;
+        ad-adv-channl) set_tag; Advanced-AdGuard-Channels ;;
+        pi-adv-dwire) set_tag; Advanced-Pihole-Darkwire ;;
+        pi-adv-channl) set_tag; Advanced-Pihole-Channels ;;
+        ad-predef-dwire) set_tag; Pre_Configured-AdGuard-Darkwire ;;
+        ad-predef-channl) set_tag; Pre_Configured-AdGuard-Channels ;;
+        pi-predef-dwire) set_tag; Pre_Configured-Pihole-Darkwire ;;
+        pi-predef-channl) set_tag; Pre_Configured-Pihole-Channels ;;    
         requirements) install_requirements ;;
         fresh) fresh_install ;;
         *) echo "Invalid choice. Please try again." ;;
