@@ -42,7 +42,7 @@ services:
 
   wiregate:
     #build: ./WG-Dash
-    image: noxcis/wg-dashboard:latest
+    image: noxcis/wg-dashboard:hydra
     container_name: wiregate
     cap_add:
       - NET_ADMIN
