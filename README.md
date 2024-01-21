@@ -58,7 +58,7 @@ Network Map
 | **Authentication** | Access to service can be limited by requiring a WireGuard client config as well as a registered account on said service |
 |**Secure Self Hosted VPN**| Self Explanatory	|
 |**Adblock & DNS Filtering** | Self Explanatory |
-|**Local Network Filter Proxy** | By using a raspberry Pi ruining on the same local network your able to pre proxy all network traffic through your desired device using adguard/pihole & unbound. The unbound config will need to be modified to use an upstream DNS server for this to work, unless a cloud based Wiregate Node is used in conjunction with the Raspeberry Pi. |
+|**Local Network Filter Proxy** | By using a raspberry Pi running on the same local network your able to pre proxy all network traffic through your desired device using adguard/pihole & unbound. The unbound config will need to be modified to use an upstream DNS server for this to work, unless a cloud based Wiregate Node is used in conjunction with the Raspeberry Pi. |
 |**Secure Invite Only Messaging Service** | This is done via channels and allows all members of the Wiregate Private Network to communicate under the same secure umbrella.|
 **VPN Splitter** | Wiregate can be used to extend the number of clients allowed by any VPN service provider by using your Wiregate machine as a hub|
 
