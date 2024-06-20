@@ -1,5 +1,5 @@
 
-eventlet==0.33.3
+eventlet==0.35.2
 Flask==2.3.3
 Flask-Bcrypt
 Flask-Login
