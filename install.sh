@@ -21,167 +21,76 @@ export DEPLOY_TYPE="CLOUD DEPLOYMENT MODE"
 
 
 
+run_config() {
+    local config=$1
 
-
-Express-AdGuard-Darkwire() {
-
-    compose_down 
-    TIMER_VALUE=0
-    adguard_dwire_cswap
-    run_adguard_setup 
-}
-Express-AdGuard-Channels() {
-
-    compose_down 
-    TIMER_VALUE=0
-    adguard_channl_cswap
-    run_adguard_setup 
-}
-Express-Pihole-Darkwire() {
-
-    compose_down 
-    TIMER_VALUE=0
-    pihole_dwire_cswap
-    run_pihole_setup 
-}
-Express-Pihole-Channels() {
-    
-    compose_down 
-    TIMER_VALUE=0
-    pihole_channl_cswap
-    run_pihole_setup
-}
-Advanced-AdGuard-Darkwire() {
-
-    compose_down 
-    set_timer_value &&
-    adguard_dwire_cswap            
-    run_adguard_setup
-}
-Advanced-AdGuard-Channels() {
-
+    # Common steps for all configurations
     compose_down
-    set_timer_value &&
-    adguard_channl_cswap
-    run_adguard_setup
+    TIMER_VALUE=${TIMER_VALUE:-0}
+
+    case $config in
+        "Ex-AdG-D" | "Adv-AdG-D" | "Pre_Conf-AdG-D")
+            adguard_dwire_cswap
+            run_adguard_setup
+            ;;
+        "Ex-AdG-Chnls" | "Adv-AdG-Chnls" | "Pre_Conf-AdG-Chnls")
+            adguard_channl_cswap
+            run_adguard_setup
+            ;;
+        "Ex-Pih-D" | "Adv-Pih-D" | "Pre_Conf-Pih-D")
+            pihole_dwire_cswap
+            run_pihole_setup
+            ;;
+        "Ex-Pih-Chnls" | "Adv-Pih-Chnls" | "Pre_Conf-Pih-Chnls")
+            pihole_channl_cswap
+            run_pihole_setup
+            ;;
+        "Adv-AdG-D" | "Adv-AdG-Chnls" | "Adv-Pih-D" | "Adv-Pih-Chnls")
+            set_timer_value
+            ;;
+        "Pre_Conf-AdG-D" | "Pre_Conf-AdG-Chnls")
+            clear &&
+            adguard_preset_${config#*-*} &&
+            set_port_range &&
+            set_adguard_config &&
+            rm_exst_configs >/dev/null 2>&1 &&
+            clear &&
+            compose_up &&
+            clear &&
+            generate_wireguard_qr &&
+            readme_title &&
+            env_var_adguard_title_short &&
+            encrypt_file >/dev/null 2>&1 &&
+            sleep 60 &&
+            nuke_bash_hist &&
+            leave_a_star_title
+            ;;
+        "Pre_Conf-Pih-D" | "Pre_Conf-Pih-Chnls")
+            clear &&
+            pihole_preset_${config#*-*} &&
+            set_port_range &&
+            rm_exst_configs >/dev/null 2>&1 &&
+            compose_up &&
+            clear &&
+            generate_wireguard_qr &&
+            readme_title &&
+            env_var_pihole_title_short &&
+            encrypt_file >/dev/null 2>&1 &&
+            sleep 60 &&
+            nuke_bash_hist &&
+            leave_a_star_title
+            ;;
+        *)
+            echo "Unknown configuration: $config"
+            return 1
+            ;;
+    esac
+
+    # Return early for Pre_Conf cases to avoid redundant code
+    [[ "$config" == Pre_Conf-* ]] && return
 }
-Advanced-Pihole-Darkwire() {
-    
-    compose_down 
-    set_timer_value &&
-    pihole_dwire_cswap
-    run_pihole_setup
-}
-Advanced-Pihole-Channels() {
-
-    compose_down 
-    set_timer_value &&
-    pihole_channl_cswap
-    run_pihole_setup
-}
-Pre_Configured-AdGuard-Darkwire() {
-    TIMER_VALUE=5
-    compose_down 
-    clear &&
-
-    adguard_preset_dwire_cswap &&
-    set_port_range &&
-    set_adguard_config &&
-                
-
-    rm_exst_configs >/dev/null 2>&1 &&
-
-    clear &&
-        
-    compose_up &&
-    clear &&
 
 
-    generate_wireguard_qr &&
-    readme_title &&
-    env_var_adguard_title_short &&
-    encrypt_file >/dev/null 2>&1 &&
-    sleep 60 &&
-    nuke_bash_hist &&
-    leave_a_star_title &&
-    return
-        
-}
-Pre_Configured-AdGuard-Channels() {
-    TIMER_VALUE=5
-    compose_down 
-    clear &&
-
-    adguard_preset_channl_cswap &&
-    set_port_range &&
-    set_adguard_config &&
-                
-
-    rm_exst_configs >/dev/null 2>&1 &&
-
-    clear &&
-        
-    compose_up &&
-    clear &&
-
-
-    generate_wireguard_qr &&
-    readme_title &&
-    env_var_adguard_title_short &&
-    encrypt_file >/dev/null 2>&1 &&
-    sleep 60 &&
-    nuke_bash_hist &&
-    leave_a_star_title &&
-    return
-}
-Pre_Configured-Pihole-Darkwire() {
-    TIMER_VALUE=5
-    compose_down 
-    clear &&
-
-    pihole_preset_dwire_cswap &&
-    set_port_range &&
-    rm_exst_configs >/dev/null 2>&1 &&
-
-
-
-    compose_up &&
-    clear &&
-
-    generate_wireguard_qr &&
-    readme_title &&
-    env_var_pihole_title_short &&
-    encrypt_file >/dev/null 2>&1 &&
-    sleep 60 &&
-    nuke_bash_hist &&
-    leave_a_star_title &&
-    return
-        
-
-}
-Pre_Configured-Pihole-Channels() {
-    TIMER_VALUE=5
-    compose_down 
-    clear &&
-
-    pihole_preset_channl_cswap &&
-    set_port_range &&
-    rm_exst_configs >/dev/null 2>&1 &&
-
-
-
-    compose_up &&
-    clear &&
-
-    generate_wireguard_qr &&
-    readme_title &&
-    env_var_pihole_title_short &&
-    encrypt_file >/dev/null 2>&1 &&
-    sleep 60 &&
-    nuke_bash_hist &&
-    leave_a_star_title &&
-    return
-}
 
 
 run_pihole_setup() {
@@ -212,7 +121,7 @@ run_adguard_setup() {
     set_wg-dash_config &&
     set_wg-dash_account &&
     set_dwire_config &&
-    set_channels_config &&
+
     rm_exst_configs >/dev/null 2>&1 &&  
     clear &&
     compose_up &&
@@ -263,6 +172,26 @@ run_adguard_setup() {
         fi
 }
 #MISC
+    set_tag() {
+        # Docker Hub repository
+        REPO="noxcis/wg-dashboard"
+
+        # Fetch the tags from Docker Hub API
+        response=$(curl -s "https://hub.docker.com/v2/repositories/${REPO}/tags/?page_size=100")
+
+        # Extract the latest updated tag that doesn't contain 'beta' or 'dev' using jq
+        latest_tag=$(echo $response | jq -r '[.results[] | select(.name | test("beta|dev"; "i") | not)] | sort_by(.last_updated) | last(.[]).name')
+
+        # Check if the tag is extracted
+        if [ -z "$latest_tag" ]; then
+            echo "Failed to fetch a non-beta/non-dev latest updated tag."
+            exit 1
+        else
+            echo "Latest non-beta/non-dev updated tag: $latest_tag"
+        fi
+        export TAG="$latest_tag"
+
+    }
     dev_build() {
         local adguard_yaml_file="./Global-Configs/AdGuard/Config/AdGuardHome.yaml"
         local adguard_password='$2a$12$t6CGhUcXtY6lGF2/A9Jd..Wn315A0RIiuhLlHbNHG2EmDbsN7miwO'
@@ -333,18 +262,18 @@ run_adguard_setup() {
         menu
     else
     case $1 in
-        ad-exp-dwire) Express-AdGuard-Darkwire ;;
-        ad-exp-channl) Express-AdGuard-Channels ;;
-        pi-exp-dwire) Express-Pihole-Darkwire ;;
-        pi-exp-channl) Express-Pihole-Channels ;;
-        ad-adv-dwire) Advanced-AdGuard-Darkwire ;;
-        ad-adv-channl) Advanced-AdGuard-Channels ;;
-        pi-adv-dwire) Advanced-Pihole-Darkwire ;;
-        pi-adv-channl) Advanced-Pihole-Channels ;;
-        ad-predef-dwire) Pre_Configured-AdGuard-Darkwire ;;
-        ad-predef-channl) Pre_Configured-AdGuard-Channels ;;
-        pi-predef-dwire) Pre_Configured-Pihole-Darkwire ;;
-        pi-predef-channl) Pre_Configured-Pihole-Channels ;;    
+        ad-exp-dwire) set_tag; Express-AdGuard-Darkwire ;;
+        ad-exp-channl) set_tag; Express-AdGuard-Channels ;;
+        pi-exp-dwire) set_tag; Express-Pihole-Darkwire ;;
+        pi-exp-channl) set_tag; Express-Pihole-Channels ;;
+        ad-adv-dwire) set_tag; Advanced-AdGuard-Darkwire ;;
+        ad-adv-channl) set_tag; Advanced-AdGuard-Channels ;;
+        pi-adv-dwire) set_tag; Advanced-Pihole-Darkwire ;;
+        pi-adv-channl) set_tag; Advanced-Pihole-Channels ;;
+        ad-predef-dwire) set_tag; Pre_Configured-AdGuard-Darkwire ;;
+        ad-predef-channl) set_tag; Pre_Configured-AdGuard-Channels ;;
+        pi-predef-dwire) set_tag; Pre_Configured-Pihole-Darkwire ;;
+        pi-predef-channl) set_tag; Pre_Configured-Pihole-Channels ;;    
         requirements) install_requirements ;;
         reset) fresh_install ;;
         *) echo "Invalid choice. Please try again." ;;

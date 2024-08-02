@@ -39,7 +39,7 @@ services:
         ipv4_address: 10.2.0.100
 
   wiregate:
-    image: noxcis/wg-dashboard:hydra
+    image: noxcis/wg-dashboard:${TAG}
     container_name: wiregate
     cap_add:
       - NET_ADMIN
