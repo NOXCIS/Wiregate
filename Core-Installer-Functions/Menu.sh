@@ -6,6 +6,7 @@ menu() {
 R.I.P JRC Weir Tribute.
 EOF
     clear
+    set_tag
     title
     echo -e "\033[33m"
     echo "-----------------------------------------------------"
@@ -140,20 +141,24 @@ init_menu() {
         echo "#######################################################################"
         echo -e "\033[0m"
 
+        export $INSTALL_TYPE
+        export $DNS_SETUP
+        export $COMMS_SETUP
+
         # Call functions based on user selections
         case "$INSTALL_TYPE-$DNS_SETUP-$COMMS_SETUP" in
-            "Express-AdGuard-Darkwire") run_config Ex-AdG-D ;;
-            "Express-AdGuard-Channels") run_config Ex-AdG-Chnls ;;
-            "Express-Pihole-Darkwire") run_config Ex-Pih-D ;;
-            "Express-Pihole-Channels") run_config Ex-Pih-Chnls ;;
-            "Advanced-AdGuard-Darkwire") run_config Adv-AdG-D ;;
-            "Advanced-AdGuard-Channels") run_config Adv-AdG-Chnls ;;
-            "Advanced-Pihole-Darkwire") run_config Adv-Pih-D ;;
-            "Advanced-Pihole-Channels") run_config Adv-Pih-Chnls ;;
-            "Pre_Configured-AdGuard-Darkwire") run_config Pre_Conf-AdG-D ;;
-            "Pre_Configured-AdGuard-Channels") run_config Pre_Conf-AdG-Chnls ;;
-            "Pre_Configured-Pihole-Darkwire") run_config Pre_Conf-Pih-D ;;
-            "Pre_Configured-Pihole-Channels") run_config Pre_Conf-Pih-Chnls ;;
+            "Express-AdGuard-Darkwire") setup_environment "Express" "AdGuard" "Darkwire" ;;
+            "Express-AdGuard-Channels") setup_environment Ex-AdG-Chnls ;;
+            "Express-Pihole-Darkwire") setup_environment Ex-Pih-D ;;
+            "Express-Pihole-Channels") setup_environment Ex-Pih-Chnls ;;
+            "Advanced-AdGuard-Darkwire") setup_environment Adv-AdG-D ;;
+            "Advanced-AdGuard-Channels") setup_environment Adv-AdG-Chnls ;;
+            "Advanced-Pihole-Darkwire") setup_environment Adv-Pih-D ;;
+            "Advanced-Pihole-Channels") setup_environment Adv-Pih-Chnls ;;
+            "Pre_Configured-AdGuard-Darkwire") setup_environment Pre_Conf-AdG-D ;;
+            "Pre_Configured-AdGuard-Channels") setup_environment Pre_Conf-AdG-Chnls ;;
+            "Pre_Configured-Pihole-Darkwire") setup_environment Pre_Conf-Pih-D ;;
+            "Pre_Configured-Pihole-Channels") setup_environment Pre_Conf-Pih-Chnls ;;
             *) echo "Invalid combination, no specific action taken." ;;
         esac
     else

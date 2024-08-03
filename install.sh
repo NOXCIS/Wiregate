@@ -21,123 +21,102 @@ export DEPLOY_TYPE="CLOUD DEPLOYMENT MODE"
 
 
 
-run_config() {
-    local config=$1
+setup_environment() {
+    local mode=$1
+    local system=$2
+    local config_type=$3
+    local setup_func
 
-    # Common steps for all configurations
-    compose_down
-    TIMER_VALUE=${TIMER_VALUE:-0}
-
-    case $config in
-        "Ex-AdG-D" | "Adv-AdG-D" | "Pre_Conf-AdG-D")
-            adguard_dwire_cswap
-            run_adguard_setup
+    case "$mode" in
+        "Express")
+            setup_func="run_${system}_setup"
             ;;
-        "Ex-AdG-Chnls" | "Adv-AdG-Chnls" | "Pre_Conf-AdG-Chnls")
-            adguard_channl_cswap
-            run_adguard_setup
+        "Advanced")
+            setup_func="run_${system}_setup"
             ;;
-        "Ex-Pih-D" | "Adv-Pih-D" | "Pre_Conf-Pih-D")
-            pihole_dwire_cswap
-            run_pihole_setup
-            ;;
-        "Ex-Pih-Chnls" | "Adv-Pih-Chnls" | "Pre_Conf-Pih-Chnls")
-            pihole_channl_cswap
-            run_pihole_setup
-            ;;
-        "Adv-AdG-D" | "Adv-AdG-Chnls" | "Adv-Pih-D" | "Adv-Pih-Chnls")
-            set_timer_value
-            ;;
-        "Pre_Conf-AdG-D" | "Pre_Conf-AdG-Chnls")
-            clear &&
-            adguard_preset_${config#*-*} &&
-            set_port_range &&
-            set_adguard_config &&
-            rm_exst_configs >/dev/null 2>&1 &&
-            clear &&
-            compose_up &&
-            clear &&
-            generate_wireguard_qr &&
-            readme_title &&
-            env_var_adguard_title_short &&
-            encrypt_file >/dev/null 2>&1 &&
-            sleep 60 &&
-            nuke_bash_hist &&
-            leave_a_star_title
-            ;;
-        "Pre_Conf-Pih-D" | "Pre_Conf-Pih-Chnls")
-            clear &&
-            pihole_preset_${config#*-*} &&
-            set_port_range &&
-            rm_exst_configs >/dev/null 2>&1 &&
-            compose_up &&
-            clear &&
-            generate_wireguard_qr &&
-            readme_title &&
-            env_var_pihole_title_short &&
-            encrypt_file >/dev/null 2>&1 &&
-            sleep 60 &&
-            nuke_bash_hist &&
-            leave_a_star_title
+        "Pre_Configured")
+            TIMER_VALUE=5
+            compose_down
+            clear
             ;;
         *)
-            echo "Unknown configuration: $config"
+            echo "Unknown mode: $mode"
             return 1
             ;;
     esac
 
-    # Return early for Pre_Conf cases to avoid redundant code
-    [[ "$config" == Pre_Conf-* ]] && return
-}
+    case "$system" in
+        "AdGuard")
+            if [ "$mode" = "Pre_Configured" ]; then
+                case "$config_type" in
+                    "Darkwire")
+                        adguard_preset_dwire_cswap
+                        ;;
+                    "Channels")
+                        adguard_preset_channl_cswap
+                        ;;
+                esac
+                set_port_range
+                set_adguard_config
+            else
+                case "$config_type" in
+                    "Darkwire")
+                        adguard_dwire_cswap
+                        ;;
+                    "Channels")
+                        adguard_channl_cswap
+                        ;;
+                esac
+            fi
+            ;;
+        "Pihole")
+            if [ "$mode" = "Pre_Configured" ]; then
+                case "$config_type" in
+                    "Darkwire")
+                        pihole_preset_dwire_cswap
+                        ;;
+                    "Channels")
+                        pihole_preset_channl_cswap
+                        ;;
+                esac
+                set_port_range
+            else
+                case "$config_type" in
+                    "Darkwire")
+                        pihole_dwire_cswap
+                        ;;
+                    "Channels")
+                        pihole_channl_cswap
+                        ;;
+                esac
+            fi
+            ;;
+        *)
+            echo "Unknown system: $system"
+            return 1
+            ;;
+    esac
 
-
-
-
-run_pihole_setup() {
-    set_pihole_config &&
-    set_wg-dash_config &&
-    set_wg-dash_account &&
-    set_dwire_config &&
-    set_channels_config &&
-    rm_exst_configs >/dev/null 2>&1 &&
-    clear &&
-    compose_up &&
-    clear &&
-
-
-#FINAL_OUTPUT
-    generate_wireguard_qr &&
-    readme_title &&
-    encrypt_file >/dev/null 2>&1 &&
-    env_var_pihole_title &&
-    pihole_compose_swap >/dev/null 2>&1
-    sleep 60 &&
-    nuke_bash_hist &&
-    leave_a_star_title &&
-                return
-}
-run_adguard_setup() {
-    set_adguard_config &&
-    set_wg-dash_config &&
-    set_wg-dash_account &&
-    set_dwire_config &&
-
-    rm_exst_configs >/dev/null 2>&1 &&  
-    clear &&
-    compose_up &&
-    clear &&
-
-
-#FINAL_OUTPUT
-    generate_wireguard_qr  &&
-    readme_title &&
-    encrypt_file >/dev/null 2>&1 &&
-    env_var_adguard_title &&
-    adguard_compose_swap >/dev/null 2>&1
-    sleep 60 &&
-    nuke_bash_hist &&
-    leave_a_star_title &&
-                return
+    case "$mode" in
+        "Pre_Configured")
+            rm_exst_configs >/dev/null 2>&1
+            compose_up
+            clear
+            generate_wireguard_qr
+            readme_title
+            env_var_${system,,}_title_short
+            encrypt_file >/dev/null 2>&1
+            sleep 60
+            nuke_bash_hist
+            leave_a_star_title
+            ;;
+        *)
+            if [ "$mode" = "Advanced" ]; then
+                set_timer_value
+            fi
+            $setup_func
+            ;;
+    esac
 }
 
 
