@@ -158,6 +158,8 @@ install_requirements() {
         echo "Attempt $attempts of $MAX_ATTEMPTS"
 
         # Attempt the installation
+        sysctl -w net.core.rmem_max=2097152 > /dev/null 2>&1
+        sysctl -w kern.ipc.maxsockbuf=1048576 > /dev/null 2>&1
         run_os_update &&
         install_prerequisites &&
         install_docker &&

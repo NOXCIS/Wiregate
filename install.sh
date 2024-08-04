@@ -28,21 +28,29 @@ setup_environment() {
     export $config_type
     export $system
 
+
+
     case "$mode" in
         "Express")
+            title  
+            sleep 2
             compose_down
             clear
             setup_func="run_${system}_setup"
             ;;
         "Advanced")
+            title  
+            sleep 2
             compose_down
             clear
             setup_func="run_${system}_setup"
             ;;
         "Pre_Configured")
-            TIMER_VALUE=5
+            title  
+            sleep 2
             compose_down
             clear
+            set_timer_value
             ;;
         *)
             echo "Unknown mode: $mode"
@@ -61,6 +69,8 @@ setup_environment() {
                         adguard_preset_channl_cswap
                         ;;
                 esac
+                set_wg-dash_config 
+                set_wg-dash_account
                 set_port_range
                 set_adguard_config
             else
@@ -174,8 +184,6 @@ mkey_output() {
     compose_up() {
         set_tag
         run_docker_title
-        sudo sysctl -w net.core.rmem_max=2097152 > /dev/null 2>&1
-        sudo sysctl -w kern.ipc.maxsockbuf=1048576 > /dev/null 2>&1
         docker compose pull
         docker compose up -d --build 
     }

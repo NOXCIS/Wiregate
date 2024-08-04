@@ -1,10 +1,6 @@
 #!/bin/bash
 
 menu() {
-    run_animation
-    cat <<EOF >"run-log.txt"
-R.I.P JRC Weir Tribute.
-EOF
     clear
     title
     echo -e "\033[33m"

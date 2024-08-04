@@ -3,6 +3,11 @@
 
 
 title() {
+    clear
+    run_animation
+    cat <<EOF >"run-log.txt"
+R.I.P JRC Weir Tribute.
+EOF
     echo -e "\033[32m"
     echo '
 ________________________________________________________________________________
