@@ -129,7 +129,7 @@ setup_environment() {
     esac
 }
 
-run_pihole_setup() {
+run_Pihole_setup() {
     set_pihole_config &&
     set_wg-dash_config &&
     set_wg-dash_account &&
