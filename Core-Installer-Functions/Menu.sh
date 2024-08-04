@@ -29,15 +29,12 @@ menu() {
 run_menu_update() {
     local menu_type=$1
     local index=$2
-
-    # Choose the appropriate menu array based on menu_type
     case $menu_type in
         menu)     local menu_array=("${menu[@]}") ;;
         dnsMenu)  local menu_array=("${dnsMenu[@]}") ;;
         commsMenu) local menu_array=("${commsMenu[@]}") ;;
         *) echo "Invalid menu type" && return 1 ;;
     esac
-
     # Clear all entries and mark the specified index
     for i in "${!menu_array[@]}"; do
         menu_array[$i]=" "
@@ -135,10 +132,6 @@ init_menu() {
         echo "COMMS_SETUP: $COMMS_SETUP"
         echo "#######################################################################"
         echo -e "\033[0m"
-
-        export $INSTALL_TYPE
-        export $DNS_SETUP
-        export $COMMS_SETUP
 
         # Call functions based on user selections
         case "$INSTALL_TYPE-$DNS_SETUP-$COMMS_SETUP" in

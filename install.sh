@@ -25,8 +25,8 @@ setup_environment() {
     local system=$2
     local config_type=$3
     local setup_func
-    export $config_type
-    export $system
+    export config_type
+    export system
 
 
 
@@ -246,26 +246,19 @@ mkey_output() {
             sudo rm "$masterkey_file"
             echo "Existing '$masterkey_file' removed."
         fi
-
-        
     }
     encrypt_file() {
         local characters="A-Za-z0-9!@#$%^&*()"
         local file_path="./WG-Dash/master-key/master.conf"
         local password=$(head /dev/urandom | tr -dc "$characters" | head -c 16)
-
         # Generate a salt
         salt=$(openssl rand -base64 8 | tr -d '=')
-
         # Derive the encryption key from the password and salt using PBKDF2
         encryption_key=$(echo -n "$password$salt" | openssl dgst -sha256 -binary | xxd -p -c 256)
-
         # Encrypt the file using aes-256-cbc algorithm with the derived key
         openssl enc -aes-256-cbc -in "$file_path" -out "${file_path}.enc" -K "$encryption_key" -iv 0
-
         if [ $? -eq 0 ]; then
             echo "Worm-Hole Master Key encrypted successfully."
-            # You can optionally remove the original unencrypted file
             rm "$file_path"
         else
             echo "Worm-Hole Master Key encryption failed."
@@ -286,11 +279,6 @@ mkey_output() {
     }
 
 
-
-
-
-
-
 # Main script
     if [ $# -eq 0 ]; then
         menu
@@ -308,7 +296,7 @@ mkey_output() {
         P_Conf-A-C) setup_environment "Pre_Configured" "AdGuard" "Channels" ;;
         P_Conf-P-D) setup_environment "Pre_Configured" "Pihole" "Darkwire" ;;
         P_Conf-P-C) setup_environment "Pre_Configured" "Pihole" "Channels" ;;
-        requirements) install_requirements ;;
+        dev) dev_build ;;
         reset) fresh_install ;;
         *) echo "Invalid choice. Please try again." ;;
     esac

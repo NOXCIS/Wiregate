@@ -154,7 +154,6 @@ set_adguard_user() {
 }
 set_adguard_config() {
     clear
-    #adguard_install_title
     set_adguard_user
     set_adguard_pass
 }
