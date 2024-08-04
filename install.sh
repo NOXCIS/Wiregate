@@ -20,18 +20,23 @@ export DEPLOY_TYPE="CLOUD DEPLOYMENT MODE"
     source ./Core-Installer-Functions/Anim/frames.sh
 
 
-
 setup_environment() {
     local mode=$1
     local system=$2
     local config_type=$3
     local setup_func
+    export $config_type
+    export $system
 
     case "$mode" in
         "Express")
+            compose_down
+            clear
             setup_func="run_${system}_setup"
             ;;
         "Advanced")
+            compose_down
+            clear
             setup_func="run_${system}_setup"
             ;;
         "Pre_Configured")
@@ -87,6 +92,7 @@ setup_environment() {
                         ;;
                     "Channels")
                         pihole_channl_cswap
+
                         ;;
                 esac
             fi
@@ -119,14 +125,60 @@ setup_environment() {
     esac
 }
 
+run_pihole_setup() {
+    set_pihole_config &&
+    set_wg-dash_config &&
+    set_wg-dash_account &&
+        if [ "$config_type" = "Channels" ]; then
+            set_channels_config 
+        elif [ "$config_type" = "Darkwire" ]; then
+            set_dwire_config 
+        fi
+    rm_exst_configs >/dev/null 2>&1 &&
+    clear &&
+    compose_up &&
+    clear &&
+    mkey_output
+}
+run_AdGuard_setup() {
+        set_adguard_config &&
+        set_wg-dash_config &&
+        set_wg-dash_account &&
+            if [ "$config_type" = "Channels" ]; then
+                set_channels_config 
+            elif [ "$config_type" = "Darkwire" ]; then 
+                set_dwire_config 
+            fi
+        rm_exst_configs >/dev/null 2>&1 &&  
+        clear &&
+        compose_up &&
+        clear &&
+        mkey_output
+}
+mkey_output() {
+    #FINAL_OUTPUT
+            generate_wireguard_qr  &&
+            readme_title &&
+            encrypt_file >/dev/null 2>&1 &&
+            if [ "$system" = "AdGuard" ]; then
+                env_var_adguard_title
+                adguard_compose_swap >/dev/null 2>&1
 
-
-
-
-
+            elif [ "$system" = "Pihole" ]; then 
+                env_var_pihole_title 
+                pihole_compose_swap >/dev/null 2>&1
+            fi
+            
+            adguard_compose_swap >/dev/null 2>&1
+            sleep 60 &&
+            nuke_bash_hist &&
+            leave_a_star_title &&
+                        return
+}
 
 #DOCKER FUNCTIONS
     compose_up() {
+        set_tag
         run_docker_title
         sudo sysctl -w net.core.rmem_max=2097152 > /dev/null 2>&1
         sudo sysctl -w kern.ipc.maxsockbuf=1048576 > /dev/null 2>&1
@@ -151,7 +203,7 @@ setup_environment() {
         fi
 }
 #MISC
-    set_tag() {
+        set_tag() {
         # Docker Hub repository
         REPO="noxcis/wg-dashboard"
 
@@ -171,6 +223,7 @@ setup_environment() {
         export TAG="$latest_tag"
 
     }
+
     dev_build() {
         local adguard_yaml_file="./Global-Configs/AdGuard/Config/AdGuardHome.yaml"
         local adguard_password='$2a$12$t6CGhUcXtY6lGF2/A9Jd..Wn315A0RIiuhLlHbNHG2EmDbsN7miwO'
@@ -240,25 +293,24 @@ setup_environment() {
     if [ $# -eq 0 ]; then
         menu
     else
-    case $1 in
-        ad-exp-dwire) set_tag; Express-AdGuard-Darkwire ;;
-        ad-exp-channl) set_tag; Express-AdGuard-Channels ;;
-        pi-exp-dwire) set_tag; Express-Pihole-Darkwire ;;
-        pi-exp-channl) set_tag; Express-Pihole-Channels ;;
-        ad-adv-dwire) set_tag; Advanced-AdGuard-Darkwire ;;
-        ad-adv-channl) set_tag; Advanced-AdGuard-Channels ;;
-        pi-adv-dwire) set_tag; Advanced-Pihole-Darkwire ;;
-        pi-adv-channl) set_tag; Advanced-Pihole-Channels ;;
-        ad-predef-dwire) set_tag; Pre_Configured-AdGuard-Darkwire ;;
-        ad-predef-channl) set_tag; Pre_Configured-AdGuard-Channels ;;
-        pi-predef-dwire) set_tag; Pre_Configured-Pihole-Darkwire ;;
-        pi-predef-channl) set_tag; Pre_Configured-Pihole-Channels ;;    
+    case $1 in  
+        E-A-D) setup_environment "Express" "AdGuard" "Darkwire" ;;
+        E-A-C) setup_environment "Express" "AdGuard" "Channels" ;;
+        E-P-D) setup_environment  "Express" "Pihole" "Darkwire" ;;
+        E-P-C) setup_environment  "Express" "Pihole" "Channels" ;;
+        A-A-D) setup_environment "Advanced" "AdGuard" "Darkwire" ;;
+        A-A-C) setup_environment "Advanced" "AdGuard" "Channels" ;;
+        A-P-D) setup_environment  "Advanced" "Pihole" "Darkwire" ;;
+        A-P-C) setup_environment  "Advanced" "Pihole" "Channels" ;;
+        P_Conf-A-D) setup_environment "Pre_Configured" "AdGuard" "Darkwire" ;;
+        P_Conf-A-C) setup_environment "Pre_Configured" "AdGuard" "Channels" ;;
+        P_Conf-P-D) setup_environment "Pre_Configured" "Pihole" "Darkwire" ;;
+        P_Conf-P-C) setup_environment "Pre_Configured" "Pihole" "Channels" ;;
         requirements) install_requirements ;;
         reset) fresh_install ;;
         *) echo "Invalid choice. Please try again." ;;
     esac
     fi
-
 
 
 
