@@ -14,35 +14,11 @@ networks:
 
 
 services:
-  unbound:
-    image: "klutchell/unbound:latest"
-    container_name: unbound
-    restart: unless-stopped
-    hostname: "unbound"
-    volumes:
-      - ./Global-Configs/Unbound/custom-unbound.conf:/etc/unbound/custom.conf.d/custom-unbound.conf
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.200
-
-
-  adguard:
-    depends_on: [unbound]
-    container_name: adguard
-    image: adguard/adguardhome
-    restart: unless-stopped
-    hostname: adguard
-    # Volumes store your data between container upgrades
-    volumes:
-      - "./Global-Configs/AdGuard/Data:/opt/adguardhome/work"
-      - "./Global-Configs/AdGuard/Config:/opt/adguardhome/conf"
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.100
+ 
 
   wiregate:
-    #build: ./WG-Dash
-    image: noxcis/wg-dashboard:hydra
+    build: ./WG-Dash
+    #image: noxcis/wg-dashboard:hydra
     container_name: wiregate
     cap_add:
       - NET_ADMIN
@@ -74,33 +50,7 @@ services:
       private_network:
         ipv4_address: 10.2.0.3
   
-  darkwire:
-    depends_on: [wiregate]
-    container_name: darkwire
-    image: noxcis/darkwire:hydra
-    environment:
-      - TZ=UTC
-      - VITE_API_PORT=3001
-      - VITE_API_HOST=localhost
-      - VITE_API_PROTOCOL=http
-      - VITE_COMMIT_SHA=some_sha
-      - VITE_MAX_FILE_SIZE=4
-      - MAILGUN_API_KEY=api-key
-      - MAILGUN_DOMAIN=darkwire.io
-      - ABUSE_TO_EMAIL_ADDRESS=abuse@darkwire.io
-      - ABUSE_FROM_EMAIL_ADDRESS=Darkwire <no-reply@darkwire.io>
-      - CLIENT_DIST_DIRECTORY='client/dist'
-      - ROOM_HASH_SECRET='some_uuid'
-      - SITE_URL=https://localhost
-      - STORE_BACKEND=memory
-    ports:
-      - 3001:80
-      - 4001:443
-      - 5001:3001
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.4
-    dns: 10.2.0.100
+
 
 volumes:
     postgres_data:

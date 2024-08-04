@@ -10,9 +10,7 @@ RUN apk update && \
     
 COPY ./src /home/app
 
-
-RUN pip install --upgrade pip --no-cache-dir --break-system-packages  && \   
-    python3 -m pip install -r /home/app/requirements.txt --no-cache-dir --break-system-packages && \
+RUN  python3 -m pip install -r /home/app/requirements.txt --no-cache-dir --break-system-packages && \
     chmod u+x /home/app/entrypoint.sh 
 
 ENTRYPOINT ["/home/app/entrypoint.sh"]
