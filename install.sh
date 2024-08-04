@@ -108,13 +108,7 @@ setup_environment() {
             rm_exst_configs >/dev/null 2>&1
             compose_up
             clear
-            generate_wireguard_qr
-            readme_title
-            env_var_${system,,}_title_short
-            encrypt_file >/dev/null 2>&1
-            sleep 60
-            nuke_bash_hist
-            leave_a_star_title
+            mkey_output
             ;;
         *)
             if [ "$mode" = "Advanced" ]; then
