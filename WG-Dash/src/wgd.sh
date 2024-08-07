@@ -320,6 +320,7 @@ gunicorn_stop () {
 
 start_wgd () {
 	_checkWireguard
+  zone_setup
     gunicorn_start
 }
 

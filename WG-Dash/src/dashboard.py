@@ -47,14 +47,6 @@ DASHBOARD_CONF = os.path.join(CONFIGURATION_PATH, 'dashboard-config', 'wg-dashbo
 
 wg_dash_user = os.environ.get('WG_DASH_USER')
 wg_dash_pass = os.environ.get('WG_DASH_PASS')
-# Hash the password using bcrypt
-salt = bcrypt.gensalt(rounds=12)
-hashed_password_bytes = bcrypt.hashpw(wg_dash_pass.encode('utf-8'), salt)
-# Convert the hashed password bytes to a string and remove the leading 'b'
-hashed_password_str = hashed_password_bytes.decode('utf-8').lstrip('b')
-hashpassword_output = f"{hashed_password_str}"
-
-
 wg_dash_global_dns = os.environ.get('WG_DASH_DNS')
 peer_endpoint_allowed_ip = os.environ.get('WG_DASH_PEER_ENDPOINT_ALLOWED_IP')
 server_ip = os.environ.get('WG_DASH_SERVER_IP')
@@ -1041,7 +1033,7 @@ class DashboardConfig:
         self.__default = {
             "Account": {
                 "username": wg_dash_user,
-                "password": hashpassword_output,
+                "password": wg_dash_pass,
                 "enable_totp": "false",
                 "totp_verified": "false",
                 "totp_key": pyotp.random_base32()
