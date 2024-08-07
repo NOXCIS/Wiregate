@@ -182,7 +182,7 @@ mkey_output() {
 
 #DOCKER FUNCTIONS
     compose_up() {
-        set_tag
+        set_tag --allow-beta
         run_docker_title
         docker compose pull
         docker compose up -d --build 
@@ -206,33 +206,65 @@ mkey_output() {
 }
 #MISC
         set_tag() {
-        # Docker Hub repository
-        REPO="noxcis/wg-dashboard"
+    # Docker Hub repository
+    REPO="noxcis/wg-dashboard"
 
-        # Fetch the tags from Docker Hub API
-        response=$(curl -s "https://hub.docker.com/v2/repositories/${REPO}/tags/?page_size=100")
+    # Fetch the tags from Docker Hub API
+    response=$(curl -s "https://hub.docker.com/v2/repositories/${REPO}/tags/?page_size=100")
 
-        # Extract the latest updated tag that doesn't contain 'beta' or 'dev' using jq
-        latest_tag=$(echo $response | jq -r '[.results[] | select(.name | test("beta|dev"; "i") | not)] | sort_by(.last_updated) | last(.[]).name')
+    # Initialize the search pattern
+    pattern="beta|dev"
 
-        # Check if the tag is extracted
-        if [ -z "$latest_tag" ]; then
-            echo "Failed to fetch a non-beta/non-dev latest updated tag."
-            exit 1
-        else
-            echo "Latest non-beta/non-dev updated tag: $latest_tag"
-        fi
-        export TAG="$latest_tag"
+    # Check input arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --allow-dev)
+                pattern="beta"
+                shift
+                ;;
+            --allow-beta)
+                pattern="dev"
+                shift
+                ;;
+            --allow-all)
+                pattern=""
+                shift
+                ;;
+            *)
+                echo "Invalid option: $1"
+                exit 1
+                ;;
+        esac
+    done
 
-    }
+    # Construct jq filter based on the pattern
+    if [ -n "$pattern" ]; then
+        filter="select(.name | test(\"$pattern\"; \"i\") | not)"
+    else
+        filter="."
+    fi
+
+    # Extract the latest updated tag based on the filter using jq
+    latest_tag=$(echo $response | jq -r "[.results[] | $filter] | sort_by(.last_updated) | last(.[]).name")
+
+    # Check if the tag is extracted
+    if [ -z "$latest_tag" ]; then
+        echo "Failed to fetch a suitable latest updated tag."
+        exit 1
+    else
+        echo "Latest suitable updated tag: $latest_tag"
+    fi
+    export TAG="$latest_tag"
+}
+
 
     dev_build() {
         local adguard_yaml_file="./Global-Configs/AdGuard/Config/AdGuardHome.yaml"
         local adguard_password='$2a$12$t6CGhUcXtY6lGF2/A9Jd..Wn315A0RIiuhLlHbNHG2EmDbsN7miwO'
         local adguard_user="admin"
         compose_down &&
-        sed -i -E "s|^( *password: ).*|\1$adguard_password|" "$adguard_yaml_file"
-        sed -i -E "s|^( *- name: ).*|\1$adguard_user|" "$adguard_yaml_file"
+        #sed -i -E "s|^( *password: ).*|\1$adguard_password|" "$adguard_yaml_file"
+        #sed -i -E "s|^( *- name: ).*|\1$adguard_user|" "$adguard_yaml_file"
         docker compose -f dev-docker-compose.yml up -d
         echo -e "\033[33m"'Wireguard DashBoard Available at http://localhost:8000'
 

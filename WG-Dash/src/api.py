@@ -1,11 +1,16 @@
 import ipaddress, subprocess, datetime, os, util
+from datetime import datetime, timedelta
+from flask import jsonify
 from util import *
+import configparser
 
 notEnoughParameter = {"status": False, "reason": "Please provide all required parameters."}
 good = {"status": True, "reason": ""}
 
 def ret(status=True, reason="", data=""):
     return {"status": status, "reason": reason, "data": data}
+
+
 
 def togglePeerAccess(data, g):
     checkUnlock = g.cur.execute(f"SELECT * FROM {data['config']} WHERE id='{data['peerID']}'").fetchone()
@@ -43,8 +48,34 @@ def togglePeerAccess(data, g):
             return {"status": False, "reason": str(exc.output.strip())}
     return good
 
+class managePeer:
+    def getPeerDataUsage(self, data, cur):
+        now = datetime.now()
+        now_string = now.strftime("%d/%m/%Y %H:%M:%S")
+        interval = {
+            "30min": now - timedelta(hours=0, minutes=30),
+             "1h": now - timedelta(hours=1, minutes=0), 
+             "6h": now - timedelta(hours=6, minutes=0), 
+             "24h": now - timedelta(hours=24, minutes=0), 
+             "all": ""
+        }
+        if data['interval'] not in interval.keys():
+            return {"status": False, "reason": "Invalid interval."}
+        intv = ""
+        if data['interval'] != "all":
+            t = interval[data['interval']].strftime("%d/%m/%Y %H:%M:%S")
+            intv = f" AND time >= '{t}'"
+        timeData = cur.execute(f"SELECT total_receive, total_sent, time FROM wg0_transfer WHERE id='{data['peerID']}' {intv} ORDER BY time DESC;")
+        chartData = []
+        for i in timeData:
+            chartData.append({
+                "total_receive": i[0],
+                "total_sent": i[1],
+                "time": i[2]
+            })
+        return {"status": True, "reason": "", "data": chartData}
 
-class addConfiguration:
+class manageConfiguration:
     def AddressCheck(self, data):
         address = data['address']
         address = address.replace(" ", "")
@@ -68,6 +99,9 @@ class addConfiguration:
         for i in configs:
             if i['port'] == port:
                 return {"status": False, "reason": f"{port} used by {i['conf']}."}
+        checkSystem = subprocess.run(f'ss -tulpn | grep :{port} > /dev/null', shell=True)
+        if checkSystem.returncode != 1:
+            return {"status": False, "reason": f"Port {port} used by other process in your system."}
         return good
 
     def NameCheck(self, data, configs):
@@ -137,7 +171,69 @@ class addConfiguration:
                 return {"status": False, "reason": "Can't delete peer", "data": str(e)}
 
             return good
+
+    def getConfigurationInfo(self, configName, WG_CONF_PATH):
+        conf = configparser.RawConfigParser(strict=False)
+        conf.optionxform = str
+        try:
+            with open(f'{WG_CONF_PATH}/{configName}.conf', 'r'):
+                conf.read(f'{WG_CONF_PATH}/{configName}.conf')
+                if not conf.has_section("Interface"):
+                    return ret(status=False, reason="No [Interface] in configuration file")
+                return ret(data=dict(conf['Interface']))
+        except FileNotFoundError as err:
+            return ret(status=False, reason=str(err))
+    
+    def saveConfiguration(self, data, WG_CONF_PATH, configs):
+        conf = configparser.RawConfigParser(strict=False)
+        conf.optionxform = str
+        configName = data['configurationName']
+        pc = manageConfiguration.PortCheck(self, {'port': data['ListenPort']}, configs)
+        if pc['status']:
+            try:
+                newData = []
+                with open(f'{WG_CONF_PATH}/{configName}.conf', 'r') as f:
+                    conf.read(f'{WG_CONF_PATH}/{configName}.conf')
+                    if not conf.has_section("Interface"):
+                        return ret(status=False, reason="No [Interface] in configuration file")
+                    l = ['ListenPort', 'PostUp', 'PostDown', 'PreUp', 'PreDown']
+                    for i in l:
+                        conf.set("Interface", i, data[i])
+                    conf.remove_section("Peer")
+                    newData = list(map(lambda x : f"{x[0]} = {x[1]}\n", list(conf.items("Interface"))))
+                    originalData = f.readlines()
+                    for i in range(len(originalData)):
+                        if originalData[i] == "[Peer]\n":
+                            originalData = originalData[i:]
+                            break
+                    newData.insert(0, "[Interface]\n")
+                    newData.append("\n")
+                    newData = newData + originalData
+                    conf.clear()
+                
+
+                try:
+                    check = subprocess.check_output("wg-quick down " + configName,
+                                                    shell=True, stderr=subprocess.STDOUT)
+                except subprocess.CalledProcessError as exc:
+                    pass
+                with open(f'{WG_CONF_PATH}/{configName}.conf', 'w') as f:
+                    for i in newData:
+                        f.write(i)
+                try:
+                    check = subprocess.check_output("wg-quick up " + configName,
+                                                    shell=True, stderr=subprocess.STDOUT)
+                except subprocess.CalledProcessError as exc:
+                    pass
+                return ret()
+            except FileNotFoundError as err:
+                return ret(status=False, reason=str(err))
+        else:
+            return pc
+
         
+
+
 class settings:
     def setTheme(self, theme, config, setConfig):
         themes = ['light', 'dark']

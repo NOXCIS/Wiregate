@@ -1,19 +1,20 @@
 FROM alpine:latest
 
 WORKDIR /home/app 
-RUN apk update && \
-    apk add --no-cache python3 py3-pip py3-bcrypt py3-pillow uwsgi-python3 && \
-    apk add --no-cache linux-headers wireguard-tools openssl nginx && \ 
-    apk add --no-cache net-tools iproute2 iptables ip6tables openssl-dev  && \
+RUN    apk update && \
+    apk add --no-cache py3-bcrypt py3-psutil && \
+    apk add --no-cache wireguard-tools && \
+    apk add --no-cache net-tools iproute2 iptables ip6tables  && \
     apk add --no-cache inotify-tools procps openresolv  && \
     mkdir /home/app/master-key 
     
 COPY ./src /home/app
-
-RUN  python3 -m pip install -r /home/app/requirements.txt --no-cache-dir --break-system-packages && \
-    chmod u+x /home/app/entrypoint.sh 
+RUN    chmod u+x /home/app/entrypoint.sh 
 
 ENTRYPOINT ["/home/app/entrypoint.sh"]
+
+
+
 
 
 

@@ -103,11 +103,16 @@ set_port_range() {
 }
 generate_wireguard_qr() {
     local config_file="./Global-Configs/Master-Key/master.conf"
-    sleep 2s
-    if ! [ -f "$config_file" ]; then
-        echo "Error: Config file not found."
-        #return 1
-    fi
+    echo -n "Generating Master Key"
+
+    while ! [ -f "$config_file" ]; do
+        for s in / - \\ \|; do
+            echo -ne "\rGenerating Master Key $s"
+            sleep 0.2
+        done
+    done
+
+    echo -e "\rGenerating Master Key ... Done!"
 
     # Generate the QR code and display it in the CLI
     master_key_title
