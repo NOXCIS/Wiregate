@@ -31,6 +31,7 @@ services:
 
     environment:
       - WGD_WELCOME_SESSION=false
+      - WGD_APP_PORT=10086
       - WGD_USER=james
       - WGD_PASS=admin
       - WGD_REMOTE_ENDPOINT=0.0.0.0

@@ -351,6 +351,7 @@ set_env() {
 
   if [[ "$env_type" == "docker" ]]; then
 	echo "WGD_WELCOME_SESSION=${WGD_WELCOME_SESSION}" >> "$env_file"
+	echo "WGD_APP_PORT=${WGD_APP_PORT}" >> "$env_file"
     echo "WGD_USER=${WGD_USER}" >> "$env_file"
     echo "WGD_PASS=${WGD_PASS}" >> "$env_file"
     echo "WGD_REMOTE_ENDPOINT=${WGD_REMOTE_ENDPOINT}" >> "$env_file"
@@ -363,6 +364,7 @@ set_env() {
 
   elif [[ "$env_type" == "regular" ]]; then
 	echo "WGD_WELCOME_SESSION=true" >> "$env_file"
+	echo "WGD_APP_PORT=10086" >> "$env_file"
     echo "WGD_USER=admin" >> "$env_file"
 	echo "WGD_PASS=admin" >> "$env_file"
 	echo "WGD_REMOTE_ENDPOINT=0.0.0.0" >> "$env_file"

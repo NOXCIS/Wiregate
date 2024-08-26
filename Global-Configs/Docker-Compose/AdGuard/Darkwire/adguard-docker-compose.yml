@@ -53,6 +53,7 @@ services:
       - ./Global-Configs/Master-Key:/opt/wireguarddashboard/src/master-key
     environment:
       - WGD_WELCOME_SESSION=false
+      - WGD_APP_PORT=${WGD_APP_PORT}
       - WGD_USER=${WGD_USER}
       - WGD_PASS=${WGD_PASS}
       - WGD_REMOTE_ENDPOINT=${WGD_REMOTE_ENDPOINT}

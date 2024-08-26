@@ -156,10 +156,9 @@ set_wg-dash_pass() {
     if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
     
         characters="A-Za-z0-9!@#$%^&*()"
-        
+
         plaintext_wgdash_pass=$(head /dev/urandom | tr -dc "$characters" | head -c 16)
         
-
         export WGD_PASS="$plaintext_wgdash_pass"
     fi
 

@@ -47,6 +47,7 @@ DASHBOARD_CONF = os.path.join(CONFIGURATION_PATH, 'dashboard_config', 'wg-dashbo
 
 #Docker ENV ARGS Import
 wgd_welcome = os.environ.get('WGD_WELCOME_SESSION')
+wgd_app_port = os.environ.get('WGD_APP_PORT')
 wgd_user = os.environ.get('WGD_USER')
 wgd_pass = os.environ.get('WGD_PASS')
 wgd_global_dns = os.environ.get('WGD_DNS')
@@ -1136,7 +1137,7 @@ class DashboardConfig:
                 "wg_conf_path": "/etc/wireguard",
                 "app_prefix": "",
                 "app_ip": "0.0.0.0",
-                "app_port": "10086",
+                "app_port": wgd_app_port,
                 "auth_req": "true",
                 "version": DASHBOARD_VERSION,
                 "dashboard_refresh_interval": "60000",
