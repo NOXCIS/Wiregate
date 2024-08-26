@@ -330,9 +330,11 @@ stop_wgd() {
 
 startwgd_docker() {
 	_checkWireguard
-	printf "[WGDashboard][Docker] WireGuard configuration started\n"
-	{ date; set_env docker ; printf "\n\n"; } >> ./log/install.txt
-	{ date; start_core ; printf "\n\n"; } >> ./log/install.txt
+	printf "[WGDashboard][Docker] %s WGD Docker Started\n" "$heavy_checkmark"
+	#{ date; set_env docker ; printf "\n\n"; } >> ./log/install.txt
+  set_env docker
+	#{ date; start_core ; printf "\n\n"; } >> ./log/install.txt
+  start_core
     gunicorn_start
 }
 
@@ -343,14 +345,14 @@ set_env() {
 
   # Check if the env_file exists and is not empty
   if [[ -f "$env_file" && -s "$env_file" ]]; then
-    echo "[WGDashboard] .env file already exists and is not empty. Skipping environment setup."
+    printf "[WGDashboard][Docker] %s Loading Enviornment File.\n" "$heavy_checkmark"
     return 0
   fi
 
   # Create the env_file if it doesn't exist
   if [[ ! -f "$env_file" ]]; then
     touch "$env_file"
-    echo "[WGDashboard] Created env file: $env_file"
+    printf "[WGDashboard][Docker] %s Enviornment File Missing, Creating ...\n" "$heavy_checkmark" 
   fi
 
   # Clear the file to ensure it's updated with the latest values
@@ -388,15 +390,14 @@ set_env() {
 }
 
 
-
 start_core() {
 	# Check if wg0.conf exists in /etc/wireguard
     if [ ! -f "$svr_config" ]; then
 	  #if [[ ! -f /etc/wireguard/ADMINS.conf ]]; then
-		echo "[WGDashboard][Docker] wg0.conf not found. Running generate configuration."
+		printf "[WGDashboard][Docker] %s Wireguard Configuration Missing, Creating ....\n" "$heavy_checkmark"
 		newconf_wgd
 	else
-		echo "[WGDashboard][Docker] wg0.conf already exists. Skipping WireGuard configuration generation."
+		printf "[WGDashboard][Docker] %s Loading Wireguard Configuartions.\n" "$heavy_checkmark"
 	fi
 	# Re-assign config_files to ensure it includes any newly created configurations
 	local config_files=$(find /etc/wireguard -type f -name "*.conf")
@@ -406,8 +407,10 @@ start_core() {
 	find "$iptable_dir" -type f -name "*.sh" -exec chmod +x {} \;
 	
 	# Start WireGuard for each config file
+  printf "[WGDashboard][Docker] %s Starting Wireguard Configuartions.\n" "$heavy_checkmark"
+  printf "%s\n" "$dashes"
 	for file in $config_files; do
-		config_name=$(basename "$file" ".conf")
+		config_name=$(basename "$file" ".conf")  
 		wg-quick up "$config_name"
 	done
 }
@@ -483,9 +486,8 @@ PostUp =  /opt/wireguarddashboard/src/iptable-rules/Admins/postup.sh
 PreDown = /opt/wireguarddashboard/src/iptable-rules/Admins/postdown.sh
 
 EOF
-    #if [ ! -f "/master-key/master.conf" ]; then
-        make_master_config  # Only call make_master_config if master.conf doesn't exist
-    #fi 
+
+        make_master_config
 }
 
 
@@ -547,18 +549,17 @@ EOF
 make_master_config() {
     # Create the master-key directory if it doesn't exist
     if [ ! -d "master-key" ]; then
-        printf "[WGDashboard] Creating ./master-key folder\n"
         mkdir "master-key"
     fi
-
-    #local svr_config="/etc/wireguard/ADMINS.conf"
 
     # Check if the specified config file exists
     if [ -f "$svr_config" ]; then
         # Check if the master peer with IP 10.0.0.254/32 is already configured
         if grep -q "AllowedIPs = 10.0.0.254/32" "$svr_config"; then
-            echo "Master peer with IP 10.0.0.254/32 already exists in ADMINS.conf."
-            echo "Skipping master client creation."
+            
+            
+            { date; python3 -m pip install --upgrade pip; printf "\n\n"; } >> ./log/install.txt
+            echo "[WGDashboard][Docker] Master Peer Already Exists, Skipping..."
             return 0
         fi
     fi
