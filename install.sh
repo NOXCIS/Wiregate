@@ -191,7 +191,7 @@ mkey_output() {
         local install_check="preqsinstalled.txt"
         local yml_file="docker-compose.yml"
         local port_mappings="770-777:770-777/udp"
-        export WG_DASH_PORT_MAPPINGS="$port_mappings"
+        export WGD_PORT_MAPPINGS="$port_mappings"
 
         if [ ! -f "$install_check" ]; then
             # If prerequisites are not installed, install them

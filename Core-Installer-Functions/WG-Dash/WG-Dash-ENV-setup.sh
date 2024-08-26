@@ -24,7 +24,7 @@ update_server_ip() {
     
     if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
         ip=$(curl -s ifconfig.me)
-        export WG_DASH_SERVER_IP="$ip"
+        export WGD_REMOTE_ENDPOINT="$ip"
     fi
 
 
@@ -47,7 +47,7 @@ update_server_ip() {
             echo -e "\033[31mInvalid IPv4 address format. Please enter a valid IPv4 address.\033[0m"
             continue
         fi
-                export WG_DASH_SERVER_IP="$ip"
+                export WGD_REMOTE_ENDPOINT="$ip"
                 break
             
         done
@@ -80,8 +80,8 @@ set_port_range() {
         HOST_PORT_END=$((HOST_PORT_START + pcount-1))  
         port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
         echo -e "Wireguard Port Range Set To: \033[32m$port_mappings\033[0m"
-        export WG_DASH_PORT_RANGE_STARTPORT="$HOST_PORT_START"
-        export WG_DASH_PORT_MAPPINGS="$port_mappings"
+        export WGD_PORT_RANGE_STARTPORT="$HOST_PORT_START"
+        export WGD_PORT_MAPPINGS="$port_mappings"
     fi
 
 
@@ -94,8 +94,8 @@ set_port_range() {
         HOST_PORT_END=$((HOST_PORT_START + pcount-1))  
         port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
         echo -e "Wireguard Port Range Set To: \033[32m$port_mappings\033[0m"
-        export WG_DASH_PORT_RANGE_STARTPORT="$HOST_PORT_START"
-        export WG_DASH_PORT_MAPPINGS="$port_mappings"
+        export WGD_PORT_RANGE_STARTPORT="$HOST_PORT_START"
+        export WGD_PORT_MAPPINGS="$port_mappings"
         break
         done
     fi
@@ -156,11 +156,11 @@ set_wg-dash_pass() {
     if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
     
         characters="A-Za-z0-9!@#$%^&*()"
-
+        
         plaintext_wgdash_pass=$(head /dev/urandom | tr -dc "$characters" | head -c 16)
         
-    
-        export WG_DASH_PASS="$plaintext_wgdash_pass"
+
+        export WGD_PASS="$plaintext_wgdash_pass"
     fi
 
     if [[ "$user_activity" == true ]]; then
@@ -188,7 +188,7 @@ set_wg-dash_pass() {
 
 
 
-                export WG_DASH_PASS="$wgdash_pass"
+                export WGD_PASS="$wgdash_pass"
                 
 
 
@@ -235,8 +235,6 @@ set_wg-dash_user() {
         word2="${shuffled_build_names[0]}"
         word1="${shuffled_quirky_words[0]}"
 
-        
-
         # Generate a random number between 100 and 999
         random_number=$(shuf -i 100-999 -n 1)
 
@@ -245,7 +243,7 @@ set_wg-dash_user() {
 
         #sed -i -E "s|^( *- name: ).*|\1$wgdash_user|" "$adguard_yaml_file"
 
-        export WG_DASH_USER="$wgdash_user"
+        export WGD_USER="$wgdash_user"
 
 
         
@@ -265,7 +263,7 @@ set_wg-dash_user() {
                 continue
             fi
 
-                export WG_DASH_USER="$wgdash_user"
+                export WGD_USER="$wgdash_user"
                 break
             
         done

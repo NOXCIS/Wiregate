@@ -1,6 +1,7 @@
-#bcrypt
+bcrypt
 ifcfg
-#psutil
+python-dotenv
+psutil
 pyotp
 Flask
 flask-cors

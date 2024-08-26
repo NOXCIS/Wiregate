@@ -1,12 +1,10 @@
 import dashboard
 from datetime import datetime
-import os
 
 global sqldb, cursor, DashboardConfig, WireguardConfigurations, AllPeerJobs, JobLogger
 app_host, app_port = dashboard.gunicornConfig()
 date = datetime.today().strftime('%Y_%m_%d_%H_%M_%S')
 
-gunicron_daemon = os.environ.get('WG_DASH_GU_DAEMON')
 
 def post_worker_init(worker):
     dashboard.startThreads()
@@ -16,7 +14,7 @@ worker_class = 'gthread'
 workers = 1
 threads = 1
 bind = f"{app_host}:{app_port}"
-daemon = gunicron_daemon
+daemon = True
 pidfile = './gunicorn.pid'
 wsgi_app = "dashboard:app"
 accesslog = f"./log/access_{date}.log"
