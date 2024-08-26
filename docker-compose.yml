@@ -49,6 +49,7 @@ services:
     volumes:
       - wgd_configs:/etc/wireguard
       - wgd_settings:/opt/wireguarddashboard/src/dashboard_config
+      - wgd_db:/opt/wireguarddashboard/src/db
       - wgd_iptables:/opt/wireguarddashboard/src/iptable-rules
       - ./Global-Configs/Master-Key:/opt/wireguarddashboard/src/master-key
     environment:
@@ -102,5 +103,6 @@ services:
 volumes:
     postgres_data:
     wgd_settings:
+    wgd_db:
     wgd_configs:
     wgd_iptables:

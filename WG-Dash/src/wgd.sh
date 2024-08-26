@@ -10,6 +10,7 @@ app_official_name="WGDashboard"
 venv_python="./venv/bin/python3"
 venv_gunicorn="./venv/bin/gunicorn"
 pythonExecutable="python3"
+svr_config="/etc/wireguard/ADMINS.conf"
 
 heavy_checkmark=$(printf "\xE2\x9C\x94")
 heavy_crossmark=$(printf "\xE2\x9C\x97")
@@ -337,10 +338,16 @@ startwgd_docker() {
 
 
 set_env() {
-  local env_file=".env"          
-  local env_type="$1"            
+  local env_file=".env"
+  local env_type="$1"
 
-  # Check if the env_file exists, if not, create it
+  # Check if the env_file exists and is not empty
+  if [[ -f "$env_file" && -s "$env_file" ]]; then
+    echo "[WGDashboard] .env file already exists and is not empty. Skipping environment setup."
+    return 0
+  fi
+
+  # Create the env_file if it doesn't exist
   if [[ ! -f "$env_file" ]]; then
     touch "$env_file"
     echo "[WGDashboard] Created env file: $env_file"
@@ -350,30 +357,30 @@ set_env() {
   > "$env_file"
 
   if [[ "$env_type" == "docker" ]]; then
-	echo "WGD_WELCOME_SESSION=${WGD_WELCOME_SESSION}" >> "$env_file"
-	echo "WGD_APP_PORT=${WGD_APP_PORT}" >> "$env_file"
-    echo "WGD_USER=${WGD_USER}" >> "$env_file"
-    echo "WGD_PASS=${WGD_PASS}" >> "$env_file"
-    echo "WGD_REMOTE_ENDPOINT=${WGD_REMOTE_ENDPOINT}" >> "$env_file"
-    echo "WGD_DNS=${WGD_DNS}" >> "$env_file"
-    echo "WGD_IPTABLES_DNS=${WGD_IPTABLES_DNS}" >> "$env_file"
-    echo "WGD_PEER_ENDPOINT_ALLOWED_IP=${WGD_PEER_ENDPOINT_ALLOWED_IP}" >> "$env_file"
-    echo "WGD_KEEP_ALIVE=${WGD_KEEP_ALIVE}" >> "$env_file"
-    echo "WGD_MTU=${WGD_MTU}" >> "$env_file"
-    echo "WGD_PORT_RANGE_STARTPORT=${WGD_PORT_RANGE_STARTPORT}" >> "$env_file"
+    printf "WGD_WELCOME_SESSION=%s\n" "${WGD_WELCOME_SESSION}" >> "$env_file"
+    printf "WGD_APP_PORT=%s\n" "${WGD_APP_PORT}" >> "$env_file"
+    printf "WGD_USER=%s\n" "${WGD_USER}" >> "$env_file"
+    printf "WGD_PASS=%s\n" "${WGD_PASS}" >> "$env_file"
+    printf "WGD_REMOTE_ENDPOINT=%s\n" "${WGD_REMOTE_ENDPOINT}" >> "$env_file"
+    printf "WGD_DNS=%s\n" "${WGD_DNS}" >> "$env_file"
+    printf "WGD_IPTABLES_DNS=%s\n" "${WGD_IPTABLES_DNS}" >> "$env_file"
+    printf "WGD_PEER_ENDPOINT_ALLOWED_IP=%s\n" "${WGD_PEER_ENDPOINT_ALLOWED_IP}" >> "$env_file"
+    printf "WGD_KEEP_ALIVE=%s\n" "${WGD_KEEP_ALIVE}" >> "$env_file"
+    printf "WGD_MTU=%s\n" "${WGD_MTU}" >> "$env_file"
+    printf "WGD_PORT_RANGE_STARTPORT=%s\n" "${WGD_PORT_RANGE_STARTPORT}" >> "$env_file"
 
   elif [[ "$env_type" == "regular" ]]; then
-	echo "WGD_WELCOME_SESSION=true" >> "$env_file"
-	echo "WGD_APP_PORT=10086" >> "$env_file"
-    echo "WGD_USER=admin" >> "$env_file"
-	echo "WGD_PASS=admin" >> "$env_file"
-	echo "WGD_REMOTE_ENDPOINT=0.0.0.0" >> "$env_file"
-	echo "WGD_DNS=1.1.1.1" >> "$env_file"
-	echo "WGD_IPTABLES_DNS=${WGD_IPTABLES_DNS}" >> "$env_file"
-	echo "WGD_PEER_ENDPOINT_ALLOWED_IP=0.0.0.0/0" >> "$env_file"
-	echo "WGD_KEEP_ALIVE=21" >> "$env_file"
-	echo "WGD_MTU=1420" >> "$env_file"
-	echo "WGD_PORT_RANGE_STARTPORT=${WGD_PORT_RANGE_STARTPORT}" >> "$env_file"
+    printf "WGD_WELCOME_SESSION=true\n" >> "$env_file"
+    printf "WGD_APP_PORT=10086\n" >> "$env_file"
+    printf "WGD_USER=admin\n" >> "$env_file"
+    printf "WGD_PASS=admin\n" >> "$env_file"
+    printf "WGD_REMOTE_ENDPOINT=0.0.0.0\n" >> "$env_file"
+    printf "WGD_DNS=1.1.1.1\n" >> "$env_file"
+    printf "WGD_IPTABLES_DNS=%s\n" "${WGD_IPTABLES_DNS}" >> "$env_file"
+    printf "WGD_PEER_ENDPOINT_ALLOWED_IP=0.0.0.0/0\n" >> "$env_file"
+    printf "WGD_KEEP_ALIVE=21\n" >> "$env_file"
+    printf "WGD_MTU=1420\n" >> "$env_file"
+    printf "WGD_PORT_RANGE_STARTPORT=%s\n" "${WGD_PORT_RANGE_STARTPORT}" >> "$env_file"
   else
     echo "Error: Invalid environment type. Use 'docker' or 'regular'."
     return 1
@@ -384,7 +391,8 @@ set_env() {
 
 start_core() {
 	# Check if wg0.conf exists in /etc/wireguard
-	if [[ ! -f /etc/wireguard/wg0.conf ]]; then
+    if [ ! -f "$svr_config" ]; then
+	  #if [[ ! -f /etc/wireguard/ADMINS.conf ]]; then
 		echo "[WGDashboard][Docker] wg0.conf not found. Running generate configuration."
 		newconf_wgd
 	else
@@ -475,9 +483,9 @@ PostUp =  /opt/wireguarddashboard/src/iptable-rules/Admins/postup.sh
 PreDown = /opt/wireguarddashboard/src/iptable-rules/Admins/postdown.sh
 
 EOF
-    if [ ! -f "/master-key/master.conf" ]; then
+    #if [ ! -f "/master-key/master.conf" ]; then
         make_master_config  # Only call make_master_config if master.conf doesn't exist
-    fi 
+    #fi 
 }
 
 
@@ -537,35 +545,36 @@ EOF
 
 
 make_master_config() {
-	
-		if [ ! -d "master-key" ]
-		then 
-		printf "[WGDashboard] Creating ./master-key folder\n"
-		mkdir "master-key" 
-		fi
-		
-        local svr_config="/etc/wireguard/ADMINS.conf"
-        # Check if the specified config file exists
-        if [ ! -f "$svr_config" ]; then
-            echo "Error: Config file $svr_config not found."
-            exit 1
+    # Create the master-key directory if it doesn't exist
+    if [ ! -d "master-key" ]; then
+        printf "[WGDashboard] Creating ./master-key folder\n"
+        mkdir "master-key"
+    fi
+
+    #local svr_config="/etc/wireguard/ADMINS.conf"
+
+    # Check if the specified config file exists
+    if [ -f "$svr_config" ]; then
+        # Check if the master peer with IP 10.0.0.254/32 is already configured
+        if grep -q "AllowedIPs = 10.0.0.254/32" "$svr_config"; then
+            echo "Master peer with IP 10.0.0.254/32 already exists in ADMINS.conf."
+            echo "Skipping master client creation."
+            return 0
         fi
+    fi
 
+    # Function to generate a new peer's public key
+    generate_public_key() {
+        local private_key="$1"
+        echo "$private_key" | wg pubkey
+    }
 
-        #Function to generate a new peer's public key
-        generate_public_key() {
-            local private_key="$1"
-            echo "$private_key" | wg pubkey
-        }
+    # Function to generate a new preshared key
+    generate_preshared_key() {
+        wg genpsk
+    }
 
-        # Function to generate a new preshared key
-        generate_preshared_key() {
-            wg genpsk
-        }   
-
-
-
-    # Generate the new peer's public key, preshared key, and allowed IP
+    # Generate the new peer's private key, public key, and preshared key
     wg_private_key=$(wg genkey)
     peer_public_key=$(generate_public_key "$wg_private_key")
     preshared_key=$(generate_preshared_key)
@@ -576,10 +585,8 @@ make_master_config() {
     echo "PresharedKey = $preshared_key" >> "$svr_config"
     echo "AllowedIPs = 10.0.0.254/32" >> "$svr_config"
 
-
-    server_public_key=$(grep -E '^PrivateKey' "$svr_config" | awk '{print $NF}')
-    svrpublic_key=$(echo "$server_public_key" | wg pubkey)
-
+    server_private_key=$(grep -E '^PrivateKey' "$svr_config" | awk '{print $NF}')
+    svrpublic_key=$(echo "$server_private_key" | wg pubkey)
 
     # Generate the client config file
     cat <<EOF >"/opt/wireguarddashboard/src/master-key/master.conf"
@@ -597,6 +604,8 @@ PersistentKeepalive = 21
 PresharedKey = $preshared_key
 EOF
 }
+
+
 
 
 
