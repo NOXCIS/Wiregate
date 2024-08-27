@@ -49,7 +49,6 @@ services:
 
         
   wiregate:
-    #build: ./WG-Dash
     image: noxcis/wg-dashboard:${TAG}
     container_name: wiregate
     cap_add:
@@ -57,30 +56,29 @@ services:
       - SYS_MODULE
     restart: unless-stopped
     volumes:
-      - wg_configs:/etc/wireguard
-      - wg_data:/home/app/dashboard-config
-      - wg_db:/home/app/db
-      - wg_iptables:/home/app/Iptables
-      - ./Global-Configs/Master-Key:/home/app/master-key
+      - wgd_configs:/etc/wireguard
+      - wgd_app:/opt/wireguarddashboard/src
+      - ./Global-Configs/Master-Key:/opt/wireguarddashboard/src/master-key
     environment:
-      - WG_DASH_USER=${WG_DASH_USER}
-      - WG_DASH_PASS=${WG_DASH_PASS}
-      - WG_DASH_SERVER_IP=${WG_DASH_SERVER_IP}
-      - WG_DASH_DNS=10.2.0.100, 10.2.0.100
-      - WG_DASH_IPTABLES_DNS=10.2.0.100
-      - WG_DASH_PEER_ENDPOINT_ALLOWED_IP=0.0.0.0/0
-      - WG_DASH_KEEP_ALIVE=21
-      - WG_DASH_MTU=1420
-      - WG_DASH_PORT_RANGE_STARTPORT=${WG_DASH_PORT_RANGE_STARTPORT}
+      - WGD_WELCOME_SESSION=false
+      - WGD_APP_PORT=80
+      - WGD_USER=${WGD_USER}
+      - WGD_PASS=${WGD_PASS}
+      - WGD_REMOTE_ENDPOINT=${WGD_REMOTE_ENDPOINT}
+      - WGD_DNS="10.2.0.100, 10.2.0.100"
+      - WGD_IPTABLES_DNS=10.2.0.100
+      - WGD_PEER_ENDPOINT_ALLOWED_IP=0.0.0.0/0
+      - WGD_KEEP_ALIVE=21
+      - WGD_MTU=1420
+      - WGD_PORT_RANGE_STARTPORT=${WGD_PORT_RANGE_STARTPORT}
     ports:
-      - "${WG_DASH_PORT_MAPPINGS}"
+      - "${WGD_PORT_MAPPINGS}"
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
     networks:
       private_network:
         ipv4_address: 10.2.0.3
-    dns: 10.2.0.100
 
   darkwire:
     depends_on: [wiregate]
@@ -108,8 +106,5 @@ services:
 
 volumes:
     postgres_data:
-    wg_data:
-    wg_configs:
-    wg_db:
-    wg_iptables:
-  
+    wgd_app:
+    wgd_configs:

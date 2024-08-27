@@ -43,12 +43,9 @@ services:
       - SYS_MODULE
     restart: unless-stopped
     volumes:
-      - wg_configs:/etc/wireguard
-      - wg_data:/home/app/dashboard-config
-      - wg_db:/home/app/db
-      - wg_iptables:/home/app/Iptables
-      - ./Global-Configs/Master-Key:/home/app/master-key
-
+      - wgd_configs:/etc/wireguard
+      - wgd_app:/opt/wireguarddashboard/src
+      - ./Global-Configs/Master-Key:/opt/wireguarddashboard/src/master-key
     env_file:
       - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
     ports:
@@ -88,7 +85,5 @@ services:
 
 volumes:
     postgres_data:
-    wg_data:
-    wg_configs:
-    wg_db:
-    wg_iptables:
+    wgd_app:
+    wgd_configs:
