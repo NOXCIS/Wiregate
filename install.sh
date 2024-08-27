@@ -205,25 +205,25 @@ mkey_output() {
         fi
 }
 #MISC
-        set_tag() {
+set_tag() {
     # Docker Hub repository
     REPO="noxcis/wg-dashboard"
 
     # Fetch the tags from Docker Hub API
-    response=$(curl -s "https://hub.docker.com/v2/repositories/${REPO}/tags/?page_size=100")
+    response=$(curl -s -f "https://hub.docker.com/v2/repositories/${REPO}/tags/?page_size=100")
 
     # Initialize the search pattern
-    pattern="beta|dev"
+    pattern=""
 
     # Check input arguments
     while [[ $# -gt 0 ]]; do
         case $1 in
             --allow-dev)
-                pattern="beta"
+                pattern+="dev|"
                 shift
                 ;;
             --allow-beta)
-                pattern="dev"
+                pattern+="beta|"
                 shift
                 ;;
             --allow-all)
@@ -239,13 +239,16 @@ mkey_output() {
 
     # Construct jq filter based on the pattern
     if [ -n "$pattern" ]; then
-        filter="select(.name | test(\"$pattern\"; \"i\") | not)"
+        # If pattern is not empty, remove trailing '|' and include the words
+        pattern="${pattern%|}"
+        filter="select(.name | test(\"$pattern\"; \"i\"))"
     else
-        filter="."
+        # Default behavior to exclude tags with 'beta' or 'dev'
+        filter="select(.name | test(\"beta|dev\"; \"i\") | not)"
     fi
 
     # Extract the latest updated tag based on the filter using jq
-    latest_tag=$(echo $response | jq -r "[.results[] | $filter] | sort_by(.last_updated) | last(.[]).name")
+    latest_tag=$(echo "$response" | jq -r "[.results[] | $filter] | sort_by(.last_updated) | last(.[]).name")
 
     # Check if the tag is extracted
     if [ -z "$latest_tag" ]; then
@@ -254,6 +257,7 @@ mkey_output() {
     else
         echo "Latest suitable updated tag: $latest_tag"
     fi
+
     export TAG="$latest_tag"
 }
 
