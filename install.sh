@@ -219,11 +219,11 @@ set_tag() {
     while [[ $# -gt 0 ]]; do
         case $1 in
             --allow-dev)
-                pattern+="dev|"
+                pattern="dev"
                 shift
                 ;;
             --allow-beta)
-                pattern+="beta|"
+                pattern="beta"
                 shift
                 ;;
             --allow-all)
@@ -239,8 +239,7 @@ set_tag() {
 
     # Construct jq filter based on the pattern
     if [ -n "$pattern" ]; then
-        # If pattern is not empty, remove trailing '|' and include the words
-        pattern="${pattern%|}"
+        # Only include tags that contain the specified pattern
         filter="select(.name | test(\"$pattern\"; \"i\"))"
     else
         # Default behavior to exclude tags with 'beta' or 'dev'
