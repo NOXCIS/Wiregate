@@ -25,8 +25,6 @@ services:
     restart: unless-stopped
     volumes:
       - wgd_configs:/etc/wireguard
-      #- wgd_settings:/opt/wireguarddashboard/src/dashboard_config
-      #- wgd_iptables:/opt/wireguarddashboard/src/iptable-rules
       - wgd_app:/opt/wireguarddashboard/src
 
     environment:
