@@ -59,3 +59,4 @@ run-log.txt
 test.py
 test.sh
 preqsinstalled.txt
+.env

@@ -56,6 +56,17 @@ update_server_ip() {
 set_port_range() {
     local timer=$TIMER_VALUE
     local user_activity=false
+    local env_file=".env"
+
+    # Create environment file if it doesn't exist
+    if [ ! -f "$env_file" ]; then
+        touch "$env_file"
+    fi
+
+    # Function to check if .env file is empty
+    is_env_file_empty() {
+        [ ! -s "$env_file" ]
+    }
 
     while [ $timer -gt 0 ]; do
         clear  # Clear the screen
@@ -73,34 +84,47 @@ set_port_range() {
             break
         fi
     done
-    
+
     if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
-        HOST_PORT_START=$((1 + RANDOM % 65535))
-        pcount=4
-        HOST_PORT_END=$((HOST_PORT_START + pcount-1))  
-        port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
-        echo -e "Wireguard Port Range Set To: \033[32m$port_mappings\033[0m"
-        export WGD_PORT_RANGE_STARTPORT="$HOST_PORT_START"
-        export WGD_PORT_MAPPINGS="$port_mappings"
+        if is_env_file_empty; then
+            HOST_PORT_START=$((1 + RANDOM % 65535))
+            pcount=4
+            HOST_PORT_END=$((HOST_PORT_START + pcount - 1))  
+            port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
+            echo -e "Wireguard Port Range Set To: \033[32m$port_mappings\033[0m"
+            echo "WGD_PORT_RANGE_STARTPORT=\"$HOST_PORT_START\"" >> "$env_file"
+            echo "WGD_PORT_MAPPINGS=\"$port_mappings\"" >> "$env_file"
+        else
+            echo "Environment file already exists and is not empty. Skipping port range generation."
+        fi
     fi
 
-
-    if [[ "$user_activity" == true ]]; then
+    if [ "$user_activity" = true ]; then
         # Prompt user to enter and confirm their password
         while true; do
             read -p "$(tput setaf 3)Enter the starting port for WireGuard Server interface's Port Range: $(tput sgr0)" HOST_PORT_START
         
-        pcount=4
-        HOST_PORT_END=$((HOST_PORT_START + pcount-1))  
-        port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
-        echo -e "Wireguard Port Range Set To: \033[32m$port_mappings\033[0m"
-        export WGD_PORT_RANGE_STARTPORT="$HOST_PORT_START"
-        export WGD_PORT_MAPPINGS="$port_mappings"
-        break
+            pcount=4
+            HOST_PORT_END=$((HOST_PORT_START + pcount - 1))  
+            port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
+            echo -e "Wireguard Port Range Set To: \033[32m$port_mappings\033[0m"
+            
+            # Check if env file is empty before writing
+            if is_env_file_empty; then
+                echo "WGD_PORT_RANGE_STARTPORT=\"$HOST_PORT_START\"" >> "$env_file"
+                echo "WGD_PORT_MAPPINGS=\"$port_mappings\"" >> "$env_file"
+            else
+                echo "Environment file already exists and is not empty. Skipping port range generation."
+            fi
+            break
         done
     fi
 
+    # Export the values from the .env file
+    export $(grep -v '^#' "$env_file" | xargs)
 }
+
+
 generate_wireguard_qr() {
     local config_file="./Global-Configs/Master-Key/master.conf"
     echo -n "Generating Master Key"
