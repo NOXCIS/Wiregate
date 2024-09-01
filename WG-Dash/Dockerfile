@@ -18,11 +18,12 @@ FROM alpine:latest
 WORKDIR /opt/wireguarddashboard/src
 
 COPY ./src /opt/wireguarddashboard/src/
+
 COPY --from=builder /opt/wireguarddashboard/src/venv /opt/wireguarddashboard/src/venv
 COPY --from=builder /opt/wireguarddashboard/src/log /opt/wireguarddashboard/src/log/
 
 RUN    apk update && \
-    apk add --no-cache wireguard-tools sudo && \
+    apk add --no-cache wireguard-tools tor sudo && \
     apk add --no-cache  iptables ip6tables && \
     chmod u+x /opt/wireguarddashboard/src/entrypoint.sh 
 

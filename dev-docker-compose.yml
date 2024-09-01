@@ -15,6 +15,42 @@ networks:
 services:
  
 
+  tor:
+    image: "noxcis/tor:prion"
+    container_name: tor
+    ports:
+      - "9053:9053"
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.42
+
+
+  unbound:
+    image: "klutchell/unbound:latest"
+    container_name: unbound
+    restart: unless-stopped
+    hostname: "unbound"
+    volumes:
+      - ./Global-Configs/Unbound/custom-unbound.conf:/etc/unbound/custom.conf.d/custom-unbound.conf
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.200
+
+
+  adguard:
+    depends_on: [unbound]
+    container_name: adguard
+    image: adguard/adguardhome
+    restart: unless-stopped
+    hostname: adguard
+    # Volumes store your data between container upgrades
+    volumes:
+      - "./Global-Configs/AdGuard/Data:/opt/adguardhome/work"
+      - "./Global-Configs/AdGuard/Config:/opt/adguardhome/conf"
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.100
+
   wiregate:
     build: ./WG-Dash
     #image: noxcis/wg-dashboard:hydra
