@@ -14,14 +14,15 @@ networks:
 
 services:
  
-
-  tor:
-    image: "noxcis/tor:prion"
-    container_name: tor
+  dnscrypt:
+    image: "klutchell/dnscrypt-proxy"
+    restart: unless-stopped
+    container_name: dnscrypt
+    volumes:
+      - ./Global-Configs/DnsCrypt/dnscrypt-proxy.toml:/config/dnscrypt-proxy.toml
     networks:
       private_network:
         ipv4_address: 10.2.0.42
-
 
   unbound:
     image: "klutchell/unbound:latest"

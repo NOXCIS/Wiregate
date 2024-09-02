@@ -1,0 +1,214 @@
+listen_addresses = ['0.0.0.0:5053']
+
+## Require servers (from remote sources) to satisfy specific properties
+
+# Use servers reachable over IPv4
+ipv4_servers = true
+
+# Use servers reachable over IPv6 -- Do not enable if you don't have IPv6 connectivity
+ipv6_servers = false
+
+# Use servers implementing the DNSCrypt protocol
+dnscrypt_servers = true
+
+# Use servers implementing the DNS-over-HTTPS protocol
+doh_servers = true
+
+# Use servers implementing the Oblivious DoH protocol
+odoh_servers = true
+
+## Require servers defined by remote sources to satisfy specific properties
+
+# Server must support DNS security extensions (DNSSEC)
+require_dnssec = true
+
+# Server must not log user queries (declarative)
+require_nolog = true
+
+# Server must not enforce its own blocklist (for parental control, ads blocking...)
+require_nofilter = true
+
+
+## Delay, in minutes, after which certificates are reloaded
+
+cert_refresh_delay = 240
+
+
+## DNSCrypt: Create a new, unique key for every single DNS query
+## This may improve privacy but can also have a significant impact on CPU usage
+## Only enable if you don't have a lot of network load
+
+dnscrypt_ephemeral_keys = false
+
+
+
+#########################
+#        Filters        #
+#########################
+
+## Note: if you are using dnsmasq, disable the `dnssec` option in dnsmasq if you
+## configure dnscrypt-proxy to do any kind of filtering (including the filters
+## below and blocklists).
+## You can still choose resolvers that do DNSSEC validation.
+
+
+## Immediately respond to IPv6-related queries with an empty response
+## This makes things faster when there is no IPv6 connectivity, but can
+## also cause reliability issues with some stub resolvers.
+
+block_ipv6 = false
+
+
+## Immediately respond to A and AAAA queries for host names without a domain name
+
+block_unqualified = true
+
+
+## Immediately respond to queries for local zones instead of leaking them to
+## upstream resolvers (always causing errors or timeouts).
+
+block_undelegated = true
+
+
+## TTL for synthetic responses sent when a request has been blocked (due to
+## IPv6 or blocklists).
+
+reject_ttl = 10
+
+
+###########################
+#        DNS cache        #
+###########################
+
+## Enable a DNS cache to reduce latency and outgoing traffic
+
+cache = true
+
+
+## Cache size
+
+cache_size = 4096
+
+
+## Minimum TTL for cached entries
+
+cache_min_ttl = 2400
+
+
+## Maximum TTL for cached entries
+
+cache_max_ttl = 86400
+
+
+## Minimum TTL for negatively cached entries
+
+cache_neg_min_ttl = 60
+
+
+## Maximum TTL for negatively cached entries
+
+cache_neg_max_ttl = 600
+
+
+#########################
+#        Servers        #
+#########################
+
+## Remote lists of available servers
+## Multiple sources can be used simultaneously, but every source
+## requires a dedicated cache file.
+##
+## Refer to the documentation for URLs of public sources.
+##
+## A prefix can be prepended to server names in order to
+## avoid collisions if different sources share the same for
+## different servers. In that case, names listed in `server_names`
+## must include the prefixes.
+##
+## If the `urls` property is missing, cache files and valid signatures
+## must already be present. This doesn't prevent these cache files from
+## expiring after `refresh_delay` hours.
+## Cache freshness is checked every 24 hours, so values for 'refresh_delay'
+## of less than 24 hours will have no effect.
+## A maximum delay of 168 hours (1 week) is imposed to ensure cache freshness.
+
+[sources]
+
+
+[sources.odoh-servers]
+     urls = ['https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-servers.md', 'https://download.dnscrypt.info/resolvers-list/v3/odoh-servers.md', 'https://ipv6.download.dnscrypt.info/resolvers-list/v3/odoh-servers.md']
+     cache_file = 'odoh-servers.md'
+     minisign_key = 'RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3'
+     refresh_delay = 24
+     prefix = ''
+[sources.odoh-relays]
+     urls = ['https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-relays.md', 'https://download.dnscrypt.info/resolvers-list/v3/odoh-relays.md', 'https://ipv6.download.dnscrypt.info/resolvers-list/v3/odoh-relays.md']
+     cache_file = 'odoh-relays.md'
+     minisign_key = 'RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3'
+     refresh_delay = 24
+     prefix = ''
+
+
+[anonymized_dns]
+routes = [
+ { server_name='*', via= [
+    'anon-cs-fr',
+    'anon-cs-india',
+    'anon-cs-ireland',
+    'anon-cs-finland',
+    'anon-cs-poland',
+    'anon-cs-hungary',
+    'anon-cs-bulgaria',
+    'anon-cs-czech',
+    'anon-cs-austria',
+    'anon-cs-milan',
+    'anon-cs-rome',
+    'anon-cs-madrid',
+    'anon-cs-barcelona',
+    'anon-cs-belgium',
+    'anon-cs-norway',
+    'anon-cs-serbia',
+    'anon-cs-slovakia',
+    'anon-cs-nl',
+    'anon-cs-nl2',
+    'anon-cs-berlin',
+    'anon-cs-de',
+    'anon-cs-dus1',
+    'anon-cs-dus2',
+    'anon-cs-dus3',
+    'anon-cs-dus4',
+    'anon-cs-manchester',
+    'anon-cs-london',
+    'anon-cs-swe',
+    'anon-cs-dk',
+    'anon-cs-ch',
+    'anon-cs-ch2',
+    'anon-cs-pt',
+    'anon-cs-ro',
+    'anon-cs-md',
+    'anon-cs-sk',
+    'anon-cs-sydney',
+    'anon-cs-tokyo',
+    'anon-cs-brazil',
+    'anon-cs-mexico',
+    'anon-cs-singapore',
+    'anon-cs-montreal',
+    'anon-cs-vancouver',
+    'anon-cs-nyc1',
+    'anon-cs-nyc2',
+    'anon-cs-il',
+    'anon-cs-il2',
+    'anon-cs-nc',
+    'anon-cs-ga',
+    'anon-cs-tx',
+    'anon-cs-tx2',
+    'anon-cs-tx3',
+    'anon-cs-la',
+    'anon-cs-sea',
+    'anon-cs-nv',
+    'anon-cs-ore',
+    'anon-cs-dc',
+    'anon-cs-fl',
+    'anon-cs-fl2'
+ ] },
+]
