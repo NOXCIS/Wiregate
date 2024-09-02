@@ -18,8 +18,6 @@ services:
   tor:
     image: "noxcis/tor:prion"
     container_name: tor
-    ports:
-      - "9053:9053"
     networks:
       private_network:
         ipv4_address: 10.2.0.42

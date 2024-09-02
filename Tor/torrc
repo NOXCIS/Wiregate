@@ -1,10 +1,13 @@
 # Tor configuration file
 
 # Listen for DNS queries on port 9053
-DNSPort 127.0.0.1:9053
+DNSPort 10.2.0.42:9053
 
 # Automatically map hostnames to resolve using Tor
 AutomapHostsOnResolve 1
 
 # Log to stdout (useful for Docker)
 Log notice stdout
+
+# Bind outgoing connections to the Docker network IP (replace with appropriate IP)
+OutboundBindAddress 10.2.0.42
