@@ -30,3 +30,7 @@ RUN    apk update && \
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD sh -c 'pgrep gunicorn > /dev/null && pgrep tail > /dev/null' || exit 1
 
 ENTRYPOINT ["/opt/wireguarddashboard/src/entrypoint.sh"]
+
+CMD ["docker_start"]    
+
+STOPSIGNAL SIGTERM
