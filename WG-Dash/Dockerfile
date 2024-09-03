@@ -23,8 +23,8 @@ COPY --from=builder /opt/wireguarddashboard/src/venv /opt/wireguarddashboard/src
 COPY --from=builder /opt/wireguarddashboard/src/log /opt/wireguarddashboard/src/log/
 
 RUN    apk update && \
-    apk add --no-cache wireguard-tools tor sudo && \
-    apk add --no-cache  iptables ip6tables && \
+    apk add --no-cache wireguard-tools sudo && \
+    apk add --no-cache iptables && \
     chmod u+x /opt/wireguarddashboard/src/entrypoint.sh 
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD sh -c 'pgrep gunicorn > /dev/null && pgrep tail > /dev/null' || exit 1

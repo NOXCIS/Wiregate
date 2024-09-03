@@ -60,7 +60,7 @@ services:
     restart: unless-stopped
     volumes:
       - wgd_configs:/etc/wireguard
-      - wgd_app:/opt/wireguarddashboard/src
+      #- wgd_app:/opt/wireguarddashboard/src
 
     environment:
       - WGD_WELCOME_SESSION=false
@@ -87,9 +87,7 @@ services:
 
 
 volumes:
-    wgd_app:
-    wgd_settings:
+    #wgd_app:
     wgd_configs:
-    wgd_iptables:
 
   
