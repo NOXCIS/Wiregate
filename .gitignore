@@ -60,3 +60,4 @@ test.py
 test.sh
 preqsinstalled.txt
 .env
+Global-Configs/DnsCrypt/dnscrypt-proxy copy.toml
