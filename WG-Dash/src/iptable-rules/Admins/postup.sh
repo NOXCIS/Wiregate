@@ -2,49 +2,52 @@
 WIREGUARD_INTERFACE=ADMINS
 WIREGUARD_LAN=10.0.0.1/24
 MASQUERADE_INTERFACE=eth0
-DNS_SERVER=10.2.0.3
-DNS_UDP_PORT=53530
+DNS_SERVER=10.2.0.100
+DNS_UDP_PORT=53
+PROXY=10.2.0.3
 PROXY_PORT=59040
 
 # Accept established incoming connections
 iptables -A INPUT -m state --state ESTABLISHED -j ACCEPT
 
 # Allow local loopback traffic
-#iptables -t nat -A INPUT -i lo -j ACCEPT
-#iptables -A OUTPUT -d 10.2.0.3/32 -o lo -j ACCEPT
+iptables -A INPUT -i lo -j ACCEPT
+iptables -A OUTPUT -o lo -j ACCEPT
 
+# Allow new incoming traffic on WireGuard interface [NEEDED]
+iptables -A INPUT -i $WIREGUARD_INTERFACE -s $WIREGUARD_LAN -m conntrack --ctstate NEW,RELATED,ESTABLISHED -j ACCEPT
 
-# Allow local loopback traffic
-iptables -A INPUT -i lo -s $WIREGUARD_LAN -j ACCEPT
-iptables -A OUTPUT -o lo -s $WIREGUARD_LAN -j ACCEPT
-
-# Allow new incoming traffic on WireGuard interface
-iptables -A INPUT -i $WIREGUARD_INTERFACE -s $WIREGUARD_LAN -m state --state NEW -j ACCEPT
-
+# Masquerade WireGuard LAN traffic going out of the specified interface 
 iptables -t nat -I POSTROUTING -o $MASQUERADE_INTERFACE -j MASQUERADE -s $WIREGUARD_LAN
 
+# DNS Redirection for UDP traffic (Port 53) [NEEDED]
+iptables -t nat -A PREROUTING -i $WIREGUARD_INTERFACE -p udp --dport 53 -j DNAT --to-destination $DNS_SERVER:$DNS_UDP_PORT
 
-# DNS Redirection for UDP traffic (Port 53)
-iptables -t nat -A PREROUTING -i $WIREGUARD_INTERFACE -p udp --dport 53 -j DNAT --to-destination 10.2.0.100:53
-
-# Exclude private address ranges from proxy
+# Exclude private address ranges from proxy [NEEDED]
 for NET in 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16; do
   iptables -t nat -A PREROUTING -i $WIREGUARD_INTERFACE -d $NET -j RETURN
 done
+
+# Prevent masqueraded interface traffic from being redirected
 iptables -t nat -A PREROUTING -i $WIREGUARD_INTERFACE -d $MASQUERADE_INTERFACE -j RETURN
 
+
+
+#ORIGIN
+#
+#
 # Redirect remaining TCP traffic to the proxy
-iptables -t nat -A PREROUTING -i $WIREGUARD_INTERFACE -p tcp -j DNAT --to-destination $DNS_SERVER:$PROXY_PORT
+iptables -t nat -A PREROUTING -i $WIREGUARD_INTERFACE -p tcp -j DNAT --to-destination $PROXY:$PROXY_PORT
 
 # Redirect remaining UDP traffic to the proxy
-iptables -t nat -A PREROUTING -i $WIREGUARD_INTERFACE -p udp -j DNAT --to-destination $DNS_SERVER:$PROXY_PORT
+iptables -t nat -A PREROUTING -i $WIREGUARD_INTERFACE -p udp -j DNAT --to-destination $PROXY:$PROXY_PORT
 
 # Allow new outgoing TCP connections
 iptables -A OUTPUT -o $MASQUERADE_INTERFACE -p tcp --tcp-flags FIN,SYN,RST,ACK SYN -m state --state NEW -j ACCEPT
 
 
 # Redirect specific network ranges to the proxy
-iptables -t nat -A OUTPUT -d 10.192.0.0/10 -p tcp -m tcp -j DNAT --to-destination $DNS_SERVER:$PROXY_PORT
+iptables -t nat -A OUTPUT -d 10.192.0.0/10 -p tcp -m tcp -j DNAT --to-destination $PROXY:$PROXY_PORT
 
 # Accept established outgoing traffic
 iptables -A OUTPUT -m state --state ESTABLISHED -j ACCEPT

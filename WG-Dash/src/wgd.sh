@@ -87,7 +87,7 @@ _installPython(){
 			fi
 		;;
 		alpine)
-			{ apk update; apk add python3 net-tools; printf "\n\n"; } &>> ./log/install.txt 
+			{ apk update; apk add --no-cache python3 net-tools; printf "\n\n"; } &>> ./log/install.txt 
 		;;
 	esac
 	
@@ -115,7 +115,7 @@ _installPythonVenv(){
 				fi
 			;;
 			alpine)
-				{ apk add python3 py3-virtualenv; printf "\n\n"; } &>> ./log/install.txt 
+				{ apk add --no-cache py3-virtualenv; printf "\n\n"; } &>> ./log/install.txt 
 			;;
 			*)
 				printf "[WGDashboard] %s Sorry, your OS is not supported. Currently the install script only support Debian-based, Red Hat-based OS.\n" "$heavy_crossmark"
@@ -160,7 +160,7 @@ _installPythonPip(){
 				fi
 			;;
 			alpine)
-				{ apk add py3-pip; printf "\n\n"; } &>> ./log/install.txt 
+				{ apk add --no-cache py3-pip; printf "\n\n"; } &>> ./log/install.txt 
 			;;
 			*)
 				printf "[WGDashboard] %s Sorry, your OS is not supported. Currently the install script only support Debian-based, Red Hat-based OS.\n" "$heavy_crossmark"
@@ -254,9 +254,10 @@ install_wgd(){
     _check_and_set_venv
     printf "[WGDashboard] Upgrading Python Package Manage (PIP)\n"
 	{ date; python3 -m ensurepip --upgrade; printf "\n\n"; } >> ./log/install.txt
-    { date; python3 -m pip install --upgrade pip; printf "\n\n"; } >> ./log/install.txt
+    { date; python3 -m pip install --no-cache-dir --upgrade pip; printf "\n\n"; } >> ./log/install.txt
     printf "[WGDashboard] Installing latest Python dependencies\n"
-    { date; python3 -m pip install -r requirements.txt ; printf "\n\n"; } >> ./log/install.txt
+    { date; python3 -m pip install --no-cache-dir -r requirements.txt ; printf "\n\n"; } >> ./log/install.txt
+	{ date; pip cache purge ; printf "\n\n"; } >> ./log/install.txt
     printf "[WGDashboard] WGDashboard installed successfully!\n"
     printf "[WGDashboard] Enter ./wgd.sh start to start the dashboard\n"
 }
@@ -331,10 +332,8 @@ stop_wgd() {
 startwgd_docker() {
 	_checkWireguard
 	printf "[WGDashboard][Docker] %s WGD Docker Started\n" "$heavy_checkmark"
-	#{ date; set_env docker ; printf "\n\n"; } >> ./log/install.txt
-  set_env docker
-	#{ date; start_core ; printf "\n\n"; } >> ./log/install.txt
-  start_core
+    set_env docker
+    start_core
     gunicorn_start
 }
 
@@ -393,7 +392,6 @@ set_env() {
 start_core() {
 	# Check if wg0.conf exists in /etc/wireguard
     if [ ! -f "$svr_config" ]; then
-	  #if [[ ! -f /etc/wireguard/ADMINS.conf ]]; then
 		printf "[WGDashboard][Docker] %s Wireguard Configuration Missing, Creating ....\n" "$heavy_checkmark"
 		newconf_wgd
 	else
