@@ -35,9 +35,7 @@ stamp = 'sdns://BQcAAAAAAAAAF29kb2guY2xvdWRmbGFyZS1kbnMuY29tCi9kbnMtcXVlcnk'
 
 [anonymized_dns]
 routes = [
-    { server_name='odoh-cloudflare', via= ['odohrelay-se'] }, 
-    { server_name='odoh-cloudflare', via= ['odohrelay-ams'] },
-    { server_name='odoh-cloudflare', via= ['odohrelay-crypto-sx'] } 
+    { server_name='odoh-cloudflare', via=['odohrelay-crypto-sx', 'odohrelay-se', 'odohrelay-ams'] }
 ]
 
 skip_incompatible = true

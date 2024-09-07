@@ -12,7 +12,7 @@ RUN chmod u+x ./builder.sh && ./builder.sh
 
 # Stage 2: Pluggables with Go and Lyrebird
 FROM --platform=${BUILDPLATFORM} golang:alpine3.20 AS pluggables
-ARG LYREBIRD_VERSION=0.3.0
+ARG LYREBIRD_VERSION=0.2.0
 
 RUN apk add -U --no-cache bash make
 

@@ -1,4 +1,5 @@
 ##### Do not edit. #####
+AutomapHostsOnResolve 1
 VirtualAddrNetwork 10.192.0.0/10
 User tor
 DataDirectory /var/lib/tor

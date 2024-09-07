@@ -37,6 +37,7 @@ ensure_blocking() {
   wait
 }
 
+
 { date; clean_up; printf "\n\n"; } >> ./log/install.txt
 
 chmod u+x /opt/wireguarddashboard/src/wgd.sh
