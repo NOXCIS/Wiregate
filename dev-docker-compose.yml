@@ -13,6 +13,8 @@ networks:
 
 
 services:
+
+
  
   dnscrypt:
     image: "klutchell/dnscrypt-proxy"
