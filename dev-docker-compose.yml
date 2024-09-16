@@ -88,13 +88,16 @@ services:
         ipv4_address: 10.2.0.3
   
   chitchatter:
-    #build: .
-    image: noxcis/chitchatter:latest
+    build: ./Chat
+    #image: noxcis/chitchatter:prion
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
     container_name: chitchatter
     networks:
       private_network:
         ipv4_address: 10.2.0.4
-    dns: 10.2.0.100
+
   
 
 
