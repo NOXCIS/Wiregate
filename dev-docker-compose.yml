@@ -62,7 +62,8 @@ services:
     restart: unless-stopped
     volumes:
       - wgd_configs:/etc/wireguard
-      #- wgd_app:/opt/wireguarddashboard/src
+      - wgd_db:/opt/wireguarddashboard/src/db
+      - wgd_env:/opt/wireguarddashboard/src/venv
 
     environment:
       - WGD_WELCOME_SESSION=false
@@ -86,10 +87,22 @@ services:
       private_network:
         ipv4_address: 10.2.0.3
   
+  chitchatter:
+    #build: .
+    image: noxcis/chitchatter:latest
+    container_name: chitchatter
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.4
+    dns: 10.2.0.100
+  
 
 
 volumes:
     #wgd_app:
+    wgd_db:
     wgd_configs:
+    wgd_env:
+
 
   

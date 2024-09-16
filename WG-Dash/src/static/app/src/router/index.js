@@ -15,6 +15,7 @@ import PeerCreate from "@/components/configurationComponents/peerCreate.vue";
 import Ping from "@/views/ping.vue";
 import Traceroute from "@/views/traceroute.vue";
 import Totp from "@/components/setupComponent/totp.vue";
+import Share from "@/views/share.vue";
 
 const checkAuth = async () => {
   let result = false
@@ -27,7 +28,6 @@ const checkAuth = async () => {
 const router = createRouter({
   history: createWebHashHistory(),
   routes: [
-    
     {
       name: "Index",
       path: '/',
@@ -102,14 +102,22 @@ const router = createRouter({
     {
       path: '/welcome', component: Setup,
       meta: {
-        requiresAuth: true
+        requiresAuth: true,
+        title: "Welcome to WGDashboard"
       },
     },
     {
       path: '/2FASetup', component: Totp,
       meta: {
-        requiresAuth: true
+        requiresAuth: true,
+        title: "Multi-Factor Authentication Setup"
       },
+    },
+    {
+      path: '/share', component: Share,
+      meta: {
+        title: "Share"
+      }
     }
   ]
 });
@@ -127,19 +135,28 @@ router.beforeEach(async (to, from, next) => {
   }else{
     document.title = "WGDashboard"
   }
+  dashboardConfigurationStore.ShowNavBar = false;
   
   if (to.meta.requiresAuth){
-    if (cookie.getCookie("authToken") && await checkAuth()){
+    if (!dashboardConfigurationStore.getActiveCrossServer()){
+      if (cookie.getCookie("authToken") && await checkAuth()){
+        await dashboardConfigurationStore.getConfiguration()
+        if (!wireguardConfigurationsStore.Configurations && to.name !== "Configuration List"){
+          await wireguardConfigurationsStore.getConfigurations();
+        }
+        dashboardConfigurationStore.Redirect = undefined;
+        next()
+      }else{
+        dashboardConfigurationStore.Redirect = to;
+        next("/signin")
+        dashboardConfigurationStore.newMessage("WGDashboard", "Session Ended", "warning")
+      }
+    }else{
       await dashboardConfigurationStore.getConfiguration()
       if (!wireguardConfigurationsStore.Configurations && to.name !== "Configuration List"){
         await wireguardConfigurationsStore.getConfigurations();
       }
-      dashboardConfigurationStore.Redirect = undefined;
       next()
-    }else{
-      dashboardConfigurationStore.Redirect = to;
-      next("/signin")
-      dashboardConfigurationStore.newMessage("WGDashboard", "Session Ended", "warning")
     }
   }else {
     next();

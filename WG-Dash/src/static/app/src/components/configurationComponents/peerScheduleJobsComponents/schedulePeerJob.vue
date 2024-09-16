@@ -3,10 +3,13 @@ import ScheduleDropdown from "@/components/configurationComponents/peerScheduleJ
 import {ref} from "vue";
 import {DashboardConfigurationStore} from "@/stores/DashboardConfigurationStore.js";
 import {fetchPost} from "@/utilities/fetch.js";
+import VueDatePicker from "@vuepic/vue-datepicker";
+import dayjs from "dayjs";
+import LocaleText from "@/components/text/localeText.vue";
 
 export default {
 	name: "schedulePeerJob",
-	components: {ScheduleDropdown},
+	components: {LocaleText, VueDatePicker, ScheduleDropdown},
 	props: {
 		dropdowns: Array[Object],
 		pjob: Object,
@@ -94,6 +97,11 @@ export default {
 				})
 			}
 			this.$emit('delete')
+		},
+		parseTime(modelData){
+			if(modelData){
+				this.job.Value = dayjs(modelData).format("YYYY-MM-DD HH:mm:ss");
+			}
 		}
 	},
 }
@@ -103,15 +111,19 @@ export default {
 	<div class="card shadow-sm rounded-3 mb-2" :class="{'border-warning-subtle': this.newJob}">
 		<div class="card-header bg-transparent text-muted border-0">
 			<small class="d-flex" v-if="!this.newJob">
-				<strong class="me-auto">Job ID</strong>
+				<strong class="me-auto">
+					<LocaleText t="Job ID"></LocaleText>
+				</strong>
 				<samp>{{this.job.JobID}}</samp>
 			</small>
-			<small v-else><span class="badge text-bg-warning">Unsaved Job</span></small>
+			<small v-else><span class="badge text-bg-warning">
+				<LocaleText t="Unsaved Job"></LocaleText>
+			</span></small>
 		</div>
 		<div class="card-body pt-1" style="font-family: var(--bs-font-monospace)">
 			<div class="d-flex gap-2 align-items-center mb-2">
 				<samp>
-					if
+					<LocaleText t="if"></LocaleText>
 				</samp>
 				<ScheduleDropdown
 					:edit="edit"
@@ -120,7 +132,7 @@ export default {
 					@update="(value) => {this.job.Field = value}"
 				></ScheduleDropdown>
 				<samp>
-					is
+					<LocaleText t="is"></LocaleText>
 				</samp>
 				<ScheduleDropdown
 					:edit="edit"
@@ -128,12 +140,20 @@ export default {
 					:data="this.job.Operator"
 					@update="(value) => this.job.Operator = value"
 				></ScheduleDropdown>
-				<input class="form-control form-control-sm form-control-dark rounded-3 flex-grow-1"
-				       :disabled="!edit"
-				       type="datetime-local"
-				       v-if="this.job.Field === 'date'"
-				       v-model="this.job.Value"
-				       style="width: auto">
+
+				<VueDatePicker
+					:is24="true"
+					:min-date="new Date()"
+					:model-value="this.job.Value"
+					@update:model-value="this.parseTime" time-picker-inline
+					format="yyyy-MM-dd HH:mm:ss"
+					preview-format="yyyy-MM-dd HH:mm:ss"
+					:clearable="false"
+					:disabled="!edit"
+					v-if="this.job.Field === 'date'"
+					:dark="this.store.Configuration.Server.dashboard_theme === 'dark'"
+				/>
+				
 				<input class="form-control form-control-sm form-control-dark rounded-3 flex-grow-1" 
 				       :disabled="!edit"
 				       v-else
@@ -144,7 +164,7 @@ export default {
 				</samp>
 			</div>
 			<div class="px-5 d-flex gap-2 align-items-center">
-				<samp>then</samp>
+				<samp><LocaleText t="then"></LocaleText></samp>
 				<ScheduleDropdown
 					:edit="edit"
 					:options="this.dropdowns.Action"
@@ -157,18 +177,18 @@ export default {
 				<div class="ms-auto d-flex gap-3" v-if="!this.edit">
 					<a role="button"
 					   class="ms-auto text-decoration-none"
-					   @click="this.edit = true">[E] Edit</a>
+					   @click="this.edit = true">[E] <LocaleText t="Edit"></LocaleText></a>
 					<a role="button"
 					   @click="this.delete()"
-					   class=" text-danger text-decoration-none">[D] Delete</a>
+					   class=" text-danger text-decoration-none">[D] <LocaleText t="Delete"></LocaleText></a>
 				</div>
 				<div class="ms-auto d-flex gap-3" v-else>
 					<a role="button"
 					   class="text-secondary text-decoration-none"
-					   @click="this.reset()">[C] Cancel</a>
+					   @click="this.reset()">[C] <LocaleText t="Cancel"></LocaleText></a>
 					<a role="button"
 					   class="text-primary ms-auto text-decoration-none"
-					   @click="this.save()">[S] Save</a>
+					   @click="this.save()">[S] <LocaleText t="Save"></LocaleText></a>
 				</div>
 			</div>
 		</div>
@@ -188,4 +208,12 @@ input:disabled{
 	background-color: rgba(13, 110, 253, 0.09);
 	color: #0d6efd;
 }
+
+.dp__main{
+	width: auto;
+	flex-grow: 1;
+	--dp-input-padding: 2.5px 30px 2.5px 12px;
+	--dp-border-radius: 0.5rem;
+}
+
 </style>

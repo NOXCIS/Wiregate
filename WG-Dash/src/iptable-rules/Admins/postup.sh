@@ -29,7 +29,7 @@ for NET in 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16; do
 done
 
 # Prevent masqueraded interface traffic from being redirected
-iptables -t nat -A PREROUTING -i $WIREGUARD_INTERFACE -d $MASQUERADE_INTERFACE -j RETURN
+#iptables -t nat -A PREROUTING -i $WIREGUARD_INTERFACE -d $MASQUERADE_INTERFACE -j RETURN
 
 
 

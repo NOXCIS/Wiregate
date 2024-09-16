@@ -146,9 +146,7 @@ filtering:
   rewrites:
     - domain: wire.gate
       answer: 10.2.0.3
-    - domain: wire.chat
-      answer: 10.2.0.4
-    - domain: dark.wire
+    - domain: chit.chat
       answer: 10.2.0.4
     - domain: ad.guard
       answer: 10.2.0.100
