@@ -10,7 +10,7 @@ export default {
 	mounted() {
 		setTimeout(() => {
 			this.message.show = false
-		}, 5000)
+		}, 1500)
 	}
 }
 </script>
@@ -22,7 +22,7 @@ export default {
 			'text-bg-success': this.message.type === 'success',
 			'text-bg-warning': this.message.type === 'warning'}"
 	     :id="this.message.id"
-	     style="width: 400px">
+	     style="width: auto">
 		<div class="card-body">
 			<small class="fw-bold d-block" style="text-transform: uppercase">
 				<LocaleText t="FROM "></LocaleText>

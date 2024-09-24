@@ -7,22 +7,6 @@ COPY ./src/builder.sh ./src/builder_requirements.txt /opt/wireguarddashboard/src
 RUN chmod u+x ./builder.sh && ./builder.sh 
 
 
-# Stage 1.1: WG-Dash Node Builder
-FROM --platform=${BUILDPLATFORM} alpine:latest AS node_builder
-LABEL maintainer="NOXCIS"
-WORKDIR /opt/wireguarddashboard/src/static/app
-RUN apk add --no-cache npm
-COPY ./src/static  /opt/wireguarddashboard/src/static
-RUN npm audit fix
-RUN npm install
-RUN npm run build
-
-
-
-
-
-
-
 # Stage 2: Pluggables with Go and Lyrebird
 FROM --platform=${BUILDPLATFORM} golang:alpine3.20 AS pluggables
 ARG LYREBIRD_VERSION=0.2.0
@@ -57,6 +41,8 @@ RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transp
 FROM alpine:latest
 WORKDIR /opt/wireguarddashboard/src
 
+
+
 COPY ./src /opt/wireguarddashboard/src/
 COPY ./src/tor/ /etc/tor/
 COPY --from=pluggables /usr/local/bin/lyrebird /usr/local/bin/lyrebird
@@ -64,7 +50,6 @@ COPY --from=pluggables /webtunnel/main/client/client /etc/tor/webtunnel
 COPY --from=pluggables /snowflake/client/client /etc/tor/snowflake
 COPY --from=builder /opt/wireguarddashboard/src/venv /opt/wireguarddashboard/src/venv
 COPY --from=builder /opt/wireguarddashboard/src/log /opt/wireguarddashboard/src/log/
-COPY --from=node_builder /opt/wireguarddashboard/src/static/app/dist /opt/wireguarddashboard/src/static/app/dist
 
 RUN apk add --no-cache wireguard-tools sudo iptables tor && \
     chmod u+x /opt/wireguarddashboard/src/entrypoint.sh 
