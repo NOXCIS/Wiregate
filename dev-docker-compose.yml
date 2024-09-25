@@ -60,7 +60,7 @@ services:
     volumes:
       - wgd_configs:/etc/wireguard
       - wgd_tor:/etc/tor
-      - wgd_iptables:/opt/wireguarddashboard/src/iptable-rules
+      #- wgd_iptables:/opt/wireguarddashboard/src/iptable-rules
       - wgd_db:/opt/wireguarddashboard/src/db
 
     environment:
@@ -85,11 +85,22 @@ services:
       private_network:
         ipv4_address: 10.2.0.3
   
- 
+  darkwire:
+
+      image: noxcis/darkwire:terra-firma
+      cap_add:
+        - NET_ADMIN
+        - SYS_MODULE
+      sysctls:
+        - net.ipv4.ip_forward=1
+        - net.ipv4.conf.all.src_valid_mark=1
+      networks:
+        private_network:
+          ipv4_address: 10.2.0.4
 
 volumes:
     wgd_tor:
     wgd_configs:
-    wgd_iptables:
+    #wgd_iptables:
     wgd_db:
   

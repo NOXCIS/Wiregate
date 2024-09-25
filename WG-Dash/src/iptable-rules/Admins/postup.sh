@@ -21,7 +21,7 @@ iptables -A INPUT -i $WIREGUARD_INTERFACE -s $WIREGUARD_LAN -m conntrack --ctsta
 iptables -t nat -I POSTROUTING -o $MASQUERADE_INTERFACE -j MASQUERADE -s $WIREGUARD_LAN
 
 # DNS Redirection for UDP traffic (Port 53) [NEEDED]
-iptables -t nat -A PREROUTING -i $WIREGUARD_INTERFACE -p udp --dport 53 -j DNAT --to-destination $DNS_SERVER:$DNS_UDP_PORT
+iptables -t nat -A PREROUTING -i $WIREGUARD_INTERFACE -p udp -m multiport --dports 53,853 -j DNAT --to-destination $DNS_SERVER:$DNS_UDP_PORT
 
 # Exclude private address ranges from proxy [NEEDED]
 for NET in 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16; do

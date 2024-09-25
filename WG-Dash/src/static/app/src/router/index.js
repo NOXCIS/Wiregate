@@ -128,12 +128,12 @@ router.beforeEach(async (to, from, next) => {
   
   if (to.meta.title){
     if (to.params.id){
-      document.title = to.params.id + " | WGDashboard";
+      document.title = to.params.id + " | WireGate";
     }else{
-      document.title = to.meta.title + " | WGDashboard";
+      document.title = to.meta.title + " | WireGate";
     }
   }else{
-    document.title = "WGDashboard"
+    document.title = "WireGate"
   }
   dashboardConfigurationStore.ShowNavBar = false;
   

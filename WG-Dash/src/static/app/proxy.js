@@ -1,1 +1,1 @@
-export const proxy = "http://wg.local:10086/"
+export const proxy = "http://wg.local:80/"
