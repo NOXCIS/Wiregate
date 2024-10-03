@@ -5,6 +5,7 @@
 #trap "kill $TOP_PID"
 export TOP_PID=$$
 
+
 app_name="dashboard.py"
 app_official_name="WGDashboard"
 venv_python="./venv/bin/python3"
@@ -87,7 +88,7 @@ _installPython(){
 			fi
 		;;
 		alpine)
-			{ apk update; apk add --no-cache python3 net-tools; printf "\n\n"; } &>> ./log/install.txt 
+			{ apk update; apk add --no-cache python3 net-tools certbot; printf "\n\n"; } &>> ./log/install.txt 
 		;;
 	esac
 	
@@ -332,7 +333,7 @@ stop_wgd() {
 startwgd_docker() {
 	_checkWireguard
 	printf "[WGDashboard][Docker] %s WGD Docker Started\n" "$heavy_checkmark"
-    set_env docker
+    set_env docker 
     start_core
     gunicorn_start
 }
@@ -393,6 +394,7 @@ start_core() {
 	# Check if wg0.conf exists in /etc/wireguard
     if [ ! -f "$svr_config" ]; then
 		printf "[WGDashboard][Docker] %s Wireguard Configuration Missing, Creating ....\n" "$heavy_checkmark"
+		set_proxy
 		newconf_wgd
 	else
 		printf "[WGDashboard][Docker] %s Loading Wireguard Configuartions.\n" "$heavy_checkmark"
@@ -469,6 +471,26 @@ newconf_wgd () {
   return
 }
 
+set_proxy () {
+    if [[ "$WGD_TOR_PROXY" == "true" ]]; then
+        postType="tor-post"
+    elif [[ "$WGD_TOR_PROXY" == "false" ]]; then
+        postType="post"
+    fi
+
+AMDpostup="/opt/wireguarddashboard/src/iptable-rules/Admins/${postType}up.sh"
+GSTpostup="/opt/wireguarddashboard/src/iptable-rules/Members/${postType}up.sh"
+LANpostup="/opt/wireguarddashboard/src/iptable-rules/Guest/${postType}up.sh"
+MEMpostup="/opt/wireguarddashboard/src/iptable-rules/LAN-only-users/postup.sh"
+
+AMDpostdown="/opt/wireguarddashboard/src/iptable-rules/Admins/${postType}down.sh"
+GSTpostdown="/opt/wireguarddashboard/src/iptable-rules/Members/${postType}down.sh"
+LANpostdown="/opt/wireguarddashboard/src/iptable-rules/Guest/${postType}down.sh"
+MEMpostdown="/opt/wireguarddashboard/src/iptable-rules/LAN-only-users/postdown.sh"
+
+}
+
+
 
 newconf_wgd0() {
     local port_wg0=$WGD_PORT_RANGE_STARTPORT
@@ -480,8 +502,8 @@ PrivateKey = $private_key
 Address = 10.0.0.1/24
 ListenPort = $port_wg0
 SaveConfig = true
-PostUp =  /opt/wireguarddashboard/src/iptable-rules/Admins/postup.sh
-PreDown = /opt/wireguarddashboard/src/iptable-rules/Admins/postdown.sh
+PostUp =  $AMDpostup
+PreDown = $AMDpostdown
 
 EOF
 
@@ -501,8 +523,8 @@ PrivateKey = $private_key
 Address = 192.168.10.1/24
 ListenPort = $port_wg1
 SaveConfig = true
-PostUp =  /opt/wireguarddashboard/src/iptable-rules/Members/postup.sh
-PreDown = /opt/wireguarddashboard/src/iptable-rules/Members/postdown.sh
+PostUp =  $MEMpostup
+PreDown = $MEMpostdown
 
 EOF
 }
@@ -519,8 +541,8 @@ PrivateKey = $private_key
 Address = 172.16.0.1/24
 ListenPort = $port_wg2
 SaveConfig = true
-PostUp =  /opt/wireguarddashboard/src/iptable-rules/LAN-only-users/postup.sh
-PreDown = /opt/wireguarddashboard/src/iptable-rules/LAN-only-users/postdown.sh
+PostUp =  $LANpostup
+PreDown = $LANpostdown
 
 EOF
 }
@@ -537,8 +559,8 @@ PrivateKey = $private_key
 Address = 192.168.20.1/24
 ListenPort = $port_wg3
 SaveConfig = true
-PostUp =  /opt/wireguarddashboard/src/iptable-rules/Guest/postup.sh
-PreDown = /opt/wireguarddashboard/src/iptable-rules/Guest/postdown.sh
+PostUp =  $GSTpostup
+PreDown = $GSTpostdown
 
 EOF
 }

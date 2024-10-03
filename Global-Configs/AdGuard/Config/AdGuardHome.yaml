@@ -170,6 +170,7 @@ filtering:
     enabled: false
     bing: true
     duckduckgo: true
+    ecosia: true
     google: true
     pixabay: true
     yandex: true
@@ -180,12 +181,12 @@ filtering:
   rewrites:
     - domain: wire.gate
       answer: 10.2.0.3
-    - domain: wire.chat
-      answer: 10.2.0.4
     - domain: dark.wire
       answer: 10.2.0.4
     - domain: ad.guard
       answer: 10.2.0.100
+  safe_fs_patterns:
+    - /opt/adguardhome/work/data/userfilters/*
   safebrowsing_cache_size: 1048576
   safesearch_cache_size: 1048576
   parental_cache_size: 1048576
@@ -217,4 +218,4 @@ os:
   group: ""
   user: ""
   rlimit_nofile: 0
-schema_version: 28
+schema_version: 29

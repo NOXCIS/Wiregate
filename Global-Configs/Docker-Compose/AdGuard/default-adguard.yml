@@ -1,5 +1,3 @@
-version: "3"
-
 networks:
   private_network:
     driver: bridge
@@ -11,7 +9,18 @@ networks:
       config:
         - subnet: 10.2.0.0/24
 
+
 services:
+  dnscrypt:
+    image: "klutchell/dnscrypt-proxy"
+    restart: unless-stopped
+    container_name: dnscrypt
+    volumes:
+      - ./Global-Configs/DnsCrypt/dnscrypt-proxy.toml:/config/dnscrypt-proxy.toml
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.42
+
   unbound:
     image: "klutchell/unbound:latest"
     container_name: unbound
@@ -23,37 +32,50 @@ services:
       private_network:
         ipv4_address: 10.2.0.200
 
+
   adguard:
     depends_on: [unbound]
     container_name: adguard
     image: adguard/adguardhome
     restart: unless-stopped
     hostname: adguard
+    # Volumes store your data between container upgrades
     volumes:
       - "./Global-Configs/AdGuard/Data:/opt/adguardhome/work"
       - "./Global-Configs/AdGuard/Config:/opt/adguardhome/conf"
     networks:
       private_network:
         ipv4_address: 10.2.0.100
+        
 
   wiregate:
-    image: noxcis/wg-dashboard:hydra
     container_name: wiregate
+    image: noxcis/wg-dashboard:terra-firma
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
     restart: unless-stopped
     volumes:
-      - wg_configs:/etc/wireguard
-      - wg_data:/home/app/dashboard-config
-      - wg_db:/home/app/db
-      - wg_iptables:/home/app/Iptables
-      - ./Global-Configs/Master-Key:/home/app/master-key
-
-    env_file:
-      - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
+      - wgd_configs:/etc/wireguard
+      - wgd_tor:/etc/tor
+      - wgd_iptables:/opt/wireguarddashboard/src/iptable-rules
+      - wgd_db:/opt/wireguarddashboard/src/db
+      - ./Global-Configs/Master-Key:/opt/wireguarddashboard/src/master-key
+    environment:
+      - WGD_TOR_PROXY=${WGD_TOR_PROXY}
+      - WGD_WELCOME_SESSION=false
+      - WGD_USER=${WGD_USER}
+      - WGD_PASS=${WGD_PASS}
+      - WGD_REMOTE_ENDPOINT=${WGD_REMOTE_ENDPOINT}
+      - WGD_REMOTE_ENDPOINT_PORT=80
+      - WGD_DNS="10.2.0.100, 10.2.0.100"
+      - WGD_IPTABLES_DNS=10.2.0.100
+      - WGD_PEER_ENDPOINT_ALLOWED_IP=0.0.0.0/0
+      - WGD_KEEP_ALIVE=21
+      - WGD_MTU=1420
+      - WGD_PORT_RANGE_STARTPORT=${WGD_PORT_RANGE_STARTPORT}
     ports:
-      - "770-777:770-777/udp"
+      - "${WGD_PORT_MAPPINGS}"
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
@@ -61,35 +83,12 @@ services:
       private_network:
         ipv4_address: 10.2.0.3
 
-  channels:
-    depends_on: [db, wiregate]
-    container_name: channels_messenger
-    image: noxcis/channels:kraken
-    restart: unless-stopped
-    command: python run.py
-    env_file:
-      - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.4
-    dns: 10.2.0.100
 
-  db:
-    container_name: channels_db
-    image: postgres:13-alpine
-    restart: unless-stopped
-    volumes:
-      - postgres_data:/var/lib/postgresql/data/
-    env_file:
-      - ./Global-Configs/WireGate-Deploy-ENV/wiregate.env
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.5
-    dns: 10.2.0.100
+
 
 volumes:
-    postgres_data:
-    wg_data:
-    wg_configs:
-    wg_db:
-    wg_iptables:
+    wgd_tor:
+    wgd_configs:
+    wgd_iptables:
+    wgd_db:
+  

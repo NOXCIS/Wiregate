@@ -1,62 +1,69 @@
 #!/bin/bash
+#DEFINE INTERFACE ENVIORNMENT 
+##############################################################################################################
 WIREGUARD_INTERFACE=MEMBERS
 WIREGUARD_LAN=192.168.10.1/24
 MASQUERADE_INTERFACE=eth0
-DNS_SERVER=10.2.0.100
-DNS_UDP_PORT=53
-PROXY=10.2.0.3
-PROXY_PORT=59040
-
-# Accept established incoming connections
-iptables -A INPUT -m state --state ESTABLISHED -j ACCEPT
-
-# Allow local loopback traffic
-iptables -A INPUT -i lo -j ACCEPT
-iptables -A OUTPUT -o lo -j ACCEPT
-
-# Allow new incoming traffic on WireGuard interface [NEEDED]
-iptables -A INPUT -i $WIREGUARD_INTERFACE -s $WIREGUARD_LAN -m conntrack --ctstate NEW,RELATED,ESTABLISHED -j ACCEPT
-
-# Masquerade WireGuard LAN DNS Redirection 
-iptables -t nat -I POSTROUTING -o $MASQUERADE_INTERFACE -d 10.2.0.100 -p udp -m multiport --dports 53,853,443 -j MASQUERADE -s $WIREGUARD_LAN
-iptables -t nat -I POSTROUTING -o $MASQUERADE_INTERFACE -d 10.2.0.100 -p tcp -m multiport --dports 53,853,443 -j MASQUERADE -s $WIREGUARD_LAN
-iptables -t nat -A PREROUTING -i $WIREGUARD_INTERFACE -p udp -m multiport --dports 53,853 -j DNAT --to-destination $DNS_SERVER:$DNS_UDP_PORT
-
-# Masquerade WireGuard LAN Internal Services
-iptables -t nat -I POSTROUTING -o $MASQUERADE_INTERFACE -d 10.2.0.4 -p tcp -m multiport --dports 80,443 -j MASQUERADE -s $WIREGUARD_LAN
-iptables -t nat -A PREROUTING -i $WIREGUARD_INTERFACE -d 10.2.0.4 -j RETURN
+GLOBAL_DNS=$WG_DASH_IPTABLES_DNS
 
 
+# Enable NAT on the interface
+iptables -t nat -I POSTROUTING -o $MASQUERADE_INTERFACE -j MASQUERADE -s $WIREGUARD_LAN
+
+# Add a WIREGUARD chain to the FORWARD chain
+CHAIN_NAME="WIREGUARD_$WIREGUARD_INTERFACE"
+iptables -N $CHAIN_NAME
+iptables -A FORWARD -j $CHAIN_NAME
 
 
-# Redirect remaining TCP traffic to the proxy
-iptables -t nat -A PREROUTING -i $WIREGUARD_INTERFACE -p tcp -j DNAT --to-destination $PROXY:$PROXY_PORT
-# Redirect remaining UDP traffic to the proxy
-iptables -t nat -A PREROUTING -i $WIREGUARD_INTERFACE -p udp -j DNAT --to-destination $PROXY:$PROXY_PORT
-# Allow new outgoing TCP connections
-iptables -A OUTPUT -o $MASQUERADE_INTERFACE -p tcp --tcp-flags FIN,SYN,RST,ACK SYN -m state --state NEW -j ACCEPT
+#START OF CORE RULES 
+##############################################################################################################
+# Accept related or established traffic
+iptables -A $CHAIN_NAME -o $WIREGUARD_INTERFACE -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+# Allow traffic to the local loopback interface
+iptables -A $CHAIN_NAME -o lo -j ACCEPT
+# Drop traffic to wg-dashboard
+iptables -A INPUT -i $WIREGUARD_INTERFACE -j DROP
+#END OF CORE RULES
+##############################################################################################################
 
 
-# Redirect specific network ranges to the proxy
-iptables -t nat -A OUTPUT -d 10.192.0.0/10 -p tcp -m tcp -j DNAT --to-destination $PROXY:$PROXY_PORT
+#START OF GLOBAL DNS FORWARDING RULES 
+##############################################################################################################
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d $GLOBAL_DNS -p tcp --dport 53 -j ACCEPT
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d $GLOBAL_DNS -p udp --dport 53 -j ACCEPT
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d $GLOBAL_DNS -p tcp --dport 853 -j ACCEPT
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d $GLOBAL_DNS -p udp --dport 853 -j ACCEPT
+#END OF GLOBAL DNS FORWARDING RULES 
+##############################################################################################################
 
-# Accept established outgoing traffic
-iptables -A OUTPUT -m state --state ESTABLISHED -j ACCEPT
 
-# Drop invalid packets
-iptables -A OUTPUT -m conntrack --ctstate INVALID -j DROP
-iptables -A OUTPUT -m state --state INVALID -j DROP
+# START OF MEMEBRS RULES
+##############################################################################################################
+# Accept Foward traffic to WireChat @ port 80 @ container address on wiregate_private_network
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.4 -p tcp -m multiport --dports 80,443 -j ACCEPT
+# Drop Forward traffic to AdGuard Dashboard @ container address on wiregate_private_network
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.100 -j DROP
+# Drop Forward traffic to Unbound @ container address on wiregate_private_network
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.200 -j DROP
+# Drop Forward traffic to Channels Database @ container address on wiregate_private_network
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.5 -j DROP
+# Drop all other Foward traffic to WireChat @ container address on wiregate_private_network
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 10.2.0.4 -j DROP
+#END OF MEMEBRS RULES
+##############################################################################################################
 
-# Exclude private network ranges from NAT
-for NET in 127.0.0.0/8 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 0.0.0.0/8 100.64.0.0/10 169.254.0.0/16 192.0.0.0/24 \
-           192.0.2.0/24 192.88.99.0/24 198.18.0.0/15 198.51.100.0/24 203.0.113.0/24 224.0.0.0/4 240.0.0.0/4 \
-           255.255.255.255/32; do
-  iptables -t nat -A OUTPUT -d $NET -j RETURN
-done
+#PORT FOWARDING RULES
+##############################################################################################################
+# Accept outgoing connections to on the following ports 20,21,22,80,443,3389 to any IP address (public because of rule above)
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d 0.0.0.0/0 -p tcp -m multiport --dports 20,21,22,80,443,3389 -j ACCEPT
+##############################################################################################################
+# END OF PORT FOWARDING RULES
 
-# Allow loopback traffic to bypass NAT
-iptables -t nat -A OUTPUT -o lo -j RETURN
 
-# Drop invalid TCP FIN/ACK and RST/ACK packets not from loopback
-iptables -A OUTPUT ! -o lo ! -d 127.0.0.1 ! -s 127.0.0.1 -p tcp --tcp-flags ACK,FIN ACK,FIN -j DROP
-iptables -A OUTPUT ! -o lo ! -d 127.0.0.1 ! -s 127.0.0.1 -p tcp --tcp-flags ACK,RST ACK,RST -j DROP
+# Accept traffic from any Wireguard IP address connected to the Wireguard server
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -j ACCEPT
+# Drop everything else coming through the Wireguard interface
+iptables -A $CHAIN_NAME -i $WIREGUARD_INTERFACE -j DROP
+# Return to FORWARD chain
+iptables -A $CHAIN_NAME -j RETURN

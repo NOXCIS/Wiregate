@@ -9,7 +9,7 @@ update_server_ip() {
         clear  # Clear the screen
 
         # Print the updated timer value
-        set_uname_wgdash_title
+        set_server_ip_title
         echo "Press Enter to set Wireguard Dashboard Server IP $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for autoset: $(tput sgr0)"
         
         # Decrement the timer value by 1
@@ -24,7 +24,7 @@ update_server_ip() {
     
     if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
         ip=$(curl -s ifconfig.me)
-        export WG_DASH_SERVER_IP="$ip"
+        export WGD_REMOTE_ENDPOINT="$ip"
     fi
 
 
@@ -47,12 +47,13 @@ update_server_ip() {
             echo -e "\033[31mInvalid IPv4 address format. Please enter a valid IPv4 address.\033[0m"
             continue
         fi
-                export WG_DASH_SERVER_IP="$ip"
+                export WGD_REMOTE_ENDPOINT="$ip"
                 break
             
         done
     fi
 }
+
 set_port_range() {
     local timer=$TIMER_VALUE
     local user_activity=false
@@ -80,8 +81,8 @@ set_port_range() {
         HOST_PORT_END=$((HOST_PORT_START + pcount-1))  
         port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
         echo -e "Wireguard Port Range Set To: \033[32m$port_mappings\033[0m"
-        export WG_DASH_PORT_RANGE_STARTPORT="$HOST_PORT_START"
-        export WG_DASH_PORT_MAPPINGS="$port_mappings"
+        export WGD_PORT_RANGE_STARTPORT="$HOST_PORT_START"
+        export WGD_PORT_MAPPINGS="$port_mappings"
     fi
 
 
@@ -94,8 +95,8 @@ set_port_range() {
         HOST_PORT_END=$((HOST_PORT_START + pcount-1))  
         port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
         echo -e "Wireguard Port Range Set To: \033[32m$port_mappings\033[0m"
-        export WG_DASH_PORT_RANGE_STARTPORT="$HOST_PORT_START"
-        export WG_DASH_PORT_MAPPINGS="$port_mappings"
+        export WGD_PORT_RANGE_STARTPORT="$HOST_PORT_START"
+        export WGD_PORT_MAPPINGS="$port_mappings"
         break
         done
     fi
@@ -103,11 +104,16 @@ set_port_range() {
 }
 generate_wireguard_qr() {
     local config_file="./Global-Configs/Master-Key/master.conf"
-    sleep 2s
-    if ! [ -f "$config_file" ]; then
-        echo "Error: Config file not found."
-        #return 1
-    fi
+    echo -n "Generating Master Key"
+
+    while ! [ -f "$config_file" ]; do
+        for s in / - \\ \|; do
+            echo -ne "\rGenerating Master Key $s"
+            sleep 0.2
+        done
+    done
+
+    echo -e "\rGenerating Master Key ... Done!"
 
     # Generate the QR code and display it in the CLI
     master_key_title
@@ -155,7 +161,7 @@ set_wg-dash_pass() {
         plaintext_wgdash_pass=$(head /dev/urandom | tr -dc "$characters" | head -c 16)
         
     
-        export WG_DASH_PASS="$plaintext_wgdash_pass"
+        export WGD_PASS="$plaintext_wgdash_pass"
     fi
 
     if [[ "$user_activity" == true ]]; then
@@ -183,7 +189,7 @@ set_wg-dash_pass() {
 
 
 
-                export WG_DASH_PASS="$wgdash_pass"
+                export WGD_PASS="$wgdash_pass"
                 
 
 
@@ -240,7 +246,7 @@ set_wg-dash_user() {
 
         #sed -i -E "s|^( *- name: ).*|\1$wgdash_user|" "$adguard_yaml_file"
 
-        export WG_DASH_USER="$wgdash_user"
+        export WGD_USER="$wgdash_user"
 
 
         
@@ -260,7 +266,7 @@ set_wg-dash_user() {
                 continue
             fi
 
-                export WG_DASH_USER="$wgdash_user"
+                export WGD_USER="$wgdash_user"
                 break
             
         done
