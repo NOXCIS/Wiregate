@@ -4,3 +4,4 @@ User tor
 DataDirectory /var/lib/tor
 TransPort 10.2.0.3:59040 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort
 ClientTransportPlugin meek_lite,obfs2,obfs3,obfs4,scramblesuit exec /usr/local/bin/lyrebird
+SocksPort 9050

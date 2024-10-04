@@ -1,6 +1,7 @@
 # Stage 1: WG-Dash Builder
 FROM  alpine:latest AS builder
 LABEL maintainer="NOXCIS"
+
 WORKDIR /opt/wireguarddashboard/src
 RUN apk add --no-cache sudo gcc musl-dev rust cargo linux-headers npm
 COPY ./src/builder.sh ./src/builder_requirements.txt /opt/wireguarddashboard/src/

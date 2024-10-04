@@ -36,7 +36,25 @@ ensure_blocking() {
 
   wait
 }
+run_tor_random() {
+    # Run immediately the first time
+    echo "Starting Tor ..."
+    tor >> ./log/tor_startup_log.txt &
+    TOR_PID=$!
 
+    while true; do
+        # Generate a random number between 900 and 2700 seconds (15 to 45 minutes)
+        sleep_time=$(( RANDOM % (2700 - 900 + 1) + 900 ))
+
+        echo "New Circuit in $sleep_time seconds..."
+        sleep $sleep_time
+
+        echo "Restarting Tor..."
+        pkill tor
+        tor >> ./log/tor_startup_log.txt &
+        TOR_PID=$!
+    done
+}
 
 { date; clean_up; printf "\n\n"; } >> ./log/install.txt
 
@@ -45,8 +63,12 @@ chmod u+x /opt/wireguarddashboard/src/wgd.sh
 /opt/wireguarddashboard/src/wgd.sh docker_start &
 
 # Start Tor and capture its PID
-tor >> ./log/tor_startup_log.txt &
-TOR_PID=$!
+
+
+run_tor_random &
+
+#tor >> ./log/tor_startup_log.txt &
+#TOR_PID=$!
 
 # Update DNS settings
 tee /etc/resolv.conf &> /dev/null << EOF
