@@ -3,14 +3,14 @@
 env_file=".env"
 
 # Create environment file if it doesn't exist
-    if [ ! -f "$env_file" ]; then
+if [ ! -f "$env_file" ]; then
         touch "$env_file"
-    fi
+fi
 
     # Function to check if .env file is empty
-    is_env_file_empty() {
+is_env_file_empty() {
         [ ! -s "$env_file" ]
-    }
+}
 
 
 set_wiregate_env() {
@@ -27,13 +27,11 @@ set_wiregate_env() {
     else
     export $(grep -v '^#' "$env_file" | xargs)
     fi
- }   
+}   
 
 update_server_ip() {
     local timer=$TIMER_VALUE
     local user_activity=false
-
-
     while [ $timer -gt 0 ]; do
         clear  # Clear the screen
 

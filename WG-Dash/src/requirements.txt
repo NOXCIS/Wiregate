@@ -1,9 +1,9 @@
 bcrypt
 ifcfg
-python-dotenv
 psutil
 pyotp
 Flask
 flask-cors
 icmplib
 gunicorn
+python-dotenv

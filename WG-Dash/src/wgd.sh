@@ -258,7 +258,7 @@ install_wgd(){
     { date; python3 -m pip install --no-cache-dir --upgrade pip; printf "\n\n"; } >> ./log/install.txt
     printf "[WGDashboard] Installing latest Python dependencies\n"
     { date; python3 -m pip install --no-cache-dir -r requirements.txt ; printf "\n\n"; } >> ./log/install.txt
-	{ date; pip cache purge ; printf "\n\n"; } >> ./log/install.txt
+	#{ date; pip cache purge ; printf "\n\n"; } >> ./log/install.txt
     printf "[WGDashboard] WGDashboard installed successfully!\n"
     printf "[WGDashboard] Enter ./wgd.sh start to start the dashboard\n"
 }
@@ -409,7 +409,7 @@ start_core() {
 	# Start WireGuard for each config file
   printf "[WGDashboard][Docker] %s Starting Wireguard Configuartions.\n" "$heavy_checkmark"
   printf "%s\n" "$dashes"
-  set_proxy
+  
 	for file in $config_files; do
 		config_name=$(basename "$file" ".conf")  
 		wg-quick up "$config_name"
