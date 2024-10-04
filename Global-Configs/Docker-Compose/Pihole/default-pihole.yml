@@ -59,7 +59,7 @@ services:
         
   wiregate:
     container_name: wiregate
-    image: noxcis/wg-dashboard:terra-firma
+    image: noxcis/wg-dashboard:${TAG}
     cap_add:
       - NET_ADMIN
       - SYS_MODULE

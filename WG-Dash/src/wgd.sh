@@ -409,6 +409,7 @@ start_core() {
 	# Start WireGuard for each config file
   printf "[WGDashboard][Docker] %s Starting Wireguard Configuartions.\n" "$heavy_checkmark"
   printf "%s\n" "$dashes"
+  set_proxy
 	for file in $config_files; do
 		config_name=$(basename "$file" ".conf")  
 		wg-quick up "$config_name"

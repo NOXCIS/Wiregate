@@ -20,7 +20,7 @@ release/*
 wireguard/
 Global-Configs/PiHole/etc-dnsmasq.d/*
 Global-Configs/PiHole/etc-pihole/*
-!Global-Configs/PiHole/etc-pihole/custom.list
+!Global-Configs/PiHole/etc-pihole/hosts/custom.list
 Global-Configs/PiHole/etc-dnsmasq.d/
 data/
 
@@ -59,3 +59,4 @@ run-log.txt
 test.py
 test.sh
 preqsinstalled.txt
+.env

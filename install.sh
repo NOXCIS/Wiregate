@@ -182,7 +182,7 @@ mkey_output() {
 
 #DOCKER FUNCTIONS
     compose_up() {
-        set_tag --allow-beta
+        set_tag --stable
         run_docker_title
         docker compose pull
         docker compose up -d --build 
@@ -226,8 +226,8 @@ set_tag() {
                 pattern="beta"
                 shift
                 ;;
-            --allow-all)
-                pattern=""
+            --stable)
+                pattern="exclude" # Indicate exclusion for beta and dev
                 shift
                 ;;
             *)
@@ -238,12 +238,16 @@ set_tag() {
     done
 
     # Construct jq filter based on the pattern
-    if [ -n "$pattern" ]; then
+    if [[ $pattern == "exclude" ]]; then
+        # Default behavior to exclude tags with 'beta' or 'dev'
+        filter="select(.name | test(\"beta|dev\"; \"i\") | not)"
+    elif [[ -n "$pattern" ]]; then
         # Only include tags that contain the specified pattern
         filter="select(.name | test(\"$pattern\"; \"i\"))"
     else
-        # Default behavior to exclude tags with 'beta' or 'dev'
-        filter="select(.name | test(\"beta|dev\"; \"i\") | not)"
+        # No pattern provided, which could be an error state.
+        echo "No valid pattern provided."
+        exit 1
     fi
 
     # Extract the latest updated tag based on the filter using jq
@@ -259,6 +263,7 @@ set_tag() {
 
     export TAG="$latest_tag"
 }
+
 
 
     dev_build() {
@@ -312,29 +317,39 @@ set_tag() {
         history -c
         clear
     }
-
+    switch_tor() {
+        export WGD_TOR_PROXY="true" 
+        export DEPLOY_TYPE="TOR TRANSPORT DEPLOY ON "
+    }
 
 # Main script
     if [ $# -eq 0 ]; then
-        menu
-    else
+    menu
+else
     case $1 in  
+        Tor-*) 
+            switch_tor
+            arg="${1#Tor-}"
+            ;;
+        *) 
+            arg="$1"
+            ;;
+    esac
+
+    case $arg in  
         E-A-D) setup_environment "Express" "AdGuard" "Darkwire" ;;
         E-A-C) setup_environment "Express" "AdGuard" "Channels" ;;
-        E-P-D) setup_environment  "Express" "Pihole" "Darkwire" ;;
-        E-P-C) setup_environment  "Express" "Pihole" "Channels" ;;
+        E-P-D) setup_environment "Express" "Pihole" "Darkwire" ;;
+        E-P-C) setup_environment "Express" "Pihole" "Channels" ;;
         A-A-D) setup_environment "Advanced" "AdGuard" "Darkwire" ;;
         A-A-C) setup_environment "Advanced" "AdGuard" "Channels" ;;
-        A-P-D) setup_environment  "Advanced" "Pihole" "Darkwire" ;;
-        A-P-C) setup_environment  "Advanced" "Pihole" "Channels" ;;
-        P_Conf-A-D) setup_environment "Pre_Configured" "AdGuard" "Darkwire" ;;
-        P_Conf-A-C) setup_environment "Pre_Configured" "AdGuard" "Channels" ;;
-        P_Conf-P-D) setup_environment "Pre_Configured" "Pihole" "Darkwire" ;;
-        P_Conf-P-C) setup_environment "Pre_Configured" "Pihole" "Channels" ;;
+        A-P-D) setup_environment "Advanced" "Pihole" "Darkwire" ;;
+        A-P-C) setup_environment "Advanced" "Pihole" "Channels" ;;
         dev) dev_build ;;
         reset) fresh_install ;;
         *) echo "Invalid choice. Please try again." ;;
     esac
-    fi
+fi
+
 
 
