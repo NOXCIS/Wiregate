@@ -1,5 +1,34 @@
 #!/bin/bash
 
+env_file=".env"
+
+# Create environment file if it doesn't exist
+    if [ ! -f "$env_file" ]; then
+        touch "$env_file"
+    fi
+
+    # Function to check if .env file is empty
+    is_env_file_empty() {
+        [ ! -s "$env_file" ]
+    }
+
+
+set_wiregate_env() {
+    if is_env_file_empty; then 
+        update_server_ip
+        set_port_range
+        echo "WGD_PORT_RANGE_STARTPORT=\"$HOST_PORT_START\"" >> "$env_file"
+        echo "WGD_PORT_MAPPINGS=\"$port_mappings\"" >> "$env_file"
+        echo "WGD_REMOTE_ENDPOINT=\"$ip\"" >> "$env_file"
+        
+
+    # Export the values from the .env file
+    export $(grep -v '^#' "$env_file" | xargs)
+    else
+    export $(grep -v '^#' "$env_file" | xargs)
+    fi
+ }   
+
 update_server_ip() {
     local timer=$TIMER_VALUE
     local user_activity=false
@@ -24,7 +53,7 @@ update_server_ip() {
     
     if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
         ip=$(curl -s ifconfig.me)
-        export WGD_REMOTE_ENDPOINT="$ip"
+        #export WGD_REMOTE_ENDPOINT="$ip"
     fi
 
 
@@ -47,7 +76,7 @@ update_server_ip() {
             echo -e "\033[31mInvalid IPv4 address format. Please enter a valid IPv4 address.\033[0m"
             continue
         fi
-                export WGD_REMOTE_ENDPOINT="$ip"
+                #export WGD_REMOTE_ENDPOINT="$ip"
                 break
             
         done
@@ -57,17 +86,8 @@ update_server_ip() {
 set_port_range() {
     local timer=$TIMER_VALUE
     local user_activity=false
-    local env_file=".env"
 
-    # Create environment file if it doesn't exist
-    if [ ! -f "$env_file" ]; then
-        touch "$env_file"
-    fi
-
-    # Function to check if .env file is empty
-    is_env_file_empty() {
-        [ ! -s "$env_file" ]
-    }
+    
 
     while [ $timer -gt 0 ]; do
         clear  # Clear the screen
@@ -87,17 +107,13 @@ set_port_range() {
     done
 
     if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
-        if is_env_file_empty; then
             HOST_PORT_START=$((1 + RANDOM % 65535))
             pcount=4
             HOST_PORT_END=$((HOST_PORT_START + pcount - 1))  
             port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
             echo -e "Wireguard Port Range Set To: \033[32m$port_mappings\033[0m"
-            echo "WGD_PORT_RANGE_STARTPORT=\"$HOST_PORT_START\"" >> "$env_file"
-            echo "WGD_PORT_MAPPINGS=\"$port_mappings\"" >> "$env_file"
-        else
-            echo "Environment file already exists and is not empty. Skipping port range generation."
-        fi
+            export WGD_PORT_RANGE_STARTPORT="$HOST_PORT_START"
+            export WGD_PORT_MAPPINGS="$port_mappings"
     fi
 
     if [ "$user_activity" = true ]; then
@@ -109,20 +125,13 @@ set_port_range() {
             HOST_PORT_END=$((HOST_PORT_START + pcount - 1))  
             port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
             echo -e "Wireguard Port Range Set To: \033[32m$port_mappings\033[0m"
-            
-            # Check if env file is empty before writing
-            if is_env_file_empty; then
-                echo "WGD_PORT_RANGE_STARTPORT=\"$HOST_PORT_START\"" >> "$env_file"
-                echo "WGD_PORT_MAPPINGS=\"$port_mappings\"" >> "$env_file"
-            else
-                echo "Environment file already exists and is not empty. Skipping port range generation."
-            fi
+            #export WGD_PORT_RANGE_STARTPORT="$HOST_PORT_START"
+            #export WGD_PORT_MAPPINGS="$port_mappings"
             break
         done
     fi
 
-    # Export the values from the .env file
-    export $(grep -v '^#' "$env_file" | xargs)
+
 }
 
 generate_wireguard_qr() {
@@ -298,8 +307,7 @@ set_wg-dash_user() {
 }
 
 set_wg-dash_config() {
-    update_server_ip
-    set_port_range
+    set_wiregate_env
 
 }
 set_wg-dash_account() {

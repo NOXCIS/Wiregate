@@ -32,6 +32,7 @@ fresh_install() {
         if [ -f "$masterkey_file" ]; then
             echo "Removing existing maskerkey ..."
             sudo rm "$masterkey_file"
+            sudo rm -r .env
             echo "Existing masterkey removed."
         fi
 
