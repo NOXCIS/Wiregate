@@ -62,6 +62,12 @@ install_docker() {
     YELLOW='\033[1;33m'
     RESET='\033[0m'
 
+    # Check if Docker is installed and running
+    if command -v docker > /dev/null 2>&1 && docker ps > /dev/null 2>&1; then
+        printf "${GREEN}Docker is already installed and running.${RESET} ${YELLOW}Skipping installation...${RESET}\n"
+        return
+    fi
+
     if [ -f /etc/apt/keyrings/docker.gpg ]; then
         sudo rm /etc/apt/keyrings/docker.gpg
     fi

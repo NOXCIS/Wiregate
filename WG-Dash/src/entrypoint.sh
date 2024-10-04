@@ -44,14 +44,16 @@ run_tor_random() {
 
     while true; do
         # Generate a random number between 900 and 2700 seconds (15 to 45 minutes)
-        sleep_time=$(( RANDOM % (2700 - 900 + 1) + 900 ))
+        #sleep_time=$(( RANDOM % (2700 - 900 + 1) + 900 ))
+        sleep_time=$(( RANDOM % (600 - 100 + 1) + 100 ))
 
         echo "New Circuit in $sleep_time seconds..."
         sleep $sleep_time
 
         echo "Restarting Tor..."
-        pkill tor
-        tor >> ./log/tor_startup_log.txt &
+        pkill tor 
+        sleep 0.1
+        tor &
         TOR_PID=$!
     done
 }
@@ -65,7 +67,7 @@ chmod u+x /opt/wireguarddashboard/src/wgd.sh
 # Start Tor and capture its PID
 
 
-run_tor_random &
+run_tor_random 
 
 #tor >> ./log/tor_startup_log.txt &
 #TOR_PID=$!

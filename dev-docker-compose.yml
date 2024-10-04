@@ -28,6 +28,9 @@ services:
     container_name: unbound
     restart: unless-stopped
     hostname: "unbound"
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
     volumes:
       - ./Global-Configs/Unbound/custom-unbound.conf:/etc/unbound/custom.conf.d/custom-unbound.conf
     networks:
@@ -52,9 +55,10 @@ services:
   wiregate:
     build: ./WG-Dash
     container_name: wiregate
+    hostname: wiregate
     cap_add:
       - NET_ADMIN
-      - SYS_MODULE
+     # - SYS_MODULE
     restart: unless-stopped
     volumes:
       - wgd_configs:/etc/wireguard
@@ -89,7 +93,6 @@ services:
       image: noxcis/darkwire:terra-firma
       cap_add:
         - NET_ADMIN
-        - SYS_MODULE
       sysctls:
         - net.ipv4.ip_forward=1
         - net.ipv4.conf.all.src_valid_mark=1
