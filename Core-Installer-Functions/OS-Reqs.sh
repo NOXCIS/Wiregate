@@ -34,6 +34,7 @@ install_prerequisites() {
         gnupg
         openssl
         apache2-utils
+        jq
     )
     # Define ANSI color codes
     GREEN=$(tput setaf 2)
