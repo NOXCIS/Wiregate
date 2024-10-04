@@ -35,7 +35,7 @@ services:
   pihole:
     depends_on: [unbound]
     container_name: pihole
-    image: pihole/pihole:nightly
+    image: pihole/pihole:latest
     restart: unless-stopped
     hostname: pihole
     dns:
