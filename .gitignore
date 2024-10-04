@@ -21,6 +21,7 @@ wireguard/
 Global-Configs/PiHole/etc-dnsmasq.d/*
 Global-Configs/PiHole/etc-pihole/*
 !Global-Configs/PiHole/etc-pihole/hosts/custom.list
+!Global-Configs/PiHole/etc-pihole/dnsmasq.conf
 Global-Configs/PiHole/etc-dnsmasq.d/
 data/
 
