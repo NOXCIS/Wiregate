@@ -83,6 +83,7 @@ services:
       - WGD_TOR_PROXY=${WGD_TOR_PROXY}
       - WGD_TOR_PLUGIN=${WGD_TOR_PLUGIN}
       - WGD_TOR_BRIDGES=${WGD_TOR_BRIDGES}
+      - TZ={PI_HOLE_TZ}
       - WGD_WELCOME_SESSION=false
       - WGD_USER=${WGD_USER}
       - WGD_PASS=${WGD_PASS}

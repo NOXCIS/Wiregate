@@ -127,6 +127,8 @@ setup_environment() {
 
 
 run_Pihole_setup() {
+    TIMER_VALUE=0
+    set_pihole_tz &&
     set_pihole_config &&
     set_wg-dash_config &&
     set_wg-dash_account &&
@@ -142,6 +144,8 @@ run_Pihole_setup() {
     mkey_output
 }
 run_AdGuard_setup() {
+        TIMER_VALUE=0
+        set_pihole_tz &&
         set_adguard_config &&
         set_wg-dash_config &&
         set_wg-dash_account &&
