@@ -1,25 +1,34 @@
 #!/bin/bash
 
+red="$(tput setaf 1)"
+green="$(tput setaf 2)"
+yellow="$(tput setaf 3)"
+blue="$(tput setaf 6)"
+reset="$(tput sgr0)"
+
+
 menu() {
     clear
     title
     echo -e "\033[33m"
-    echo "-----------------------------------------------------"
-    echo "1. Start Install"
-    echo "2. Toggle Tor Deployment"
-    echo "3. Launch Development Build"
-    echo "4. Reset WireGate Deployment"
-    echo "5. Exit"
+    echo "-------------------------------------------------------------------------------------------"
+    echo "|[$blue I      $yellow]| Start Install"
+    echo "|[$blue Toggle $yellow]| Tor Transport Proxy$red[ $blue A $red ] $reset|$yellow Tor Plugin$red[ $blue B $red ] $reset|$yellow Tor Bridges$red[ $blue C $red ] $yellow"
+    echo "|[$blue Dev    $yellow]| Launch Development Build"
+    echo "|[$blue R      $yellow]| Reset WireGate Deployment"
+    echo "|[$blue E      $yellow]| Exit"
     echo "-----------------------------------------------------"
     read -p "$(tput setaf 1)Enter your choice: $(tput sgr0)" choice
     echo ""
 
     case $choice in
-        1) init_menu ;;
-        2) toggle_tor_proxy ;;
-        3) dev_build ;;
-        4) fresh_install ;;
-        5) clear; exit ;;
+        I) init_menu ;;
+        A) toggle_tor_proxy ;;
+        B) toggle_tor_plugin ;;
+        C) toggle_tor_bridge ;;
+        Dev) dev_build ;;
+        R) fresh_install ;;
+        E) clear; exit ;;
         *) echo "Invalid choice. Please try again." ;;
     esac
 }
@@ -27,16 +36,50 @@ menu() {
 toggle_tor_proxy() {
     if [ "$WGD_TOR_PROXY" == "true" ]; then
         WGD_TOR_PROXY="false"
-        DEPLOY_TYPE="TOR TRANSPORT DEPLOY OFF"
+        DEPLOY_TYPE="false"
     else
         WGD_TOR_PROXY="true"
-        DEPLOY_TYPE="TOR TRANSPORT DEPLOY ON "
+        DEPLOY_TYPE="true"
     fi
 
     export WGD_TOR_PROXY
     export DEPLOY_TYPE
     menu
 }
+
+toggle_tor_bridge() {
+    if [ "$WGD_TOR_BRIDGES" == "true" ]; then
+        WGD_TOR_BRIDGES="false"
+    else
+        WGD_TOR_BRIDGES="true"
+    fi
+
+    export WGD_TOR_BRIDGES
+    menu
+}
+
+toggle_tor_plugin() {
+    case "$WGD_TOR_PLUGIN" in
+        "snowflake")
+            WGD_TOR_PLUGIN="webtunnel"
+            ;;
+        "webtunnel")
+            WGD_TOR_PLUGIN="obfs4"
+            ;;
+        "obfs4")
+            WGD_TOR_PLUGIN="snowflake"
+            ;;
+        *)
+            # If WGD_TOR_PLUGIN has an unexpected value, reset to "snowflake"
+            WGD_TOR_PLUGIN="snowflake"
+            ;;
+    esac
+
+    export WGD_TOR_PLUGIN
+    menu
+}
+
+
 
 run_menu_update() {
     local menu_type=$1

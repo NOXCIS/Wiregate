@@ -68,12 +68,13 @@ services:
       - wgd_configs:/etc/wireguard
       - wgd_iptables:/opt/wireguarddashboard/src/iptable-rules
       - wgd_db:/opt/wireguarddashboard/src/db
+      - wgd_db:/opt/wireguarddashboard/src/dashboard_config
       - ./Global-Configs/Master-Key:/opt/wireguarddashboard/src/master-key
     environment:
+      - TZ={PI_HOLE_TZ}
       - WGD_TOR_PROXY=${WGD_TOR_PROXY}
       - WGD_TOR_PLUGIN=${WGD_TOR_PLUGIN}
       - WGD_TOR_BRIDGES=${WGD_TOR_BRIDGES}
-      - TZ={PI_HOLE_TZ}
       - WGD_WELCOME_SESSION=false
       - WGD_USER=${WGD_USER}
       - WGD_PASS=${WGD_PASS}

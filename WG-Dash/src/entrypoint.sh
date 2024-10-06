@@ -63,21 +63,28 @@ get_webtunnel_bridges() {
     fi
 }
 
-# Function to add bridges to torrc file
+
 make_torrc() {
     printf "%s\n" "$dashes"
     printf "[TOR] Generating torrc to $TORRC_PATH...\n"
+    if [ -f "$TORRC_PATH" ]; then
+    rm "$TORRC_PATH" 
+    fi
     sudo apk add tor > /dev/null 2>&1
     sudo apk add curl > /dev/null 2>&1
+
     if [[ "$WGD_TOR_PLUGIN" == "webtunnel" ]]; then
     get_webtunnel_bridges
-    else [[ "$WGD_TOR_PLUGIN" == "obfs4" ]]; 
+    elif [[ "$WGD_TOR_PLUGIN" == "obfs4" ]]; then
     get_obfs4_bridges
     fi
-    printf "[TOR] Adding bridges to $TORRC_PATH...\n"
+    
     if [[ "$WGD_TOR_BRIDGES" == "true" ]]; then
     echo -e "UseBridges 1\n" >> "$TORRC_PATH"
+    printf "[TOR] Adding bridges to $TORRC_PATH...\n"
+    printf "[TOR] Bridges added to $TORRC_PATH successfully!\n"
     fi
+
     echo -e "AutomapHostsOnResolve 1 \n" >> "$TORRC_PATH"
     echo -e "VirtualAddrNetwork 10.192.0.0/10 \n" >> "$TORRC_PATH"
     echo -e "User tor \n" >> "$TORRC_PATH"
@@ -101,7 +108,6 @@ make_torrc() {
         echo "Bridge $bridge" >> "$TORRC_PATH"
     done
     fi
-    printf "[TOR] Bridges added to $TORRC_PATH successfully!\n"
     apk del curl > /dev/null 2>&1
     printf "%s\n" "$dashes"
 }
@@ -115,8 +121,8 @@ run_tor_flux() {
 
     while true; do
         # Generate a random number between 900 and 2700 seconds (15 to 45 minutes)
-        #sleep_time=$(( RANDOM % (2700 - 900 + 1) + 900 ))
-        sleep_time=$(( RANDOM % (600 - 100 + 1) + 100 ))
+        sleep_time=$(( RANDOM % (1642 - 100 + 1) + 100 ))
+        #sleep_time=$(( RANDOM % (25 - 10 + 1) + 10 ))
 
         printf "[TOR] New Circuit in $sleep_time seconds...\n"  
         printf "%s\n" "$equals" 
@@ -124,7 +130,6 @@ run_tor_flux() {
         printf "%s\n" "$equals" 
         printf "[TOR] Restarting Tor...\n"  
         pkill tor 
-        sleep 0.1
         tor &
         TOR_PID=$!
     done
@@ -133,15 +138,11 @@ run_tor_flux() {
 ensure_blocking() {
   sleep 1s
   echo "Ensuring container continuation."
-
-  # Check if any error or access logs exist and tail them
   err_log=$(find /opt/wireguarddashboard/src/log -name "error_*.log" | head -n 1)
   acc_log=$(find /opt/wireguarddashboard/src/log -name "access_*.log" | head -n 1)
-
   if [ -n "$err_log" ] || [ -n "$acc_log" ]; then
     tail -f $err_log $acc_log &
   fi
-
   wait
 }
 
@@ -165,6 +166,8 @@ fi
 
 # Wait for background processes to finish (if they don't, the script will stay running)
 wait $WGD_PID
+rm -r .env
+echo "wiregate" >> .env
 ensure_blocking
 
 

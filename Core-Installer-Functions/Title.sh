@@ -3,7 +3,6 @@
 
 
 title() {
-    run_animation_seq
     echo -e "\033[32m"  # Set text color to green
     echo -e '
 ________________________________________________________________________________

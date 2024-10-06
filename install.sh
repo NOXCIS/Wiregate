@@ -7,6 +7,8 @@ export DOCKER_CONTENT_TRUST=1
 export TIMER_VALUE=0
 export DEPLOY_TYPE="false"
 export WGD_TOR_PROXY="false"
+export WGD_TOR_PLUGIN="obfs4"
+export WGD_TOR_BRIDGES="false"
 
 #CORE_IMPORTS
     source ./Core-Installer-Functions/OS-Reqs.sh
@@ -26,7 +28,8 @@ setup_environment() {
     local config_type=$3
     export config_type
     export system
-
+    clear
+    run_animation_seq
     case "$mode" in
         "Express")
             title  
@@ -275,8 +278,9 @@ set_tag() {
         local adguard_password='$2a$12$t6CGhUcXtY6lGF2/A9Jd..Wn315A0RIiuhLlHbNHG2EmDbsN7miwO'
         local adguard_user="admin"
         compose_down &&
-        sed -i -E "s|^( *password: ).*|\1$adguard_password|" "$adguard_yaml_file"
-        sed -i -E "s|^( *- name: ).*|\1$adguard_user|" "$adguard_yaml_file"
+        sed -i '' -E "s|^( *password: ).*|\1$adguard_password|" "$adguard_yaml_file" && \
+        sed -i '' -E "s|^( *- name: ).*|\1$adguard_user|" "$adguard_yaml_file"
+
         docker compose -f dev-docker-compose.yml up -d
         echo -e "\033[33m"'Wireguard DashBoard Available at http://localhost:8000'
 
@@ -370,6 +374,7 @@ set_tag() {
 
 # Main script
     if [ $# -eq 0 ]; then
+    run_animation_seq
     menu
 else
     case "$1" in  
