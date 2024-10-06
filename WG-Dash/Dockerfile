@@ -9,7 +9,7 @@ RUN chmod u+x ./builder.sh && ./builder.sh
 
 
 # Stage 2: Pluggables with Go and Lyrebird
-FROM --platform=${BUILDPLATFORM} golang:alpine3.20 AS pluggables
+FROM golang:alpine3.20 AS pluggables
 ARG LYREBIRD_VERSION=0.2.0
 WORKDIR /
 
@@ -41,18 +41,14 @@ RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transp
 # Stage 3: Final image
 FROM alpine:latest
 WORKDIR /opt/wireguarddashboard/src
-
-
-
 COPY ./src /opt/wireguarddashboard/src/
-COPY ./src/tor/ /etc/tor/
 COPY --from=pluggables /usr/local/bin/lyrebird /usr/local/bin/lyrebird
-COPY --from=pluggables /webtunnel/main/client/client /etc/tor/webtunnel
-COPY --from=pluggables /snowflake/client/client /etc/tor/snowflake
+COPY --from=pluggables /webtunnel/main/client/client /usr/local/bin/webtunnel
+COPY --from=pluggables /snowflake/client/client /usr/local/bin/snowflake
 COPY --from=builder /opt/wireguarddashboard/src/venv /opt/wireguarddashboard/src/venv
 COPY --from=builder /opt/wireguarddashboard/src/log /opt/wireguarddashboard/src/log/
 
-RUN apk add --no-cache wireguard-tools sudo iptables tor && \
+RUN apk add --no-cache wireguard-tools sudo iptables && \
     chmod u+x /opt/wireguarddashboard/src/entrypoint.sh 
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD \

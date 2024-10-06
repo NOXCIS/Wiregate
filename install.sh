@@ -5,7 +5,7 @@ export HISTFILE=/dev/null
 export DEBIAN_FRONTEND=noninteractive
 export DOCKER_CONTENT_TRUST=1
 export TIMER_VALUE=0
-export DEPLOY_TYPE="TOR TRANSPORT DEPLOY OFF"
+export DEPLOY_TYPE="false"
 export WGD_TOR_PROXY="false"
 
 #CORE_IMPORTS
@@ -317,26 +317,88 @@ set_tag() {
         history -c
         clear
     }
+    
+
     switch_tor() {
-        export WGD_TOR_PROXY="true" 
-        export DEPLOY_TYPE="TOR TRANSPORT DEPLOY ON "
-    }
+    # Accept the input argument as a string
+    input_string="$1"
+    
+    # Split the input string by '-' into components
+    IFS='-' read -r transport_type bridge_type plugin_type <<< "$input_string"
+    
+    # Default bridge_type to an empty string if omitted
+    if [[ -z "$bridge_type" ]]; then
+        bridge_type=""
+    fi
+
+    # Check if the first component is 'Tor'
+    if [[ "$transport_type" == "Tor" ]]; then
+        export WGD_TOR_PROXY="true"
+        export DEPLOY_TYPE="true "
+    else
+        export WGD_TOR_PROXY="false"
+        export DEPLOY_TYPE="false"
+    fi
+
+    # Set bridge options
+    if [[ "$bridge_type" == "br" ]]; then
+        export WGD_TOR_BRIDGES="true"
+    elif [[ "$bridge_type" == "nobrg" ]]; then
+        export WGD_TOR_BRIDGES="false"
+    else
+        echo "Invalid bridge."
+        sleep 5
+    fi
+
+    # Set plugin type
+    if [[ "$plugin_type" == "snow" ]]; then
+        export WGD_TOR_PLUGIN="snowflake"
+    elif [[ "$plugin_type" == "obfs4" ]]; then
+        export WGD_TOR_PLUGIN="obfs4"
+    elif [[ "$plugin_type" == "webtun" ]]; then
+        export WGD_TOR_PLUGIN="webtunnel"
+    else 
+        echo "Invalid plugin choice. Please choose 'snow', 'obfs4', or 'webtun'."
+        return 1  # Exit with error
+    fi
+}
+
 
 # Main script
     if [ $# -eq 0 ]; then
     menu
 else
-    case $1 in  
-        Tor-*) 
-            switch_tor
-            arg="${1#Tor-}"
+    case "$1" in  
+        D) 
+            export DEPLOY_TYPE="false"
+            export WGD_TOR_PLUGIN="None"
+            export WGD_TOR_PROXY="false"
+            export WGD_TOR_BRIDGES="false"
             ;;
-        *) 
-            arg="$1"
+        Tor-br-snow) 
+            switch_tor Tor-br-snow
             ;;
+        Tor-br-webtun) 
+            switch_tor Tor-br-webtun
+            ;;
+        Tor-br-obfs) 
+            switch_tor Tor-br-obfs
+            ;;
+        Tor-snow) 
+            switch_tor Tor-nobrg-snow
+            ;;
+        Tor-webtun) 
+            switch_tor Tor-nobrg-webtun
+            ;;
+        Tor-obfs4) 
+            switch_tor Tor-nobrg-obfs4
+            ;;
+    
+        *) echo "Invalid choice. Please try again." ;;
     esac
 
-    case $arg in  
+
+    case "$2" in  
         E-A-D) setup_environment "Express" "AdGuard" "Darkwire" ;;
         E-A-C) setup_environment "Express" "AdGuard" "Channels" ;;
         E-P-D) setup_environment "Express" "Pihole" "Darkwire" ;;
