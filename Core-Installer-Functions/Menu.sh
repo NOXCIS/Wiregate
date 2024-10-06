@@ -8,14 +8,14 @@ reset="$(tput sgr0)"
 
 
 menu() {
-    clear
     title
     echo -e "\033[33m"
     echo "-------------------------------------------------------------------------------------------"
     echo "|[$blue I      $yellow]| Start Install"
+    echo "|[$blue R      $yellow]| Reset WireGate Deployment"
+    echo "|[$blue H      $yellow]| Help"
     echo "|[$blue Toggle $yellow]| Tor Transport Proxy$red[ $blue A $red ] $reset|$yellow Tor Plugin$red[ $blue B $red ] $reset|$yellow Tor Bridges$red[ $blue C $red ] $yellow"
     echo "|[$blue Dev    $yellow]| Launch Development Build"
-    echo "|[$blue R      $yellow]| Reset WireGate Deployment"
     echo "|[$blue E      $yellow]| Exit"
     echo "-----------------------------------------------------"
     read -p "$(tput setaf 1)Enter your choice: $(tput sgr0)" choice
@@ -28,8 +28,12 @@ menu() {
         C) toggle_tor_bridge ;;
         Dev) dev_build ;;
         R) fresh_install ;;
+        H) help ;;
         E) clear; exit ;;
-        *) echo "Invalid choice. Please try again." ;;
+        *) 
+                clear
+                echo "Invalid choice. Please try again."
+                menu;;
     esac
 }
 

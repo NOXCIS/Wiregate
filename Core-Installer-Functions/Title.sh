@@ -1,6 +1,42 @@
 #!/bin/bash
 
+red="$(tput setaf 1)"
+green="$(tput setaf 2)"
+yellow="$(tput setaf 3)"
+blue="$(tput setaf 6)"
+reset="$(tput sgr0)"
+dashes='----------------------------------------------------------------------------------------------------------------------------------------'
+equals='========================================================================================================================================'
+short_stars='***************'
+stars='**********************************************************************************'
+htag='##################################################################################'
 
+
+
+
+
+help() {
+    clear
+    echo -e "Usage sudo ./install.sh <ARG1> <ARG2>\n"    
+            echo "$yellow Options for Install ARG 1"
+            printf "%s\n" "$dashes"
+            echo "|$blue TOR OFF:      $yellow| off           |               |                 "
+            echo "|$blue TOR BRIDGED:  $yellow| Tor-br-snow   | Tor-br-webtun | Tor-br-obfs4    " 
+            echo "|$blue TOR NoBRIDGE: $yellow| Tor-snow      | Tor-webtun    | Tor-obfs4       "
+            printf "%s\n" "$dashes"
+
+            echo -e "$yellow Options for Install ARG 2\n"
+            printf "%s\n" "$dashes"
+            echo "|$blue EXAMPLE:  $yellow|$red E-A-D $yellow for Express-AdGuard-Darkwire        $red|                                     |  "
+            echo "|$blue LEDGEND:  $yellow|$green <InstallType>-<DNS>-<IncludeDarkwire>      $red|                                     |$yellow"
+            printf "%s\n" "$equals"
+            echo "|$blue USAGE:    $yellow| (E) $reset for Express $red or $yellow (A) $reset for Advanced   $red|||$yellow (A) $reset for AdGuard $red or $yellow (P) $reset for Pihole $red|||$yellow (D) $reset to include Darkwire $red or $yellow (C) $reset to omit"
+            printf "$yellow%s\n" "$equals"
+            echo -e "|$blue UTIL:     $yellow| Use $red dev $yellow or $red reset $yellow with $green off $yellow as $reset ARG1 $yellow to reset the deployment or run Development Build \n"
+            printf "%s\n" "$dashes"
+
+
+}
 
 title() {
     echo -e "\033[32m"  # Set text color to green
@@ -20,14 +56,6 @@ ________________________________________________________________________________
 |_______________________________________________________________________________'                                                               
     echo -e "\033[0m"  # Reset to default text color
 }
-
-dashes='----------------------------------------------------------------------------------'
-equals='=================================================================================='
-short_stars='***************'
-stars='**********************************************************************************'
-htag='##################################################################################'
-
-
 
 
 

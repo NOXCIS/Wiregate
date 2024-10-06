@@ -8,7 +8,7 @@ RUN chmod u+x ./builder.sh && ./builder.sh
 
 
 # Stage 2: Pluggables with Go and Lyrebird
-FROM  --platform=${BUILDPLATFORM} golang:alpine3.20 AS pluggables
+FROM  golang:alpine3.20 AS pluggables
 ARG LYREBIRD_VERSION=0.2.0
 WORKDIR /
 

@@ -192,7 +192,6 @@ mkey_output() {
         set_tag --stable
         run_docker_title
         docker compose pull
-        docker images --format "{{.Repository}}" | xargs -L1 -I {} docker pull {}:latest
         docker compose up -d --build 
     }
     compose_down() {
@@ -373,55 +372,56 @@ set_tag() {
 }
 
 
+
+
 # Main script
-    if [ $# -eq 0 ]; then
+if [ $# -eq 0 ]; then
     run_animation_seq
     menu
 else
+    # Handle the first argument
     case "$1" in  
-        D) 
+        off) 
             export DEPLOY_TYPE="false"
             export WGD_TOR_PLUGIN="None"
             export WGD_TOR_PROXY="false"
             export WGD_TOR_BRIDGES="false"
             ;;
-        Tor-br-snow) 
-            switch_tor Tor-br-snow
+        Tor-br-snow|Tor-br-webtun|Tor-br-obfs4|Tor-snow|Tor-webtun|Tor-obfs4) 
+            switch_tor "$1"
             ;;
-        Tor-br-webtun) 
-            switch_tor Tor-br-webtun
+        *) 
+            echo "Error: Invalid option for argument 1...wait"
+            sleep 1.5
+            help
+            exit 1
             ;;
-        Tor-br-obfs) 
-            switch_tor Tor-br-obfs
-            ;;
-        Tor-snow) 
-            switch_tor Tor-nobrg-snow
-            ;;
-        Tor-webtun) 
-            switch_tor Tor-nobrg-webtun
-            ;;
-        Tor-obfs4) 
-            switch_tor Tor-nobrg-obfs4
-            ;;
-    
-        *) echo "Invalid choice. Please try again." ;;
     esac
 
-
-    case "$2" in  
-        E-A-D) setup_environment "Express" "AdGuard" "Darkwire" ;;
-        E-A-C) setup_environment "Express" "AdGuard" "Channels" ;;
-        E-P-D) setup_environment "Express" "Pihole" "Darkwire" ;;
-        E-P-C) setup_environment "Express" "Pihole" "Channels" ;;
-        A-A-D) setup_environment "Advanced" "AdGuard" "Darkwire" ;;
-        A-A-C) setup_environment "Advanced" "AdGuard" "Channels" ;;
-        A-P-D) setup_environment "Advanced" "Pihole" "Darkwire" ;;
-        A-P-C) setup_environment "Advanced" "Pihole" "Channels" ;;
-        dev) dev_build ;;
-        reset) fresh_install ;;
-        *) echo "Invalid choice. Please try again." ;;
-    esac
+    # Check if second argument is provided
+    if [ $# -gt 1 ]; then
+        # Handle the second argument
+        case "$2" in  
+            E-A-D) setup_environment "Express" "AdGuard" "Darkwire" ;;
+            E-A-C) setup_environment "Express" "AdGuard" "Channels" ;;
+            E-P-D) setup_environment "Express" "Pihole" "Darkwire" ;;
+            E-P-C) setup_environment "Express" "Pihole" "Channels" ;;
+            A-A-D) setup_environment "Advanced" "AdGuard" "Darkwire" ;;
+            A-A-C) setup_environment "Advanced" "AdGuard" "Channels" ;;
+            A-P-D) setup_environment "Advanced" "Pihole" "Darkwire" ;;
+            A-P-C) setup_environment "Advanced" "Pihole" "Channels" ;;
+            dev) 
+                dev_build 
+                ;;
+            reset) 
+                fresh_install 
+                ;;
+            *) 
+                echo "Error: Invalid option for argument 2...wait"
+                sleep 1.5
+                help
+                exit 1
+                ;;
+        esac
+    fi
 fi
-
-
-
