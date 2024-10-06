@@ -191,7 +191,7 @@ mkey_output() {
     compose_up() {
         set_tag --stable
         run_docker_title
-        #docker compose pull
+        docker compose pull
         docker images --format "{{.Repository}}" | xargs -L1 -I {} docker pull {}:latest
         docker compose up -d --build 
     }

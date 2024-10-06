@@ -70,7 +70,7 @@ services:
       - TZ=UTC
       - WGD_TOR_PROXY=true
       - WGD_TOR_PLUGIN=webtunnel #OPTIONS webtunnel, obfs4, snowflake
-      - WGD_TOR_BRIDGES=false
+      - WGD_TOR_BRIDGES=true
       - WGD_WELCOME_SESSION=false
       - WGD_USER=james
       - WGD_PASS=admin
