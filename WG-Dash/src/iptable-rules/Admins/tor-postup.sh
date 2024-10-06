@@ -15,6 +15,9 @@ iptables -N ADMIN_RULES
 iptables -t nat -N ADMIN_RULES
 
 
+# Accept established incoming connections
+iptables -A ADMIN_RULES -m state --state ESTABLISHED -j ACCEPT
+
 # Allow local loopback traffic
 iptables -A ADMIN_RULES -i lo -j ACCEPT
 iptables -A ADMIN_RULES -o lo -j ACCEPT
