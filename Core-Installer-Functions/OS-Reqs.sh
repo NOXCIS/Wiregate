@@ -92,7 +92,9 @@ install_docker() {
         repo_url="https://download.docker.com/linux/debian"
         ;;
     *)
-        printf "${RED}Unsupported Linux distribution: $distro${RESET}\n"
+        printf "${RED}Unsupported Linux distribution: $distro${RESET} \n"
+        printf "${RED}To Continue Manually install Docker on : $distro${RESET}"
+          
         exit 1
         ;;
     esac
@@ -118,7 +120,6 @@ install_docker() {
         containerd.io
         docker-buildx-plugin
         docker-compose-plugin
-        docker-compose
     )
 
     for docreqs in "${DOCREQS[@]}"; do
