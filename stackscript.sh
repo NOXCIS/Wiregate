@@ -16,5 +16,4 @@ else
 fi
 
 
-curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh && chmod +x stackscript.sh  && ./stackscript.sh terra-firma Tor-br-obfs4 E-P-C
 

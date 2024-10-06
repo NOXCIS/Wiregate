@@ -116,21 +116,24 @@ run_tor_flux() {
     printf "%s\n" "$equals"
     
     printf "[TOR] Starting Tor ...\n"
+
+    { date; tor; printf "\n\n"; } >> ./log/tor_startup_log.txt &
+
     tor >> ./log/tor_startup_log.txt &
     TOR_PID=$!
 
     while true; do
-        # Generate a random number between 900 and 2700 seconds (15 to 45 minutes)
         sleep_time=$(( RANDOM % (1642 - 100 + 1) + 100 ))
-        #sleep_time=$(( RANDOM % (25 - 10 + 1) + 10 ))
-
+        sleep_kill=$(awk -v seed="$RANDOM" 'BEGIN { srand(seed); printf "%.2f\n", 0.04 + (rand() * (0.50 - 0.04)) }')
+        #sleep_time=$(( RANDOM % (15 - 10 + 1) + 10 ))
         printf "[TOR] New Circuit in $sleep_time seconds...\n"  
         printf "%s\n" "$equals" 
         sleep $sleep_time
         printf "%s\n" "$equals" 
         printf "[TOR] Restarting Tor...\n"  
         pkill tor 
-        tor &
+        sleep $sleep_kill
+        tor >> ./log/tor_startup_log.txt &
         TOR_PID=$!
     done
        

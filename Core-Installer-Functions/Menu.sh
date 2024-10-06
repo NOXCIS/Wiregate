@@ -5,16 +5,21 @@ green="$(tput setaf 2)"
 yellow="$(tput setaf 3)"
 blue="$(tput setaf 6)"
 reset="$(tput sgr0)"
-
+dashes='----------------------------------------------------------------------------------------------------------------------------------------'
+equals='========================================================================================================================================'
+short_stars='***************'
+stars='**********************************************************************************'
+htag='##################################################################################'
 
 menu() {
     title
     echo -e "\033[33m"
+    printf "%s\n" "$equals"
+    echo "|[$blue Toggle $yellow]|$reset Tor Transport Proxy $red ($blue A $red) $yellow|$reset Tor Plugin $red($blue B $red) $yellow|$reset Tor Bridges $red($blue C $red) $yellow"
     echo "-------------------------------------------------------------------------------------------"
     echo "|[$blue I      $yellow]| Start Install"
     echo "|[$blue R      $yellow]| Reset WireGate Deployment"
     echo "|[$blue H      $yellow]| Help"
-    echo "|[$blue Toggle $yellow]| Tor Transport Proxy$red[ $blue A $red ] $reset|$yellow Tor Plugin$red[ $blue B $red ] $reset|$yellow Tor Bridges$red[ $blue C $red ] $yellow"
     echo "|[$blue Dev    $yellow]| Launch Development Build"
     echo "|[$blue E      $yellow]| Exit"
     echo "-----------------------------------------------------"
@@ -48,6 +53,7 @@ toggle_tor_proxy() {
 
     export WGD_TOR_PROXY
     export DEPLOY_TYPE
+    clear
     menu
 }
 
@@ -59,6 +65,7 @@ toggle_tor_bridge() {
     fi
 
     export WGD_TOR_BRIDGES
+    clear
     menu
 }
 
@@ -80,6 +87,7 @@ toggle_tor_plugin() {
     esac
 
     export WGD_TOR_PLUGIN
+    clear
     menu
 }
 
@@ -153,25 +161,37 @@ display_menu() {
     echo
 }
 
+
 init_menu() {
     # Initialize menus
     menu=(" " " ")     # Install Type
-    dnsMenu=(" " " ")       # DNS Setup
-    commsMenu=(" " " " " ") # Comms Setup
+    dnsMenu=(" " " ")  # DNS Setup
+    commsMenu=(" " " ") # Comms Setup
 
-    # Define an array of menus and their labels
+    # Define an array of menus
     menus=("menu" "dnsMenu" "commsMenu")
-    labels=("Install Type: (1) Express (2) Advanced (3) Pre_Configured"
-            "DNS Setup: (1) AdGuard (2) Pihole"
-            "Comms Platform: (1) Darkwire (2) Channels")
+
 
     # Iterate through each menu
     for i in "${!menus[@]}"; do
-        display_menu
-        # Uncomment the line below if you want to show the label for each menu
-        # echo "${labels[i]}"
-        read -p "Enter your choice: " choice
-        run_menu_update "${menus[i]}" $((choice - 1))
+        display_menu        
+        while true; do
+            read -p "Enter your choice: " choice
+            
+            # Validate input
+            if [[ ! "$choice" =~ ^[1-9]$ ]]; then
+                echo "Invalid choice. Please enter a number corresponding to the options."
+                continue
+            fi
+            
+            # Check if choice is within valid range
+            if (( choice < 1 || choice > ${#menu[@]} )); then
+                echo "Choice out of range. Please select a valid option."
+            else
+                run_menu_update "${menus[i]}" $((choice - 1))
+                break
+            fi
+        done
         clear
     done
 
@@ -194,16 +214,20 @@ init_menu() {
         case "$INSTALL_TYPE-$DNS_SETUP-$COMMS_SETUP" in
             "Express-AdGuard-Darkwire") setup_environment "Express" "AdGuard" "Darkwire" ;;
             "Express-AdGuard-None") setup_environment "Express" "AdGuard" "Channels" ;;
-            "Express-Pihole-Darkwire") setup_environment  "Express" "Pihole" "Darkwire" ;;
-            "Express-Pihole-None") setup_environment  "Express" "Pihole" "Channels" ;;
+            "Express-Pihole-Darkwire") setup_environment "Express" "Pihole" "Darkwire" ;;
+            "Express-Pihole-None") setup_environment "Express" "Pihole" "Channels" ;;
             "Advanced-AdGuard-Darkwire") setup_environment "Advanced" "AdGuard" "Darkwire" ;;
             "Advanced-AdGuard-None") setup_environment "Advanced" "AdGuard" "Channels" ;;
-            "Advanced-Pihole-Darkwire") setup_environment  "Advanced" "Pihole" "Darkwire" ;;
-            "Advanced-Pihole-None") setup_environment  "Advanced" "Pihole" "Channels" ;;
+            "Advanced-Pihole-Darkwire") setup_environment "Advanced" "Pihole" "Darkwire" ;;
+            "Advanced-Pihole-None") setup_environment "Advanced" "Pihole" "Channels" ;;
             *) echo "Invalid combination, no specific action taken." ;;
         esac
-    else
-        menu # Call the menu function if the user says 'no'
+    elif [ "$confirm" == "no" ]; then
+        clear
+        menu
+    else 
+        clear
+        init_menu # Call the menu function if the user says 'no'
     fi
 }
 

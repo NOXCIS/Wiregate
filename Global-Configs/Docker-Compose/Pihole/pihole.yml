@@ -76,7 +76,6 @@ services:
     restart: unless-stopped
     volumes:
       - wgd_configs:/etc/wireguard
-      - wgd_iptables:/opt/wireguarddashboard/src/iptable-rules
       - wgd_db:/opt/wireguarddashboard/src/db
       - wgd_db:/opt/wireguarddashboard/src/dashboard_config
       - ./Global-Configs/Master-Key:/opt/wireguarddashboard/src/master-key
@@ -110,7 +109,6 @@ services:
 
 volumes:
     wgd_configs:
-    wgd_iptables:
     wgd_db:
   
 
