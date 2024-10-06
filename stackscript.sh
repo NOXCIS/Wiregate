@@ -7,4 +7,10 @@ ARG2=${3:-}
 git clone --branch $BRANCH https://github.com/NOXCIS/Wiregate.git
 cd Wiregate
 chmod +x install.sh
-./install.sh "$ARG1" "$ARG2"
+
+# Only pass ARG1 and ARG2 if they are not empty
+if [[ -n "$ARG1" && -n "$ARG2" ]]; then
+    ./install.sh "$ARG1" "$ARG2"
+else
+    ./install.sh
+fi
