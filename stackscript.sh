@@ -9,6 +9,7 @@ git clone --branch $BRANCH https://github.com/NOXCIS/Wiregate.git
 cd Wiregate
 
 if [ "$ARG1" = "dind" ]; then
+    BRANCH="terra-firma"
     ARG3="$ARG1"
     ARG1=""  # Reset ARG1 after assigning it to ARG3
 
