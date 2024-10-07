@@ -91,7 +91,7 @@ install_docker() {
     if [ -f /etc/alpine-release ]; then
         echo "Installing Docker on Alpine Linux..."
         sudo apk update
-        sudo apk add docker
+        sudo apk add docker docker-cli-compose
 
     else
         # Handle other distros (Debian/Ubuntu)
