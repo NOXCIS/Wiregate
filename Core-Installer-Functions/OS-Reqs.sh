@@ -36,8 +36,6 @@ install_prerequisites() {
     # List of prerequisites for Alpine
     PREREQUISITES=(
         curl
-        qrencode
-        libqrencode
         ca-certificates
         gnupg
         openssl
@@ -52,6 +50,7 @@ install_prerequisites() {
     
     # Check if Alpine Linux is used
     if [ -f /etc/alpine-release ]; then
+        apk add libqrencode libqrencode-tools > /dev/null 2>&1
         for prerequisite in "${PREREQUISITES[@]}"
         do
             if ! apk info -e "$prerequisite" > /dev/null 2>&1; then
@@ -63,6 +62,7 @@ install_prerequisites() {
         done
     else
         # For non-Alpine systems (Debian/Ubuntu)
+               sudo apt-get install qrencode -y > /dev/null 2>&1
         for prerequisite in "${PREREQUISITES[@]}"
         do
             if ! dpkg -s "$prerequisite" > /dev/null 2>&1; then
