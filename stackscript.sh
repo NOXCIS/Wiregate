@@ -74,8 +74,8 @@ cd Wiregate
 
     if [ ! -s "$env_file" ]; then 
         update_server_ip
-        echo "WGD_PORT_RANGE_STARTPORT=443" >> "$env_file"
-        echo "WGD_PORT_MAPPINGS=443-448:443-448/udp" >> "$env_file"
+        echo "WGD_PORT_RANGE_STARTPORT=\"443\"" >> "$env_file"
+        echo "WGD_PORT_MAPPINGS=\"443-448:443-448/udp\"" >> "$env_file"
         echo "WGD_REMOTE_ENDPOINT=\"$ip\"" >> "$env_file"
     fi
 
