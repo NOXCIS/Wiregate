@@ -407,8 +407,34 @@ if [ $# -eq 0 ]; then
     run_animation_seq
     menu
 else
-    # Handle the first argument
+    
     case "$1" in  
+        E-A-D)  setup_environment "Express" "AdGuard" "Darkwire" ;;
+        E-A-C)  setup_environment "Express" "AdGuard" "Channels" ;;
+        E-P-D)  setup_environment "Express" "Pihole" "Darkwire" ;;
+        E-P-C)  setup_environment "Express" "Pihole" "Channels" ;;
+        A-A-D)  setup_environment "Advanced" "AdGuard" "Darkwire" ;;
+        A-A-C)  setup_environment "Advanced" "AdGuard" "Channels" ;;
+        A-P-D)  setup_environment "Advanced" "Pihole" "Darkwire" ;;
+        A-P-C)  setup_environment "Advanced" "Pihole" "Channels" ;;
+          dev) 
+                dev_build 
+                ;;
+         help)
+                help
+                ;;
+        reset) 
+                fresh_install 
+                ;;
+            *) 
+                echo "$red Error:$reset Invalid option for argument 1...wait"
+                sleep 1.5
+                help
+                exit 1
+                ;;
+    esac
+
+    case "$2" in  
         off) 
             export DEPLOY_TYPE="false"
             export WGD_TOR_PLUGIN="None"
@@ -434,47 +460,13 @@ else
             switch_tor Tor-nobrg-obfs4
             ;;
         *) 
-            echo "Error: Invalid option for argument 1...wait"
+            echo "$red Error:$reset Invalid option for argument 2...wait"
             sleep 1.5
             help
             exit 1
             ;;
     esac
 
-    # Check if second argument is provided
-    if [ $# -gt 1 ]; then
-        # Handle the second argument
-        case "$2" in  
-            E-A-D) setup_environment "Express" "AdGuard" "Darkwire" ;;
-            E-A-C) setup_environment "Express" "AdGuard" "Channels" ;;
-            E-P-D) setup_environment "Express" "Pihole" "Darkwire" ;;
-            E-P-C) setup_environment "Express" "Pihole" "Channels" ;;
-            A-A-D) setup_environment "Advanced" "AdGuard" "Darkwire" ;;
-            A-A-C) setup_environment "Advanced" "AdGuard" "Channels" ;;
-            A-P-D) setup_environment "Advanced" "Pihole" "Darkwire" ;;
-            A-P-C) setup_environment "Advanced" "Pihole" "Channels" ;;
-            dev) 
-                dev_build 
-                ;;
-            reset) 
-                fresh_install 
-                ;;
-            *) 
-                echo "Error: Invalid option for argument 2...wait"
-                sleep 1.5
-                help
-                exit 1
-                ;;
-        esac
-        export 2="$two" 
-        case "$3" in
-            dind) dind_build ;;
-            *)
-            echo "Error: Invalid option for argument 2...wait"
-                sleep 1.5
-                help
-                exit 1
-        esac
-
-    fi
+   
+    
 fi

@@ -16,24 +16,31 @@ htag='##########################################################################
 
 
 help() {
-    clear
-    echo -e "Usage sudo ./install.sh <ARG1> <ARG2>\n"    
-            echo "$yellow Options for Install ARG 1"
-            printf "%s\n" "$dashes"
-            echo "|$blue TOR OFF:      $yellow| off           |               |                 "
-            echo "|$blue TOR BRIDGED:  $yellow| Tor-br-snow   | Tor-br-webtun | Tor-br-obfs4    " 
-            echo "|$blue TOR NoBRIDGE: $yellow| Tor-snow      | Tor-webtun    | Tor-obfs4       "
-            printf "%s\n" "$dashes"
+    echo""
+    echo -e "$blue USAGE sudo ./install.sh <ARG1> <ARG2>\n" 
 
+            echo -e "$yellow Options for Install ARG 1\n"
+            printf "%s\n" "$dashes"
+            echo "|$blue EXAMPLE:       $yellow|$red E-A-D $yellow for Express-AdGuard-Darkwire       $red|                                         |$yellow  "
+            printf "$yellow%s\n" "$dashes"
+            echo "|$blue LEDGEND:       $yellow|$green <InstallType>-<DNS>-<IncludeDarkwire>     $red|                                         |$yellow"
+            printf "$yellow%s\n" "$equals"
+            echo "|$blue USAGE:         $yellow| $blue(E) $reset for Express $red or $blue (A) $reset for Advanced   $red|||$blue (A) $reset for AdGuard $red or $blue(P) $reset for Pihole $red|||$blue (D) $reset to include Darkwire $red or $blue (C) $reset to omit"
+            printf "$yellow%s\n" "$dashes"
+            printf "$yellow%s\n" "$equals"
+            echo "|$blue UTIL:          $yellow|$reset Use $red dev $reset, $red help $reset or $red reset $reset as $blue ARG1 $reset to reset the deployment, get help or run Development Build $yellow"
+            printf "$yellow%s\n" "$equals"
+            echo ""
             echo -e "$yellow Options for Install ARG 2\n"
             printf "%s\n" "$dashes"
-            echo "|$blue EXAMPLE:  $yellow|$red E-A-D $yellow for Express-AdGuard-Darkwire        $red|                                     |  "
-            echo "|$blue LEDGEND:  $yellow|$green <InstallType>-<DNS>-<IncludeDarkwire>      $red|                                     |$yellow"
-            printf "%s\n" "$equals"
-            echo "|$blue USAGE:    $yellow| (E) $reset for Express $red or $yellow (A) $reset for Advanced   $red|||$yellow (A) $reset for AdGuard $red or $yellow (P) $reset for Pihole $red|||$yellow (D) $reset to include Darkwire $red or $yellow (C) $reset to omit"
-            printf "$yellow%s\n" "$equals"
-            echo -e "|$blue UTIL:     $yellow| Use $red dev $yellow or $red reset $yellow with $green off $yellow as $reset ARG1 $yellow to reset the deployment or run Development Build \n"
+            echo "|$blue TOR OFF:       $yellow| off           $red|               $red|$yellow                 "
             printf "%s\n" "$dashes"
+            echo "|$blue TOR BRIDGED:   $yellow| Tor-br-snow   $red|$yellow Tor-br-webtun $red|$yellow  Tor-br-obfs4    " 
+            printf "%s\n" "$dashes"
+            echo "|$blue TOR NO BRIDGE: $yellow| Tor-snow      $red|$yellow Tor-webtun    $red|$yellow  Tor-obfs4       "
+            printf "%s\n" "$dashes"
+
+            
 
 
 }

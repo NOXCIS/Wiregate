@@ -148,9 +148,9 @@ generate_wireguard_qr() {
     # Generate the QR code and display it in the CLI
     master_key_title
     printf "%s\n" "$stars"
-    printf "%s\n" "$dashes"
-    cat ./Global-Configs/Master-Key/master.conf #| sed 's/.*/\x1b[33m&\x1b[0m/'
-    printf "%s\n" "$equals"
+    printf "%s\n" "$dashes" $yellow
+    cat ./Global-Configs/Master-Key/master.conf 
+    printf $green"%s\n" "$equals"
     printf "%s\n"
     qrencode -t ANSIUTF8 < "$config_file"
 
