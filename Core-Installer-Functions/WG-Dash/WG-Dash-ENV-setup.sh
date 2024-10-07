@@ -149,7 +149,7 @@ generate_wireguard_qr() {
     master_key_title
     printf "%s\n" "$stars"
     printf "%s\n" "$dashes"
-    cat ./Global-Configs/Master-Key/master.conf | sed 's/.*/\x1b[33m&\x1b[0m/'
+    cat ./Global-Configs/Master-Key/master.conf #| sed 's/.*/\x1b[33m&\x1b[0m/'
     printf "%s\n" "$equals"
     printf "%s\n"
     qrencode -t ANSIUTF8 < "$config_file"

@@ -129,6 +129,8 @@ setup_environment() {
 }
 
 
+
+
 run_Pihole_setup() {
     TIMER_VALUE=0
     set_pihole_tz &&
@@ -150,7 +152,7 @@ run_AdGuard_setup() {
         TIMER_VALUE=0
         set_pihole_tz &&
         set_adguard_config &&
-        set_wg-dash_config &&
+        set_wg-dash_config && 
         set_wg-dash_account &&
             if [ "$config_type" = "Channels" ]; then
                 echo "OK" 
@@ -311,6 +313,8 @@ set_tag() {
 
 
     }
+
+    
     rm_exst_configs() {
         local masterkey_file="/Global-Configs/Master-Key/master.conf"
         if [ -f "$masterkey_file" ]; then
@@ -411,8 +415,23 @@ else
             export WGD_TOR_PROXY="false"
             export WGD_TOR_BRIDGES="false"
             ;;
-        Tor-br-snow|Tor-br-webtun|Tor-br-obfs4|Tor-snow|Tor-webtun|Tor-obfs4) 
-            switch_tor "$1"
+        Tor-br-snow) 
+            switch_tor Tor-br-snow
+            ;;
+        Tor-br-webtun) 
+            switch_tor Tor-br-webtun
+            ;;
+        Tor-br-obfs4) 
+            switch_tor Tor-br-obfs4
+            ;;
+        Tor-snow) 
+            switch_tor Tor-nobrg-snow
+            ;;
+        Tor-webtun) 
+            switch_tor Tor-nobrg-webtun
+            ;;
+        Tor-obfs4) 
+            switch_tor Tor-nobrg-obfs4
             ;;
         *) 
             echo "Error: Invalid option for argument 1...wait"
@@ -447,5 +466,15 @@ else
                 exit 1
                 ;;
         esac
+        export 2="$two" 
+        case "$3" in
+            dind) dind_build ;;
+            *)
+            echo "Error: Invalid option for argument 2...wait"
+                sleep 1.5
+                help
+                exit 1
+        esac
+
     fi
 fi
