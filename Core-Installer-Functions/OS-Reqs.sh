@@ -37,6 +37,7 @@ install_prerequisites() {
     PREREQUISITES=(
         curl
         qrencode
+        libqrencode
         ca-certificates
         gnupg
         openssl

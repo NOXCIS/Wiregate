@@ -188,54 +188,29 @@ mkey_output() {
 }
 
 #DOCKER FUNCTIONS
-   is_alpine() {
-    # Check for the presence of "alpine" in the /etc/os-release file
-    if grep -q "Alpine Linux" /etc/os-release; then
-        return 0 # true
-    else
-        return 1 # false
-    fi
-}
-
-compose_up() {
-    set_tag --stable
-    run_docker_title
-    if is_alpine; then
-        docker-compose pull
-        docker-compose up -d --build
-    else
+    compose_up() {
+        set_tag --stable
+        run_docker_title
         docker compose pull
-        docker compose up -d --build
-    fi
-}
+        docker compose up -d --build 
+    }
+    compose_down() {
+        local install_check="preqsinstalled.txt"
+        local yml_file="docker-compose.yml"
+        local port_mappings="770-777:770-777/udp"
+        export WGD_PORT_MAPPINGS="$port_mappings"
 
-compose_down() {
-    local install_check="preqsinstalled.txt"
-    local yml_file="docker-compose.yml"
-    local port_mappings="770-777:770-777/udp"
-    export WGD_PORT_MAPPINGS="$port_mappings"
-
-    if [ ! -f "$install_check" ]; then
-        # If prerequisites are not installed, install them
-        install_requirements
-        if is_alpine; then
-            docker-compose down --remove-orphans
-        else
-            docker compose down --remove-orphans
+        if [ ! -f "$install_check" ]; then
+            # If prerequisites are not installed, install them
+            install_requirements
+            docker compose down --remove-orphans && 
+            docker volume ls -q | grep 'wg_data' | xargs -r docker volume rm
+        elif [ -f "$install_check" ]; then
+            # If prerequisites are installed, bring down the Docker-compose setup
+            docker compose down --remove-orphans #&& 
+            #docker volume ls -q | grep 'wg_data' | xargs -r docker volume rm
         fi
-        docker volume ls -q | grep 'wg_data' | xargs -r docker volume rm
-    elif [ -f "$install_check" ]; then
-        # If prerequisites are installed, bring down the Docker-compose setup
-        if is_alpine; then
-            docker-compose down --remove-orphans
-        else
-            docker compose down --remove-orphans
-        fi
-        # Uncomment the line below if you want to remove volumes
-        # docker volume ls -q | grep 'wg_data' | xargs -r docker volume rm
-    fi
 }
-
 #MISC
 set_tag() {
     # Docker Hub repository
