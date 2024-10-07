@@ -5,13 +5,21 @@ ARG1=${2:-}
 ARG2=${3:-}
 ARG3=${4:-}
 
+
+
+if [ "$BRANCH" = "dind" ]; then
+    ARG3="$BRANCH"
+    BRANCH="terra-firma"
+fi
+if [ "$BRANCH" = "dev" ] || [ "$BRANCH" = "help" ] || [ "$BRANCH" = "reset" ]; then
+    ARG1="$BRANCH"
+    BRANCH="terra-firma"
+fi
+
 git clone --branch $BRANCH https://github.com/NOXCIS/Wiregate.git
+    
 cd Wiregate
 
-if [ "$ARG1" = "dind" ]; then
-    BRANCH="terra-firma"
-    ARG3="$ARG1"
-    ARG1=""  # Reset ARG1 after assigning it to ARG3
 
     env_file=".env"
 
@@ -25,7 +33,7 @@ if [ "$ARG1" = "dind" ]; then
         echo "WGD_PORT_MAPPINGS=\"443-448:443-448/udp\"" >> "$env_file"
         echo "WGD_REMOTE_ENDPOINT=\"$ip\"" >> "$env_file"
     fi
-fi
+
 
 chmod +x install.sh
 
