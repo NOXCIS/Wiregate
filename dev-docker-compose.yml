@@ -61,8 +61,8 @@ services:
       - SYS_MODULE
     restart: unless-stopped
     volumes:
-      - wgd_configs:/etc/wireguard 
-      - wgd_db:/opt/wireguarddashboard/src/db 
+      #- wgd_configs:/etc/wireguard 
+      #- wgd_db:/opt/wireguarddashboard/src/db 
       #- wgd_db:/opt/wireguarddashboard/src/dashboard_config
 
     environment:
@@ -102,7 +102,7 @@ services:
         private_network:
           ipv4_address: 10.2.0.4
 
-volumes:
-    wgd_configs:
-    wgd_db:
+#volumes:
+#    wgd_configs:
+#    wgd_db:
   
