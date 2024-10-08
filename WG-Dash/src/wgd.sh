@@ -488,7 +488,6 @@ AMDpostdown="/opt/wireguarddashboard/src/iptable-rules/Admins/${postType}down.sh
 GSTpostdown="/opt/wireguarddashboard/src/iptable-rules/Members/${postType}down.sh"
 LANpostdown="/opt/wireguarddashboard/src/iptable-rules/Guest/${postType}down.sh"
 MEMpostdown="/opt/wireguarddashboard/src/iptable-rules/LAN-only-users/postdown.sh"
-
 }
 
 

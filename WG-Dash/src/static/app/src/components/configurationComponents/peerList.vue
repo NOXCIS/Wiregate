@@ -42,6 +42,7 @@ import PeerJobsLogsModal from "@/components/configurationComponents/peerJobsLogs
 import {ref} from "vue";
 import PeerShareLinkModal from "@/components/configurationComponents/peerShareLinkModal.vue";
 import LocaleText from "@/components/text/localeText.vue";
+import EditConfiguration from "@/components/configurationComponents/peerScheduleJobsComponents/editConfiguration.vue";
 
 Chart.register(
 	ArcElement,
@@ -72,6 +73,7 @@ Chart.register(
 export default {
 	name: "peerList",
 	components: {
+		EditConfiguration,
 		LocaleText,
 		PeerShareLinkModal,
 		PeerJobsLogsModal,
@@ -139,6 +141,9 @@ export default {
 			peerShare:{
 				modalOpen: false,
 				selectedPeer: undefined
+			},
+			editConfiguration: {
+				modalOpen: false
 			}
 		}
 	},
@@ -490,7 +495,9 @@ export default {
 							<p class="mb-0 text-muted"><small>
 								<LocaleText t="Connected Peers"></LocaleText>
 							</small></p>
-							<strong class="h4">{{configurationSummary.connectedPeers}}</strong>
+							<strong class="h4">
+								{{configurationSummary.connectedPeers}} / {{configurationPeers.length}}
+							</strong>
 						</div>
 						<i class="bi bi-ethernet ms-auto h2 text-muted"></i>
 					</div>
@@ -584,6 +591,7 @@ export default {
 			<PeerSearch
 				@jobsAll="this.peerScheduleJobsAll.modalOpen = true"
 				@jobLogs="this.peerScheduleJobsLogs.modalOpen = true"
+				@editConfiguration="this.editConfiguration.modalOpen = true"
 				:configuration="this.configurationInfo"></PeerSearch>
 			<TransitionGroup name="list" tag="div" class="row gx-2 gy-2 z-0">
 				<div class="col-12 col-lg-6 col-xl-4"
@@ -642,6 +650,13 @@ export default {
 				v-if="this.peerShare.modalOpen"
 				@close="this.peerShare.modalOpen = false; this.peerShare.selectedPeer = undefined;"
 				:peer="this.configurationPeers.find(x => x.id === this.peerShare.selectedPeer)"></PeerShareLinkModal>
+		</Transition>
+		<Transition name="zoom">
+			<EditConfiguration 
+				@close="this.editConfiguration.modalOpen = false"
+				@dataChanged="(d) => this.configurationInfo = d"
+				:configurationInfo="this.configurationInfo"
+				v-if="this.editConfiguration.modalOpen"></EditConfiguration>
 		</Transition>
 	</div>
 </template>

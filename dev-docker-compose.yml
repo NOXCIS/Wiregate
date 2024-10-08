@@ -63,7 +63,7 @@ services:
     volumes:
       - wgd_configs:/etc/wireguard 
       - wgd_db:/opt/wireguarddashboard/src/db 
-      - wgd_db:/opt/wireguarddashboard/src/dashboard_config
+      #- wgd_db:/opt/wireguarddashboard/src/dashboard_config
 
     environment:
       - TZ=UTC

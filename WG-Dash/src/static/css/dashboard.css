@@ -24,6 +24,17 @@
     font-weight: bold;
 }
 
+#app{
+    width: 100%;
+    height: 100vh;
+}
+
+@supports (height: 100dvh) {
+    #app{
+        height: 100dvh;
+    }
+}
+
 /*
  * Sidebar
  */
@@ -1040,21 +1051,29 @@ pre.index-alert {
 
 .fade2-enter-active,
 .fade2-leave-active {
-    transition: all 0.15s ease-in-out;
+    transition: all 0.3s cubic-bezier(0.82, 0.58, 0.17, 1.3);
 }
 
 .fade2-enter-from{
-    transform: translateX(20px);
+    transform: translateY(-30px);
+    /*filter: blur(3px);*/
     opacity: 0;
 }
 
 .fade2-leave-to {
-    transform: translateX(-20px);
+    transform: translateY(30px);
+    filter: blur(3px);
     opacity: 0;
 }
 
 .login-container-fluid{
-    height: calc(100% - 50px) !important;
+    height: calc(100% - 50px);
+}
+
+@media screen and (min-width: 576px) {
+    .login-container-fluid{
+        height: 100%;
+    }
 }
 
 .totp{
@@ -1165,4 +1184,98 @@ pre.index-alert {
 
 .messageCentre{
     z-index: 9999;
+}
+
+
+.slide-move, /* apply transition to moving elements */
+.slide-enter-active,
+.slide-leave-active {
+    transition: all 0.4s cubic-bezier(0.82, 0.58, 0.17, 0.9);
+}
+
+.slide-leave-active{
+    position: absolute;
+    width: 100%;
+}
+.slide-enter-from{
+    opacity: 0;
+    transform: translateX(-50px) !important;
+}
+
+.slide-leave-to {
+    opacity: 0;
+    transform: translateX(50px) !important;
+}
+
+
+
+@property --bgdegree{
+    syntax: '<angle>';
+    initial-value: 234deg;
+    inherits: false;
+}
+
+.login-container-fluid{
+    background: linear-gradient(var(--bgdegree), #009fff1a var(--distance2), #ff4b001a 100%);
+    animation: login 8s ease-in-out infinite;
+}
+
+.login-container-fluid[data-bs-theme="dark"]{
+    background: linear-gradient(var(--bgdegree), #003555 var(--distance2), #521800 100%);
+    animation: login 8s ease-in-out infinite;
+}
+
+@keyframes login {
+    0%{
+        --bgdegree: 234deg;
+    }
+    100%{
+        --bgdegree: 594deg;
+    }
+}
+
+.loadingBar{
+    background: linear-gradient(var(--degree), var(--brandColor1) var(--distance2), var(--brandColor2) 100%);
+}
+
+.loadingBar.loading{
+    animation: loading cubic-bezier(0.82, 0.58, 0.17, 1) 0.2s forwards;
+}
+.loadingBar.loadingDone{
+    animation: loadingDone cubic-bezier(0.82, 0.58, 0.17, 1) 0.5s forwards;
+}
+
+@keyframes loading {
+    from{
+        opacity: 0;
+        width: 0%;
+    }
+    to{
+        opacity: 1;
+        width: 20%;
+    }
+}
+
+@keyframes loadingDone {
+    from{
+        opacity: 1;
+        width: 20%;
+    }
+    to{
+        opacity: 0;
+        width: 100%;
+    }
+}
+
+@media screen and (max-width: 576px) {
+    .dashboardModal{
+        width: 100% !important;
+    }
+    .dashboardModal > .card{
+        margin: 0.5rem !important;
+    }
+}
+
+samp{
+    word-wrap: anywhere;
 }

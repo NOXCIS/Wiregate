@@ -107,7 +107,7 @@ export default {
 				<h4 class="mb-0 text-body">
 					<LocaleText t="Welcome to"></LocaleText>
 				</h4>
-				<span class="dashboardLogo display-3"><strong>WireGate</strong></span>
+				<span class="dashboardLogo display-3"><strong>WGDashboard</strong></span>
 				<div class="alert alert-danger mt-2 mb-0" role="alert" v-if="loginError">
 					<LocaleText :t="this.loginErrorMessage"></LocaleText>
 				</div>
@@ -154,7 +154,7 @@ export default {
 			</div>
 		</div>
 		<small class="text-muted pb-3 d-block w-100 text-center mt-3">
-			Powered By WGDashboard {{ this.version }} | Developed with ❤️ by 
+			WGDashboard {{ this.version }} | Developed with ❤️ by 
 			<a href="https://github.com/donaldzou" target="_blank"><strong>Donald Zou</strong></a>
 		</small>
 		<div class="messageCentre text-body position-absolute end-0 m-3">

@@ -24,9 +24,10 @@ const getActiveCrossServer = computed(() => {
 </script>
 
 <template>
+	<div style="z-index: 9999; height: 5px" class="position-absolute loadingBar top-0 start-0"></div>
 	<nav class="navbar bg-dark sticky-top" data-bs-theme="dark">
 		<div class="container-fluid d-flex text-body align-items-center">
-			<span class="navbar-brand mb-0 h1">Wiregate</span>
+			<span class="navbar-brand mb-0 h1">WGDashboard</span>
 			<small class="ms-auto text-muted" v-if="getActiveCrossServer !== undefined">
 				<i class="bi bi-server me-2"></i>{{getActiveCrossServer.host}}
 			</small>
@@ -38,7 +39,7 @@ const getActiveCrossServer = computed(() => {
 	</nav>
 	<Suspense>
 		<RouterView v-slot="{ Component }">
-			<Transition name="app" mode="out-in">
+			<Transition name="app" mode="out-in" type="transition">
 				<Component :is="Component"></Component>
 			</Transition>
 		</RouterView>
@@ -62,7 +63,7 @@ const getActiveCrossServer = computed(() => {
 }
 
 @media screen and (min-width: 768px) {
-	.navbarBtn{
+	.navbar{
 		display: none;
 	}
 }

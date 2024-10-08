@@ -59,7 +59,7 @@ export default {
 					</span>
 					
 				</button>
-				<ul class="dropdown-menu rounded-3 shadow" style="width: 500px">
+				<ul class="dropdown-menu rounded-3 shadow">
 					<li v-for="x in this.languages">
 						<a class="dropdown-item d-flex align-items-center" role="button"
 							@click="this.changeLanguage(x.lang_id)"
@@ -70,8 +70,7 @@ export default {
 									{{ x.lang_name }}
 								</small>
 							</p>
-							<i class="bi bi-check text-primary fs-5" 
-							   
+							<i class="bi bi-check text-primary fs-5"
 							   v-if="currentLanguage?.lang_id === x.lang_id"></i>
 						</a>
 					</li>
@@ -82,5 +81,8 @@ export default {
 </template>
 
 <style scoped>
+.dropdown-menu{
+	width: 100%;
+}
 
 </style>
