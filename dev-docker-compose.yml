@@ -104,6 +104,5 @@ services:
 
 volumes:
     wgd_configs:
-    #wgd_iptables:
     wgd_db:
   
