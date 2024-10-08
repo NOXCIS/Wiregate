@@ -4,17 +4,20 @@ BRANCH=${1:-main}
 ARG1=${2:-}
 ARG2=${3:-}
 ARG3=${4:-}
-
+DEV_BRANCH="terra-firma"
 
 
 if [ "$BRANCH" = "dind" ]; then
     ARG3="$BRANCH"
-    BRANCH="terra-firma"
+    BRANCH="$DEV_BRANCH"
 fi
-if [ "$BRANCH" = "dev" ]; then
+if [ "$BRANCH" = "dev" ] || \
+   [ "$BRANCH" = "help" ] || \
+   [ "$BRANCH" = "reset" ]; then
     ARG1="$BRANCH"
-    BRANCH="terra-firma"
+    BRANCH="$DEV_BRANCH"
 fi
+
 
 git clone --branch $BRANCH https://github.com/NOXCIS/Wiregate.git
     

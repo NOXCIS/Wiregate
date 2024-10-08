@@ -402,39 +402,12 @@ set_tag() {
 
 
 
-# Main script
 if [ $# -eq 0 ]; then
     run_animation_seq
     menu
 else
     
-    case "$1" in  
-        E-A-D)  setup_environment "Express" "AdGuard" "Darkwire" ;;
-        E-A-C)  setup_environment "Express" "AdGuard" "Channels" ;;
-        E-P-D)  setup_environment "Express" "Pihole" "Darkwire" ;;
-        E-P-C)  setup_environment "Express" "Pihole" "Channels" ;;
-        A-A-D)  setup_environment "Advanced" "AdGuard" "Darkwire" ;;
-        A-A-C)  setup_environment "Advanced" "AdGuard" "Channels" ;;
-        A-P-D)  setup_environment "Advanced" "Pihole" "Darkwire" ;;
-        A-P-C)  setup_environment "Advanced" "Pihole" "Channels" ;;
-          dev) 
-                dev_build 
-                ;;
-         help)
-                help
-                ;;
-        reset) 
-                fresh_install 
-                ;;
-            *) 
-                echo "$red Error:$reset Invalid option for argument 1...wait"
-                sleep 1.5
-                help
-                exit 1
-                ;;
-    esac
-
-    case "$2" in  
+    case "${2:-off}" in  # Move case 2 logic above case 1
         off) 
             export DEPLOY_TYPE="false"
             export WGD_TOR_PLUGIN="None"
@@ -467,6 +440,31 @@ else
             ;;
     esac
 
-   
+    case "$1" in  # Case 1 logic comes after case 2
+        E-A-D)  setup_environment "Express" "AdGuard" "Darkwire" ;;
+        E-A-C)  setup_environment "Express" "AdGuard" "Channels" ;;
+        E-P-D)  setup_environment "Express" "Pihole" "Darkwire" ;;
+        E-P-C)  setup_environment "Express" "Pihole" "Channels" ;;
+        A-A-D)  setup_environment "Advanced" "AdGuard" "Darkwire" ;;
+        A-A-C)  setup_environment "Advanced" "AdGuard" "Channels" ;;
+        A-P-D)  setup_environment "Advanced" "Pihole" "Darkwire" ;;
+        A-P-C)  setup_environment "Advanced" "Pihole" "Channels" ;;
+        dev) 
+            dev_build 
+            ;;
+        help)
+            help
+            ;;
+        reset) 
+            fresh_install 
+            ;;
+        *) 
+            echo "$red Error:$reset Invalid option for argument 1...wait"
+            sleep 1.5
+            help
+            exit 1
+            ;;
+    esac
     
 fi
+
