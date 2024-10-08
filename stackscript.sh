@@ -19,10 +19,11 @@ if [ "$BRANCH" = "dev" ] || \
 fi
 
 
-git clone --branch $BRANCH https://github.com/NOXCIS/Wiregate.git
-    
+git clone --branch $BRANCH https://github.com/NOXCIS/Wiregate.git   
 cd Wiregate
+ 
 
+if [ "$ARG3" = "dind" ]; then
 
     env_file=".env"
 
@@ -36,6 +37,7 @@ cd Wiregate
         echo "WGD_PORT_MAPPINGS=\"443-448:443-448/udp\"" >> "$env_file"
         echo "WGD_REMOTE_ENDPOINT=\"$ip\"" >> "$env_file"
     fi
+fi
 
 
 chmod +x install.sh
