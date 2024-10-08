@@ -58,7 +58,7 @@ services:
     hostname: wiregate
     cap_add:
       - NET_ADMIN
-     # - SYS_MODULE
+      - SYS_MODULE
     restart: unless-stopped
     volumes:
       - wgd_configs:/etc/wireguard 
