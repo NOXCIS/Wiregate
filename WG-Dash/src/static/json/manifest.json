@@ -4,8 +4,8 @@
     "display": "fullscreen",
     "scope": "/",
     "start_url": "/",
-    "name": "WireGate",
-    "short_name": "WireGate",
+    "name": "WGDashboard",
+    "short_name": "WGDashboard",
     "icons": [
         {
             "src": "/static/img/icon-192x192.png",

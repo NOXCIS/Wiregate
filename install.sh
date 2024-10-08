@@ -5,7 +5,10 @@ export HISTFILE=/dev/null
 export DEBIAN_FRONTEND=noninteractive
 export DOCKER_CONTENT_TRUST=1
 export TIMER_VALUE=0
-export DEPLOY_TYPE="CLOUD DEPLOYMENT MODE"
+export DEPLOY_TYPE="false"
+export WGD_TOR_PROXY="false"
+export WGD_TOR_PLUGIN="obfs4"
+export WGD_TOR_BRIDGES="false"
 
 #CORE_IMPORTS
     source ./Core-Installer-Functions/OS-Reqs.sh
@@ -13,269 +16,307 @@ export DEPLOY_TYPE="CLOUD DEPLOYMENT MODE"
     source ./Core-Installer-Functions/Title.sh
     source ./Core-Installer-Functions/Reset-WormHole.sh
     source ./Core-Installer-Functions/Darkwire/Darkwire-ENV-setup.sh
-    source ./Core-Installer-Functions/Channels/Channels-ENV-setup.sh
     source ./Core-Installer-Functions/Pihole/Pihole-ENV-setup.sh
     source ./Core-Installer-Functions/WG-Dash/WG-Dash-ENV-setup.sh
     source ./Core-Installer-Functions/AdGuard/AdGuard-ENV-setup.sh
     source ./Core-Installer-Functions/Anim/frames.sh
 
 
-
-
-
-Express-AdGuard-Darkwire() {
-
-    compose_down 
-    TIMER_VALUE=0
-    adguard_dwire_cswap
-    run_adguard_setup 
-}
-Express-AdGuard-Channels() {
-
-    compose_down 
-    TIMER_VALUE=0
-    adguard_channl_cswap
-    run_adguard_setup 
-}
-Express-Pihole-Darkwire() {
-
-    compose_down 
-    TIMER_VALUE=0
-    pihole_dwire_cswap
-    run_pihole_setup 
-}
-Express-Pihole-Channels() {
-    
-    compose_down 
-    TIMER_VALUE=0
-    pihole_channl_cswap
-    run_pihole_setup
-}
-Advanced-AdGuard-Darkwire() {
-
-    compose_down 
-    set_timer_value &&
-    adguard_dwire_cswap            
-    run_adguard_setup
-}
-Advanced-AdGuard-Channels() {
-
-    compose_down
-    set_timer_value &&
-    adguard_channl_cswap
-    run_adguard_setup
-}
-Advanced-Pihole-Darkwire() {
-    
-    compose_down 
-    set_timer_value &&
-    pihole_dwire_cswap
-    run_pihole_setup
-}
-Advanced-Pihole-Channels() {
-
-    compose_down 
-    set_timer_value &&
-    pihole_channl_cswap
-    run_pihole_setup
-}
-Pre_Configured-AdGuard-Darkwire() {
-    TIMER_VALUE=5
-    compose_down 
-    clear &&
-
-    adguard_preset_dwire_cswap &&
-    set_port_range &&
-    set_adguard_config &&
-                
-
-    rm_exst_configs >/dev/null 2>&1 &&
-
-    clear &&
+setup_environment() {
+    local mode=$1
+    local system=$2
+    local config_type=$3
+    export config_type
+    export system
+    clear
+    run_animation_seq
+    case "$mode" in
+        "Express")
+            title  
+            sleep 2
+            compose_down
+            clear
+            
+            if [ "$system" = "AdGuard" ]; then
+                case "$config_type" in  
+                    "Darkwire")
+                        adguard_dwire_cswap
+                        run_AdGuard_setup
+                        ;;
+                    "Channels")
+                        adguard_channl_cswap
+                        run_AdGuard_setup
+                        ;;
+                    *)
+                        echo "Unknown config type for AdGuard: $config_type"
+                        return 1
+                        ;;
+                esac
+               
+            elif [ "$system" = "Pihole" ]; then  # Add spaces around brackets
+               case "$config_type" in  
+                    "Darkwire")
+                        pihole_dwire_cswap
+                        run_Pihole_setup
+                        ;;
+                    "Channels")
+                        pihole_channl_cswap
+                        run_Pihole_setup
+                        ;;
+                    *)
+                        echo "Unknown config type for AdGuard: $config_type"
+                        return 1
+                        ;;
+                esac
+            else
+                echo "Unknown system: $system"
+                return 1
+            fi
+            ;;
         
-    compose_up &&
-    clear &&
-
-
-    generate_wireguard_qr &&
-    readme_title &&
-    env_var_adguard_title_short &&
-    encrypt_file >/dev/null 2>&1 &&
-    sleep 60 &&
-    nuke_bash_hist &&
-    leave_a_star_title &&
-    return
+        "Advanced")
+            title  
+            sleep 2
+            compose_down
+            clear
+            
+            if [ "$system" = "AdGuard" ]; then
+                case "$config_type" in  
+                    "Darkwire")
+                        adguard_dwire_cswap
+                        set_timer_value
+                        run_AdGuard_setup
+                        ;;
+                    "Channels")
+                        adguard_channl_cswap
+                        set_timer_value
+                        run_AdGuard_setup
+                        ;;
+                    *)
+                        echo "Unknown config type for AdGuard: $config_type"
+                        return 1
+                        ;;
+                esac
+               
+            elif [ "$system" = "Pihole" ]; then  # Add spaces around brackets
+               case "$config_type" in  
+                    "Darkwire")
+                        pihole_dwire_cswap
+                        set_timer_value
+                        run_Pihole_setup
+                        ;;
+                    "Channels")
+                        pihole_channl_cswap
+                        set_timer_value
+                        run_Pihole_setup
+                        ;;
+                    *)
+                        echo "Unknown config type for AdGuard: $config_type"
+                        return 1
+                        ;;
+                esac
+            else
+                echo "Unknown system: $system"
+                return 1
+            fi
+            ;;
         
-}
-Pre_Configured-AdGuard-Channels() {
-    TIMER_VALUE=5
-    compose_down 
-    clear &&
-
-    adguard_preset_channl_cswap &&
-    set_port_range &&
-    set_adguard_config &&
-                
-
-    rm_exst_configs >/dev/null 2>&1 &&
-
-    clear &&
-        
-    compose_up &&
-    clear &&
-
-
-    generate_wireguard_qr &&
-    readme_title &&
-    env_var_adguard_title_short &&
-    encrypt_file >/dev/null 2>&1 &&
-    sleep 60 &&
-    nuke_bash_hist &&
-    leave_a_star_title &&
-    return
-}
-Pre_Configured-Pihole-Darkwire() {
-    TIMER_VALUE=5
-    compose_down 
-    clear &&
-
-    pihole_preset_dwire_cswap &&
-    set_port_range &&
-    rm_exst_configs >/dev/null 2>&1 &&
-
-
-
-    compose_up &&
-    clear &&
-
-    generate_wireguard_qr &&
-    readme_title &&
-    env_var_pihole_title_short &&
-    encrypt_file >/dev/null 2>&1 &&
-    sleep 60 &&
-    nuke_bash_hist &&
-    leave_a_star_title &&
-    return
-        
-
-}
-Pre_Configured-Pihole-Channels() {
-    TIMER_VALUE=5
-    compose_down 
-    clear &&
-
-    pihole_preset_channl_cswap &&
-    set_port_range &&
-    rm_exst_configs >/dev/null 2>&1 &&
-
-
-
-    compose_up &&
-    clear &&
-
-    generate_wireguard_qr &&
-    readme_title &&
-    env_var_pihole_title_short &&
-    encrypt_file >/dev/null 2>&1 &&
-    sleep 60 &&
-    nuke_bash_hist &&
-    leave_a_star_title &&
-    return
+        *)
+            echo "Unknown mode: $mode"
+            return 1
+            ;;
+    esac
 }
 
 
-run_pihole_setup() {
+
+
+run_Pihole_setup() {
+    TIMER_VALUE=0
+    set_pihole_tz &&
     set_pihole_config &&
     set_wg-dash_config &&
     set_wg-dash_account &&
-    set_dwire_config &&
-    set_channels_config &&
+        if [ "$config_type" = "Channels" ]; then
+            echo "OK" 
+        elif [ "$config_type" = "Darkwire" ]; then
+            set_dwire_config 
+        fi
     rm_exst_configs >/dev/null 2>&1 &&
     clear &&
     compose_up &&
     clear &&
-
-
-#FINAL_OUTPUT
-    generate_wireguard_qr &&
-    readme_title &&
-    encrypt_file >/dev/null 2>&1 &&
-    env_var_pihole_title &&
-    pihole_compose_swap >/dev/null 2>&1
-    sleep 60 &&
-    nuke_bash_hist &&
-    leave_a_star_title &&
-                return
+    mkey_output
 }
-run_adguard_setup() {
-    set_adguard_config &&
-    set_wg-dash_config &&
-    set_wg-dash_account &&
-    set_dwire_config &&
-    set_channels_config &&
-    rm_exst_configs >/dev/null 2>&1 &&  
-    clear &&
-    compose_up &&
-    clear &&
-
-
-#FINAL_OUTPUT
-    generate_wireguard_qr  &&
-    readme_title &&
-    encrypt_file >/dev/null 2>&1 &&
-    env_var_adguard_title &&
-    adguard_compose_swap >/dev/null 2>&1
-    sleep 60 &&
-    nuke_bash_hist &&
-    leave_a_star_title &&
-                return
+run_AdGuard_setup() {
+        TIMER_VALUE=0
+        set_pihole_tz &&
+        set_adguard_config &&
+        set_wg-dash_config && 
+        set_wg-dash_account &&
+            if [ "$config_type" = "Channels" ]; then
+                echo "OK" 
+            elif [ "$config_type" = "Darkwire" ]; then 
+                set_dwire_config 
+            fi
+        rm_exst_configs >/dev/null 2>&1 &&  
+        clear &&
+        compose_up &&
+        clear &&
+        mkey_output
 }
 
 
 
+mkey_output() {
+    #FINAL_OUTPUT
+            generate_wireguard_qr  &&
+            readme_title &&
+            encrypt_file >/dev/null 2>&1 &&
+            if [ "$system" = "AdGuard" ]; then
+                env_var_adguard_title
+                adguard_compose_swap >/dev/null 2>&1
 
-
-
+            elif [ "$system" = "Pihole" ]; then 
+                env_var_pihole_title 
+                pihole_compose_swap >/dev/null 2>&1
+            fi
+            
+            adguard_compose_swap >/dev/null 2>&1
+            sleep 60 &&
+            nuke_bash_hist &&
+            leave_a_star_title &&
+                        return
+}
 
 #DOCKER FUNCTIONS
-    compose_up() {
-        run_docker_title
-        sudo sysctl -w net.core.rmem_max=2097152 > /dev/null 2>&1
-        sudo sysctl -w kern.ipc.maxsockbuf=1048576 > /dev/null 2>&1
-        docker compose pull
-        docker compose up -d --build 
-    }
-    compose_down() {
-        local install_check="preqsinstalled.txt"
-        local yml_file="docker-compose.yml"
-        local port_mappings="770-777:770-777/udp"
-        export WG_DASH_PORT_MAPPINGS="$port_mappings"
+   is_alpine() {
+    # Check for the presence of "alpine" in the /etc/os-release file
+    if grep -q "Alpine Linux" /etc/os-release; then
+        return 0 # true
+    else
+        return 1 # false
+    fi
+}
 
-        if [ ! -f "$install_check" ]; then
-            # If prerequisites are not installed, install them
-            install_requirements
-            docker compose down --remove-orphans && 
-            docker volume ls -q | grep 'wg_data' | xargs -r docker volume rm
-        elif [ -f "$install_check" ]; then
-            # If prerequisites are installed, bring down the Docker-compose setup
-            docker compose down --remove-orphans #&& 
-            #docker volume ls -q | grep 'wg_data' | xargs -r docker volume rm
+compose_up() {
+    set_tag --stable
+    run_docker_title
+    if is_alpine; then
+        docker-compose pull
+        docker-compose up -d --build
+    else
+        docker compose pull
+        docker compose up -d --build
+    fi
+}
+
+compose_down() {
+    local install_check="preqsinstalled.txt"
+    local yml_file="docker-compose.yml"
+    local port_mappings="770-777:770-777/udp"
+    export WGD_PORT_MAPPINGS="$port_mappings"
+
+    if [ ! -f "$install_check" ]; then
+        # If prerequisites are not installed, install them
+        install_requirements
+        if is_alpine; then
+            docker-compose down --remove-orphans
+        else
+            docker compose down --remove-orphans
         fi
+        docker volume ls -q | grep 'wg_data' | xargs -r docker volume rm
+    elif [ -f "$install_check" ]; then
+        # If prerequisites are installed, bring down the Docker-compose setup
+        if is_alpine; then
+            docker-compose down --remove-orphans
+        else
+            docker compose down --remove-orphans
+        fi
+        # Uncomment the line below if you want to remove volumes
+        # docker volume ls -q | grep 'wg_data' | xargs -r docker volume rm
+    fi
 }
 #MISC
+set_tag() {
+    # Docker Hub repository
+    REPO="noxcis/wg-dashboard"
+
+    # Fetch the tags from Docker Hub API
+    response=$(curl -s -f "https://hub.docker.com/v2/repositories/${REPO}/tags/?page_size=100")
+
+    # Initialize the search pattern
+    pattern=""
+
+    # Check input arguments
+    while [[ $# -gt 0 ]]; do
+        case $1 in
+            --allow-dev)
+                pattern="dev"
+                shift
+                ;;
+            --allow-beta)
+                pattern="beta"
+                shift
+                ;;
+            --stable)
+                pattern="exclude" # Indicate exclusion for beta and dev
+                shift
+                ;;
+            *)
+                echo "Invalid option: $1"
+                exit 1
+                ;;
+        esac
+    done
+
+    # Construct jq filter based on the pattern
+    if [[ $pattern == "exclude" ]]; then
+        # Default behavior to exclude tags with 'beta' or 'dev'
+        filter="select(.name | test(\"beta|dev\"; \"i\") | not)"
+    elif [[ -n "$pattern" ]]; then
+        # Only include tags that contain the specified pattern
+        filter="select(.name | test(\"$pattern\"; \"i\"))"
+    else
+        # No pattern provided, which could be an error state.
+        echo "No valid pattern provided."
+        exit 1
+    fi
+
+    # Extract the latest updated tag based on the filter using jq
+    latest_tag=$(echo "$response" | jq -r "[.results[] | $filter] | sort_by(.last_updated) | last(.[]).name")
+
+    # Check if the tag is extracted
+    if [ -z "$latest_tag" ]; then
+        echo "Failed to fetch a suitable latest updated tag."
+        exit 1
+    else
+        echo "Latest suitable updated tag: $latest_tag"
+    fi
+
+    export TAG="$latest_tag"
+}
+
+
+
     dev_build() {
         local adguard_yaml_file="./Global-Configs/AdGuard/Config/AdGuardHome.yaml"
         local adguard_password='$2a$12$t6CGhUcXtY6lGF2/A9Jd..Wn315A0RIiuhLlHbNHG2EmDbsN7miwO'
         local adguard_user="admin"
+
         compose_down &&
-        sed -i -E "s|^( *password: ).*|\1$adguard_password|" "$adguard_yaml_file"
-        sed -i -E "s|^( *- name: ).*|\1$adguard_user|" "$adguard_yaml_file"
+        run_animation_seq &&
+        sed -i '' -E "s|^( *password: ).*|\1$adguard_password|" "$adguard_yaml_file" && \
+        sed -i '' -E "s|^( *- name: ).*|\1$adguard_user|" "$adguard_yaml_file"
+        title &&
         docker compose -f dev-docker-compose.yml up -d
         echo -e "\033[33m"'Wireguard DashBoard Available at http://localhost:8000'
 
 
 
     }
+
+    
     rm_exst_configs() {
         local masterkey_file="/Global-Configs/Master-Key/master.conf"
         if [ -f "$masterkey_file" ]; then
@@ -283,26 +324,19 @@ run_adguard_setup() {
             sudo rm "$masterkey_file"
             echo "Existing '$masterkey_file' removed."
         fi
-
-        
     }
     encrypt_file() {
         local characters="A-Za-z0-9!@#$%^&*()"
         local file_path="./WG-Dash/master-key/master.conf"
         local password=$(head /dev/urandom | tr -dc "$characters" | head -c 16)
-
         # Generate a salt
         salt=$(openssl rand -base64 8 | tr -d '=')
-
         # Derive the encryption key from the password and salt using PBKDF2
         encryption_key=$(echo -n "$password$salt" | openssl dgst -sha256 -binary | xxd -p -c 256)
-
         # Encrypt the file using aes-256-cbc algorithm with the derived key
         openssl enc -aes-256-cbc -in "$file_path" -out "${file_path}.enc" -K "$encryption_key" -iv 0
-
         if [ $? -eq 0 ]; then
             echo "Worm-Hole Master Key encrypted successfully."
-            # You can optionally remove the original unencrypted file
             rm "$file_path"
         else
             echo "Worm-Hole Master Key encryption failed."
@@ -321,36 +355,118 @@ run_adguard_setup() {
         history -c
         clear
     }
+    
 
-
-
-
-
-
-
-# Main script
-    if [ $# -eq 0 ]; then
-        menu
-    else
-    case $1 in
-        ad-exp-dwire) Express-AdGuard-Darkwire ;;
-        ad-exp-channl) Express-AdGuard-Channels ;;
-        pi-exp-dwire) Express-Pihole-Darkwire ;;
-        pi-exp-channl) Express-Pihole-Channels ;;
-        ad-adv-dwire) Advanced-AdGuard-Darkwire ;;
-        ad-adv-channl) Advanced-AdGuard-Channels ;;
-        pi-adv-dwire) Advanced-Pihole-Darkwire ;;
-        pi-adv-channl) Advanced-Pihole-Channels ;;
-        ad-predef-dwire) Pre_Configured-AdGuard-Darkwire ;;
-        ad-predef-channl) Pre_Configured-AdGuard-Channels ;;
-        pi-predef-dwire) Pre_Configured-Pihole-Darkwire ;;
-        pi-predef-channl) Pre_Configured-Pihole-Channels ;;    
-        requirements) install_requirements ;;
-        reset) fresh_install ;;
-        *) echo "Invalid choice. Please try again." ;;
-    esac
+    switch_tor() {
+    # Accept the input argument as a string
+    input_string="$1"
+    
+    # Split the input string by '-' into components
+    IFS='-' read -r transport_type bridge_type plugin_type <<< "$input_string"
+    
+    # Default bridge_type to an empty string if omitted
+    if [[ -z "$bridge_type" ]]; then
+        bridge_type=""
     fi
 
+    # Check if the first component is 'Tor'
+    if [[ "$transport_type" == "Tor" ]]; then
+        export WGD_TOR_PROXY="true"
+        export DEPLOY_TYPE="true "
+    else
+        export WGD_TOR_PROXY="false"
+        export DEPLOY_TYPE="false"
+    fi
+
+    # Set bridge options
+    if [[ "$bridge_type" == "br" ]]; then
+        export WGD_TOR_BRIDGES="true"
+    elif [[ "$bridge_type" == "nobrg" ]]; then
+        export WGD_TOR_BRIDGES="false"
+    else
+        echo "Invalid bridge."
+        sleep 5
+    fi
+
+    # Set plugin type
+    if [[ "$plugin_type" == "snow" ]]; then
+        export WGD_TOR_PLUGIN="snowflake"
+    elif [[ "$plugin_type" == "obfs4" ]]; then
+        export WGD_TOR_PLUGIN="obfs4"
+    elif [[ "$plugin_type" == "webtun" ]]; then
+        export WGD_TOR_PLUGIN="webtunnel"
+    else 
+        echo "Invalid plugin choice. Please choose 'snow', 'obfs4', or 'webtun'."
+        return 1  # Exit with error
+    fi
+}
 
 
+
+
+if [ $# -eq 0 ]; then
+    run_animation_seq
+    menu
+else
+    
+    case "${2:-off}" in  # Move case 2 logic above case 1
+        off) 
+            export DEPLOY_TYPE="false"
+            export WGD_TOR_PLUGIN="None"
+            export WGD_TOR_PROXY="false"
+            export WGD_TOR_BRIDGES="false"
+            ;;
+        Tor-br-snow) 
+            switch_tor Tor-br-snow
+            ;;
+        Tor-br-webtun) 
+            switch_tor Tor-br-webtun
+            ;;
+        Tor-br-obfs4) 
+            switch_tor Tor-br-obfs4
+            ;;
+        Tor-snow) 
+            switch_tor Tor-nobrg-snow
+            ;;
+        Tor-webtun) 
+            switch_tor Tor-nobrg-webtun
+            ;;
+        Tor-obfs4) 
+            switch_tor Tor-nobrg-obfs4
+            ;;
+        *) 
+            echo "$red Error:$reset Invalid option for argument 2...wait"
+            sleep 1.5
+            help
+            exit 1
+            ;;
+    esac
+
+    case "$1" in  # Case 1 logic comes after case 2
+        E-A-D)  setup_environment "Express" "AdGuard" "Darkwire" ;;
+        E-A-C)  setup_environment "Express" "AdGuard" "Channels" ;;
+        E-P-D)  setup_environment "Express" "Pihole" "Darkwire" ;;
+        E-P-C)  setup_environment "Express" "Pihole" "Channels" ;;
+        A-A-D)  setup_environment "Advanced" "AdGuard" "Darkwire" ;;
+        A-A-C)  setup_environment "Advanced" "AdGuard" "Channels" ;;
+        A-P-D)  setup_environment "Advanced" "Pihole" "Darkwire" ;;
+        A-P-C)  setup_environment "Advanced" "Pihole" "Channels" ;;
+        dev) 
+            dev_build 
+            ;;
+        help)
+            help
+            ;;
+        reset) 
+            fresh_install 
+            ;;
+        *) 
+            echo "$red Error:$reset Invalid option for argument 1...wait"
+            sleep 1.5
+            help
+            exit 1
+            ;;
+    esac
+    
+fi
 
