@@ -33,12 +33,12 @@ It allows users to host web other applications on their existing server and be a
 ### Wiregate vs Wirehole vs WG-Easy vs WG Dashboard (standalone)
 Wiregate uses a modified version of WG Dashboard that allows the enviorment to be set from the docker compose or docker run command. Below are comparissions to the other GUI dashboard options for Wireguard.
 
-| Project | Easy Setup | Production Ready | Client Firewall Rules | GUI | DNS Filtering | Tor Proxy | 2FA | 3FA |
-|--|--|--|--|--|--|--|--|--|--|--|--|
-| **Wiregate** 	|✅|✅|✅|✅|✅|✅|✅|✅|✅|
-| **Wirehole** 	|✅|:x:|:x:|:x:|✅|:x:|:x:|:x:|:x:|
-| **WG-Easy** 	|✅|:x:|:x:|✅|:x:|:x:|:x:|:x:|:x:|
-| **WireAdmin** |✅|:x:|✅|✅|✅|✅|:x:|:x:|:x:|
+|Project| Easy Setup | Client Firewall Rules | GUI | DNS Filtering | Tor Proxy | 2FA | 3FA
+|--|--|--|--|--|--|--|--|
+| **WireGate** 	| ✅|✅ |✅ |✅ |✅ |✅ |✅ |
+| **WireHole** 	| ✅|❌ |❌ |❌ |❌ |❌ |❌ |
+| **WG-Easy**  	| ✅|❌ |✅ |❌ |❌ |❌ |❌ |
+| **WireAdmin** | ✅|✅ |✅ |❌|✅ |❌ |❌ |
 
 ### Zone Permissions
 
