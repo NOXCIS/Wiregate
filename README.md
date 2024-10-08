@@ -229,7 +229,7 @@ services:
       - WGD_PORT_RANGE_STARTPORT=443
     ports:
       - "443-448:443-448/udp"
-      #- 8000:80/tcp #Uncomment to Expose the Dashboard
+      - 8000:80/tcp #Comment Out and Compose Up for 3FA via WireGuard
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
