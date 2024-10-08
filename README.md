@@ -1,5 +1,9 @@
 # WireGate ![GitHub Repo stars](https://img.shields.io/github/stars/NOXCIS/WireGate?style=social) ![Docker Pulls](https://img.shields.io/docker/pulls/noxcis/wg-dashboard.svg?style=flat&label=pulls&logo=docker) ![Docker Image Size (tag)](https://img.shields.io/docker/image-size/noxcis/wg-dashboard/terra-firma.svg?style=flat&label=image&logo=docker) ![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https://github.com/NOXCIS/WireGate&icon=github.svg&icon_color=%23FFFFFF&title=hits&edge_flat=false) ![GitHub Clones](https://img.shields.io/badge/dynamic/json?color=success&label=Clone&query=count&url=https://gist.githubusercontent.com/NOXCIS/a08fe945ac095cea4f3cc21178ee43fb/raw/clone.json&logo=github)
 
+> **Wiregate** Supported architectures: `x86-64` , `arm64`, `armv7`
+>  **Test OS**: Ubuntu LTS | Debian 12 
+>  **Test Device:** Raspberry Pi 5 | M2 | x86 CPUs
+>  **Build:** Daily
 
 ## Table of Contents
 - [About](#About)
@@ -29,18 +33,17 @@ It allows users to host web other applications on their existing server and be a
 ### Wiregate vs Wirehole vs WG-Easy vs WG Dashboard (standalone)
 Wiregate uses a modified version of WG Dashboard that allows the enviorment to be set from the docker compose or docker run command. Below are comparissions to the other GUI dashboard options for Wireguard.
 
-| Project | Easy Setup | Production Ready | Client Firewall Rules | GUI | DNS Filtering | Built in Security | Tor Proxy | 2FA | 3FA |
+| Project | Easy Setup | Production Ready | Client Firewall Rules | GUI | DNS Filtering | Tor Proxy | 2FA | 3FA |
 |--|--|--|--|--|--|--|--|--|--|--|
 | **Wiregate** 	|✅|✅|✅|✅|✅|✅|✅|✅|✅|
 | **Wirehole** 	|✅|:x:|:x:|:x:|✅|:x:|:x:|:x:|:x:|
 | **WG-Easy** 	|✅|:x:|:x:|✅|:x:|:x:|:x:|:x:|:x:|
-| **WireAdmin** |✅|:x:|:x:|✅|:x:|:x:|:x:|:x:|:x:|
+| **WireAdmin** |✅|:x:|✅|✅|✅|✅|:x:|:x:|:x:|
 
 ### Zone Permissions
 
-Wiregate is configured with 4 zones that peers can be added to. The zone a peer belongs to dictates the network access permissions of said peer. **Wiregate** supports the `x86-64` and `arm64` CPU architectures . Tested on **Ubuntu LTS & Debian 12**
+Wiregate is configured with 4 zones that peers can be added to. The zone a peer belongs to dictates the network access permissions of said peer.  
 
-  
 
 | Zone | Internet Access | WireGuard Dashboard Access | Docker Network Access | Peer to Peer Access |
 |--|--|--|--|--|
@@ -65,16 +68,16 @@ To get started, run the installation script using the following command:
 **Via Quick Installer**
 Running the command below installs prerequsites and runs the terminal based menu.
 ```bash
-curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh \
-&& sudo chmod +x stackscript.sh \
-&& sudo ./stackscript.sh 
+curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh && \
+sudo chmod +x stackscript.sh && \
+sudo ./stackscript.sh
 ```
 The command can also accept passed arguments to skip the menu. **BRANCH** -Selects the target branch of the repo pull from.  **ARG3** is Optional, see below.
 
 ```bash
-curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh \
-&& sudo chmod +x stackscript.sh \
-&& sudo ./stackscript.sh <BRANCH> <ARG1> <ARG2> <ARG3>
+curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh && \
+sudo chmod +x stackscript.sh && \
+sudo ./stackscript.sh <BRANCH> <ARG1> <ARG2> <ARG3>
 ```
 
 
@@ -108,7 +111,7 @@ curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh \
 | **Tor-webtun**:| 		`Use Tor without bridges (webtunnel)`
 | **Tor-obfs4**: |			`Use Tor without bridges (obfs4)`
 
-### ARG3: OPTIONAL 
+### ARG3: OPTIONAL  Docker in Docker Deployment
 |  |  |
 |--|--|
 | **dind**: | `Docker in Docker Enviorment Setup`
@@ -116,22 +119,27 @@ To start a docker in docker container depoymen, the following commands can be ru
 
 **Interactive Menu**
 ```bash
-docker run --privileged --name wiregate-dind -d -p 443-446:443-446/udp docker:dind
-docker exec -it wiregate-dind /bin/sh
-cd .. && cd opt
-curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh \ 
-&&  sudo  chmod +x stackscript.sh \ 
-&&  sudo ./stackscript.sh  dind
+docker run --privileged --name wiregate-dind -d -p 443-446:443-446/udp docker:dind && \
+docker exec -it wiregate-dind /bin/sh -c "
 
+apk add curl git ncurses sudo bash && \
+mkdir -p /opt && cd /opt && \
+curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh && \
+chmod +x stackscript.sh && \
+./stackscript.sh dind
+"
 ```
 **Preset & Automated**
 ```bash
-docker run --privileged --name wiregate-dind -d -p 443-446:443-446/udp docker:dind
-docker exec -it wiregate-dind /bin/sh
-cd .. && cd opt
-curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh \ 
-&&  sudo  chmod +x stackscript.sh \ 
-&&  sudo ./stackscript.sh <BRANCH>  <ARG1>  <ARG2>  dind
+docker run --privileged --name wiregate-dind -d -p 443-446:443-446/udp docker:dind && \
+docker exec -it wiregate-dind /bin/sh -c "
+
+apk add curl git ncurses sudo bash && \
+mkdir -p /opt && cd /opt && \
+curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh && \
+chmod +x stackscript.sh && \
+./stackscript.sh <BRANCH>  <ARG1>  <ARG2>  dind
+" 
 
 ```
 
@@ -140,7 +148,7 @@ curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh \
 
 ### Example Commands
 
-To install with Express, AdGuard, and Darkwire:
+To install with Express, AdGuard, and Darkwire with Tor Enabled:
 
 ```bash
 sudo ./install.sh E-A-D Tor-br-webtun
