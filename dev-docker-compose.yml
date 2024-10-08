@@ -60,7 +60,7 @@ services:
       - NET_ADMIN
       - SYS_MODULE
     restart: unless-stopped
-    volumes:
+    #volumes:
       #- wgd_configs:/etc/wireguard 
       #- wgd_db:/opt/wireguarddashboard/src/db 
       #- wgd_db:/opt/wireguarddashboard/src/dashboard_config
