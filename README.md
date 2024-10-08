@@ -142,7 +142,116 @@ chmod +x stackscript.sh && \
 " 
 
 ```
+### Install via Docker Compose
+````yaml
 
+networks:
+  private_network:
+    driver: bridge
+    driver_opts:
+      com.docker.network.bridge.enable_icc: "true"
+    attachable: true
+    internal: false
+    ipam:
+      config:
+        - subnet: 10.2.0.0/24
+
+
+
+services:
+  dnscrypt:
+    image: "klutchell/dnscrypt-proxy"
+    restart: unless-stopped
+    container_name: dnscrypt
+    volumes:
+      - ./Global-Configs/DnsCrypt/dnscrypt-proxy.toml:/config/dnscrypt-proxy.toml
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.42
+
+  unbound:
+    image: "klutchell/unbound:latest"
+    container_name: unbound
+    restart: unless-stopped
+    hostname: "unbound"
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    volumes:
+      - ./Global-Configs/Unbound/custom-unbound.conf:/etc/unbound/custom.conf.d/custom-unbound.conf
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.200
+
+
+  adguard:
+    depends_on: [unbound]
+    container_name: adguard
+    image: adguard/adguardhome
+    restart: unless-stopped
+    hostname: adguard
+    # Volumes store your data between container upgrades
+    volumes:
+      - "./Global-Configs/AdGuard/Data:/opt/adguardhome/work"
+      - "./Global-Configs/AdGuard/Config:/opt/adguardhome/conf"
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.100
+
+  wiregate:
+    image: noxcis/wg-dashboard:terra-firma
+    container_name: wiregate
+    hostname: wiregate
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    restart: unless-stopped
+    volumes:
+      - wgd_configs:/etc/wireguard 
+      - wgd_db:/opt/wireguarddashboard/src/db 
+      - wgd_db:/opt/wireguarddashboard/src/dashboard_config
+
+    environment:
+      - TZ=UTC
+      - WGD_TOR_PROXY=true
+      - WGD_TOR_PLUGIN=webtunnel #OPTIONS webtunnel, obfs4, snowflake
+      - WGD_TOR_BRIDGES=true
+      - WGD_WELCOME_SESSION=false
+      - WGD_USER=james
+      - WGD_PASS=admin
+      - WGD_REMOTE_ENDPOINT=192.168.1.199
+      - WGD_REMOTE_ENDPOINT_PORT=80
+      - WGD_DNS="10.2.0.100, 10.2.0.100"
+      - WGD_IPTABLES_DNS=10.2.0.100
+      - WGD_PEER_ENDPOINT_ALLOWED_IP=0.0.0.0/0
+      - WGD_KEEP_ALIVE=21
+      - WGD_MTU=1420
+      - WGD_PORT_RANGE_STARTPORT=443
+    ports:
+      - "443-448:443-448/udp"
+      #- 8000:80/tcp #Uncomment to Expose the Dashboard
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.src_valid_mark=1
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.3
+  
+  darkwire:
+      image: noxcis/darkwire:terra-firma
+      cap_add:
+        - NET_ADMIN
+      sysctls:
+        - net.ipv4.ip_forward=1
+        - net.ipv4.conf.all.src_valid_mark=1
+      networks:
+        private_network:
+          ipv4_address: 10.2.0.4
+
+volumes:
+    wgd_configs:
+    wgd_db:
+  ````
 
 ## Usage
 
