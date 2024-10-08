@@ -1,3 +1,5 @@
+#!/bin/bash
+
 venv_python="./venv/bin/python3"
 venv_gunicorn="./venv/bin/gunicorn"
 pythonExecutable="python3"
