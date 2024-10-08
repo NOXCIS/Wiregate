@@ -48,9 +48,9 @@ Wiregate is configured with 4 zones that peers can be added to. The zone a peer 
 | Zone | Internet Access | WireGuard Dashboard Access | Docker Network Access | Peer to Peer Access |
 |--|--|--|--|--|
 | **Admin** |✅| ✅ | ✅ | ✅ |
-| **Members**|✅|:x:|✅|✅|
-| **LAN Users**|:x:|:x:|:x:|✅|
-| **Guest**|✅|:x:|:x:|:x:|
+| **Members**|✅|❌|✅|✅|
+| **LAN Users**|❌|❌|❌|✅|
+| **Guest**|✅|❌|❌|❌|
 
 
 
