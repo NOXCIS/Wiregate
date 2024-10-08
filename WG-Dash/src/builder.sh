@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 venv_python="./venv/bin/python3"
 venv_gunicorn="./venv/bin/gunicorn"
