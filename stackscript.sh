@@ -4,16 +4,18 @@ BRANCH=${1:-main}
 ARG1=${2:-}
 ARG2=${3:-}
 ARG3=${4:-}
-
+DEV_BRANCH="terra-firma"
 
 
 if [ "$BRANCH" = "dind" ]; then
     ARG3="$BRANCH"
-    BRANCH="terra-firma"
+    BRANCH="$DEV_BRANCH"
 fi
-if [ "$BRANCH" = "dev" ] || [ "$BRANCH" = "help" ] || [ "$BRANCH" = "reset" ]; then
+if [ "$BRANCH" = "dev" ] || \
+   [ "$BRANCH" = "help" ] || \
+   [ "$BRANCH" = "reset" ]; then
     ARG1="$BRANCH"
-    BRANCH="terra-firma"
+    BRANCH="$DEV_BRANCH"
 fi
 
 git clone --branch $BRANCH https://github.com/NOXCIS/Wiregate.git
@@ -30,7 +32,7 @@ cd Wiregate
     if [ ! -s "$env_file" ]; then 
         ip=$(curl -s ifconfig.me)
         echo "WGD_PORT_RANGE_STARTPORT=\"443\"" >> "$env_file"
-        echo "WGD_PORT_MAPPINGS=\"443-446:443-446/udp\"" >> "$env_file"
+        echo "WGD_PORT_MAPPINGS=\"443-448:443-448/udp\"" >> "$env_file"
         echo "WGD_REMOTE_ENDPOINT=\"$ip\"" >> "$env_file"
     fi
 
