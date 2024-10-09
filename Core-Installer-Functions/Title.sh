@@ -60,6 +60,8 @@ ________________________________________________________________________________
 |                        [TOR] Transport Plugin:   \033[33m'"$WGD_TOR_PLUGIN"'\033[32m                    
 |                        [TOR] Transport Enabled:  \033[33m'"$DEPLOY_TYPE"'\033[32m                        
 |                        [TOR] Use Bridges:        \033[33m'"$WGD_TOR_BRIDGES"'\033[32m                        
+|                        [TOR] Exit Nodes:         \033[33m'"$WGD_TOR_EXIT_NODES"'\033[32m                        
+
 |_______________________________________________________________________________'                                                               
     echo -e "\033[0m"  # Reset to default text color
 }

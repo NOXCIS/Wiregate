@@ -100,6 +100,19 @@ make_torrc() {
     fi
     echo -e "SocksPort 9050 \n" >> "$TORRC_PATH"
 
+    if [[ "$WGD_TOR_EXIT_NODES" == "default" ]]; then
+    echo "Using Default"
+    elif [[ -n "$WGD_TOR_EXIT_NODES" ]]; then
+    echo -e "ExitNodes $WGD_TOR_EXIT_NODES \n" >> "$TORRC_PATH"
+    
+    else
+    # If neither condition is met, it's an invalid input
+    echo "Invalid input. Please use the correct format: {US},{GB},{AU}, etc."
+    fi
+
+    
+ 
+
     if [[ "$WGD_TOR_PLUGIN" == "snowflake" ]]; then
     echo -e "Bridge snowflake 192.0.2.3:80 2B280B23E1107BB62ABFC40DDCC8824814F80A72 \n" >> "$TORRC_PATH"
     echo -e "Bridge snowflake 192.0.2.4:80 8838024498816A039FCBBAB14E6F40A0843051FA \n" >> "$TORRC_PATH"

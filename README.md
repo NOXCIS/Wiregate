@@ -77,7 +77,7 @@ The command can also accept passed arguments to skip the menu. **BRANCH** -Selec
 ```bash
 curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh && \
 sudo chmod +x stackscript.sh && \
-sudo ./stackscript.sh <BRANCH> <ARG1> <ARG2> <ARG3>
+sudo ./stackscript.sh <BRANCH> <ARG1> <ARG2> <ARG3> <ARG4>
 ```
 
 
@@ -111,7 +111,14 @@ sudo ./stackscript.sh <BRANCH> <ARG1> <ARG2> <ARG3>
 | **Tor-webtun**:| 		`Use Tor without bridges (webtunnel)`
 | **Tor-obfs4**: |			`Use Tor without bridges (obfs4)`
 
-### ARG3: OPTIONAL  Docker in Docker Deployment
+### ARG3:  TOR Exit Node Country Code String
+|  |  |
+|--|--|
+| **Format Example**: | `{US},{GB},{AU} `
+|**Default**| Leave empty |
+For more exit node options go to [Tor Country codes list](https://sccmrookie.blogspot.com/2016/03/tor-country-codes-list.html).
+
+### ARG4: OPTIONAL  Docker in Docker Deployment
 |  |  |
 |--|--|
 | **dind**: | `Docker in Docker Enviorment Setup`
@@ -138,7 +145,7 @@ apk add curl git ncurses sudo bash && \
 mkdir -p /opt && cd /opt && \
 curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh && \
 chmod +x stackscript.sh && \
-./stackscript.sh <BRANCH>  <ARG1>  <ARG2>  dind
+./stackscript.sh <BRANCH>  <ARG1>  <ARG2>  <ARG3> dind
 " 
 
 ```

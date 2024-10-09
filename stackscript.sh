@@ -4,11 +4,12 @@ BRANCH=${1:-main}
 ARG1=${2:-}
 ARG2=${3:-}
 ARG3=${4:-}
-DEV_BRANCH="terra-firma"
+ARG4=${5:-}
+DEV_BRANCH="main-patch"
 
 
 if [ "$BRANCH" = "dind" ]; then
-    ARG3="$BRANCH"
+    ARG4="$BRANCH"
     BRANCH="$DEV_BRANCH"
 fi
 if [ "$BRANCH" = "dev" ] || \
@@ -23,7 +24,7 @@ git clone --branch $BRANCH https://github.com/NOXCIS/Wiregate.git
 cd Wiregate
  
 
-if [ "$ARG3" = "dind" ]; then
+if [ "$ARG4" = "dind" ]; then
 
     env_file=".env"
 
@@ -42,9 +43,13 @@ fi
 
 chmod +x install.sh
 
-# Only pass ARG1 and ARG2 if they are not empty
-if [[ -n "$ARG1" && -n "$ARG2" ]]; then
-    ./install.sh "$ARG1" "$ARG2"  # Both ARG1 and ARG2 are passed to install.sh
+# Only pass ARG1, ARG2, and ARG3 to install.sh
+if [[ -n "$ARG1" && -n "$ARG2" && -n "$ARG3" ]]; then
+    ./install.sh "$ARG1" "$ARG2" "$ARG3"
+
+elif [[ -n "$ARG1" && -n "$ARG2" ]]; then
+    ./install.sh "$ARG1" "$ARG2"
+
 elif [[ -n "$ARG1" ]]; then
     ./install.sh "$ARG1"  # Only ARG1 is passed to install.sh
 else
