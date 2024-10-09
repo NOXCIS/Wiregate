@@ -117,8 +117,6 @@ run_tor_flux() {
     
     printf "[TOR] Starting Tor ...\n"
 
-    { date; tor; printf "\n\n"; } >> ./log/tor_startup_log.txt &
-
     tor >> ./log/tor_startup_log.txt &
     TOR_PID=$!
 
