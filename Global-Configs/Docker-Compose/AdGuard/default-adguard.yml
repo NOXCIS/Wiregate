@@ -62,6 +62,7 @@ services:
       - ./Global-Configs/Master-Key:/opt/wireguarddashboard/src/master-key
     environment:
       - TZ={PI_HOLE_TZ}
+      - WGD_TOR_EXIT_NODES=${WGD_TOR_EXIT_NODES}
       - WGD_TOR_PROXY=${WGD_TOR_PROXY}
       - WGD_TOR_PLUGIN=${WGD_TOR_PLUGIN}
       - WGD_TOR_BRIDGES=${WGD_TOR_BRIDGES}

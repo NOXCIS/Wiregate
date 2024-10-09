@@ -41,7 +41,6 @@ get_obfs4_bridges() {
     
     if [[ $response == *"obfs4"* ]]; then
         printf "[TOR] Bridges fetched successfully!\n"
-        #echo "$bridges"
     else
         echo "No obfs4 bridges found or request failed."
     fi
@@ -57,7 +56,6 @@ get_webtunnel_bridges() {
     
     if [[ $response == *"webtunnel"* ]]; then
         printf "[TOR] Bridges fetched successfully!\n"
-        #echo "$bridges"
     else
         echo "No WebTunnel bridges found or request failed."
     fi
@@ -70,8 +68,10 @@ make_torrc() {
     if [ -f "$TORRC_PATH" ]; then
     rm "$TORRC_PATH" 
     fi
-    sudo apk add tor > /dev/null 2>&1
-    sudo apk add curl > /dev/null 2>&1
+
+
+    sudo apk add tor curl > /dev/null 2>&1
+   
 
     if [[ "$WGD_TOR_PLUGIN" == "webtunnel" ]]; then
     get_webtunnel_bridges
@@ -100,6 +100,17 @@ make_torrc() {
     fi
     echo -e "SocksPort 9050 \n" >> "$TORRC_PATH"
 
+    if [[ "$WGD_TOR_EXIT_NODES" == "default" ]]; then
+    echo "Using Default"
+    elif [[ -n "$WGD_TOR_EXIT_NODES" ]]; then
+    echo -e "ExitNodes $WGD_TOR_EXIT_NODES \n" >> "$TORRC_PATH"
+    else
+    echo "Invalid input. Please use the correct format: {US},{GB},{AU}, etc."
+    fi
+
+    
+ 
+
     if [[ "$WGD_TOR_PLUGIN" == "snowflake" ]]; then
     echo -e "Bridge snowflake 192.0.2.3:80 2B280B23E1107BB62ABFC40DDCC8824814F80A72 \n" >> "$TORRC_PATH"
     echo -e "Bridge snowflake 192.0.2.4:80 8838024498816A039FCBBAB14E6F40A0843051FA \n" >> "$TORRC_PATH"
@@ -114,10 +125,8 @@ make_torrc() {
 
 run_tor_flux() {
     printf "%s\n" "$equals"
-    
     printf "[TOR] Starting Tor ...\n"
-
-    tor >> ./log/tor_startup_log.txt &
+    { date; tor; printf "\n\n"; } >> ./log/tor_startup_log.txt &
     TOR_PID=$!
 
     while true; do
@@ -131,7 +140,7 @@ run_tor_flux() {
         printf "[TOR] Restarting Tor...\n"  
         pkill tor 
         sleep $sleep_kill
-        tor >> ./log/tor_startup_log.txt &
+        { date; tor; printf "\n\n"; } >> ./log/tor_startup_log.txt &
         TOR_PID=$!
     done
        
@@ -151,12 +160,13 @@ ensure_blocking() {
 chmod u+x /opt/wireguarddashboard/src/wgd.sh
 { date; clean_up; printf "\n\n"; } >> ./log/install.txt
 
+
 if [[ "$WGD_TOR_PROXY" == "true" ]]; then
   make_torrc
 fi
-/opt/wireguarddashboard/src/wgd.sh install
 
-# Start the WireGuard Dashboard in the background and capture its PID
+
+/opt/wireguarddashboard/src/wgd.sh install
 /opt/wireguarddashboard/src/wgd.sh docker_start &
 WGD_PID=$!
 
@@ -171,11 +181,6 @@ rm -r .env
 echo "wiregate" >> .env
 ensure_blocking
 
-
-
-
-
- 
 
 
 

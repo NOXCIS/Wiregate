@@ -15,7 +15,10 @@ menu() {
     title
     echo -e "\033[33m"
     printf "%s\n" "$equals"
-    echo "|[$blue Toggle $yellow]|$reset Tor Transport Proxy $red ($blue A $red) $yellow|$reset Tor Plugin $red($blue B $red) $yellow|$reset Tor Bridges $red($blue C $red) $yellow"
+    echo "|[$blue Toggle         $yellow]|$reset Tor Transport Proxy  $red ($blue A $red) $yellow|$reset Tor Plugin $red($blue B $red) $yellow|$reset Tor Bridges $red($blue C $red) $yellow"
+    printf "%s\n" "$dashes"
+    echo "|[$blue Set Exit Nodes $yellow]|$reset Ex. <{US},{GB},{AU}> $red ($blue N $red) $yellow|"
+
     echo "-------------------------------------------------------------------------------------------"
     echo "|[$blue I      $yellow]| Start Install"
     echo "|[$blue R      $yellow]| Reset WireGate Deployment"
@@ -31,6 +34,7 @@ menu() {
         A) toggle_tor_proxy ;;
         B) toggle_tor_plugin ;;
         C) toggle_tor_bridge ;;
+        N) set_tor_exit_nodes ;;
         Dev) dev_build ;;
         R) fresh_install ;;
         H) help ;;
@@ -89,6 +93,24 @@ toggle_tor_plugin() {
     export WGD_TOR_PLUGIN
     clear
     menu
+}
+
+set_tor_exit_nodes() {
+    while true; do
+        # Prompt the user for input
+        read -p $red"Enter the TOR Exit Nodes$reset in the format $blue{US},{GB},{AU},{etc} or type 'default'$reset: " WGD_TOR_EXIT_NODES
+
+        # Check if the input matches the expected format or is "default"
+        if [[ "$WGD_TOR_EXIT_NODES" =~ ^\{[A-Z][A-Z]\}(,\{[A-Z][A-Z]\})*$ || "$WGD_TOR_EXIT_NODES" == "default" ]]; then
+            # Valid format or default, export the variable
+            export WGD_TOR_EXIT_NODES
+            menu
+            break
+        else
+            echo ""
+            echo "Invalid input. Please use the correct format: {US},{GB},{AU}, etc., or type 'default'."
+        fi
+    done
 }
 
 

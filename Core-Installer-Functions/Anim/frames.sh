@@ -9,6 +9,8 @@ RESET="\033[0m"
 # Define a variable for sleep time (adjust to modify animation speed)
 SPEED=0.49
 SPEED2=0.09
+
+
 # Define frames
 f0() {
     echo -e "$GREEN"

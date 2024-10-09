@@ -1,50 +1,58 @@
 #!/bin/bash
 
-BRANCH=${1:-main}
-ARG1=${2:-}
-ARG2=${3:-}
-ARG3=${4:-}
-DEV_BRANCH="terra-firma"
+# Initialize variables for flags
+BRANCH="main"
+ARG1=""
+ARG2=""
+ARG3=""
+ARG4=""
+
+# Parse options
+while getopts "b:r:t:n:d:" opt; do
+  case "$opt" in
+    b)  BRANCH="$OPTARG" ;;   # -b for branch
+    r)  ARG1="$OPTARG" ;;     # -1 for ARG1
+    t)  ARG2="$OPTARG" ;;     # -2 for ARG2
+    n)  ARG3="$OPTARG" ;;     # -3 for ARG3
+    d)  ARG4="$OPTARG" ;;     # -4 for ARG4
+    \?) echo "Usage: $0 [-b branch] [-r arg1] [-t arg2] [-n arg3] [-d arg4]"; exit 1 ;;
+  esac
+done
+shift "$((OPTIND - 1))"  # Shift past processed options
 
 
-if [ "$BRANCH" = "dind" ]; then
-    ARG3="$BRANCH"
-    BRANCH="$DEV_BRANCH"
-fi
-if [ "$BRANCH" = "dev" ] || \
-   [ "$BRANCH" = "help" ] || \
-   [ "$BRANCH" = "reset" ]; then
-    ARG1="$BRANCH"
-    BRANCH="$DEV_BRANCH"
-fi
+
 
 
 git clone --branch $BRANCH https://github.com/NOXCIS/Wiregate.git   
 cd Wiregate
- 
 
-if [ "$ARG3" = "dind" ]; then
 
-    env_file=".env"
+if [ "$ARG4" = "dind" ]; then
+        env_file=".env"
 
     if [ ! -f "$env_file" ]; then
         touch "$env_file"
-    fi
+        fi
 
     if [ ! -s "$env_file" ]; then 
         ip=$(curl -s ifconfig.me)
-        echo "WGD_PORT_RANGE_STARTPORT=\"443\"" >> "$env_file"
-        echo "WGD_PORT_MAPPINGS=\"443-448:443-448/udp\"" >> "$env_file"
-        echo "WGD_REMOTE_ENDPOINT=\"$ip\"" >> "$env_file"
-    fi
+            echo "WGD_PORT_RANGE_STARTPORT=\"443\"" >> "$env_file"
+            echo "WGD_PORT_MAPPINGS=\"443-446:443-446/udp\"" >> "$env_file"
+            echo "WGD_REMOTE_ENDPOINT=\"$ip\"" >> "$env_file"
+        fi
 fi
-
 
 chmod +x install.sh
 
-# Only pass ARG1 and ARG2 if they are not empty
-if [[ -n "$ARG1" && -n "$ARG2" ]]; then
-    ./install.sh "$ARG1" "$ARG2"  # Both ARG1 and ARG2 are passed to install.sh
+
+
+if [[ -n "$ARG1" && -n "$ARG2" && -n "$ARG3" ]]; then
+    ./install.sh "$ARG1" "$ARG2" "$ARG3"
+
+elif [[ -n "$ARG1" && -n "$ARG2" ]]; then
+    ./install.sh "$ARG1" "$ARG2"
+
 elif [[ -n "$ARG1" ]]; then
     ./install.sh "$ARG1"  # Only ARG1 is passed to install.sh
 else

@@ -9,6 +9,7 @@ export DEPLOY_TYPE="false"
 export WGD_TOR_PROXY="false"
 export WGD_TOR_PLUGIN="obfs4"
 export WGD_TOR_BRIDGES="false"
+export WGD_TOR_EXIT_NODES="default"
 
 #CORE_IMPORTS
     source ./Core-Installer-Functions/OS-Reqs.sh
@@ -408,7 +409,26 @@ if [ $# -eq 0 ]; then
     run_animation_seq
     menu
 else
-    
+
+    case "$3" in
+    # Match the input pattern with country codes enclosed in curly braces and separated by commas
+    *\{[A-Z][A-Z]\}*,*|\{[A-Z][A-Z]\}*)
+        # Assign the input string directly to the variable WGD_TOR_EXIT_NODES if an argument is passed
+        WGD_TOR_EXIT_NODES="$3"
+        # Export the variable
+        export WGD_TOR_EXIT_NODES
+        ;;
+    "")
+        # If no argument is passed, set the variable as empty
+        WGD_TOR_EXIT_NODES="default"
+        export WGD_TOR_EXIT_NODES
+        ;;
+    *)
+        echo "Invalid input syntax. Expected format: {US},{GB},{AU}, etc."
+        ;;
+esac
+
+
     case "${2:-off}" in  # Move case 2 logic above case 1
         off) 
             export DEPLOY_TYPE="false"
