@@ -177,8 +177,6 @@ For more exit node options go to [Tor Country codes list](https://sccmrookie.blo
 |--|--|
 | **dind**: | `Docker in Docker Enviorment Setup`
 
-To start a docker in docker container depoyment, the following commands can be run to deploy the Wiregate container stack in a single container for devopemental purposes.
-
 
 ### Install via Docker Compose
 ````yaml
