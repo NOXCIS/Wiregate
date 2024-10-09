@@ -10,7 +10,6 @@
 - [Infrastructure Map](#Infrastructure)
 - [Installation](#installation)
 - [Usage](#usage)
-- [Options](#options)
 - [Tor](#Tor)
 - [Help](#help)
 - [Acknowledgements](#Acknowledgements)
@@ -65,23 +64,77 @@ Wiregate is configured with 4 zones that peers can be added to. The zone a peer 
 
 To get started, run the installation script using the following command:
 
-**Via Quick Installer**
+### Via Quick Installer
 Running the command below installs prerequsites and runs the terminal based menu.
 ```bash
 curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh && \
 sudo chmod +x stackscript.sh && \
 sudo ./stackscript.sh
 ```
-The command can also accept passed arguments to skip the menu. **BRANCH** -Selects the target branch of the repo pull from.  **ARG3** is Optional, see below.
+The command can also accept passed arguments to skip the menu. **BRANCH** -Selects the target branch of the repo pull from, otherwise set as **main** if ommited. **ARG4** is Optional, see below.
 
 ```bash
 curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh && \
 sudo chmod +x stackscript.sh && \
-sudo ./stackscript.sh <BRANCH> <ARG1> <ARG2> <ARG3> <ARG4>
+sudo ./stackscript.sh [-b branch]  [-r arg1]  [-t arg2]  [-n arg3] 
+```
+Example Usage:
+```bash
+./stackscript.sh -b main -r E-P-D -t Tor-br-snow -n {CH},{GB} 
 ```
 
+ The available options are:
 
-### ARG1: Install Options
+- `-b` for specifying a branch.
+- `-r` for specifying Resolvers
+- `-t` for specifying Tor.
+- `-n` for specifying Exit Node.
+
+
+
+
+### Via Docker In Docker 
+
+**Interactive Menu**
+```bash
+docker run --privileged --name wiregate-dind -d -p 443-446:443-446/udp docker:dind && \
+docker exec -it wiregate-dind /bin/sh -c "
+
+apk add curl git ncurses sudo bash && \
+mkdir -p /opt && cd /opt && \
+curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh && \
+chmod +x stackscript.sh && \
+./stackscript.sh -d dind
+"
+```
+**Preset & Automated**
+```bash
+docker run --privileged --name wiregate-dind -d -p 443-446:443-446/udp docker:dind && \
+docker exec -it wiregate-dind /bin/sh -c "
+
+apk add curl git ncurses sudo bash && \
+mkdir -p /opt && cd /opt && \
+curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh && \
+chmod +x stackscript.sh && \
+./stackscript.sh [-b branch]  [-r arg1]  [-t arg2]  [-n arg3]  -d dind
+" 
+```
+Example Usage:
+```bash
+./stackscript.sh -b main -r E-P-D -t Tor-br-snow -n {CH},{GB} -d dind
+```
+ The available options are:
+
+- `-b` for specifying a branch.
+- `-r` for specifying Resolvers
+- `-t` for specifying Tor.
+- `-n` for specifying Exit Node.
+- `-d` for specifying Docker in Docker.
+
+
+
+
+### ARG1:  Resolver Install Options
 |  |  |
 |--|--|
 | **E-A-D**: | `Express, AdGuard, Darkwire`
@@ -115,8 +168,9 @@ sudo ./stackscript.sh <BRANCH> <ARG1> <ARG2> <ARG3> <ARG4>
 |  |  |
 |--|--|
 | **Format Example**: | `{US},{GB},{AU} `
-|**Default**| Leave empty |
+|**Default**| `default` |
 For more exit node options go to [Tor Country codes list](https://sccmrookie.blogspot.com/2016/03/tor-country-codes-list.html).
+
 
 ### ARG4: OPTIONAL  Docker in Docker Deployment
 |  |  |
@@ -124,31 +178,7 @@ For more exit node options go to [Tor Country codes list](https://sccmrookie.blo
 | **dind**: | `Docker in Docker Enviorment Setup`
 To start a docker in docker container depoymen, the following commands can be run to deploy the Wiregate container stack in a single container for devopemental purposes.
 
-**Interactive Menu**
-```bash
-docker run --privileged --name wiregate-dind -d -p 443-446:443-446/udp docker:dind && \
-docker exec -it wiregate-dind /bin/sh -c "
 
-apk add curl git ncurses sudo bash && \
-mkdir -p /opt && cd /opt && \
-curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh && \
-chmod +x stackscript.sh && \
-./stackscript.sh dind
-"
-```
-**Preset & Automated**
-```bash
-docker run --privileged --name wiregate-dind -d -p 443-446:443-446/udp docker:dind && \
-docker exec -it wiregate-dind /bin/sh -c "
-
-apk add curl git ncurses sudo bash && \
-mkdir -p /opt && cd /opt && \
-curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh && \
-chmod +x stackscript.sh && \
-./stackscript.sh <BRANCH>  <ARG1>  <ARG2>  <ARG3> dind
-" 
-
-```
 ### Install via Docker Compose
 ````yaml
 
@@ -261,26 +291,6 @@ volumes:
   ````
 
 ## Usage
-
-### Example Commands
-
-To install with Express, AdGuard, and Darkwire with Tor Enabled:
-
-```bash
-sudo ./install.sh E-A-D Tor-br-webtun
-```
-
-### Explanation
-
-- **Install Type**: 
-  - ( **E** ) for **Express** 
-  - ( **A** ) for **Advanced**
-- **DNS Options**: 
-  - ( **A** ) for **AdGuard**
-  - ( **P** ) for **Pihole**
-- **Include Darkwire/Channels**: 
-  - ( **D** ) to include **Darkwire** 
-  - ( **C** ) to omit **Darkwire** 
 
 ### Utilities
 

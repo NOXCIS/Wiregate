@@ -98,20 +98,21 @@ toggle_tor_plugin() {
 set_tor_exit_nodes() {
     while true; do
         # Prompt the user for input
-        read -p $red"Enter the TOR Exit Nodes$reset in the format $blue{US},{GB},{AU},{etc}$reset: " WGD_TOR_EXIT_NODES
+        read -p $red"Enter the TOR Exit Nodes$reset in the format $blue{US},{GB},{AU},{etc} or type 'default'$reset: " WGD_TOR_EXIT_NODES
 
-        # Check if the input matches the expected format
-        if [[ "$WGD_TOR_EXIT_NODES" =~ ^\{[A-Z][A-Z]\}(,\{[A-Z][A-Z]\})*$ ]]; then
-            # Valid format, export the variable
+        # Check if the input matches the expected format or is "default"
+        if [[ "$WGD_TOR_EXIT_NODES" =~ ^\{[A-Z][A-Z]\}(,\{[A-Z][A-Z]\})*$ || "$WGD_TOR_EXIT_NODES" == "default" ]]; then
+            # Valid format or default, export the variable
             export WGD_TOR_EXIT_NODES
             menu
             break
         else
             echo ""
-            echo "Invalid input. Please use the correct format: {US},{GB},{AU}, etc."
+            echo "Invalid input. Please use the correct format: {US},{GB},{AU}, etc., or type 'default'."
         fi
     done
 }
+
 
 
 run_menu_update() {
