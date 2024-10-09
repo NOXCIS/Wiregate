@@ -26,15 +26,19 @@ RUN set -ex && cd /tmp && \
     popd && \
     rm -rf /go /tmp/*
 
+RUN echo "DONE LYREBIRD"    
+
 RUN git clone https://git.torproject.org/pluggable-transports/snowflake.git \
     && cd snowflake/client \
     && go build
+
+RUN echo "DONE SNOWFLAKE"
 
 RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/webtunnel.git \
     && cd webtunnel/main/client \
     && go build
 
-
+RUN echo "DONE WEBTUNNEL"  
 
 
 # Stage 3: Final image
