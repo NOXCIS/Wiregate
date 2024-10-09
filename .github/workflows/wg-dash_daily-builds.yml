@@ -40,7 +40,7 @@ jobs:
       - name: Build and Push Docker Image
         uses: docker/build-push-action@v4
         with:
-          context: .  # Path to the directory containing the Dockerfile (subfolder)
+          context: /WG-Dash # Path to the directory containing the Dockerfile (subfolder)
           push: true
           tags: noxcis/wg-dashboard:terra-firma
           platforms: linux/amd64,linux/arm64,linux/arm/v6,linux/arm/v7
