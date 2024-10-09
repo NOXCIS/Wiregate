@@ -2,8 +2,8 @@ name: Build and Push Docker Image (Daily)
 
 on:
   schedule:
-    - cron: "0 0 * * *"  # Daily at midnight (UTC)
-  workflow_dispatch:  # Allows manual triggering of the workflow
+    - cron: "0 0 * * *"  # Schedule the workflow to run daily at midnight (UTC time)
+  workflow_dispatch:  # Manual run trigger
     inputs:
       trigger-build:
         description: 'Trigger a manual build and push'
@@ -12,38 +12,48 @@ on:
 jobs:
   build_and_push_multiarch:
     runs-on: ubuntu-22.04
-    timeout-minutes: 42  # Job will timeout after 42 minutes
+    timeout-minutes: 42  # Set a timeout of 4 hours
 
     steps:
-      # Step 1: Check out the repository code
+      # Check out the repository code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Step 2: Set up Node.js version 18
+      # Use Node.js version 18
       - name: Use Node.js version 18
         uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      # Step 3: Log in to Docker Hub using secrets
+      # Log in to Docker Hub
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Step 4: Set up Docker Buildx (for multi-platform support)
+      # Set up Docker Buildx (multi-platform support)
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v2
 
-      # Step 5: Build and Push Docker Image with multi-platform support (No cache)
+      # Cache Docker layers to speed up builds
+      - name: Cache Docker layers
+        uses: actions/cache@v3
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      # Build and push Docker image with multi-platform support
       - name: Build and Push Docker Image (Multi-Arch)
         uses: docker/build-push-action@v4
         with:
-          context: WG-Dash/  # Path to Dockerfile in repository
-          push: true  # Push image after build
-          tags: noxcis/wg-dashboard:terra-firma  # Tag for all platforms
-          platforms:  linux/amd64,linux/arm64,linux/arm/v6,linux/arm/v7  # Platforms to build for
-          no-cache: true  # Disable caching to force a fresh build
-          build-args: --progress=plain  # Show plain progress in logs
+          context: WG-Dash/  # Path to the directory containing the Dockerfile
+          push: true  # Push the image to the registry
+          tags: noxcis/wg-dashboard:terra-firma  # Single tag for all platforms
+          platforms: linux/amd64,linux/arm64,linux/arm/v6,linux/arm/v7  # List of platforms
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache
+          build-args: --progress=plain
