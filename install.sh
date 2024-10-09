@@ -201,7 +201,7 @@ mkey_output() {
 }
 
 compose_up() {
-    set_tag --allow-dev
+    set_tag --stable
     run_docker_title
     if is_alpine; then
         docker-compose pull
