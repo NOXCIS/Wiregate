@@ -2,7 +2,7 @@ name: Build and Push Docker Image (Daily)
 
 on:
   schedule:
-    - cron: "0 0 * * *"  # Schedule the workflow to run daily at midnight (UTC time)
+    - cron: "0 0 * * *"  # Schedule the workflow to run daily at midnight (UTC time). Adjust the time if needed.
   workflow_dispatch:  # Manual run trigger
     inputs:
       trigger-build:
@@ -10,9 +10,8 @@ on:
         default: 'true'
 
 jobs:
-  build_and_push_multiarch:
+  build_and_push:
     runs-on: ubuntu-22.04
-    timeout-minutes: 42  # Set a timeout of 4 hours
 
     steps:
       # Check out the repository code
@@ -25,35 +24,23 @@ jobs:
         with:
           node-version: 18
 
-      # Log in to Docker Hub
+      # Log in to Docker Hub (replace with the appropriate registry if using something else)
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Set up Docker Buildx (multi-platform support)
+      # Set up Docker Buildx (needed for multi-platform builds)
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v2
 
-      # Cache Docker layers to speed up builds
-      - name: Cache Docker layers
-        uses: actions/cache@v3
-        with:
-          path: /tmp/.buildx-cache
-          key: ${{ runner.os }}-buildx-${{ github.sha }}
-          restore-keys: |
-            ${{ runner.os }}-buildx-
-
-      # Build and push Docker image with multi-platform support
-      - name: Build and Push Docker Image (Multi-Arch)
+      # Build and push Docker image for multiple platforms
+      - name: Build and Push Docker Image
         uses: docker/build-push-action@v4
         with:
-          context: WG-Dash/  # Path to the directory containing the Dockerfile
-          push: true  # Push the image to the registry
-          tags: noxcis/wg-dashboard:terra-firma  # Single tag for all platforms
-          platforms: linux/amd64,linux/arm64,linux/arm/v6,linux/arm/v7  # List of platforms
-          cache-from: type=local,src=/tmp/.buildx-cache
-          cache-to: type=local,dest=/tmp/.buildx-cache
-          build-args: --progress=plain
+          context: .  # Path to the directory containing the Dockerfile (subfolder)
+          push: true
+          tags: noxcis/wg-dashboard:terra-firma
+          platforms: linux/amd64,linux/arm64,linux/arm/v6,linux/arm/v7
