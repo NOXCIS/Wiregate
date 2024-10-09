@@ -68,8 +68,7 @@ services:
         
   wiregate:
     container_name: wiregate
-    build: ./WG-Dash
-    #image: noxcis/wg-dashboard:${TAG}
+    image: noxcis/wg-dashboard:${TAG}
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
