@@ -1,4 +1,4 @@
-# Stage 1: WG-Dash Builder
+# builder: WG-Dash Builder for Brcypt & Psutil Binary
 FROM  alpine:latest AS builder
 LABEL maintainer="NOXCIS"
 WORKDIR /opt/wireguarddashboard/src
@@ -7,7 +7,7 @@ COPY ./src/builder.sh ./src/builder_requirements.txt /opt/wireguarddashboard/src
 RUN chmod u+x ./builder.sh && ./builder.sh 
 
 
-# Stage 2: Pluggables with Go and Lyrebird
+# pluggables: Tor Transport Plugin Binary Builder
 FROM  golang:alpine3.20 AS pluggables
 ARG LYREBIRD_VERSION=0.2.0
 WORKDIR /
@@ -24,21 +24,19 @@ RUN set -ex && cd /tmp && \
     make build -e VERSION=${LYREBIRD_VERSION} && \
     cp ./lyrebird /usr/local/bin && \
     popd && \
-    rm -rf /go /tmp/*
-
-RUN echo "DONE LYREBIRD"    
+    rm -rf /go /tmp/* && \
+    echo "DONE LYREBIRD" 
 
 RUN git clone https://git.torproject.org/pluggable-transports/snowflake.git \
     && cd snowflake/client \
-    && go build
-
-RUN echo "DONE SNOWFLAKE"
+    && go build \
+    && echo "DONE SNOWFLAKE"
 
 RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/webtunnel.git \
     && cd webtunnel/main/client \
-    && go build
+    && go build \
+    && echo "DONE WEBTUNNEL" 
 
-RUN echo "DONE WEBTUNNEL"  
 
 
 # Stage 3: Final image

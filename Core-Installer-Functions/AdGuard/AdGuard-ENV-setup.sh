@@ -11,7 +11,7 @@ set_adguard_pass() {
 
         # Print the updated timer value
         set_pass_adguard_title
-        echo "Press Enter to set Adguard Password  $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for random password: $(tput sgr0)"
+        echo "Press Enter to set Adguard Password  $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for random$blue password$reset: $(tput sgr0)"
         
         # Decrement the timer value by 1
         timer=$((timer - 1))
@@ -92,7 +92,7 @@ set_adguard_user() {
 
         # Print the updated timer value
         set_uname_adguard_title
-        echo "Press Enter to set AdGuard Username $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for random username: $(tput sgr0)"
+        echo "Press Enter to set AdGuard Username $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for random$blue username$reset: $(tput sgr0)"
         
         # Decrement the timer value by 1
         timer=$((timer - 1))

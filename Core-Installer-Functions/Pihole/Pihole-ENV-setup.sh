@@ -1,5 +1,7 @@
 #!/bin/bash
 
+
+
 set_pihole_tz() {
     local timer=$TIMER_VALUE
     local user_activity=false
@@ -9,7 +11,7 @@ set_pihole_tz() {
 
         # Print the updated timer value
         set_pihole_tz_title
-        echo "Press Enter to set Pihole Dashboard Timezone or wait $timer seconds for autoset:"
+        echo "Press Enter to set Timezone or wait$blue $timer$reset seconds for autoset:"
 
         # Decrement the timer value by 1
         timer=$((timer - 1))
@@ -29,10 +31,10 @@ set_pihole_tz() {
     if [ "$user_activity" = true ]; then
         # Prompt user to enter and confirm their timezone
         while true; do
-            read -p "Enter Pihole Dashboard Timezone (e.g., America/New_York): " timezone
+            read -p $yellow"Enter Timezone$reset (e.g.,$blue America/New_York$reset): " timezone
 
             if [ -z "$timezone" ]; then
-                echo -e "\033[31mPihole Dashboard Timezone cannot be empty. Please try again.\033[0m"
+                echo -e "\033[31m Timezone cannot be empty. Please try again.\033[0m"
                 continue
             fi
 
@@ -47,8 +49,6 @@ set_pihole_tz() {
         done
     fi
 }
-
-
 
 set_pihole_password() {
     #local adguard_yaml_file="./adguard/opt-adguard-conf/AdGuardHome.yaml"

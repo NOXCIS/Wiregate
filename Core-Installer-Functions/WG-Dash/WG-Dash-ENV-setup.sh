@@ -105,9 +105,50 @@ set_port_range() {
     done
 
     if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
-            HOST_PORT_START=$((1 + RANDOM % 65535))
-            pcount=4
-            HOST_PORT_END=$((HOST_PORT_START + pcount - 1))  
+            local pcount=4
+            local port_found=0
+            
+            # Function to check if a port is in use
+            is_port_in_use() {
+                local port=$1
+                if [ "$(uname)" == "Darwin" ]; then
+                    # macOS: Use lsof to check if the port is in use
+                    if lsof -i :$port > /dev/null; then
+                        return 0 # Port is in use
+                    else
+                        return 1 # Port is not in use
+                    fi
+                else
+                    # Linux: Use ss to check if the port is in use
+                    if ss -tuln | grep ":$port " > /dev/null; then
+                        return 0 # Port is in use
+                    else
+                        return 1 # Port is not in use
+                    fi
+                fi
+            }
+
+            # Main loop to generate port range
+            while [ $port_found -eq 0 ]; do
+                # Generate a random starting port
+                HOST_PORT_START=$((1042 + RANDOM % (65534 - 1042 + 1)))
+                HOST_PORT_END=$((HOST_PORT_START + pcount - 1))
+
+                # Check if any port in the range is in use
+                port_in_range=0
+                for ((port=HOST_PORT_START; port<=HOST_PORT_END; port++)); do
+                    if is_port_in_use $port; then
+                        port_in_range=1
+                        break
+                    fi
+                done
+                
+                # If no ports are in use, accept the range
+                if [ $port_in_range -eq 0 ]; then
+                    port_found=1
+                fi
+            done
+            
             port_mappings="${HOST_PORT_START}-${HOST_PORT_END}:${HOST_PORT_START}-${HOST_PORT_END}/udp"
             echo -e "Wireguard Port Range Set To: \033[32m$port_mappings\033[0m"
             export WGD_PORT_RANGE_STARTPORT="$HOST_PORT_START"
@@ -172,7 +213,7 @@ set_wg-dash_pass() {
 
         # Print the updated timer value
         set_pass_wgdash_title
-        echo "Press Enter to set Wireguard Dashboard Password  $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for random password: $(tput sgr0)"
+        echo "Press Enter to set Wireguard Dashboard Password  $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for random$blue password$reset: $(tput sgr0)"
         
         # Decrement the timer value by 1
         timer=$((timer - 1))
@@ -240,7 +281,7 @@ set_wg-dash_user() {
 
         # Print the updated timer value
         set_uname_wgdash_title
-        echo "Press Enter to set Wireguard Dashboard Username $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for random username: $(tput sgr0)"
+        echo "Press Enter to set Wireguard Dashboard Username $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for random$blue username$reset: $(tput sgr0)"
         
         # Decrement the timer value by 1
         timer=$((timer - 1))
