@@ -31,11 +31,16 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      
 
       # Step 4: Set up Docker Buildx (for multi-platform support)
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+      
+      
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v2
+        uses: docker/setup-buildx-action@v3
 
       # Step 5: Build and Push Docker Image with multi-platform support (No cache)
       - name: Build and Push Docker Image (Multi-Arch)
