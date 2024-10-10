@@ -33,10 +33,12 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
 
-      # Step 4: Set up Docker Buildx (for multi-platform support)
-      - name: Set up Docker Buildx
-        id: buildx
+      # Step 4: Create and use a new builder with multi-platform support
+      - name: Set up Docker Buildx (Multi-Arch Builder)
         uses: docker/setup-buildx-action@v3
+        with:
+          driver-opts: image=moby/buildkit:master
+          platforms: linux/amd64,linux/arm64,linux/arm/v6,linux/arm/v7
 
       # Step 5: Set up QEMU (for multi-platform emulation)
       - name: Set up QEMU
