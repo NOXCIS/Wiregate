@@ -133,8 +133,12 @@ setup_environment() {
 
 
 run_Pihole_setup() {
-    TIMER_VALUE=0
-    set_pihole_tz &&
+        if [ "$mode" = "Express" ]; then
+            TIMER_VALUE=0
+        elif [ "$mode" = "Advanced" ]; then
+            echo "OK" 
+        fi
+    #set_pihole_tz &&
     set_pihole_config &&
     set_wg-dash_config &&
     set_wg-dash_account &&
@@ -150,15 +154,19 @@ run_Pihole_setup() {
     mkey_output
 }
 run_AdGuard_setup() {
-        TIMER_VALUE=0
+        if [ "$mode" = "Express" ]; then
+            TIMER_VALUE=0
+        elif [ "$mode" = "Advanced" ]; then
+            echo "OK" 
+        fi
         set_pihole_tz &&
         set_adguard_config &&
         set_wg-dash_config && 
         set_wg-dash_account &&
             if [ "$config_type" = "Channels" ]; then
-                echo "OK" 
-            elif [ "$config_type" = "Darkwire" ]; then 
-                set_dwire_config 
+                echo "OK"
+            elif [ "$config_type" = "Darkwire" ]; then
+                set_dwire_config
             fi
         rm_exst_configs >/dev/null 2>&1 &&  
         clear &&

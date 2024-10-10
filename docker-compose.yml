@@ -8,7 +8,7 @@ networks:
     ipam:
       config:
         - subnet: 10.2.0.0/24
-  
+
 
 services:
   dnscrypt:
@@ -22,39 +22,39 @@ services:
         ipv4_address: 10.2.0.42
 
   unbound:
-    image: "klutchell/unbound:latest"
+    image: "noxcis/unbound:latest"
     container_name: unbound
     restart: unless-stopped
     hostname: "unbound"
-    volumes:
-      - ./Global-Configs/Unbound/custom-unbound.conf:/etc/unbound/custom.conf.d/custom-unbound.conf
+    cap_add:
+      - NET_ADMIN
+    healthcheck:
+      test: ["CMD", "drill", "@127.0.0.1", "dnssec.works"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 30s 
+    #volumes:
+    #  - ./Global-Configs/Unbound:/etc/unbound/custom.conf.d 
     networks:
       private_network:
         ipv4_address: 10.2.0.200
 
-  pihole:
+
+  adguard:
     depends_on: [unbound]
-    container_name: pihole
-    image: pihole/pihole:latest
+    container_name: adguard
+    image: adguard/adguardhome
     restart: unless-stopped
-    hostname: pihole
-    dns:
-      - 10.2.0.200 # Points to unbound
-    environment:
-      TZ: "${PI_HOLE_TZ}"
-      WEBPASSWORD: "${PI_HOLE_PASS}"
-      ServerIP: 10.2.0.100 # Internal IP of pihole
-      DNS1: 10.2.0.200 # Unbound IP
-      DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
+    hostname: adguard
+    # Volumes store your data between container upgrades
     volumes:
-      - "./Global-Configs/PiHole/etc-pihole/:/etc/pihole/"
-      - "./Global-Configs/PiHole/etc-pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/"
-    cap_add:
-      - NET_ADMIN
+      - "./Global-Configs/AdGuard/Data:/opt/adguardhome/work"
+      - "./Global-Configs/AdGuard/Config:/opt/adguardhome/conf"
     networks:
       private_network:
         ipv4_address: 10.2.0.100
-
+        
   darkwire:
       image: noxcis/darkwire:terra-firma
       cap_add:
@@ -65,7 +65,7 @@ services:
       networks:
         private_network:
           ipv4_address: 10.2.0.4
-        
+
   wiregate:
     container_name: wiregate
     image: noxcis/wg-dashboard:${TAG}
@@ -107,9 +107,8 @@ services:
 
 
 
+
 volumes:
     wgd_configs:
     wgd_db:
-  
-
   

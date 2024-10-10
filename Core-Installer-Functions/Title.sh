@@ -240,6 +240,7 @@ set_config_port_range_title() {
 
 }
 set_timer_value() {
+    clear
     echo -e "\033[33m\n" 
     echo "#######################################################################"
     echo ""
@@ -247,7 +248,7 @@ set_timer_value() {
     echo ""
     echo "#######################################################################"
     echo -e "\n\033[0m"
-    read -p "Enter the timer value (in seconds): " TIMER_VALUE
+    read -p "Enter the timer value (in$blue seconds$reset): " TIMER_VALUE
     echo ""
     echo -e "Timer value set to \033[32m$TIMER_VALUE\033[0m seconds."
     echo ""

@@ -24,36 +24,53 @@ services:
         ipv4_address: 10.2.0.42
 
   unbound:
-    image: "klutchell/unbound:latest"
+    image: "noxcis/unbound:latest"
     container_name: unbound
     restart: unless-stopped
     hostname: "unbound"
     cap_add:
       - NET_ADMIN
-      - SYS_MODULE
-    volumes:
-      - ./Global-Configs/Unbound/custom-unbound.conf:/etc/unbound/custom.conf.d/custom-unbound.conf
+    healthcheck:
+      test: ["CMD", "drill", "@127.0.0.1", "dnssec.works"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 30s 
+    #volumes:
+    #  - ./Global-Configs/Unbound:/etc/unbound/custom.conf.d 
     networks:
       private_network:
         ipv4_address: 10.2.0.200
 
 
-  adguard:
+
+  
+  pihole:
     depends_on: [unbound]
-    container_name: adguard
-    image: adguard/adguardhome
+    container_name: pihole
+    image: pihole/pihole:latest
     restart: unless-stopped
-    hostname: adguard
-    # Volumes store your data between container upgrades
+    hostname: pihole
+    dns:
+      - 10.2.0.200 # Points to unbound
+    environment:
+      TZ: "America/Chicago"
+      WEBPASSWORD: ""
+      ServerIP: 10.2.0.100 # Internal IP of pihole
+      DNS1: 10.2.0.200 # Unbound IP
+      DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
     volumes:
-      - "./Global-Configs/AdGuard/Data:/opt/adguardhome/work"
-      - "./Global-Configs/AdGuard/Config:/opt/adguardhome/conf"
+      - "./Global-Configs/PiHole/etc-pihole/:/etc/pihole/"
+      - "./Global-Configs/PiHole/etc-pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/"
+    cap_add:
+      - NET_ADMIN
     networks:
       private_network:
         ipv4_address: 10.2.0.100
 
   wiregate:
-    build: ./WG-Dash
+    #build: ./WG-Dash
+    image: noxcis/wg-dashboard:terra-firma
     container_name: wiregate
     hostname: wiregate
     cap_add:
@@ -66,7 +83,7 @@ services:
       #- wgd_db:/opt/wireguarddashboard/src/dashboard_config
 
     environment:
-      - TZ=UTC
+      - TZ=America/Chicago
       - WGD_TOR_EXIT_NODES={ch}
       - WGD_TOR_PROXY=true
       - WGD_TOR_PLUGIN=webtunnel #OPTIONS webtunnel, obfs4, snowflake
@@ -81,9 +98,9 @@ services:
       - WGD_PEER_ENDPOINT_ALLOWED_IP=0.0.0.0/0
       - WGD_KEEP_ALIVE=21
       - WGD_MTU=1420
-      - WGD_PORT_RANGE_STARTPORT=443
+      - WGD_PORT_RANGE_STARTPORT=4430
     ports:
-      - "443-448:443-448/udp"
+      - "4430-4433:4430-4433/udp"
       - 8000:80/tcp
     sysctls:
       - net.ipv4.ip_forward=1

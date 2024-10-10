@@ -22,12 +22,20 @@ services:
         ipv4_address: 10.2.0.42
 
   unbound:
-    image: "klutchell/unbound:latest"
+    image: "noxcis/unbound:latest"
     container_name: unbound
     restart: unless-stopped
     hostname: "unbound"
-    volumes:
-      - ./Global-Configs/Unbound/custom-unbound.conf:/etc/unbound/custom.conf.d/custom-unbound.conf
+    cap_add:
+      - NET_ADMIN
+    healthcheck:
+      test: ["CMD", "drill", "@127.0.0.1", "dnssec.works"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+      start_period: 30s 
+    #volumes:
+    #  - ./Global-Configs/Unbound:/etc/unbound/custom.conf.d 
     networks:
       private_network:
         ipv4_address: 10.2.0.200

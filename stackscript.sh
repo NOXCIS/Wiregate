@@ -37,8 +37,8 @@ if [ "$ARG4" = "dind" ]; then
 
     if [ ! -s "$env_file" ]; then 
         ip=$(curl -s ifconfig.me)
-            echo "WGD_PORT_RANGE_STARTPORT=\"443\"" >> "$env_file"
-            echo "WGD_PORT_MAPPINGS=\"443-446:443-446/udp\"" >> "$env_file"
+            echo "WGD_PORT_RANGE_STARTPORT=\"4430\"" >> "$env_file"
+            echo "WGD_PORT_MAPPINGS=\"4430-4433:4430-4433/udp\"" >> "$env_file"
             echo "WGD_REMOTE_ENDPOINT=\"$ip\"" >> "$env_file"
         fi
 fi

@@ -97,7 +97,7 @@ Example Usage:
 
 **Interactive Menu**
 ```bash
-docker run --privileged --name wiregate-dind -d -p 443-446:443-446/udp docker:dind && \
+docker run --privileged --name wiregate-dind -d -p 4430-4433:4430-4433/udp docker:dind && \
 docker exec -it wiregate-dind /bin/sh -c "
 
 apk add curl git ncurses sudo bash && \
@@ -109,7 +109,7 @@ chmod +x stackscript.sh && \
 ```
 **Preset & Automated**
 ```bash
-docker run --privileged --name wiregate-dind -d -p 443-446:443-446/udp docker:dind && \
+docker run --privileged --name wiregate-dind -d -p 4430-4433:4430-4433/udp docker:dind && \
 docker exec -it wiregate-dind /bin/sh -c "
 
 apk add curl git ncurses sudo bash && \
