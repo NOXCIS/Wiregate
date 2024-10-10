@@ -168,55 +168,6 @@ install_docker() {
         done
     fi
 }
-install_podman() {
-  DISTRO=$(uname -a | grep -i 'debian') && DISTRO='debian' || DISTRO='ubuntu'
-  ARCH=$(uname -m)
-
-  echo "Detected distribution: $DISTRO, architecture: $ARCH"
-
-  # Install Podman based on distribution and architecture
-  if [[ "$DISTRO" == "debian" ]]; then
-    echo "Installing Podman on Debian..."
-    sudo apt update && sudo apt install -y podman
-  elif [[ "$DISTRO" == "ubuntu" ]]; then
-    echo "Installing Podman on Ubuntu..."
-    sudo apt update && sudo apt install -y podman
-  else
-    echo "Unsupported distribution."
-    return 1
-  fi
-
-  # Start and enable Podman service
-  echo "Starting Podman service..."
-  sudo systemctl --user start podman.socket
-  sudo systemctl --user enable podman.socket
-  echo "Podman installed and started successfully."
-
-  # Install QEMU based on architecture
-  if [[ "$ARCH" == "armv7l" || "$ARCH" == "armv6l" ]]; then
-    echo "32-bit ARM architecture detected. Installing ARM-specific QEMU packages..."
-    if [[ "$DISTRO" == "debian" || "$DISTRO" == "ubuntu" ]]; then
-     sudo apt update && sudo apt install -y qemu-user-static qemu-system-arm
-    fi
-  elif [[ "$ARCH" == "aarch64" ]]; then
-    echo "64-bit ARM architecture detected. Installing ARM64-specific QEMU packages..."
-    if [[ "$DISTRO" == "debian" || "$DISTRO" == "ubuntu" ]]; then
-      sudo apt update && sudo apt install -y qemu-user-static qemu-system-aarch64
-    fi
-  elif [[ "$ARCH" == "x86_64" ]]; then
-    echo "x86_64 architecture detected. Installing QEMU for ARM emulation..."
-    if [[ "$DISTRO" == "debian" || "$DISTRO" == "ubuntu" ]]; then
-      sudo apt update && sudo apt install -y qemu-user-static
-    fi
-    # Enable QEMU for cross-architecture emulation (for ARM containers)
-    echo "Setting up QEMU for cross-platform emulation..."
-    sudo update-binfmts --enable qemu-arm
-    sudo update-binfmts --enable qemu-aarch64
-  fi
-
-  echo "QEMU installed and set up successfully for architecture: $ARCH."
-}
-
 
 create_swap() {
 
@@ -254,16 +205,8 @@ install_requirements() {
 
         # Attempt the installation
         run_os_update &&
-        install_prerequisites 
-
-        if [[ "$DEPLOY_SYSTEM" == "docker" ]]; then
-            install_docker
-        fi
-
-        if [[ "$DEPLOY_SYSTEM" == "podman" ]]; then
-            install_podman
-        fi
-
+        install_prerequisites &&
+        install_docker &&
         create_swap &&
         install_confirm &&
 
