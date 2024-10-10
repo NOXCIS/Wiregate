@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
+# Under MIT License
 
 set_adguard_pass() {
     local adguard_yaml_file="./Global-Configs/AdGuard/Config/AdGuardHome.yaml"

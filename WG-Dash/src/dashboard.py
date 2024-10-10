@@ -55,7 +55,7 @@ UPDATE = None
 
 app = Flask("WGDashboard")
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 5206928
-app.secret_key = secrets.token_urlsafe(32)
+app.secret_key = secrets.token_urlsafe(420)
 
 #Docker ENV ARGS Import
 load_dotenv()

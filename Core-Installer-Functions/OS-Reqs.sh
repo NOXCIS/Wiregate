@@ -1,7 +1,6 @@
 #!/bin/bash
-
-
-#OS
+# Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
+# Under MIT License
 
 
 run_os_update() {
@@ -23,7 +22,26 @@ run_os_update() {
 
     clear
 }
+x_alpine_repo() {
+  # Path to repositories file
+  REPO_FILE="/etc/apk/repositories"
+  
+  # Check if the community repository is already present (commented or uncommented)
+  if grep -q "#.*community" "$REPO_FILE"; then
+    echo "Uncommenting Alpine community repository..."
+    # Uncomment the line containing 'community'
+    sed -i 's/^#.*community/http:\/\/dl-cdn.alpinelinux.org\/alpine\/$(cat /etc/alpine-release | cut -d '.' -f 1)\/community/' "$REPO_FILE"
+  elif ! grep -q "community" "$REPO_FILE"; then
+    echo "Adding Alpine community repository..."
+    # Add the community repository (adjust the URL to your Alpine version)
+    echo "http://dl-cdn.alpinelinux.org/alpine/$(cat /etc/alpine-release | cut -d '.' -f 1)/community" >> "$REPO_FILE"
+  else
+    echo "Alpine community repository is already active."
+  fi
 
+  # Update APK index
+  apk update
+}
 install_prerequisites() {
     echo -e "\033[33m\n" 
     echo "#######################################################################"
@@ -150,6 +168,55 @@ install_docker() {
         done
     fi
 }
+install_podman() {
+  DISTRO=$(uname -a | grep -i 'debian') && DISTRO='debian' || DISTRO='ubuntu'
+  ARCH=$(uname -m)
+
+  echo "Detected distribution: $DISTRO, architecture: $ARCH"
+
+  # Install Podman based on distribution and architecture
+  if [[ "$DISTRO" == "debian" ]]; then
+    echo "Installing Podman on Debian..."
+    apt update && apt install -y podman
+  elif [[ "$DISTRO" == "ubuntu" ]]; then
+    echo "Installing Podman on Ubuntu..."
+    apt update && apt install -y podman
+  else
+    echo "Unsupported distribution."
+    return 1
+  fi
+
+  # Start and enable Podman service
+  echo "Starting Podman service..."
+  systemctl --user start podman.socket
+  systemctl --user enable podman.socket
+  echo "Podman installed and started successfully."
+
+  # Install QEMU based on architecture
+  if [[ "$ARCH" == "armv7l" || "$ARCH" == "armv6l" ]]; then
+    echo "32-bit ARM architecture detected. Installing ARM-specific QEMU packages..."
+    if [[ "$DISTRO" == "debian" || "$DISTRO" == "ubuntu" ]]; then
+      apt update && apt install -y qemu-user-static qemu-system-arm
+    fi
+  elif [[ "$ARCH" == "aarch64" ]]; then
+    echo "64-bit ARM architecture detected. Installing ARM64-specific QEMU packages..."
+    if [[ "$DISTRO" == "debian" || "$DISTRO" == "ubuntu" ]]; then
+      apt update && apt install -y qemu-user-static qemu-system-aarch64
+    fi
+  elif [[ "$ARCH" == "x86_64" ]]; then
+    echo "x86_64 architecture detected. Installing QEMU for ARM emulation..."
+    if [[ "$DISTRO" == "debian" || "$DISTRO" == "ubuntu" ]]; then
+      apt update && apt install -y qemu-user-static
+    fi
+    # Enable QEMU for cross-architecture emulation (for ARM containers)
+    echo "Setting up QEMU for cross-platform emulation..."
+    update-binfmts --enable qemu-arm
+    update-binfmts --enable qemu-aarch64
+  fi
+
+  echo "QEMU installed and set up successfully for architecture: $ARCH."
+}
+
 
 create_swap() {
 
@@ -176,6 +243,7 @@ install_confirm() {
         !!!!!!
 EOF
 }
+
 install_requirements() {
     local MAX_ATTEMPTS=3
     local attempts=1
@@ -187,7 +255,15 @@ install_requirements() {
         # Attempt the installation
         run_os_update &&
         install_prerequisites &&
-        install_docker &&
+
+        if [[ "$DEPLOY_SYSTEM" == "docker" ]]; then
+            install_docker
+        fi
+
+        if [[ "$DEPLOY_SYSTEM" == "podman" ]]; then
+            install_podman
+        fi
+
         create_swap &&
         install_confirm &&
 
@@ -195,7 +271,7 @@ install_requirements() {
         if [ -f "$install_check" ]; then
             echo "Installation successful."
             break  # Exit the loop if successful
-        elif [ ! -f "$install_check" ]; then
+        else
             echo "Installation failed. Retrying..."
             ((attempts++))
         fi
@@ -205,4 +281,3 @@ install_requirements() {
         echo "Max attempts reached. Installation failed."
     fi
 }
-

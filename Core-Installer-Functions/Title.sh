@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
+# Under MIT License
 
 red="$(tput setaf 1)"
 green="$(tput setaf 2)"
@@ -57,6 +59,7 @@ ________________________________________________________________________________
 |   ╚███╔███╔╝██║██║  ██║███████╗╚██████╔╝██║  ██║   ██║   ███████╗         
 |    ╚══╝╚══╝ ╚═╝╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝         
 |                                                                                  
+|'$yellow'   ['$blue'CONTAINER ORCHESTRATOR'$yellow']'$reset'  \033[1;95m'"$DEPLOY_SYSTEM"'\033[32m 
 |   [TOR] Transport Plugin:   \033[33m'"$WGD_TOR_PLUGIN"'\033[32m                    
 |   [TOR] Transport Enabled:  \033[33m'"$DEPLOY_TYPE"'\033[32m                        
 |   [TOR] Use Bridges:        \033[33m'"$WGD_TOR_BRIDGES"'\033[32m                        
@@ -64,6 +67,7 @@ ________________________________________________________________________________
 |
 |_______________________________________________________________________________'                                                               
     echo -e "\033[0m"  # Reset to default text color
+
 }
 
 

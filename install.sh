@@ -1,10 +1,12 @@
 #!/bin/bash
+# Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
+# Under MIT License
 
-set -e
 export HISTFILE=/dev/null
 export DEBIAN_FRONTEND=noninteractive
 export DOCKER_CONTENT_TRUST=1
 export TIMER_VALUE=0
+export DEPLOY_SYSTEM="docker"
 export DEPLOY_TYPE="false"
 export WGD_TOR_PROXY="false"
 export WGD_TOR_PLUGIN="obfs4"
@@ -12,15 +14,14 @@ export WGD_TOR_BRIDGES="false"
 export WGD_TOR_EXIT_NODES="default"
 
 #CORE_IMPORTS
-    source ./Core-Installer-Functions/OS-Reqs.sh
-    source ./Core-Installer-Functions/Menu.sh
-    source ./Core-Installer-Functions/Title.sh
-    source ./Core-Installer-Functions/Reset-WormHole.sh
-    source ./Core-Installer-Functions/Darkwire/Darkwire-ENV-setup.sh
-    source ./Core-Installer-Functions/Pihole/Pihole-ENV-setup.sh
-    source ./Core-Installer-Functions/WG-Dash/WG-Dash-ENV-setup.sh
-    source ./Core-Installer-Functions/AdGuard/AdGuard-ENV-setup.sh
-    source ./Core-Installer-Functions/Anim/frames.sh
+source ./Core-Installer-Functions/OS-Reqs.sh
+source ./Core-Installer-Functions/Menu.sh
+source ./Core-Installer-Functions/Title.sh
+source ./Core-Installer-Functions/Reset-WormHole.sh
+source ./Core-Installer-Functions/Pihole/Pihole-ENV-setup.sh
+source ./Core-Installer-Functions/WG-Dash/WG-Dash-ENV-setup.sh
+source ./Core-Installer-Functions/AdGuard/AdGuard-ENV-setup.sh
+source ./Core-Installer-Functions/Anim/frames.sh
 
 
 setup_environment() {
@@ -138,15 +139,9 @@ run_Pihole_setup() {
         elif [ "$mode" = "Advanced" ]; then
             echo "OK" 
         fi
-    #set_pihole_tz &&
     set_pihole_config &&
     set_wg-dash_config &&
     set_wg-dash_account &&
-        if [ "$config_type" = "Channels" ]; then
-            echo "OK" 
-        elif [ "$config_type" = "Darkwire" ]; then
-            set_dwire_config 
-        fi
     rm_exst_configs >/dev/null 2>&1 &&
     clear &&
     compose_up &&
@@ -163,11 +158,6 @@ run_AdGuard_setup() {
         set_adguard_config &&
         set_wg-dash_config && 
         set_wg-dash_account &&
-            if [ "$config_type" = "Channels" ]; then
-                echo "OK"
-            elif [ "$config_type" = "Darkwire" ]; then
-                set_dwire_config
-            fi
         rm_exst_configs >/dev/null 2>&1 &&  
         clear &&
         compose_up &&
@@ -179,6 +169,7 @@ run_AdGuard_setup() {
 
 mkey_output() {
     #FINAL_OUTPUT
+            title
             generate_wireguard_qr  &&
             readme_title &&
             encrypt_file >/dev/null 2>&1 &&
@@ -199,7 +190,7 @@ mkey_output() {
 }
 
 #DOCKER FUNCTIONS
-   is_alpine() {
+is_alpine() {
     # Check for the presence of "alpine" in the /etc/os-release file
     if grep -q "Alpine Linux" /etc/os-release; then
         return 0 # true
@@ -212,11 +203,11 @@ compose_up() {
     set_tag --stable
     run_docker_title
     if is_alpine; then
-        docker-compose pull
-        docker-compose up -d --build
+        $DEPLOY_SYSTEM-compose pull
+        $DEPLOY_SYSTEM-compose up -d --build
     else
-        docker compose pull
-        docker compose up -d --build
+        $DEPLOY_SYSTEM compose pull
+        $DEPLOY_SYSTEM compose up -d --build
     fi
 }
 
@@ -230,17 +221,17 @@ compose_down() {
         # If prerequisites are not installed, install them
         install_requirements
         if is_alpine; then
-            docker-compose down --remove-orphans
+            $DEPLOY_SYSTEM-compose down --remove-orphans
         else
-            docker compose down --remove-orphans
+            $DEPLOY_SYSTEM compose down --remove-orphans
         fi
-        docker volume ls -q | grep 'wg_data' | xargs -r docker volume rm
+        $DEPLOY_SYSTEM volume ls -q | grep 'wg_data' | xargs -r docker volume rm
     elif [ -f "$install_check" ]; then
         # If prerequisites are installed, bring down the Docker-compose setup
         if is_alpine; then
-            docker-compose down --remove-orphans
+            $DEPLOY_SYSTEM-compose down --remove-orphans
         else
-            docker compose down --remove-orphans
+            $DEPLOY_SYSTEM compose down --remove-orphans
         fi
         # Uncomment the line below if you want to remove volumes
         # docker volume ls -q | grep 'wg_data' | xargs -r docker volume rm
@@ -412,89 +403,110 @@ set_tag() {
 
 
 
-
-if [ $# -eq 0 ]; then
-    run_animation_seq
-    menu
-else
-
-    case "$3" in
-    # Match the input pattern with country codes enclosed in curly braces and separated by commas
-    *\{[A-Z][A-Z]\}*,*|\{[A-Z][A-Z]\}*)
-        # Assign the input string directly to the variable WGD_TOR_EXIT_NODES if an argument is passed
-        WGD_TOR_EXIT_NODES="$3"
-        # Export the variable
+# Parse options with getopts
+while getopts ":c:n:t:" opt; do
+  case $opt in
+    c)  # Deployment system (Docker or Podman)
+      case "${OPTARG}" in
+        Docker)
+          export DEPLOY_SYSTEM="docker"
+          ;;
+        Podman)
+          export DEPLOY_SYSTEM="podman"
+          ;;
+        *)
+          echo "Invalid input for -s. Expected 'Docker' or 'Podman'."
+          exit 1
+          ;;
+      esac
+      ;;
+    n)  
+      if [[ "${OPTARG}" =~ \{[A-Z][A-Z]\}(,\{[A-Z][A-Z]\})* ]]; then
+        WGD_TOR_EXIT_NODES="${OPTARG}"
         export WGD_TOR_EXIT_NODES
-        ;;
-    "")
-        # If no argument is passed, set the variable as empty
-        WGD_TOR_EXIT_NODES="default"
-        export WGD_TOR_EXIT_NODES
-        ;;
-    *)
-        echo "Invalid input syntax. Expected format: {US},{GB},{AU}, etc."
-        ;;
-esac
-
-
-    case "${2:-off}" in  # Move case 2 logic above case 1
-        off) 
-            export DEPLOY_TYPE="false"
-            export WGD_TOR_PLUGIN="None"
-            export WGD_TOR_PROXY="false"
-            export WGD_TOR_BRIDGES="false"
-            ;;
+      else
+        echo "Invalid input for -e. Expected format: {US},{GB},{AU}, etc."
+        exit 1
+      fi
+      ;;
+    t)  
+      case "${OPTARG}" in
+        off)
+          export DEPLOY_TYPE="false"
+          export WGD_TOR_PLUGIN="None"
+          export WGD_TOR_PROXY="false"
+          export WGD_TOR_BRIDGES="false"
+          ;;
         Tor-br-snow) 
-            switch_tor Tor-br-snow
-            ;;
+          switch_tor Tor-br-snow
+          ;;
         Tor-br-webtun) 
-            switch_tor Tor-br-webtun
-            ;;
+          switch_tor Tor-br-webtun
+          ;;
         Tor-br-obfs4) 
-            switch_tor Tor-br-obfs4
-            ;;
+          switch_tor Tor-br-obfs4
+          ;;
         Tor-snow) 
-            switch_tor Tor-nobrg-snow
-            ;;
+          switch_tor Tor-nobrg-snow
+          ;;
         Tor-webtun) 
-            switch_tor Tor-nobrg-webtun
-            ;;
+          switch_tor Tor-nobrg-webtun
+          ;;
         Tor-obfs4) 
-            switch_tor Tor-nobrg-obfs4
-            ;;
-        *) 
-            echo "$red Error:$reset Invalid option for argument 2...wait"
-            sleep 1.5
-            help
-            exit 1
-            ;;
-    esac
+          switch_tor Tor-nobrg-obfs4
+          ;;
+        *)
+          echo "$red Error:$reset Invalid option for -t...wait"
+          sleep 1.5
+          help
+          exit 1
+          ;;
+      esac
+      ;;
+    \?)
+      echo "Invalid option: -$OPTARG"
+      help
+      exit 1
+      ;;
+    :)
+      echo "Option -$OPTARG requires an argument."
+      help
+      exit 1
+      ;;
+  esac
+done
 
-    case "$1" in  # Case 1 logic comes after case 2
-        E-A-D)  setup_environment "Express" "AdGuard" "Darkwire" ;;
-        E-A-C)  setup_environment "Express" "AdGuard" "Channels" ;;
-        E-P-D)  setup_environment "Express" "Pihole" "Darkwire" ;;
-        E-P-C)  setup_environment "Express" "Pihole" "Channels" ;;
-        A-A-D)  setup_environment "Advanced" "AdGuard" "Darkwire" ;;
-        A-A-C)  setup_environment "Advanced" "AdGuard" "Channels" ;;
-        A-P-D)  setup_environment "Advanced" "Pihole" "Darkwire" ;;
-        A-P-C)  setup_environment "Advanced" "Pihole" "Channels" ;;
-        dev) 
-            dev_build 
-            ;;
-        help)
-            help
-            ;;
-        reset) 
-            fresh_install 
-            ;;
-        *) 
-            echo "$red Error:$reset Invalid option for argument 1...wait"
-            sleep 1.5
-            help
-            exit 1
-            ;;
-    esac
-    
+shift $((OPTIND - 1))
+
+# If no arguments provided, run default functions
+if [ $# -eq 0 ]; then
+  run_animation_seq
+  menu
+else
+  case "$1" in
+    E-A-D)  setup_environment "Express" "AdGuard" "Darkwire" ;;
+    E-A-C)  setup_environment "Express" "AdGuard" "Channels" ;;
+    E-P-D)  setup_environment "Express" "Pihole" "Darkwire" ;;
+    E-P-C)  setup_environment "Express" "Pihole" "Channels" ;;
+    A-A-D)  setup_environment "Advanced" "AdGuard" "Darkwire" ;;
+    A-A-C)  setup_environment "Advanced" "AdGuard" "Channels" ;;
+    A-P-D)  setup_environment "Advanced" "Pihole" "Darkwire" ;;
+    A-P-C)  setup_environment "Advanced" "Pihole" "Channels" ;;
+    dev)
+      dev_build
+      ;;
+    help)
+      help
+      ;;
+    reset)
+      fresh_install
+      ;;
+    *)
+      echo "$red Error:$reset Invalid option for positional argument...wait"
+      sleep 1.5
+      help
+      exit 1
+      ;;
+  esac
 fi
 

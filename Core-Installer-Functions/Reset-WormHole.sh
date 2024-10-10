@@ -1,3 +1,7 @@
+#!/bin/bash
+# Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
+# Under MIT License
+
 fresh_install() {
     local masterkey_file="./Global-Configs/Master-Key/master.conf"
     local yml_file="docker-compose.yml"
@@ -27,7 +31,7 @@ fresh_install() {
     if [[ $answer == [Yy] || -z $answer ]]; then
         port_mappings="770-777:770-777/udp"
         export WGD_PORT_MAPPINGS="$port_mappings"
-        docker compose down --volumes --remove-orphans
+        $DEPLOY_SYSTEM compose down --volumes --remove-orphans
 
         if [ -f "$masterkey_file" ]; then
             echo "Removing existing maskerkey ..."
