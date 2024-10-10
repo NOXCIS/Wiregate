@@ -177,10 +177,10 @@ install_podman() {
   # Install Podman based on distribution and architecture
   if [[ "$DISTRO" == "debian" ]]; then
     echo "Installing Podman on Debian..."
-    apt update && apt install -y podman
+    sudo apt update && apt install -y podman
   elif [[ "$DISTRO" == "ubuntu" ]]; then
     echo "Installing Podman on Ubuntu..."
-    apt update && apt install -y podman
+    sudo apt update && apt install -y podman
   else
     echo "Unsupported distribution."
     return 1
@@ -188,30 +188,30 @@ install_podman() {
 
   # Start and enable Podman service
   echo "Starting Podman service..."
-  systemctl --user start podman.socket
-  systemctl --user enable podman.socket
+  sudo systemctl --user start podman.socket
+  sudo systemctl --user enable podman.socket
   echo "Podman installed and started successfully."
 
   # Install QEMU based on architecture
   if [[ "$ARCH" == "armv7l" || "$ARCH" == "armv6l" ]]; then
     echo "32-bit ARM architecture detected. Installing ARM-specific QEMU packages..."
     if [[ "$DISTRO" == "debian" || "$DISTRO" == "ubuntu" ]]; then
-      apt update && apt install -y qemu-user-static qemu-system-arm
+     sudo apt update && apt install -y qemu-user-static qemu-system-arm
     fi
   elif [[ "$ARCH" == "aarch64" ]]; then
     echo "64-bit ARM architecture detected. Installing ARM64-specific QEMU packages..."
     if [[ "$DISTRO" == "debian" || "$DISTRO" == "ubuntu" ]]; then
-      apt update && apt install -y qemu-user-static qemu-system-aarch64
+      sudo apt update && apt install -y qemu-user-static qemu-system-aarch64
     fi
   elif [[ "$ARCH" == "x86_64" ]]; then
     echo "x86_64 architecture detected. Installing QEMU for ARM emulation..."
     if [[ "$DISTRO" == "debian" || "$DISTRO" == "ubuntu" ]]; then
-      apt update && apt install -y qemu-user-static
+      sudo apt update && apt install -y qemu-user-static
     fi
     # Enable QEMU for cross-architecture emulation (for ARM containers)
     echo "Setting up QEMU for cross-platform emulation..."
-    update-binfmts --enable qemu-arm
-    update-binfmts --enable qemu-aarch64
+    sudo update-binfmts --enable qemu-arm
+    sudo update-binfmts --enable qemu-aarch64
   fi
 
   echo "QEMU installed and set up successfully for architecture: $ARCH."
@@ -254,7 +254,7 @@ install_requirements() {
 
         # Attempt the installation
         run_os_update &&
-        install_prerequisites &&
+        install_prerequisites 
 
         if [[ "$DEPLOY_SYSTEM" == "docker" ]]; then
             install_docker
