@@ -31,24 +31,26 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
-      
+
 
       # Step 4: Set up Docker Buildx (for multi-platform support)
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-      
-      
       - name: Set up Docker Buildx
         id: buildx
         uses: docker/setup-buildx-action@v3
 
-      # Step 5: Build and Push Docker Image with multi-platform support (No cache)
+      # Step 5: Set up QEMU (for multi-platform emulation)
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+        with:
+          platforms: linux/amd64,linux/arm64,linux/arm/v6,linux/arm/v7
+        
+      # Step 6: Build and Push Docker Image with multi-platform support (No cache)
       - name: Build and Push Docker Image (Multi-Arch)
         uses: docker/build-push-action@v4
         with:
           context: WG-Dash/  # Path to Dockerfile in repository
           push: true  # Push image after build
           tags: noxcis/wg-dashboard:terra-firma  # Tag for all platforms
-          platforms: linux/amd64,linux/arm64,linux/arm/v7,linux/arm/v6  # Platforms to build for
+          platforms: linux/amd64,linux/arm64,linux/arm/v6,linux/arm/v7  # Platforms to build for
           no-cache: true  # Disable caching to force a fresh build
-          build-args: --progress=plain  # Show plain progress in logs
+          builder-options: --progress=plain  # Show plain progress in logs
