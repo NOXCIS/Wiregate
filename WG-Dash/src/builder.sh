@@ -1,4 +1,6 @@
 #!/bin/sh
+# Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
+# Under MIT License
 
 venv_python="./venv/bin/python3"
 venv_gunicorn="./venv/bin/gunicorn"

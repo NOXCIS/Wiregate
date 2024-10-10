@@ -1,7 +1,9 @@
 #!/bin/bash
+# Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
+# Under MIT License
 
-# wgd.sh - Copyright(C) 2024 Donald Zou [https://github.com/donaldzou]
-# Under Apache-2.0 License
+
+
 #trap "kill $TOP_PID"
 export TOP_PID=$$
 
