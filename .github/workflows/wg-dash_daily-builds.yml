@@ -2,57 +2,48 @@ name: Build and Push Docker Image (Daily)
 
 on:
   schedule:
-    - cron: "0 0 * * *"  # Schedule the workflow to run daily at midnight (UTC time). Adjust the time if needed.
-  workflow_dispatch:  # Manual run trigger
+    - cron: "0 0 * * *"  # Daily at midnight (UTC)
+  workflow_dispatch:  # Allows manual triggering of the workflow
     inputs:
       trigger-build:
         description: 'Trigger a manual build and push'
         default: 'true'
 
 jobs:
-  build_and_push:
+  build_and_push_multiarch:
     runs-on: ubuntu-22.04
+    timeout-minutes: 42  # Job will timeout after 42 minutes
 
     steps:
-      # Check out the repository code
+      # Step 1: Check out the repository code
       - name: Checkout code
         uses: actions/checkout@v3
 
-      # Use Node.js version 18 (optional, remove if not needed)
+      # Step 2: Set up Node.js version 18
       - name: Use Node.js version 18
         uses: actions/setup-node@v4
         with:
           node-version: 18
 
-      # Log in to Docker Hub (replace with the appropriate registry if using something else)
+      # Step 3: Log in to Docker Hub using secrets
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Set up Docker Buildx (needed for multi-platform builds)
+      # Step 4: Set up Docker Buildx (for multi-platform support)
       - name: Set up Docker Buildx
         id: buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@v2
 
-      # Set up QEMU for multi-arch builds
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
-
-      # Verify buildx setup
-      - name: Inspect buildx builder
-        run: docker buildx inspect --bootstrap
-
-      # Build and Push Docker Image (optional: add --no-cache for debugging)
-      - name: Build and Push Docker Image
+      # Step 5: Build and Push Docker Image with multi-platform support (No cache)
+      - name: Build and Push Docker Image (Multi-Arch)
         uses: docker/build-push-action@v4
         with:
-          context: ./WG-Dash  # Path to the directory containing the Dockerfile (subfolder)
-          push: true
-          tags: noxcis/wg-dashboard:terra-firma
-          platforms: linux/amd64,linux/arm64,linux/arm/v6,linux/arm/v7
-          # Uncomment the following line if cache issues arise
-          # no-cache: true
-          
-      # Optional: add a post-build step for notifications or further checks (e.g., send a message on Slack)
+          context: WG-Dash/  # Path to Dockerfile in repository
+          push: true  # Push image after build
+          tags: noxcis/wg-dashboard:terra-firma  # Tag for all platforms
+          platforms: linux/amd64,linux/arm64,linux/arm/v7  # Platforms to build for
+          no-cache: true  # Disable caching to force a fresh build
+          build-args: --progress=plain  # Show plain progress in logs
