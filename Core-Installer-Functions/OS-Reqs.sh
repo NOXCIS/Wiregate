@@ -205,8 +205,18 @@ install_requirements() {
 
         # Attempt the installation
         run_os_update &&
-        install_prerequisites &&
-        install_docker &&
+        install_prerequisites 
+
+        if [[ "$DEPLOY_SYSTEM" == "docker" ]]; then
+            install_docker
+        fi
+
+        if [[ "$DEPLOY_SYSTEM" == "podman" ]]; then
+            echo "Install Podman Manually on your System, 
+            then run the Wiregate installer again.
+            "
+        fi
+
         create_swap &&
         install_confirm &&
 
