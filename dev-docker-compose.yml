@@ -41,9 +41,6 @@ services:
     networks:
       private_network:
         ipv4_address: 10.2.0.200
-
-
-
   
   pihole:
     depends_on: [unbound]

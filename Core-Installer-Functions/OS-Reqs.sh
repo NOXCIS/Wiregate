@@ -213,9 +213,7 @@ install_requirements() {
 
         if [[ "$DEPLOY_SYSTEM" == "podman" ]]; then
             clear 
-            echo "Install Podman Manually on your System, 
-            then run the Wiregate installer again.
-            "
+            podman_install_title
             exit 1
         fi
 

@@ -271,6 +271,19 @@ run_docker_title() {
     printf "%s\n" "$dashes"
     echo -e "\n\033[0m"
 }
+
+podman_install_title() {
+    echo -e "\033[33m\n" 
+    echo "#######################################################################"
+    echo ""
+    echo "                     Install Podman On Your System "
+    echo "        Then run the installer again or use the dev-docker-compose.yml"
+    echo ""
+    echo "#######################################################################"
+    echo -e "\n\033[0m"
+
+
+}
 master_key_title() {
 
     echo -e "$green
