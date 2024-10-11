@@ -18,7 +18,7 @@ while getopts "b:e:t:n:d:c:" opt; do
     n)  ARG3="$OPTARG" ;;     # -3 for ARG3
     d)  ARG4="$OPTARG" ;;     # -4 for ARG4
     c)  ARG5="$OPTARG" ;;     # -4 for ARG4
-    \?) echo "Usage: $0 [-b branch] [-r arg1] [-t arg2] [-n arg3] [-d arg4] [-c arg5]"; exit 1 ;;
+    \?) echo "Usage: $0 [-b branch] [-e arg1] [-t arg2] [-n arg3] [-d arg4] [-c arg5]"; exit 1 ;;
   esac
 done
 shift "$((OPTIND - 1))"  # Shift past processed options
