@@ -9,7 +9,7 @@ YELLOW="\033[33m"
 RESET="\033[0m"
 
 # Define a variable for sleep time (adjust to modify animation speed)
-TRACK_FILE=".env.anim.run.chk"
+TRACK_FILE=".env.anim.run.txt"
 SPEED=0.49
 SPEED2=0.09
 
