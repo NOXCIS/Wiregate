@@ -215,6 +215,7 @@ install_requirements() {
             echo "Install Podman Manually on your System, 
             then run the Wiregate installer again.
             "
+            exit 1
         fi
 
         create_swap &&
