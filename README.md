@@ -61,11 +61,11 @@ Wiregate is configured with 4 zones that peers can be added to. The zone a peer 
 
 
 ## Installation
-
 To get started, run the installation script using the following command:
 
 ### Via Quick Installer
 Running the command below installs prerequsites and runs the terminal based menu.
+
 ```bash
 curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh && \
 sudo chmod +x stackscript.sh && \
@@ -76,23 +76,23 @@ The command can also accept passed arguments to skip the menu. **BRANCH** -Selec
 ```bash
 curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh && \
 sudo chmod +x stackscript.sh && \
-sudo ./stackscript.sh [-b branch]  [-r arg1]  [-t arg2]  [-n arg3] 
+sudo ./stackscript.sh [-b branch] [-c arg5] [-e arg1] [-t arg2] [-n arg3] 
 ```
 Example Usage:
 ```bash
-./stackscript.sh -b main -r E-P-D -t Tor-br-snow -n {CH},{GB} 
+./stackscript.sh -b main -c Podman -e E-P-D -t Tor-br-snow -n {CH},{GB} 
 ```
 
  The available options are:
-
-- `-b` for specifying a branch.
-- `-r` for specifying Resolvers
-- `-t` for specifying Tor.
-- `-n` for specifying Exit Node.
-
-
+- `-c` for specifying **Container Orchestrator**
+- `-b` for specifying a **Branch**
+- `-e` for specifying **Enviornment**
+- `-t` for specifying **Tor**
+- `-n` for specifying **Exit Node**
 
 
+---
+---
 ### Via Docker In Docker 
 
 **Interactive Menu**
@@ -121,20 +121,21 @@ chmod +x stackscript.sh && \
 ```
 Example Usage:
 ```bash
-./stackscript.sh -b main -r E-P-D -t Tor-br-snow -n {CH},{GB} -d dind
+./stackscript.sh -b main -e E-P-D -t Tor-br-snow -n {CH},{GB} -d dind
 ```
  The available options are:
-
-- `-b` for specifying a branch.
-- `-r` for specifying Resolvers
-- `-t` for specifying Tor.
-- `-n` for specifying Exit Node.
-- `-d` for specifying Docker in Docker.
+- `-b` for specifying a **Branch**
+- `-e` for specifying **Enviornment**
+- `-t` for specifying **Tor**
+- `-n` for specifying **Exit Node**
 
 
+## Install Arguments
 
 
-### ARG1:  Resolver Install Options
+### ARG1:  Enviornment Install Options
+
+
 |  |  |
 |--|--|
 | **E-A-D**: | `Express, AdGuard, Darkwire`
@@ -150,10 +151,7 @@ Example Usage:
 | **reset**:| `Reset WireGate`
 
 
-
-
-
-### ARG2: TOR Options
+### ARG2: TOR Configuration Options
 |  |  |
 |--|--|
 | **off**: |`Disable TOR`
@@ -163,6 +161,7 @@ Example Usage:
 | **Tor-snow**:| 			`Use Tor without bridges (snowflake)`
 | **Tor-webtun**:| 		`Use Tor without bridges (webtunnel)`
 | **Tor-obfs4**: |			`Use Tor without bridges (obfs4)`
+---
 
 ### ARG3:  TOR Exit Node Country Code String
 |  |  |
@@ -170,13 +169,24 @@ Example Usage:
 | **Format Example**: | `{US},{GB},{AU} `
 |**Default**| `default` |
 For more exit node options go to [Tor Country codes list](https://sccmrookie.blogspot.com/2016/03/tor-country-codes-list.html).
-
+___
 
 ### ARG4: OPTIONAL  Docker in Docker Deployment
+- Used for Deploying container Stack in a single Container.
+
 |  |  |
 |--|--|
 | **dind**: | `Docker in Docker Enviorment Setup`
+---
 
+### ARG5: Container Orchestrator
+ - Podman Users will have to install Podman before hand.
+ 
+|  |  |
+|--|--|
+| **Podman**: | `Use Podman Conatiner Engine `
+| **Docker**: | `Use Docker Container Engine`
+---
 
 ### Install via Docker Compose
 ````yaml
