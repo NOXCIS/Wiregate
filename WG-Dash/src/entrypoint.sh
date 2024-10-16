@@ -87,7 +87,7 @@ make_torrc() {
     printf "[TOR] Adding bridges to $TORRC_PATH...\n"
     printf "[TOR] Bridges added to $TORRC_PATH successfully!\n"
     fi
-
+    echo -e "AutomapHostsSuffixes .onion,.exit \n" >> "$TORRC_PATH"
     echo -e "AutomapHostsOnResolve 1 \n" >> "$TORRC_PATH"
     echo -e "VirtualAddrNetwork 10.192.0.0/10 \n" >> "$TORRC_PATH"
     echo -e "User tor \n" >> "$TORRC_PATH"
@@ -101,7 +101,7 @@ make_torrc() {
     else
     echo -e "ClientTransportPlugin ${WGD_TOR_PLUGIN} exec /usr/local/bin/${WGD_TOR_PLUGIN} \n" >> "$TORRC_PATH"
     fi
-    echo -e "SocksPort 9050 \n" >> "$TORRC_PATH"
+    echo -e "SocksPort ${INET_ADDR}:9050 \n" >> "$TORRC_PATH"
 
     if [[ "$WGD_TOR_EXIT_NODES" == "default" ]]; then
     echo "Using Default"

@@ -1,8 +1,15 @@
 # builder: WG-Dash Builder for Brcypt & Psutil Binary
-FROM  alpine:latest AS builder
+FROM  node:iron-alpine3.20 AS builder
 LABEL maintainer="NOXCIS"
-WORKDIR /opt/wireguarddashboard/src
 RUN apk add --no-cache sudo gcc musl-dev rust cargo linux-headers
+WORKDIR /opt/wireguarddashboard/src/static/app
+COPY ./src/static /opt/wireguarddashboard/src/static 
+RUN npm install                    
+RUN npm update                    
+RUN npm run build                 
+RUN rm -r ./node_modules 
+RUN rm -r ./src
+WORKDIR /opt/wireguarddashboard/src
 COPY ./src/builder.sh ./src/builder_requirements.txt /opt/wireguarddashboard/src/
 RUN chmod u+x ./builder.sh && ./builder.sh 
 
@@ -48,7 +55,7 @@ COPY --from=pluggables /usr/local/bin/lyrebird /usr/local/bin/lyrebird
 COPY --from=pluggables /webtunnel/main/client/client /usr/local/bin/webtunnel
 COPY --from=pluggables /snowflake/client/client /usr/local/bin/snowflake
 COPY --from=builder /opt/wireguarddashboard/src/venv /opt/wireguarddashboard/src/venv
-COPY --from=builder /opt/wireguarddashboard/src/log /opt/wireguarddashboard/src/log/
+COPY --from=builder /opt/wireguarddashboard/src /opt/wireguarddashboard/src
 
 RUN apk add --no-cache wireguard-tools sudo iptables tzdata && \
     chmod u+x /opt/wireguarddashboard/src/entrypoint.sh 

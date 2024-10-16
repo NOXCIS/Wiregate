@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
+# Under MIT License
 WIREGUARD_INTERFACE=LANP2P
 WIREGUARD_LAN=172.16.0.1/24
 MASQUERADE_INTERFACE=eth0

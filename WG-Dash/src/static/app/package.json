@@ -5,8 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "buildcommitpush": "./build.sh",
-    "build electron": "vite build && vite build --mode electron && cd ../../../../WGDashboard-Desktop && electron-builder --mac --win",
+    "build": "./build.sh",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -18,11 +17,10 @@
     "bootstrap-icons": "^1.11.3",
     "cidr-tools": "^7.0.4",
     "dayjs": "^1.11.12",
-    "electron-builder": "^24.13.3",
     "fuse.js": "^7.0.0",
     "i": "^0.3.7",
     "is-cidr": "^5.0.3",
-    "npm": "^10.5.0",
+    "npm": "^10.9.0",
     "ol": "^10.2.1",
     "pinia": "^2.1.7",
     "qrcode": "^1.5.3",
@@ -34,6 +32,6 @@
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.0.0",
-    "vite": "^5.0.10"
+    "vite": "^5.4.9"
   }
 }

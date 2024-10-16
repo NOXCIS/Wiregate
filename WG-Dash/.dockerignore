@@ -1,6 +1,7 @@
 
 node_modules/**
 src/static/app/node_modules
+src/static/app/dist
 .vscode
 .DS_Store
 .idea

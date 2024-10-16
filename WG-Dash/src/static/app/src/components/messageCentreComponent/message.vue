@@ -10,7 +10,7 @@ export default {
 	mounted() {
 		setTimeout(() => {
 			this.message.show = false
-		}, 5000)
+		}, 1500)
 	}
 }
 </script>

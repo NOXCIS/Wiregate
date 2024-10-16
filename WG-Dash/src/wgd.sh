@@ -504,7 +504,7 @@ PrivateKey = $private_key
 Address = 10.0.0.1/24
 ListenPort = $port_wg0
 SaveConfig = true
-PostUp =  $AMDpostup
+PreUp =  $AMDpostup
 PreDown = $AMDpostdown
 
 EOF
@@ -525,7 +525,7 @@ PrivateKey = $private_key
 Address = 192.168.10.1/24
 ListenPort = $port_wg1
 SaveConfig = true
-PostUp =  $MEMpostup
+PreUp =  $MEMpostup
 PreDown = $MEMpostdown
 
 EOF
@@ -543,7 +543,7 @@ PrivateKey = $private_key
 Address = 172.16.0.1/24
 ListenPort = $port_wg2
 SaveConfig = true
-PostUp =  $LANpostup
+PreUp =  $LANpostup
 PreDown = $LANpostdown
 
 EOF
@@ -561,7 +561,7 @@ PrivateKey = $private_key
 Address = 192.168.20.1/24
 ListenPort = $port_wg3
 SaveConfig = true
-PostUp =  $GSTpostup
+PreUp =  $GSTpostup
 PreDown = $GSTpostdown
 
 EOF
