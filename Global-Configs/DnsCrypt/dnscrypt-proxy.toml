@@ -1,11 +1,13 @@
 listen_addresses = ['0.0.0.0:5053']
-proxy = 'socks5://10.2.0.3:9053'
-netprobe_address = '10.2.0.3:9053'
+proxy = 'socks5://wiregate:9053'
+
 force_tcp = true
-http3 = true
+
+
+netprobe_address = '10.2.0.3:9053'
+netprobe_timeout = 60
 timeout = 5000
 keepalive = 30
-netprobe_timeout = 60
 
 max_clients = 250
 
@@ -14,17 +16,22 @@ ipv6_servers = false
 
 dnscrypt_servers = false
 doh_servers = true
-odoh_servers = false
+odoh_servers = true
 
 require_dnssec = false
 require_nolog = true
 require_nofilter = true
+
 cert_refresh_delay = 240
 dnscrypt_ephemeral_keys = true
+
 block_ipv6 = true
 block_unqualified = true
 block_undelegated = true
-#reject_ttl = 10
+
+reject_ttl = 10
+
+
 cache = true
 cache_size = 4096
 cache_min_ttl = 2400

@@ -46,7 +46,7 @@ get_obfs4_bridges() {
         echo "No obfs4 bridges found or request failed."
     fi
 }
-# Function to get WebTunnel bridges from BridgeDB (if supported)
+# Function to get WebTunnel bridges from BridgeDB 
 get_webtunnel_bridges() {
     BRIDGEDB_URL="https://bridges.torproject.org/bridges?transport=webtunnel"
     
@@ -71,7 +71,7 @@ make_torrc() {
     fi
 
 
-    sudo apk add tor curl > /dev/null 2>&1
+    
    
 
     if [[ "$WGD_TOR_PLUGIN" == "webtunnel" ]]; then
@@ -123,6 +123,7 @@ make_torrc() {
 }
 make_dns_torrc() {
     printf "%s\n" "$dashes"
+    sudo apk add tor curl > /dev/null 2>&1
     printf "[TOR-DNS] Generating DNS-torrc to $DNS_TORRC_PATH...\n"
     if [ -f "$DNS_TORRC_PATH" ]; then
     rm "$DNS_TORRC_PATH" 
@@ -131,7 +132,15 @@ make_dns_torrc() {
     echo -e "VirtualAddrNetwork 10.193.0.0/10 \n" >> "$TORRC_PATH"
     echo -e "User tor \n" >> "$DNS_TORRC_PATH"
     echo -e "DataDirectory /var/lib/tor/dns \n" >> "$DNS_TORRC_PATH"
+
+    if [[ "$WGD_TOR_DNS_EXIT_NODES" == "default" ]]; then
+    echo "Using Default"
+    elif [[ -n "$WGD_TOR_DNS_EXIT_NODES" ]]; then
     echo -e "ExitNodes $WGD_TOR_DNS_EXIT_NODES \n" >> "$DNS_TORRC_PATH"
+    else
+    echo "Invalid input. Please use the correct format: {US},{GB},{AU}, etc."
+    fi
+
     echo -e "SocksPort ${INET_ADDR}:9053 \n" >> "$DNS_TORRC_PATH"
     printf "%s\n" "$dashes"
 }
@@ -175,10 +184,10 @@ ensure_blocking() {
 chmod u+x /opt/wireguarddashboard/src/wgd.sh
 { date; clean_up; printf "\n\n"; } >> ./log/install.txt
 
-
+make_dns_torrc
 if [[ "$WGD_TOR_PROXY" == "true" ]]; then
   make_torrc
-  make_dns_torrc
+  
 fi
 
 
