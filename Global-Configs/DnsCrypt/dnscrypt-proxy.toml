@@ -1,5 +1,5 @@
 listen_addresses = ['0.0.0.0:5053']
-
+proxy = 'socks5://10.2.0.3:9050'
 max_clients = 250
 ipv4_servers = true
 ipv6_servers = false
