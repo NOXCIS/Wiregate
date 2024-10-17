@@ -3,6 +3,7 @@
 trap 'stop_service' SIGTERM
 
 TORRC_PATH="/etc/tor/torrc"
+DNS_TORRC_PATH="/etc/tor/dnstorrc"
 INET_ADDR="$(hostname -i | awk '{print $1}')"
 dashes='------------------------------------------------------------'
 equals='============================================================'
@@ -98,8 +99,6 @@ make_torrc() {
     else
     echo -e "ClientTransportPlugin ${WGD_TOR_PLUGIN} exec /usr/local/bin/${WGD_TOR_PLUGIN} \n" >> "$TORRC_PATH"
     fi
-    echo -e "SocksPort ${INET_ADDR}:9050 \n" >> "$TORRC_PATH"
-
     if [[ "$WGD_TOR_EXIT_NODES" == "default" ]]; then
     echo "Using Default"
     elif [[ -n "$WGD_TOR_EXIT_NODES" ]]; then
@@ -122,15 +121,30 @@ make_torrc() {
     apk del curl > /dev/null 2>&1
     printf "%s\n" "$dashes"
 }
-
+make_dns_torrc() {
+    printf "%s\n" "$dashes"
+    printf "[TOR-DNS] Generating DNS-torrc to $DNS_TORRC_PATH...\n"
+    if [ -f "$DNS_TORRC_PATH" ]; then
+    rm "$DNS_TORRC_PATH" 
+    fi
+    echo -e "AutomapHostsOnResolve 1 \n" >> "$DNS_TORRC_PATH"
+    echo -e "VirtualAddrNetwork 10.193.0.0/10 \n" >> "$TORRC_PATH"
+    echo -e "User tor \n" >> "$DNS_TORRC_PATH"
+    echo -e "DataDirectory /var/lib/tor/dns \n" >> "$DNS_TORRC_PATH"
+    echo -e "ExitNodes $WGD_TOR_DNS_EXIT_NODES \n" >> "$DNS_TORRC_PATH"
+    echo -e "SocksPort ${INET_ADDR}:9053 \n" >> "$DNS_TORRC_PATH"
+    printf "%s\n" "$dashes"
+}
 run_tor_flux() {
     printf "%s\n" "$equals"
     printf "[TOR] Starting Tor ...\n"
-    { date; tor; printf "\n\n"; } >> ./log/tor_startup_log.txt &
+    { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> ./log/tor_startup_log.txt &
+    { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> ./log/tor_startup_log.txt &
+
     TOR_PID=$!
 
     while true; do
-        sleep_time=$(( RANDOM % (1642 - 100 + 1) + 100 ))
+        sleep_time=$(( RANDOM % (1642 - 300 + 1) + 300 ))
         sleep_kill=$(awk -v seed="$RANDOM" 'BEGIN { srand(seed); printf "%.2f\n", 0.04 + (rand() * (0.50 - 0.04)) }')
         #sleep_time=$(( RANDOM % (15 - 10 + 1) + 10 ))
         printf "[TOR] New Circuit in $sleep_time seconds...\n"  
@@ -140,7 +154,8 @@ run_tor_flux() {
         printf "[TOR] Restarting Tor...\n"  
         pkill tor 
         sleep $sleep_kill
-        { date; tor; printf "\n\n"; } >> ./log/tor_startup_log.txt &
+        { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> ./log/tor_startup_log.txt &
+        { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> ./log/tor_startup_log.txt &
         TOR_PID=$!
     done
        
@@ -163,6 +178,7 @@ chmod u+x /opt/wireguarddashboard/src/wgd.sh
 
 if [[ "$WGD_TOR_PROXY" == "true" ]]; then
   make_torrc
+  make_dns_torrc
 fi
 
 
