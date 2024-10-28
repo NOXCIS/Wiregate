@@ -82,10 +82,12 @@ services:
     environment:
       - TZ=America/Chicago
       - WGD_TOR_EXIT_NODES={ch}
+      - WGD_TOR_DNS_EXIT_NODES={gb}
       - WGD_TOR_PROXY=true
       - WGD_TOR_PLUGIN=webtunnel #OPTIONS webtunnel, obfs4, snowflake
       - WGD_TOR_BRIDGES=false
       - WGD_WELCOME_SESSION=false
+      - WGD_AUTH_REQ=false
       - WGD_USER=james
       - WGD_PASS=admin
       - WGD_REMOTE_ENDPOINT=192.168.1.127

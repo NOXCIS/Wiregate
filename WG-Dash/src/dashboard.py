@@ -60,6 +60,7 @@ app.secret_key = secrets.token_urlsafe(32)
 load_dotenv()
 wgd_welcome = os.environ.get('WGD_WELCOME_SESSION')
 wgd_app_port = os.environ.get('WGD_REMOTE_ENDPOINT_PORT')
+wgd_auth_req = os.environ.get('WGD_AUTH_REQ')
 wgd_user = os.environ.get('WGD_USER')
 wgd_pass = os.environ.get('WGD_PASS')
 wgd_global_dns = os.environ.get('WGD_DNS')
@@ -1284,7 +1285,7 @@ class DashboardConfig:
                 "app_prefix": "",
                 "app_ip": "0.0.0.0",
                 "app_port": wgd_app_port,
-                "auth_req": "true",
+                "auth_req": wgd_auth_req,
                 "version": DASHBOARD_VERSION,
                 "dashboard_refresh_interval": "60000",
                 "dashboard_sort": "status",

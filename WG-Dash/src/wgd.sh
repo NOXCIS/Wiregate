@@ -367,6 +367,7 @@ set_env() {
   if [[ "$env_type" == "docker" ]]; then
     printf "WGD_WELCOME_SESSION=%s\n" "${WGD_WELCOME_SESSION}" >> "$env_file"
     printf "WGD_REMOTE_ENDPOINT_PORT=%s\n" "${WGD_REMOTE_ENDPOINT_PORT}" >> "$env_file"
+	printf "WGD_AUTH_REQ=%s\n" "${WGD_AUTH_REQ}" >> "$env_file"
     printf "WGD_USER=%s\n" "${WGD_USER}" >> "$env_file"
     printf "WGD_PASS=%s\n" "${WGD_PASS}" >> "$env_file"
     printf "WGD_REMOTE_ENDPOINT=%s\n" "${WGD_REMOTE_ENDPOINT}" >> "$env_file"
@@ -380,6 +381,7 @@ set_env() {
   elif [[ "$env_type" == "regular" ]]; then
     printf "WGD_WELCOME_SESSION=true\n" >> "$env_file"
     printf "WGD_REMOTE_ENDPOINT_PORT=10086\n" >> "$env_file"
+	printf "WGD_AUTH_REQ=true\n" >> "$env_file"
     printf "WGD_USER=admin\n" >> "$env_file"
     printf "WGD_PASS=admin\n" >> "$env_file"
     printf "WGD_REMOTE_ENDPOINT=0.0.0.0\n" >> "$env_file"
