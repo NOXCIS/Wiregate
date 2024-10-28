@@ -481,13 +481,13 @@ set_proxy () {
 
 AMDpostup="/opt/wireguarddashboard/src/iptable-rules/Admins/${postType}up.sh"
 GSTpostup="/opt/wireguarddashboard/src/iptable-rules/Guest/${postType}up.sh"
-LANpostup="/opt/wireguarddashboard/src/iptable-rules/LAN-only-users/${postType}up.sh"
-MEMpostup="/opt/wireguarddashboard/src/iptable-rules/Members/postup.sh"
+LANpostup="/opt/wireguarddashboard/src/iptable-rules/LAN-only-users/postup.sh"
+MEMpostup="/opt/wireguarddashboard/src/iptable-rules/Members/${postType}up.sh"
 
 AMDpostdown="/opt/wireguarddashboard/src/iptable-rules/Admins/${postType}down.sh"
 GSTpostdown="/opt/wireguarddashboard/src/iptable-rules/Guest/${postType}down.sh"
-LANpostdown="/opt/wireguarddashboard/src/iptable-rules/LAN-only-users/${postType}down.sh"
-MEMpostdown="/opt/wireguarddashboard/src/iptable-rules/Members/postdown.sh"
+LANpostdown="/opt/wireguarddashboard/src/iptable-rules/LAN-only-users/postdown.sh"
+MEMpostdown="/opt/wireguarddashboard/src/iptable-rules/Members/${postType}down.sh"
 }
 
 
