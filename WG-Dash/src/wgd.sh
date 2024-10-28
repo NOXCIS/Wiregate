@@ -477,24 +477,24 @@ set_proxy () {
         postType="post"
     fi
 
-AMDpostup="/opt/wireguarddashboard/src/iptable-rules/Admins/${postType}up.sh"
-GSTpostup="/opt/wireguarddashboard/src/iptable-rules/Guest/${postType}up.sh"
-LANpostup="/opt/wireguarddashboard/src/iptable-rules/LAN-only-users/postup.sh"
-MEMpostup="/opt/wireguarddashboard/src/iptable-rules/Members/${postType}up.sh"
+	AMDpostup="/opt/wireguarddashboard/src/iptable-rules/Admins/${postType}up.sh"
+	GSTpostup="/opt/wireguarddashboard/src/iptable-rules/Guest/${postType}up.sh"
+	LANpostup="/opt/wireguarddashboard/src/iptable-rules/LAN-only-users/postup.sh"
+	MEMpostup="/opt/wireguarddashboard/src/iptable-rules/Members/${postType}up.sh"
 
-AMDpostdown="/opt/wireguarddashboard/src/iptable-rules/Admins/${postType}down.sh"
-GSTpostdown="/opt/wireguarddashboard/src/iptable-rules/Guest/${postType}down.sh"
-LANpostdown="/opt/wireguarddashboard/src/iptable-rules/LAN-only-users/postdown.sh"
-MEMpostdown="/opt/wireguarddashboard/src/iptable-rules/Members/${postType}down.sh"
+	AMDpostdown="/opt/wireguarddashboard/src/iptable-rules/Admins/${postType}down.sh"
+	GSTpostdown="/opt/wireguarddashboard/src/iptable-rules/Guest/${postType}down.sh"
+	LANpostdown="/opt/wireguarddashboard/src/iptable-rules/LAN-only-users/postdown.sh"
+	MEMpostdown="/opt/wireguarddashboard/src/iptable-rules/Members/${postType}down.sh"
 }
 
 newconf_wgd() {
   for i in {0..3}; do
-    newconf_wgd_generic "$i"
+    wg_config_zones "$i"
   done
 }
 
-newconf_wgd_generic() {
+wg_config_zones() {
   local index=$1
   local port=$((WGD_PORT_RANGE_STARTPORT + index))
   local private_key=$(wg genkey)

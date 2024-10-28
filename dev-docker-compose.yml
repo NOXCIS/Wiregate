@@ -87,7 +87,7 @@ services:
       - WGD_TOR_PLUGIN=webtunnel #OPTIONS webtunnel, obfs4, snowflake
       - WGD_TOR_BRIDGES=false
       - WGD_WELCOME_SESSION=false
-      - WGD_AUTH_REQ=false
+      - WGD_AUTH_REQ=true
       - WGD_USER=james
       - WGD_PASS=admin
       - WGD_REMOTE_ENDPOINT=192.168.1.127
