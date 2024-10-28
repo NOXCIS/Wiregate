@@ -1,9 +1,7 @@
 #!/bin/bash
-# Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
-# Under MIT License
 
-
-
+# wgd.sh - Copyright(C) 2024 Donald Zou [https://github.com/donaldzou]
+# Under Apache-2.0 License
 #trap "kill $TOP_PID"
 export TOP_PID=$$
 
@@ -225,6 +223,12 @@ install_wgd(){
     printf "[WGDashboard] Starting to install WGDashboard\n"
     _checkWireguard
     sudo chmod -R 755 /etc/wireguard/
+
+	if [ ! -d "/etc/wireguard/WGDashboard_Backup" ]
+    	then
+    		printf "[WGDashboard] Creating /etc/wireguard/WGDashboard_Backup folder\n"
+            mkdir "/etc/wireguard/WGDashboard_Backup"
+    fi
     
     if [ ! -d "log" ]
 	  then 
@@ -482,14 +486,14 @@ set_proxy () {
     fi
 
 AMDpostup="/opt/wireguarddashboard/src/iptable-rules/Admins/${postType}up.sh"
-GSTpostup="/opt/wireguarddashboard/src/iptable-rules/Members/${postType}up.sh"
-LANpostup="/opt/wireguarddashboard/src/iptable-rules/Guest/${postType}up.sh"
-MEMpostup="/opt/wireguarddashboard/src/iptable-rules/LAN-only-users/postup.sh"
+GSTpostup="/opt/wireguarddashboard/src/iptable-rules/Guest/${postType}up.sh"
+LANpostup="/opt/wireguarddashboard/src/iptable-rules/LAN-only-users/postup.sh"
+MEMpostup="/opt/wireguarddashboard/src/iptable-rules/Members/${postType}up.sh"
 
 AMDpostdown="/opt/wireguarddashboard/src/iptable-rules/Admins/${postType}down.sh"
-GSTpostdown="/opt/wireguarddashboard/src/iptable-rules/Members/${postType}down.sh"
-LANpostdown="/opt/wireguarddashboard/src/iptable-rules/Guest/${postType}down.sh"
-MEMpostdown="/opt/wireguarddashboard/src/iptable-rules/LAN-only-users/postdown.sh"
+GSTpostdown="/opt/wireguarddashboard/src/iptable-rules/Guest/${postType}down.sh"
+LANpostdown="/opt/wireguarddashboard/src/iptable-rules/LAN-only-users/postdown.sh"
+MEMpostdown="/opt/wireguarddashboard/src/iptable-rules/Members/${postType}down.sh"
 }
 
 
@@ -504,7 +508,7 @@ PrivateKey = $private_key
 Address = 10.0.0.1/24
 ListenPort = $port_wg0
 SaveConfig = true
-PreUp =  $AMDpostup
+PostUp =  $AMDpostup
 PreDown = $AMDpostdown
 
 EOF
@@ -525,7 +529,7 @@ PrivateKey = $private_key
 Address = 192.168.10.1/24
 ListenPort = $port_wg1
 SaveConfig = true
-PreUp =  $MEMpostup
+PostUp =  $MEMpostup
 PreDown = $MEMpostdown
 
 EOF
@@ -543,7 +547,7 @@ PrivateKey = $private_key
 Address = 172.16.0.1/24
 ListenPort = $port_wg2
 SaveConfig = true
-PreUp =  $LANpostup
+PostUp =  $LANpostup
 PreDown = $LANpostdown
 
 EOF
@@ -561,7 +565,7 @@ PrivateKey = $private_key
 Address = 192.168.20.1/24
 ListenPort = $port_wg3
 SaveConfig = true
-PreUp =  $GSTpostup
+PostUp =  $GSTpostup
 PreDown = $GSTpostdown
 
 EOF
