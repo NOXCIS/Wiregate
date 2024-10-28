@@ -470,16 +470,6 @@ update_wgd() {
 		printf "%s\n" "$dashes"
 	fi
 }
-
-
-newconf_wgd () {
-  newconf_wgd0
-  newconf_wgd1
-  newconf_wgd2
-  newconf_wgd3
-  return
-}
-
 set_proxy () {
     if [[ "$WGD_TOR_PROXY" == "true" ]]; then
         postType="tor-post"
@@ -498,79 +488,57 @@ LANpostdown="/opt/wireguarddashboard/src/iptable-rules/LAN-only-users/postdown.s
 MEMpostdown="/opt/wireguarddashboard/src/iptable-rules/Members/${postType}down.sh"
 }
 
-
-
-newconf_wgd0() {
-    local port_wg0=$WGD_PORT_RANGE_STARTPORT
-    private_key=$(wg genkey)
-    public_key=$(echo "$private_key" | wg pubkey)
-    cat <<EOF >"/etc/wireguard/ADMINS.conf"
-[Interface]
-PrivateKey = $private_key
-Address = 10.0.0.1/24
-ListenPort = $port_wg0
-SaveConfig = true
-PostUp =  $AMDpostup
-PreDown = $AMDpostdown
-
-EOF
-
-        make_master_config
+newconf_wgd() {
+  for i in {0..3}; do
+    newconf_wgd_generic "$i"
+  done
 }
 
+newconf_wgd_generic() {
+  local index=$1
+  local port=$((WGD_PORT_RANGE_STARTPORT + index))
+  local private_key=$(wg genkey)
+  local public_key=$(echo "$private_key" | wg pubkey)
+  
+  case $index in
+    0)
+      local config_file="/etc/wireguard/ADMINS.conf"
+      local address="10.0.0.1/24"
+      local post_up="$AMDpostup"
+      local pre_down="$AMDpostdown"
+      ;;
+    1)
+      local config_file="/etc/wireguard/MEMBERS.conf"
+      local address="192.168.10.1/24"
+      local post_up="$MEMpostup"
+      local pre_down="$MEMpostdown"
+      ;;
+    2)
+      local config_file="/etc/wireguard/LANP2P.conf"
+      local address="172.16.0.1/24"
+      local post_up="$LANpostup"
+      local pre_down="$LANpostdown"
+      ;;
+    3)
+      local config_file="/etc/wireguard/GUESTS.conf"
+      local address="192.168.20.1/24"
+      local post_up="$GSTpostup"
+      local pre_down="$GSTpostdown"
+      ;;
+  esac
 
-newconf_wgd1() {
-    local port_wg1=$WGD_PORT_RANGE_STARTPORT
-    local port_wg1=$((port_wg1 + 1))
-    private_key=$(wg genkey)
-    public_key=$(echo "$private_key" | wg pubkey)
-
-    cat <<EOF >"/etc/wireguard/MEMBERS.conf"
+  cat <<EOF >"$config_file"
 [Interface]
 PrivateKey = $private_key
-Address = 192.168.10.1/24
-ListenPort = $port_wg1
+Address = $address
+ListenPort = $port
 SaveConfig = true
-PostUp =  $MEMpostup
-PreDown = $MEMpostdown
+PostUp =  $post_up
+PreDown = $pre_down
 
 EOF
-}
 
-newconf_wgd2() {
-    local port_wg2=$WGD_PORT_RANGE_STARTPORT
-    local port_wg2=$((port_wg2 + 2))
-    private_key=$(wg genkey)
-    public_key=$(echo "$private_key" | wg pubkey)
-
-    cat <<EOF >"/etc/wireguard/LANP2P.conf"
-[Interface]
-PrivateKey = $private_key
-Address = 172.16.0.1/24
-ListenPort = $port_wg2
-SaveConfig = true
-PostUp =  $LANpostup
-PreDown = $LANpostdown
-
-EOF
-}
-
-newconf_wgd3() {
-    local port_wg3=$WGD_PORT_RANGE_STARTPORT
-    local port_wg3=$((port_wg3 + 3))
-    private_key=$(wg genkey)
-    public_key=$(echo "$private_key" | wg pubkey)
-
-    cat <<EOF >"/etc/wireguard/GUESTS.conf"
-[Interface]
-PrivateKey = $private_key
-Address = 192.168.20.1/24
-ListenPort = $port_wg3
-SaveConfig = true
-PostUp =  $GSTpostup
-PreDown = $GSTpostdown
-
-EOF
+  [ "$index" -eq 0 ] && make_master_config
 }
 
 
