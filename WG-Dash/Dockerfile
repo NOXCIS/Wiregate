@@ -47,18 +47,37 @@ RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transp
 
 
 # Stage 3: Final image
-FROM alpine:latest
+FROM fedora:rawhide
 ENV TZ=UTC
 WORKDIR /opt/wireguarddashboard/src
 COPY ./src /opt/wireguarddashboard/src/
-COPY --from=pluggables /usr/local/bin/lyrebird /usr/local/bin/lyrebird
-COPY --from=pluggables /webtunnel/main/client/client /usr/local/bin/webtunnel
-COPY --from=pluggables /snowflake/client/client /usr/local/bin/snowflake
+COPY --from=pluggables /usr/local/bin/lyrebird /webtunnel/main/client/client /snowflake/client/client /usr/local/bin/
 COPY --from=builder /opt/wireguarddashboard/src/venv /opt/wireguarddashboard/src/venv
-COPY --from=builder /opt/wireguarddashboard/src /opt/wireguarddashboard/src
+#COPY --from=builder /opt/wireguarddashboard/src /opt/wireguarddashboard/src
+COPY --from=builder /opt/wireguarddashboard/src/log /opt/wireguarddashboard/src/log/
 
-RUN apk add --no-cache wireguard-tools sudo iptables tzdata && \
-    chmod u+x /opt/wireguarddashboard/src/entrypoint.sh 
+RUN dnf update -y
+#RUN dnf copr enable -y amneziavpn/amneziawg fedora-40-aarch64
+# Detect architecture and enable the appropriate Copr repository
+RUN ARCH=$(uname -m) && \
+    if [[ "$ARCH" == "x86_64" ]]; then \
+        dnf copr enable -y amneziavpn/amneziawg fedora-40-x86_64; \
+    elif [[ "$ARCH" == "aarch64" ]]; then \
+        dnf copr enable -y amneziavpn/amneziawg fedora-40-aarch64; \
+    else \
+        echo "Unsupported architecture: $ARCH"; \
+        exit 1; \
+    fi
+
+RUN sudo ln -s /usr/bin/awg /usr/bin/wg
+RUN sudo ln -s /usr/bin/awg-quick /usr/bin/wg-quick
+
+
+
+RUN dnf install -y tor iptables iproute hostname amneziawg-dkms amneziawg-tools sudo && \
+    chmod u+x /opt/wireguarddashboard/src/entrypoint.sh && \
+    rm -r /opt/wireguarddashboard/src/static/app/src
+    
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD \
     sh -c 'pgrep gunicorn > /dev/null && pgrep tail > /dev/null' || exit 1

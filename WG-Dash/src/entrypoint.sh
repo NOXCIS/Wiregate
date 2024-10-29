@@ -196,6 +196,10 @@ fi
 
 /opt/wireguarddashboard/src/wgd.sh install
 /opt/wireguarddashboard/src/wgd.sh docker_start &
+for file in /etc/wireguard/*; do
+    sudo ln -s "$file" /etc/amnezia/amneziawg/
+done
+
 WGD_PID=$!
 
 if [[ "$WGD_TOR_PROXY" == "true" ]]; then
