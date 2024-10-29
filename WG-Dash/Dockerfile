@@ -59,7 +59,7 @@ COPY --from=builder /opt/wireguarddashboard/src /opt/wireguarddashboard/src
 COPY --from=amneziavpn/amnezia-wg:latest --chmod=755 /usr/bin/wireguard-go /usr/bin/wireguard-go
 COPY --from=amneziavpn/amnezia-wg:latest --chmod=755 /usr/bin/wg-quick /usr/bin/wg-quick
 COPY --from=amneziavpn/amnezia-wg:latest --chmod=755 /usr/bin/wg /usr/bin/wg
-RUN apk add --no-cache  bash sudo iptables tzdata && \
+RUN apk add --no-cache bash sudo iptables tzdata && \
     chmod u+x /opt/wireguarddashboard/src/entrypoint.sh && \
     rm -r /opt/wireguarddashboard/src/static/app/src
 

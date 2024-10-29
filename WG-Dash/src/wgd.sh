@@ -529,6 +529,10 @@ wg_config_zones() {
 
   cat <<EOF >"$config_file"
 [Interface]
+SaveConfig = true
+PostUp =  $post_up
+PreDown = $pre_down
+ListenPort = $port
 Jc = 5
 Jmin = 500
 Jmax = 550
@@ -538,15 +542,8 @@ H1 = 123456
 H2 = 67543
 H3 = 32345
 H4 = 123123
-
-SaveConfig = true
-PostUp =  $post_up
-PreDown = $pre_down
-ListenPort = $port
 PrivateKey = $private_key
 Address = $address
-
-
 
 
 

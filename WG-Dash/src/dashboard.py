@@ -480,15 +480,6 @@ class WireguardConfiguration:
         self.PreDown: str = ""
         self.PostDown: str = ""
         self.SaveConfig: bool = True
-        self.Jc: str = "5"
-        self.Jmin: str = "500"
-        self.Jmax: str = "550"
-        self.S1: str = "30"
-        self.S2: str = "40"
-        self.H1: str = "123456"
-        self.H2: str  = "67543"
-        self.H3: str = "32345"
-        self.H4: str = "123123"
         self.Name = name
         self.__configPath = os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], f'{self.Name}.conf')
         
@@ -524,16 +515,7 @@ class WireguardConfiguration:
                 "PreDown": self.PreDown,
                 "PostUp": self.PostUp,
                 "PostDown": self.PostDown,
-                "SaveConfig": "true",
-                "Jc": "5",
-                "Jmin": "500",
-                "Jmax": "550",
-                "S1":  "30",
-                "S2": "40",
-                "H1": "123456",
-                "H2": "67543",
-                "H3": "32345",
-                "H4": "123123"
+                "SaveConfig": "true"
             }
             
             if "Backup" not in data.keys():
