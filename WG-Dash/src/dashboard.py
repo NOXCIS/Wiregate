@@ -730,13 +730,40 @@ class WireguardConfiguration:
             for i in checkIfExist:
                 self.Peers.append(Peer(i, self))
             
+
+
+
+
     def addPeers(self, peers: list):
-        for p in peers:
-            subprocess.check_output(f"wg set {self.Name} peer {p['id']} allowed-ips {p['allowed_ip']}", 
-                                    shell=True, stderr=subprocess.STDOUT)
-        subprocess.check_output(
-            f"wg-quick save {self.Name}", shell=True, stderr=subprocess.STDOUT)    
+        # Define the paths for the current and new config files
+        original_conf = f"/etc/wireguard/{self.Name}.conf"
+        new_conf = f"/etc/wireguard/{self.Name}_new.conf"
+        
+        # Keywords to exclude from the new configuration file
+        exclude_keywords = ["SaveConfig", "PostUp", "PostDown", "PreUp", "PreDown", "Address"]
+
+        # Copy the existing configuration to a new file, omitting excluded lines
+        with open(original_conf, 'r') as orig_file, open(new_conf, 'w') as conf_file:
+            for line in orig_file:
+                if not any(keyword in line for keyword in exclude_keywords):
+                    conf_file.write(line)
+
+        # Append each new peer to the new config file
+        with open(new_conf, 'a') as conf_file:
+            for p in peers:
+                conf_file.write(
+                    f"\n[Peer]\nPublicKey = {p['id']}\nAllowedIPs = {p['allowed_ip']}\n"
+                )
+
+        # Use 'wg setconf' to apply the new configuration to the running interface
+        subprocess.check_output(f"wg setconf {self.Name} {new_conf}", shell=True, stderr=subprocess.STDOUT)
+
+        # Overwrite the original configuration with the new one
+        shutil.move(new_conf, original_conf)
+
+        # Refresh the peer list
         self.getPeersList()
+
         
     def searchPeer(self, publicKey):
         for i in self.Peers:
@@ -1133,10 +1160,10 @@ class Peer:
     def __repr__(self):
         return str(self.toJson())
 
+    
     def updatePeer(self, name: str, private_key: str,
-                   preshared_key: str,
-                   dns_addresses: str, allowed_ip: str, endpoint_allowed_ip: str, mtu: int,
-                   keepalive: int) -> ResponseObject:
+                preshared_key: str, dns_addresses: str, allowed_ip: str,
+                endpoint_allowed_ip: str, mtu: int, keepalive: int) -> ResponseObject:
         if not self.configuration.getStatus():
             self.configuration.toggleConfiguration()
 
@@ -1159,38 +1186,68 @@ class Peer:
             pubKey = _generatePublicKey(private_key)
             if not pubKey[0] or pubKey[1] != self.id:
                 return ResponseObject(False, "Private key does not match with the public key")
+        
         try:
-            rd = random.Random()
-            uid = uuid.UUID(int=rd.getrandbits(128), version=4)
-            pskExist = len(preshared_key) > 0
-            
-            if pskExist:
-                with open(f"{uid}", "w+") as f:
-                    f.write(preshared_key)
-            newAllowedIPs = allowed_ip.replace(" ", "")
-            updateAllowedIp = subprocess.check_output(
-                f"wg set {self.configuration.Name} peer {self.id} allowed-ips {newAllowedIPs}{f' preshared-key {uid}' if pskExist else ''}",
+            # Prepare the updated configuration
+            config_file_path = f"/etc/wireguard/{self.configuration.Name}.conf"
+            temp_config_file_path = f"/tmp/{self.configuration.Name}.conf"
+
+            # Read the existing configuration
+            with open(config_file_path, 'r') as original_file:
+                lines = original_file.readlines()
+
+            # Update the peer's allowed IPs and preshared key
+            with open(temp_config_file_path, 'w') as temp_file:
+                inside_peer_section = False
+                
+                for line in lines:
+                    # Check for the beginning of the peer section
+                    if line.startswith("[Peer]"):
+                        inside_peer_section = True
+                    
+                    # Check for the end of the peer section
+                    elif inside_peer_section and line.startswith("[") and not line.startswith("[Peer]"):
+                        inside_peer_section = False
+
+                    # Exclude specific lines from the interface section
+                    if inside_peer_section and any(keyword in line for keyword in 
+                            ["SaveConfig", "PostUp", "PostDown", "PreUp", "PreDown", "Address"]):
+                        continue
+
+                    # Modify the allowed IPs line for the specific peer
+                    if inside_peer_section and f"PublicKey = {self.id}" in line:
+                        # Modify AllowedIPs line
+                        if "AllowedIPs" in line:
+                            line = f"AllowedIPs = {allowed_ip}\n"
+                        # If a preshared key is provided, add it to the peer section
+                        if preshared_key:
+                            line += f"PresharedKey = {preshared_key}\n"
+
+                    temp_file.write(line)
+
+            # Use wg setconf to apply the updated configuration
+            subprocess.check_output(
+                f"wg setconf {self.configuration.Name} {temp_config_file_path}",
                 shell=True, stderr=subprocess.STDOUT)
-            
-            if pskExist: os.remove(str(uid))
-            
-            if len(updateAllowedIp.decode().strip("\n")) != 0:
-                return ResponseObject(False,
-                                      "Update peer failed when updating Allowed IPs")
+
+            # Save the configuration back
             saveConfig = subprocess.check_output(f"wg-quick save {self.configuration.Name}",
-                                                 shell=True, stderr=subprocess.STDOUT)
-            if f"wg showconf {self.configuration.Name}" not in saveConfig.decode().strip('\n'):
-                return ResponseObject(False,
-                                      "Update peer failed when saving the configuration")
+                                                shell=True, stderr=subprocess.STDOUT)
+
+            # Update the database
             sqlUpdate(
                 '''UPDATE '%s' SET name = ?, private_key = ?, DNS = ?, endpoint_allowed_ip = ?, mtu = ?, 
                 keepalive = ?, preshared_key = ? WHERE id = ?''' % self.configuration.Name,
                 (name, private_key, dns_addresses, endpoint_allowed_ip, mtu,
-                 keepalive, preshared_key, self.id,)
+                keepalive, preshared_key, self.id,)
             )
             return ResponseObject()
+
         except subprocess.CalledProcessError as exc:
             return ResponseObject(False, exc.output.decode("UTF-8").strip())
+
+
+
 
     def downloadPeer(self) -> dict[str, str]:
         filename = self.name
