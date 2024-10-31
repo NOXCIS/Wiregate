@@ -45,20 +45,45 @@ RUN chmod u+x ./builder.sh && ./builder.sh
 
 
 
+# BUILD IMAGE
+FROM  golang:alpine3.20 AS awg
+
+WORKDIR /go
+RUN apk update && apk add --no-cache git make bash build-base linux-headers
+RUN git clone --depth=1 https://github.com/amnezia-vpn/amneziawg-tools.git && \
+    git clone --depth=1 https://github.com/amnezia-vpn/amneziawg-go.git
+RUN cd /go/amneziawg-tools/src && make
+RUN cd /go/amneziawg-go && make
+
 
 
 
 # Stage 3: Final image
 FROM alpine:latest
-ENV TZ=UTC
+ENV TZ=CDT
 WORKDIR /opt/wireguarddashboard/src
+
 COPY ./src /opt/wireguarddashboard/src/
+
 COPY --from=pluggables /usr/local/bin/lyrebird /webtunnel/main/client/client /snowflake/client/client /usr/local/bin/
+
 COPY --from=builder /opt/wireguarddashboard/src/venv /opt/wireguarddashboard/src/venv
 COPY --from=builder /opt/wireguarddashboard/src /opt/wireguarddashboard/src
-COPY --from=amneziavpn/amnezia-wg:latest --chmod=755 /usr/bin/wireguard-go /usr/bin/wireguard-go
-COPY --from=amneziavpn/amnezia-wg:latest --chmod=755 /usr/bin/wg-quick /usr/bin/wg-quick
-COPY --from=amneziavpn/amnezia-wg:latest --chmod=755 /usr/bin/wg /usr/bin/wg
+
+
+#AmneziaWG Substitute install for WireGuard
+COPY --from=awg /go/amneziawg-go/amneziawg-go /usr/bin/amneziawg-go
+COPY --from=awg /go/amneziawg-tools/src/wg /usr/bin/awg
+COPY --from=awg /go/amneziawg-tools/src/wg-quick/linux.bash /usr/bin/awg-quick
+
+RUN ln -s /usr/bin/awg /usr/bin/wg
+RUN ln -s /usr/bin/awg-quick /usr/bin/wg-quick
+
+#COPY --from=noxcis/awg:latest --chmod=755 /usr/bin/wireguard-go /usr/bin/wireguard-go
+#COPY --from=amneziavpn/amnezia-wg:latest --chmod=755 /usr/bin/wg-quick /usr/bin/wg-quick
+#COPY --from=amneziavpn/amnezia-wg:latest --chmod=755 /usr/bin/wg /usr/bin/wg
+
+
 RUN apk add --no-cache bash sudo iptables tzdata && \
     chmod u+x /opt/wireguarddashboard/src/entrypoint.sh && \
     rm -r /opt/wireguarddashboard/src/static/app/src

@@ -183,6 +183,12 @@ ensure_blocking() {
   wait
 }
 
+# create /dev/net/tun if it does not exist
+if [[ ! -c /dev/net/tun ]]; then
+    mkdir -p /dev/net && mknod /dev/net/tun c 10 200
+fi
+
+
 # Cleanup old processes
 chmod u+x /opt/wireguarddashboard/src/wgd.sh
 { date; clean_up; printf "\n\n"; } >> ./log/install.txt
@@ -196,9 +202,7 @@ fi
 
 /opt/wireguarddashboard/src/wgd.sh install
 /opt/wireguarddashboard/src/wgd.sh docker_start &
-for file in /etc/wireguard/*; do
-    sudo ln -s "$file" /etc/amnezia/amneziawg/
-done
+
 
 WGD_PID=$!
 

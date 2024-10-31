@@ -418,10 +418,19 @@ start_core() {
   printf "[WGDashboard][Docker] %s Starting Wireguard Configuartions.\n" "$heavy_checkmark"
   printf "%s\n" "$dashes"
   
+
+	mkdir -p /etc/amnezia/amneziawg/
+
+
+	for file in /etc/wireguard/*; do
+    sudo ln -s "$file" /etc/amnezia/amneziawg/
+	done
+	
 	for file in $config_files; do
 		config_name=$(basename "$file" ".conf")  
 		wg-quick up "$config_name"
 	done
+	
 }
 
 
