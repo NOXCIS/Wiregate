@@ -71,8 +71,15 @@ if wgd_remote_endpoint == '0.0.0.0':
     wgd_remote_endpoint = default_interface['inet']
 wgd_keep_alive = os.environ.get('WGD_KEEP_ALIVE')
 wgd_mtu = os.environ.get('WGD_MTU')
-
-
+wgd_jc = os.environ.get('WGD_JC')
+wgd_jmin = os.environ.get('WGD_JMIN')
+wgd_jmax = os.environ.get('WGD_JMAX')
+wgd_s1 = os.environ.get('WGD_S1')
+wgd_s2 = os.environ.get('WGD_S2')
+wgd_h1 = os.environ.get('WGD_H1')
+wgd_h2 = os.environ.get('WGD_H2')
+wgd_h3 = os.environ.get('WGD_H3')
+wgd_h4 = os.environ.get('WGD_H4')
 
 
 class ModelEncoder(JSONEncoder):
@@ -1319,15 +1326,15 @@ class DashboardConfig:
                 "remote_endpoint": wgd_remote_endpoint,
                 "peer_MTU": wgd_mtu,
                 "peer_keep_alive": wgd_keep_alive,
-                "jc": "5",
-                "jmin": "500",
-                "jmax": "550",
-                "s1": "30",
-                "s2": "40",
-                "h1": "123456",
-                "h2": "67543",
-                "h3": "32345",
-                "h4": "123123"
+                "jc": wgd_jc,
+                "jmin": wgd_jmin,
+                "jmax": wgd_jmax,
+                "s1": wgd_s1,
+                "s2": wgd_s2,
+                "h1": wgd_h1,
+                "h2": wgd_h2,
+                "h3": wgd_h3,
+                "h4": wgd_h4
             
 
             },

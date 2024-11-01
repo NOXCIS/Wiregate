@@ -100,6 +100,17 @@ services:
       - WGD_KEEP_ALIVE=21
       - WGD_MTU=1420
       - WGD_PORT_RANGE_STARTPORT=4430
+      - WGD_JC=5
+      - WGD_JMIN=500
+      - WGD_JMAX=550
+      - WGD_S1=30
+      - WGD_S2=40
+      - WGD_H1=123456
+      - WGD_H2=67543
+      - WGD_H3=32345
+      - WGD_H4=123123
+      
+
     ports:
       - "4430-4433:4430-4433/udp"
       - 8000:80/tcp

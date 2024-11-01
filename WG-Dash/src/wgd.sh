@@ -377,6 +377,15 @@ set_env() {
     printf "WGD_KEEP_ALIVE=%s\n" "${WGD_KEEP_ALIVE}" >> "$env_file"
     printf "WGD_MTU=%s\n" "${WGD_MTU}" >> "$env_file"
     printf "WGD_PORT_RANGE_STARTPORT=%s\n" "${WGD_PORT_RANGE_STARTPORT}" >> "$env_file"
+	printf "WGD_JC=%s\n" "${WGD_JC}" >> "$env_file"
+	printf "WGD_JMIN=%s\n" "${WGD_JMIN}" >> "$env_file"
+	printf "WGD_JMAX=%s\n" "${WGD_JMAX}" >> "$env_file"
+	printf "WGD_S1=%s\n" "${WGD_S1}" >> "$env_file"
+	printf "WGD_S2=%s\n" "${WGD_S2}" >> "$env_file"
+	printf "WGD_H1=%s\n" "${WGD_H1}" >> "$env_file"
+	printf "WGD_H2=%s\n" "${WGD_H2}" >> "$env_file"
+	printf "WGD_H3=%s\n" "${WGD_H3}" >> "$env_file"
+	printf "WGD_H4=%s\n" "${WGD_H4}" >> "$env_file"
 
   elif [[ "$env_type" == "regular" ]]; then
     printf "WGD_WELCOME_SESSION=true\n" >> "$env_file"
@@ -391,6 +400,15 @@ set_env() {
     printf "WGD_KEEP_ALIVE=21\n" >> "$env_file"
     printf "WGD_MTU=1420\n" >> "$env_file"
     printf "WGD_PORT_RANGE_STARTPORT=%s\n" "${WGD_PORT_RANGE_STARTPORT}" >> "$env_file"
+	printf "WGD_JC=5\n" >> "$env_file"
+	printf "WGD_JMIN=500\n" >> "$env_file"
+	printf "WGD_JMAX=550\n" >> "$env_file"
+	printf "WGD_S1=30\n" >> "$env_file"
+	printf "WGD_S2=40\n" >> "$env_file"
+	printf "WGD_H1=123456\n" >> "$env_file"
+	printf "WGD_H2=67543\n" >> "$env_file"
+	printf "WGD_H3=32345\n"  >> "$env_file"
+	printf "WGD_H4=123123\n"  >> "$env_file"
   else
     echo "Error: Invalid environment type. Use 'docker' or 'regular'."
     return 1
@@ -542,17 +560,17 @@ SaveConfig = true
 PostUp =  $post_up
 PreDown = $pre_down
 ListenPort = $port
-Jc = 5
-Jmin = 500
-Jmax = 550
-S1 = 30
-S2 = 40
-H1 = 123456
-H2 = 67543
-H3 = 32345
-H4 = 123123
 PrivateKey = $private_key
 Address = $address
+Jc = $WGD_JC
+Jmin = $WGD_JMIN
+Jmax = $WGD_JMAX
+S1 = $WGD_S1
+S2 = $WGD_S2
+H1 = $WGD_H1
+H2 = $WGD_H2
+H3 = $WGD_H3
+H4 = $WGD_H4
 
 
 
@@ -613,6 +631,15 @@ PrivateKey = $wg_private_key
 Address = 10.0.0.254/32
 DNS = 10.2.0.100,10.2.0.100
 MTU = 1420
+Jc = $WGD_JC
+Jmin = $WGD_JMIN
+Jmax = $WGD_JMAX
+S1 = $WGD_S1
+S2 = $WGD_S2
+H1 = $WGD_H1
+H2 = $WGD_H2
+H3 = $WGD_H3
+H4 = $WGD_H4
 
 [Peer]
 PublicKey = $svrpublic_key
