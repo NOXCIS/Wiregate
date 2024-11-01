@@ -78,7 +78,7 @@ services:
     restart: unless-stopped
     volumes:
       - wgd_configs:/etc/wireguard 
-      #- wgd_db:/opt/wireguarddashboard/src/db 
+      - wgd_db:/opt/wireguarddashboard/src/db 
       #- wgd_db:/opt/wireguarddashboard/src/dashboard_config
 
     environment:
@@ -132,5 +132,5 @@ services:
 
 volumes:
     wgd_configs:
-#    wgd_db:
+    wgd_db:
   

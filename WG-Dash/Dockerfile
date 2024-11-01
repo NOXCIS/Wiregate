@@ -16,36 +16,36 @@ RUN set -ex && cd /tmp && \
     cp ./lyrebird /usr/local/bin && \
     popd && \
     rm -rf /go /tmp/* && \
-    echo "DONE LYREBIRD" 
-
+    echo "DONE LYREBIRD AKA OBFS4" 
 RUN git clone https://git.torproject.org/pluggable-transports/snowflake.git \
     && cd snowflake/client \
-    && go build \
+    && CGO_ENABLED=0 go build -a -installsuffix cgo \
     && echo "DONE SNOWFLAKE"
-
 RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/webtunnel.git \
     && cd webtunnel/main/client \
-    && go build \
+    && CGO_ENABLED=0 go build -a -installsuffix cgo \
     && echo "DONE WEBTUNNEL" 
 
 
-# builder: WG-Dash Builder for Brcypt & Psutil Binary
-FROM  node:iron-alpine3.20 AS builder
-LABEL maintainer="NOXCIS"
-RUN apk add --no-cache sudo gcc musl-dev rust cargo linux-headers
+# builder: Vite Frontend Builder 
+FROM  --platform=${BUILDPLATFORM} node:iron-alpine3.20 AS builder
 WORKDIR /opt/wireguarddashboard/src/static/app
 COPY ./src/static /opt/wireguarddashboard/src/static 
 RUN npm install                    
 RUN npm update                    
 RUN npm run build                 
 RUN rm -r ./node_modules 
+
+
+# pybuild: WG-Dash Builder for Brcypt & Psutil Binary (Python)
+FROM  alpine:latest AS pybuild
+RUN apk add --no-cache sudo gcc musl-dev rust cargo linux-headers
 WORKDIR /opt/wireguarddashboard/src
 COPY ./src/builder.sh ./src/builder_requirements.txt /opt/wireguarddashboard/src/
 RUN chmod u+x ./builder.sh && ./builder.sh 
 
 
-
-# BUILD IMAGE
+# awg: BUILD AmneziaWG (Obfuscated Wireguard) 
 FROM  golang:alpine3.20 AS awg
 WORKDIR /go
 RUN apk update && apk add --no-cache git make bash build-base linux-headers
@@ -58,18 +58,22 @@ RUN cd /go/amneziawg-go && \
     make
 
 
-
-
 # Stage 3: Final image
 FROM alpine:latest
+LABEL maintainer="NOXCIS"
 ENV TZ=UTC
 WORKDIR /opt/wireguarddashboard/src
 
 COPY ./src /opt/wireguarddashboard/src/
 
+#Tor Client Transport Plugins
 COPY --from=pluggables /usr/local/bin/lyrebird /webtunnel/main/client/client /snowflake/client/client /usr/local/bin/
 
-COPY --from=builder /opt/wireguarddashboard/src/venv /opt/wireguarddashboard/src/venv
+#Copy Built Bcrypt & Psutil Binarys
+COPY --from=pybuild /opt/wireguarddashboard/src/venv /opt/wireguarddashboard/src/venv
+COPY --from=pybuild /opt/wireguarddashboard/src/log /opt/wireguarddashboard/src/log
+
+#Copy Built Frontend  
 COPY --from=builder /opt/wireguarddashboard/src /opt/wireguarddashboard/src
 
 
@@ -82,7 +86,7 @@ COPY --from=awg /go/amneziawg-tools/src/wg-quick/linux.bash /usr/bin/awg-quick
 RUN ln -s /usr/bin/awg /usr/bin/wg
 RUN ln -s /usr/bin/awg-quick /usr/bin/wg-quick
 
-
+#Entrypoint
 RUN apk add --no-cache bash sudo iptables tzdata && \
     chmod u+x /opt/wireguarddashboard/src/entrypoint.sh && \
     rm -r /opt/wireguarddashboard/src/static/app/src
@@ -91,6 +95,6 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD \
     sh -c 'pgrep gunicorn > /dev/null && pgrep tail > /dev/null' || exit 1
 
 ENTRYPOINT ["/opt/wireguarddashboard/src/entrypoint.sh"]
-CMD ["docker_start"]
+#CMD ["docker_start"]
 
 STOPSIGNAL SIGTERM

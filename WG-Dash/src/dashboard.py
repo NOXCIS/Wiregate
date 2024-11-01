@@ -1113,7 +1113,8 @@ class WireguardConfiguration:
         self.__dropDatabase()
         return True
         
-    
+ 
+   
 class Peer:
     def __init__(self, tableData, configuration: WireguardConfiguration):
         self.configuration = configuration
