@@ -22,7 +22,7 @@ RUN git clone https://git.torproject.org/pluggable-transports/snowflake.git \
     && cd snowflake/client \
     && go build \
     && echo "DONE SNOWFLAKE"
-    
+
 RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/webtunnel.git \
     && cd webtunnel/main/client \
     && go build \
@@ -52,14 +52,17 @@ RUN apk update && apk add --no-cache git make bash build-base linux-headers
 RUN git clone --depth=1 https://github.com/amnezia-vpn/amneziawg-tools.git && \
     git clone --depth=1 https://github.com/amnezia-vpn/amneziawg-go.git
 RUN cd /go/amneziawg-tools/src && make
-RUN cd /go/amneziawg-go && make
+RUN cd /go/amneziawg-go && \
+    go get -u ./... && \
+    go mod tidy && \
+    make
 
 
 
 
 # Stage 3: Final image
 FROM alpine:latest
-ENV TZ=CDT
+ENV TZ=UTC
 WORKDIR /opt/wireguarddashboard/src
 
 COPY ./src /opt/wireguarddashboard/src/
@@ -75,12 +78,9 @@ COPY --from=awg /go/amneziawg-go/amneziawg-go /usr/bin/amneziawg-go
 COPY --from=awg /go/amneziawg-tools/src/wg /usr/bin/awg
 COPY --from=awg /go/amneziawg-tools/src/wg-quick/linux.bash /usr/bin/awg-quick
 
+#AmneziaWG Symbolic Links to (wg & wg-quick) Commands
 RUN ln -s /usr/bin/awg /usr/bin/wg
 RUN ln -s /usr/bin/awg-quick /usr/bin/wg-quick
-
-#COPY --from=noxcis/awg:latest --chmod=755 /usr/bin/wireguard-go /usr/bin/wireguard-go
-#COPY --from=amneziavpn/amnezia-wg:latest --chmod=755 /usr/bin/wg-quick /usr/bin/wg-quick
-#COPY --from=amneziavpn/amnezia-wg:latest --chmod=755 /usr/bin/wg /usr/bin/wg
 
 
 RUN apk add --no-cache bash sudo iptables tzdata && \
