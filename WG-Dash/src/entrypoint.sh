@@ -135,6 +135,7 @@ make_dns_torrc() {
     echo -e "VirtualAddrNetwork 10.193.0.0/10 \n" >> "$TORRC_PATH"
     echo -e "User tor \n" >> "$DNS_TORRC_PATH"
     echo -e "DataDirectory /var/lib/tor/dns \n" >> "$DNS_TORRC_PATH"
+    echo -e "ClientTransportPlugin webtunnel exec /usr/local/bin/webtunnel \n" >> "$DNS_TORRC_PATH"
 
     if [[ "$WGD_TOR_DNS_EXIT_NODES" == "default" ]]; then
     echo "Using Default"
