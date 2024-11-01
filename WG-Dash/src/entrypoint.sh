@@ -33,7 +33,6 @@ clean_up() {
     echo "No remains found, continuing."
   fi
 }
-
 # Function to get obfs4 bridges from BridgeDB
 get_obfs4_bridges() {
     BRIDGEDB_URL="https://bridges.torproject.org/bridges?transport=obfs4"
@@ -64,18 +63,12 @@ get_webtunnel_bridges() {
         echo "No WebTunnel bridges found or request failed."
     fi
 }
-
-
 make_torrc() {
     printf "%s\n" "$dashes"
     printf "[TOR] Generating torrc to $TORRC_PATH...\n"
     if [ -f "$TORRC_PATH" ]; then
     rm "$TORRC_PATH" 
     fi
-
-
-    
-   
 
     if [[ "$WGD_TOR_PLUGIN" == "webtunnel" ]]; then
     get_webtunnel_bridges
@@ -110,9 +103,6 @@ make_torrc() {
     echo "Invalid input. Please use the correct format: {US},{GB},{AU}, etc."
     fi
 
-    
- 
-
     if [[ "$WGD_TOR_PLUGIN" == "snowflake" ]]; then
     echo -e "Bridge snowflake 192.0.2.3:80 2B280B23E1107BB62ABFC40DDCC8824814F80A72 \n" >> "$TORRC_PATH"
     echo -e "Bridge snowflake 192.0.2.4:80 8838024498816A039FCBBAB14E6F40A0843051FA \n" >> "$TORRC_PATH"
@@ -135,8 +125,6 @@ make_dns_torrc() {
     echo -e "VirtualAddrNetwork 10.193.0.0/10 \n" >> "$TORRC_PATH"
     echo -e "User tor \n" >> "$DNS_TORRC_PATH"
     echo -e "DataDirectory /var/lib/tor/dns \n" >> "$DNS_TORRC_PATH"
-    echo -e "ClientTransportPlugin webtunnel exec /usr/local/bin/webtunnel \n" >> "$DNS_TORRC_PATH"
-
     if [[ "$WGD_TOR_DNS_EXIT_NODES" == "default" ]]; then
     echo "Using Default"
     elif [[ -n "$WGD_TOR_DNS_EXIT_NODES" ]]; then
