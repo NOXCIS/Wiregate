@@ -22,7 +22,7 @@ RUN git clone https://git.torproject.org/pluggable-transports/snowflake.git \
     && cd snowflake/client \
     && go build \
     && echo "DONE SNOWFLAKE"
-
+    
 RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/webtunnel.git \
     && cd webtunnel/main/client \
     && go build \
@@ -47,7 +47,6 @@ RUN chmod u+x ./builder.sh && ./builder.sh
 
 # BUILD IMAGE
 FROM  golang:alpine3.20 AS awg
-
 WORKDIR /go
 RUN apk update && apk add --no-cache git make bash build-base linux-headers
 RUN git clone --depth=1 https://github.com/amnezia-vpn/amneziawg-tools.git && \

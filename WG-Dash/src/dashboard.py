@@ -474,6 +474,15 @@ class WireguardConfiguration:
         self.Address: str = ""
         self.DNS: str = ""
         self.Table: str = ""
+        self.Jc: str = ""
+        self.Jmin: str = ""
+        self.Jmax: str = ""
+        self.S1: str = ""
+        self.S2: str = ""
+        self.H1: str = ""
+        self.H2: str = ""
+        self.H3: str = ""
+        self.H4: str = ""
         self.MTU: str = ""
         self.PreUp: str = ""
         self.PostUp: str = ""
@@ -1212,6 +1221,17 @@ MTU = {str(self.mtu)}
         if len(self.DNS) > 0:
             peerConfiguration += f"DNS = {self.DNS}\n"
         peerConfiguration += f'''
+Jc = {DashboardConfig.GetConfig("Peers", "jc")[1]}
+Jmin = {DashboardConfig.GetConfig("Peers", "jmin")[1]}
+Jmax = {DashboardConfig.GetConfig("Peers", "jmax")[1]}
+S1 = {DashboardConfig.GetConfig("Peers", "s1")[1]}
+S2 = {DashboardConfig.GetConfig("Peers", "s2")[1]}
+H1 = {DashboardConfig.GetConfig("Peers", "h1")[1]}
+H2 = {DashboardConfig.GetConfig("Peers", "h2")[1]}
+H3 = {DashboardConfig.GetConfig("Peers", "h3")[1]}
+H4 = {DashboardConfig.GetConfig("Peers", "h4")[1]}
+
+
 [Peer]
 PublicKey = {self.configuration.PublicKey}
 AllowedIPs = {self.endpoint_allowed_ip}
@@ -1298,7 +1318,18 @@ class DashboardConfig:
                 "peer_display_mode": "grid",
                 "remote_endpoint": wgd_remote_endpoint,
                 "peer_MTU": wgd_mtu,
-                "peer_keep_alive": wgd_keep_alive 
+                "peer_keep_alive": wgd_keep_alive,
+                "jc": "5",
+                "jmin": "500",
+                "jmax": "550",
+                "s1": "30",
+                "s2": "40",
+                "h1": "123456",
+                "h2": "67543",
+                "h3": "32345",
+                "h4": "123123"
+            
+
             },
             "Other": {
                 "welcome_session": wgd_welcome
