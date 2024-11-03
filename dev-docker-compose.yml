@@ -89,11 +89,11 @@ services:
 
     #Tor Settings
     ##########################################################
+      - WGD_TOR_PROXY=true
       - WGD_TOR_EXIT_NODES={ch}
       - WGD_TOR_DNS_EXIT_NODES={gb}
-      - WGD_TOR_PROXY=true
-      - WGD_TOR_PLUGIN=webtunnel #OPTIONS webtunnel, obfs4, snowflake
-      - WGD_TOR_BRIDGES=false
+      - WGD_TOR_PLUGIN=snowflake #OPTIONS webtunnel, obfs4, snowflake
+      - WGD_TOR_BRIDGES=true
 
     #WGDashboard Global Settings
     ##########################################################
@@ -115,19 +115,20 @@ services:
 
       
     #Obfuscated Wireguard via AmneziaWG Junk Headder Settings
+    #All parameters should be the same between Client and Server, except Jc - it can vary.
     #########################################################
-      - WGD_JC=5
-      - WGD_JMIN=500
-      - WGD_JMAX=550
-      - WGD_S1=30
-      - WGD_S2=40
-      - WGD_H1=123456
-      - WGD_H2=67543
-      - WGD_H3=32345
-      - WGD_H4=123123
+      - WGD_JC=5 #Jc — 1 ≤ Jc ≤ 128; recommended range is from 3 to 10 inclusive
+      - WGD_JMIN=500 #Jmin — Jmin < Jmax; recommended value is 50
+      - WGD_JMAX=550 #Jmax — Jmin < Jmax ≤ 1280; recommended value is 1000
+      - WGD_S1=30 #S1 — S1 < 1280; S1 + 56 ≠ S2; recommended range is from 15 to 150 inclusive
+      - WGD_S2=40 #S2 — S2 < 1280; recommended range is from 15 to 150 inclusive
+      - WGD_H1=123456 #H1/H2/H3/H4 — must be unique among each other; recommended range is from 5 to 2147483647 inclusive
+      - WGD_H2=67543 #H2
+      - WGD_H3=32345 #H3
+      - WGD_H4=123123 #H4
     ports:
-      - "4430-4433:4430-4433/udp"
-      - 8000:80/tcp
+      - "4430-4433:4430-4433/udp" #UDP Interface Listen Ports
+      - 8000:80/tcp #Comment Out for full network lockdown
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1

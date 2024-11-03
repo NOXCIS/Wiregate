@@ -31,10 +31,11 @@ RUN git clone https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transp
 FROM  --platform=${BUILDPLATFORM} node:iron-alpine3.20 AS builder
 WORKDIR /opt/wireguarddashboard/src/static/app
 COPY ./src/static /opt/wireguarddashboard/src/static 
-RUN npm install                    
-RUN npm update                    
-RUN npm run build                 
-RUN rm -r ./node_modules 
+RUN npm install && \                
+    npm update && \                
+    npm run build  && \              
+    rm -r ./node_modules && \
+    rm -r /opt/wireguarddashboard/src/static/app/src
 
 
 # pybuild: WG-Dash Builder for Brcypt & Psutil Binary (Python)
@@ -67,7 +68,9 @@ WORKDIR /opt/wireguarddashboard/src
 COPY ./src /opt/wireguarddashboard/src/
 
 #Tor Client Transport Plugins
-COPY --from=pluggables /usr/local/bin/lyrebird /webtunnel/main/client/client /snowflake/client/client /usr/local/bin/
+COPY --from=pluggables /usr/local/bin/lyrebird /usr/local/bin/lyrebird
+COPY --from=pluggables /webtunnel/main/client/client /usr/local/bin/webtunnel
+COPY --from=pluggables /snowflake/client/client /usr/local/bin/snowflake
 
 #Copy Built Bcrypt & Psutil Binarys
 COPY --from=pybuild /opt/wireguarddashboard/src/venv /opt/wireguarddashboard/src/venv
@@ -86,8 +89,8 @@ COPY --from=awg /go/amneziawg-tools/src/wg-quick/linux.bash /usr/bin/awg-quick
 
 #Entrypoint
 RUN apk add --no-cache wireguard-tools bash sudo iptables tzdata && \
-    chmod u+x /opt/wireguarddashboard/src/entrypoint.sh && \
-    rm -r /opt/wireguarddashboard/src/static/app/src
+    chmod u+x /opt/wireguarddashboard/src/entrypoint.sh 
+    #rm -r /opt/wireguarddashboard/src/static/app/src
 
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD \
