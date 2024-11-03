@@ -993,20 +993,30 @@ class WireguardConfiguration:
 
     def toggleConfiguration(self) -> [bool, str]:
         self.getStatus()
+        interface_address = self.get_interface_address()
+
         if self.Status:
             try:
                 check = subprocess.check_output(f"wg-quick down {self.Name}",
                                                 shell=True, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as exc:
                 return False, str(exc.output.strip().decode("utf-8"))
+            # Write the interface address after bringing it down
+            write_error = self.write_interface_address(interface_address)
+            if write_error:
+                return write_error
+
         else:
             try:
                 check = subprocess.check_output(f"wg-quick up {self.Name}",
                                                 shell=True, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as exc:
                 return False, str(exc.output.strip().decode("utf-8"))
+
+        
         self.getStatus()
         return True, None
+        
 
     def getPeersList(self):
         self.__getPeers()
