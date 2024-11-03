@@ -1308,12 +1308,14 @@ class Peer:
             filename = "UntitledPeer"
         filename = "".join(filename.split(' '))
         filename = f"{filename}_{self.configuration.Name}"
-        illegal_filename = [".", ",", "/", "?", "<", ">", "\\", ":", "*", '|' '\"', "com1", "com2", "com3",
+        
+        illegal_filename = [".", ",", "/", "?", "<", ">", "\\", ":", "*", '|', "\"", "com1", "com2", "com3",
                             "com4", "com5", "com6", "com7", "com8", "com9", "lpt1", "lpt2", "lpt3", "lpt4",
                             "lpt5", "lpt6", "lpt7", "lpt8", "lpt9", "con", "nul", "prn"]
+        
         for i in illegal_filename:
             filename = filename.replace(i, "")
-
+        
         peerConfiguration = f'''[Interface]
 PrivateKey = {self.private_key}
 Address = {self.allowed_ip}
@@ -1321,7 +1323,11 @@ MTU = {str(self.mtu)}
 '''
         if len(self.DNS) > 0:
             peerConfiguration += f"DNS = {self.DNS}\n"
-        peerConfiguration += f'''
+        
+        # Conditional block based on awg_activate
+        if os.getenv("AMNEZIA_WG", "").lower() == "true":  # Checks if awg_activate is set to "True"
+            peerConfiguration += f'''
+
 Jc = {DashboardConfig.GetConfig("Peers", "jc")[1]}
 Jmin = {DashboardConfig.GetConfig("Peers", "jmin")[1]}
 Jmax = {DashboardConfig.GetConfig("Peers", "jmax")[1]}
@@ -1331,8 +1337,9 @@ H1 = {DashboardConfig.GetConfig("Peers", "h1")[1]}
 H2 = {DashboardConfig.GetConfig("Peers", "h2")[1]}
 H3 = {DashboardConfig.GetConfig("Peers", "h3")[1]}
 H4 = {DashboardConfig.GetConfig("Peers", "h4")[1]}
+'''
 
-
+        peerConfiguration += f'''
 [Peer]
 PublicKey = {self.configuration.PublicKey}
 AllowedIPs = {self.endpoint_allowed_ip}
@@ -1341,10 +1348,12 @@ PersistentKeepalive = {str(self.keepalive)}
 '''
         if len(self.preshared_key) > 0:
             peerConfiguration += f"PresharedKey = {self.preshared_key}\n"
+        
         return {
             "fileName": filename,
             "file": peerConfiguration
         }
+
 
     def getJobs(self):
         self.jobs = AllPeerJobs.searchJob(self.configuration.Name, self.id)

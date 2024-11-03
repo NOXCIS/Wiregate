@@ -365,6 +365,7 @@ set_env() {
   > "$env_file"
 
   if [[ "$env_type" == "docker" ]]; then
+    printf "AMNEZIA_WG=%s\n" "${AMNEZIA_WG}" >> "$env_file"
     printf "WGD_WELCOME_SESSION=%s\n" "${WGD_WELCOME_SESSION}" >> "$env_file"
     printf "WGD_REMOTE_ENDPOINT_PORT=%s\n" "${WGD_REMOTE_ENDPOINT_PORT}" >> "$env_file"
 	printf "WGD_AUTH_REQ=%s\n" "${WGD_AUTH_REQ}" >> "$env_file"
