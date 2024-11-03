@@ -425,6 +425,14 @@ start_core() {
 	else
 		printf "[WGDashboard][Docker] %s Loading Wireguard Configuartions.\n" "$heavy_checkmark"
 	fi
+
+
+	if [[ "$AMNEZIA_WG" == "true" ]]; then
+		apk del wireguard-tools
+		ln -s /usr/bin/awg /usr/bin/wg
+		ln -s /usr/bin/awg-quick /usr/bin/wg-quick
+	fi
+	
 	# Re-assign config_files to ensure it includes any newly created configurations
 	local config_files=$(find /etc/wireguard -type f -name "*.conf")
 	local iptable_dir="/opt/wireguarddashboard/src/iptable-rules"
@@ -562,19 +570,19 @@ PreDown = $pre_down
 ListenPort = $port
 PrivateKey = $private_key
 Address = $address
-Jc = $WGD_JC
-Jmin = $WGD_JMIN
-Jmax = $WGD_JMAX
-S1 = $WGD_S1
-S2 = $WGD_S2
-H1 = $WGD_H1
-H2 = $WGD_H2
-H3 = $WGD_H3
-H4 = $WGD_H4
-
-
-
 EOF
+
+  if [[ "$AMNEZIA_WG" == "true" ]]; then
+    echo "Jc = $WGD_JC" >> "$config_file"
+    echo "Jmin = $WGD_JMIN" >> "$config_file"
+    echo "Jmax = $WGD_JMAX" >> "$config_file"
+    echo "S1 = $WGD_S1" >> "$config_file"
+    echo "S2 = $WGD_S2" >> "$config_file"
+    echo "H1 = $WGD_H1" >> "$config_file"
+    echo "H2 = $WGD_H2" >> "$config_file"
+    echo "H3 = $WGD_H3" >> "$config_file"
+    echo "H4 = $WGD_H4" >> "$config_file"
+  fi
 
   [ "$index" -eq 0 ] && make_master_config
 }

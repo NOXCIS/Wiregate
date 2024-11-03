@@ -83,13 +83,15 @@ COPY --from=awg /go/amneziawg-tools/src/wg /usr/bin/awg
 COPY --from=awg /go/amneziawg-tools/src/wg-quick/linux.bash /usr/bin/awg-quick
 
 #AmneziaWG Symbolic Links to (wg & wg-quick) Commands
-RUN ln -s /usr/bin/awg /usr/bin/wg
-RUN ln -s /usr/bin/awg-quick /usr/bin/wg-quick
+#RUN ln -s /usr/bin/awg /usr/bin/wg
+#RUN ln -s /usr/bin/awg-quick /usr/bin/wg-quick
+
 
 #Entrypoint
-RUN apk add --no-cache bash sudo iptables tzdata && \
+RUN apk add --no-cache wireguard-tools bash sudo iptables tzdata && \
     chmod u+x /opt/wireguarddashboard/src/entrypoint.sh && \
     rm -r /opt/wireguarddashboard/src/static/app/src
+
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD \
     sh -c 'pgrep gunicorn > /dev/null && pgrep tail > /dev/null' || exit 1

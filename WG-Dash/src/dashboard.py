@@ -782,14 +782,9 @@ class WireguardConfiguration:
                 lines.insert(interface_index + 1, f"Address = {interface_address}\n")
                 with open(f"/etc/wireguard/{self.Name}.conf", "w") as conf_file:
                     conf_file.writelines(lines)
-            elif address_present:
-                return ResponseObject(False, "Address is already present in the config file")
-            else:
-                return ResponseObject(False, "[Interface] section not found in the config file")
-
         except IOError:
             return ResponseObject(False, "Failed to write the interface address to the config file")
-        return None
+
 
     def allowAccessPeers(self, listOfPublicKeys):
         if not self.getStatus():
@@ -1333,10 +1328,7 @@ class Peer:
                         # Write the updated configuration back to the file
                         with open(f"/etc/wireguard/{self.configuration.Name}.conf", "w") as conf_file:
                             conf_file.writelines(lines)
-                    else:
-                        return ResponseObject(False, "Address is already present in the config file")
-                else:
-                    return ResponseObject(False, "[Interface] section not found in the config file")
+                    
 
             except IOError:
                 return ResponseObject(False, "Failed to write the interface address to the config file")

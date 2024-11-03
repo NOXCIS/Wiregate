@@ -82,6 +82,7 @@ services:
       #- wgd_db:/opt/wireguarddashboard/src/dashboard_config
 
     environment:
+      - AMNEZIA_WG=true
       - TZ=America/Chicago
       - WGD_TOR_EXIT_NODES={ch}
       - WGD_TOR_DNS_EXIT_NODES={gb}
@@ -90,9 +91,9 @@ services:
       - WGD_TOR_BRIDGES=false
       - WGD_WELCOME_SESSION=false
       - WGD_AUTH_REQ=false
-      - WGD_USER=james
+      - WGD_USER=admin
       - WGD_PASS=admin
-      - WGD_REMOTE_ENDPOINT=192.168.1.127
+      - WGD_REMOTE_ENDPOINT=0.0.0.0
       - WGD_REMOTE_ENDPOINT_PORT=80
       - WGD_DNS="10.2.0.100, 10.2.0.100"
       - WGD_IPTABLES_DNS=10.2.0.100
