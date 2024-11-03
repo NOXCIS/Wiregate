@@ -203,7 +203,7 @@ fi
 # Wait for background processes to finish (if they don't, the script will stay running)
 wait $WGD_PID
 rm -r .env
-echo "wiregate" >> .env
+echo "" >> .env 
 ensure_blocking
 
 

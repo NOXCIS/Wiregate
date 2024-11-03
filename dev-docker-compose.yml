@@ -67,7 +67,7 @@ services:
 
   wiregate:
     build: ./WG-Dash
-    #image: noxcis/wg-dashboard:terra-firma
+    #image: noxcis/wg-dashboard:terra-fuego-beta
     container_name: wiregate
     hostname: wiregate
     devices:

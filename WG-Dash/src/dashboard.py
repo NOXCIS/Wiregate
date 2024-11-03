@@ -58,6 +58,7 @@ app.secret_key = secrets.token_urlsafe(32)
 
 #Docker ENV ARGS Import
 load_dotenv()
+awg_activate = os.environ.get('AMNEZIA_WG')
 wgd_welcome = os.environ.get('WGD_WELCOME_SESSION')
 wgd_app_port = os.environ.get('WGD_REMOTE_ENDPOINT_PORT')
 wgd_auth_req = os.environ.get('WGD_AUTH_REQ')
@@ -1325,9 +1326,11 @@ MTU = {str(self.mtu)}
             peerConfiguration += f"DNS = {self.DNS}\n"
         
         # Conditional block based on awg_activate
-        if os.getenv("AMNEZIA_WG", "").lower() == "true":  # Checks if awg_activate is set to "True"
-            peerConfiguration += f'''
 
+        # Retrieve and normalize activation state for `amneziawg_activate`
+        awg_state = DashboardConfig.GetConfig("Server", "amneziawg_activate")[1]
+        if str(awg_state).strip().lower() == "true":
+            peerConfiguration += f'''
 Jc = {DashboardConfig.GetConfig("Peers", "jc")[1]}
 Jmin = {DashboardConfig.GetConfig("Peers", "jmin")[1]}
 Jmax = {DashboardConfig.GetConfig("Peers", "jmax")[1]}
@@ -1411,6 +1414,7 @@ class DashboardConfig:
                 "totp_key": pyotp.random_base32()
             },
             "Server": {
+                "amneziawg_activate": awg_activate,
                 "wg_conf_path": "/etc/wireguard",
                 "app_prefix": "",
                 "app_ip": "0.0.0.0",

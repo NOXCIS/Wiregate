@@ -429,9 +429,9 @@ start_core() {
 
 
 	if [[ "$AMNEZIA_WG" == "true" ]]; then
-		apk del wireguard-tools
-		ln -s /usr/bin/awg /usr/bin/wg
-		ln -s /usr/bin/awg-quick /usr/bin/wg-quick
+		apk del wireguard-tools > /dev/null
+		ln -s /usr/bin/awg /usr/bin/wg > /dev/null
+		ln -s /usr/bin/awg-quick /usr/bin/wg-quick > /dev/null
 	fi
 	
 	# Re-assign config_files to ensure it includes any newly created configurations

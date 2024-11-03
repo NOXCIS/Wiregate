@@ -82,9 +82,6 @@ COPY --from=awg /go/amneziawg-go/amneziawg-go /usr/bin/amneziawg-go
 COPY --from=awg /go/amneziawg-tools/src/wg /usr/bin/awg
 COPY --from=awg /go/amneziawg-tools/src/wg-quick/linux.bash /usr/bin/awg-quick
 
-#AmneziaWG Symbolic Links to (wg & wg-quick) Commands
-#RUN ln -s /usr/bin/awg /usr/bin/wg
-#RUN ln -s /usr/bin/awg-quick /usr/bin/wg-quick
 
 
 #Entrypoint
