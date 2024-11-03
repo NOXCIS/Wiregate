@@ -745,7 +745,13 @@ class WireguardConfiguration:
             checkIfExist = sqlSelect("SELECT * FROM '%s'" % self.Name).fetchall()
             for i in checkIfExist:
                 self.Peers.append(Peer(i, self))
-            
+
+    def searchPeer(self, publicKey):
+        for i in self.Peers:
+            if i.id == publicKey:
+                return True, i
+        return False, None
+
     def addPeers(self, peers: list):
         for p in peers:
             subprocess.check_output(f"wg set {self.Name} peer {p['id']} allowed-ips {p['allowed_ip']}", 
@@ -754,38 +760,67 @@ class WireguardConfiguration:
             f"wg-quick save {self.Name}", shell=True, stderr=subprocess.STDOUT)    
         self.getPeersList()
         
-    def searchPeer(self, publicKey):
-        for i in self.Peers:
-            if i.id == publicKey:
-                return True, i
-        return False, None
+    
+    def get_interface_address(self):
+        try:
+            interface_address = subprocess.check_output(
+                f"ip addr show {self.Name} | grep 'inet ' | awk '{{print $2}}'",
+                shell=True).decode().strip()
+            return interface_address
+        except subprocess.CalledProcessError:
+            return None  # or handle the error as needed
+
+    def write_interface_address(self, interface_address):
+        try:
+            with open(f"/etc/wireguard/{self.Name}.conf", "r") as conf_file:
+                lines = conf_file.readlines()
+
+            interface_index = next((i for i, line in enumerate(lines) if line.strip() == "[Interface]"), None)
+            address_present = any(line.strip().startswith("Address") for line in lines)
+
+            if interface_index is not None and not address_present:
+                lines.insert(interface_index + 1, f"Address = {interface_address}\n")
+                with open(f"/etc/wireguard/{self.Name}.conf", "w") as conf_file:
+                    conf_file.writelines(lines)
+            elif address_present:
+                return ResponseObject(False, "Address is already present in the config file")
+            else:
+                return ResponseObject(False, "[Interface] section not found in the config file")
+
+        except IOError:
+            return ResponseObject(False, "Failed to write the interface address to the config file")
+        return None
 
     def allowAccessPeers(self, listOfPublicKeys):
         if not self.getStatus():
             self.toggleConfiguration()
-        
-        for i in listOfPublicKeys:
-            p = sqlSelect("SELECT * FROM '%s_restrict_access' WHERE id = ?" % self.Name, (i,)).fetchone()
-            if p is not None:
-                sqlUpdate("INSERT INTO '%s' SELECT * FROM %s_restrict_access WHERE id = ?"
-                               % (self.Name, self.Name,), (p['id'],))
-                sqlUpdate("DELETE FROM '%s_restrict_access' WHERE id = ?"
-                               % self.Name, (p['id'],))
-                
-                presharedKeyExist = len(p['preshared_key']) > 0
-                rd = random.Random()
-                uid = uuid.UUID(int=rd.getrandbits(128), version=4)
+
+        interface_address = self.get_interface_address()
+        for public_key in listOfPublicKeys:
+            peer_data = sqlSelect("SELECT * FROM '%s_restrict_access' WHERE id = ?" % self.Name, (public_key,)).fetchone()
+            if peer_data is not None:
+                sqlUpdate("INSERT INTO '%s' SELECT * FROM %s_restrict_access WHERE id = ?" % (self.Name, self.Name), (peer_data['id'],))
+                sqlUpdate("DELETE FROM '%s_restrict_access' WHERE id = ?" % self.Name, (peer_data['id'],))
+
+                presharedKeyExist = len(peer_data['preshared_key']) > 0
+                uid = uuid.uuid4()
                 if presharedKeyExist:
                     with open(f"{uid}", "w+") as f:
-                        f.write(p['preshared_key'])
-                        
-                subprocess.check_output(f"wg set {self.Name} peer {p['id']} allowed-ips {p['allowed_ip'].replace(' ', '')}{f' preshared-key {uid}' if presharedKeyExist else ''}",
+                        f.write(peer_data['preshared_key'])
+
+                subprocess.check_output(f"wg set {self.Name} peer {peer_data['id']} allowed-ips {peer_data['allowed_ip'].replace(' ', '')}{f' preshared-key {uid}' if presharedKeyExist else ''}",
                                         shell=True, stderr=subprocess.STDOUT)
-                if presharedKeyExist: os.remove(str(uid))
+                if presharedKeyExist:
+                    os.remove(str(uid))
             else:
-                return ResponseObject(False, "Failed to allow access of peer " + i)
+                return ResponseObject(False, "Failed to allow access of peer " + public_key)
+
         if not self.__wgSave():
             return ResponseObject(False, "Failed to save configuration through WireGuard")
+
+        write_error = self.write_interface_address(interface_address)
+        if write_error:
+            return write_error
 
         self.__getPeers()
         return ResponseObject(True, "Allow access successfully!")
@@ -793,60 +828,65 @@ class WireguardConfiguration:
     def restrictPeers(self, listOfPublicKeys):
         numOfRestrictedPeers = 0
         numOfFailedToRestrictPeers = 0
+
         if not self.getStatus():
             self.toggleConfiguration()
-        for p in listOfPublicKeys:
-            found, pf = self.searchPeer(p)
+
+        interface_address = self.get_interface_address()
+        for public_key in listOfPublicKeys:
+            found, pf = self.searchPeer(public_key)
             if found:
                 try:
-                    subprocess.check_output(f"wg set {self.Name} peer {pf.id} remove",
-                                            shell=True, stderr=subprocess.STDOUT)
-                    sqlUpdate("INSERT INTO '%s_restrict_access' SELECT * FROM %s WHERE id = ?" %
-                                   (self.Name, self.Name,), (pf.id,))
-                    sqlUpdate("UPDATE '%s_restrict_access' SET status = 'stopped' WHERE id = ?" %
-                                   (self.Name,), (pf.id,))
+                    subprocess.check_output(f"wg set {self.Name} peer {pf.id} remove", shell=True, stderr=subprocess.STDOUT)
+                    sqlUpdate("INSERT INTO '%s_restrict_access' SELECT * FROM %s WHERE id = ?" % (self.Name, self.Name), (pf.id,))
+                    sqlUpdate("UPDATE '%s_restrict_access' SET status = 'stopped' WHERE id = ?" % (self.Name,), (pf.id,))
                     sqlUpdate("DELETE FROM '%s' WHERE id = ?" % self.Name, (pf.id,))
                     numOfRestrictedPeers += 1
-                except Exception as e:
+                except Exception:
                     numOfFailedToRestrictPeers += 1
 
         if not self.__wgSave():
             return ResponseObject(False, "Failed to save configuration through WireGuard")
 
-        self.__getPeers()
+        write_error = self.write_interface_address(interface_address)
+        if write_error:
+            return write_error
 
+        self.__getPeers()
         if numOfRestrictedPeers == len(listOfPublicKeys):
             return ResponseObject(True, f"Restricted {numOfRestrictedPeers} peer(s)")
-        return ResponseObject(False,
-                              f"Restricted {numOfRestrictedPeers} peer(s) successfully. Failed to restrict {numOfFailedToRestrictPeers} peer(s)")
-        pass
+        return ResponseObject(False, f"Restricted {numOfRestrictedPeers} peer(s) successfully. Failed to restrict {numOfFailedToRestrictPeers} peer(s)")
 
     def deletePeers(self, listOfPublicKeys):
         numOfDeletedPeers = 0
         numOfFailedToDeletePeers = 0
+
         if not self.getStatus():
             self.toggleConfiguration()
-        for p in listOfPublicKeys:
-            found, pf = self.searchPeer(p)
+
+        interface_address = self.get_interface_address()
+        for public_key in listOfPublicKeys:
+            found, pf = self.searchPeer(public_key)
             if found:
                 try:
-                    subprocess.check_output(f"wg set {self.Name} peer {pf.id} remove",
-                                            shell=True, stderr=subprocess.STDOUT)
+                    subprocess.check_output(f"wg set {self.Name} peer {pf.id} remove", shell=True, stderr=subprocess.STDOUT)
                     sqlUpdate("DELETE FROM '%s' WHERE id = ?" % self.Name, (pf.id,))
                     numOfDeletedPeers += 1
-                except Exception as e:
+                except Exception:
                     numOfFailedToDeletePeers += 1
 
         if not self.__wgSave():
             return ResponseObject(False, "Failed to save configuration through WireGuard")
 
-        self.__getPeers()
+        write_error = self.write_interface_address(interface_address)
+        if write_error:
+            return write_error
 
+        self.__getPeers()
         if numOfDeletedPeers == len(listOfPublicKeys):
             return ResponseObject(True, f"Deleted {numOfDeletedPeers} peer(s)")
-        return ResponseObject(False,
-                              f"Deleted {numOfDeletedPeers} peer(s) successfully. Failed to delete {numOfFailedToDeletePeers} peer(s)")
-
+        return ResponseObject(False, f"Deleted {numOfDeletedPeers} peer(s) successfully. Failed to delete {numOfFailedToDeletePeers} peer(s)")
+    
     def __savePeers(self):
         for i in self.Peers:
             d = i.toJson()
@@ -1077,7 +1117,7 @@ class WireguardConfiguration:
         with open(os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], f'{self.Name}.conf'), 'r') as f:
             original = f.readlines()
             original = [l.rstrip("\n") for l in original]
-            allowEdit = ["Address", "PreUp", "PostUp", "PreDown", "PostDown", "ListenPost", "PrivateKey"]
+            allowEdit = ["Address", "PreUp", "PostUp", "PreDown", "PostDown", "ListenPort", "PrivateKey"]
             start = original.index("[Interface]")
             for line in range(start+1, len(original)):
                 if original[line] == "[Peer]":
@@ -1150,10 +1190,54 @@ class Peer:
     def __repr__(self):
         return str(self.toJson())
 
+    def get_current_address(self):
+        try:
+            # Retrieve the current interface address
+            interface_address = subprocess.check_output(
+                f"ip addr show {self.configuration.Name} | grep 'inet ' | awk '{{print $2}}'", 
+                    shell=True
+                        ).decode().strip()
+            return interface_address
+        except subprocess.CalledProcessError:
+            return None  # or handle the error as needed
+
+    def write_address_to_config(self, current_address):
+        try:
+            # Read the existing configuration file
+            with open(f"/etc/wireguard/{self.Name}.conf", "r") as conf_file:
+                lines = conf_file.readlines()
+
+            # Find the position of the [Interface] section
+            interface_index = None
+            for i, line in enumerate(lines):
+                if line.strip() == "[Interface]":
+                    interface_index = i
+                    break
+
+            # Check if Address is already present
+            address_present = any(line.strip().startswith("Address") for line in lines)
+
+            # If [Interface] section was found and Address is not present, insert the address below it
+            if interface_index is not None:
+                if not address_present:
+                    lines.insert(interface_index + 1, f"Address = {current_address}\n")
+
+                    # Write the updated configuration back to the file
+                    with open(f"/etc/wireguard/{self.Name}.conf", "w") as conf_file:
+                        conf_file.writelines(lines)
+                else:
+                    return ResponseObject(False, "Address is already present in the config file")
+            else:
+                return ResponseObject(False, "[Interface] section not found in the config file")
+
+        except IOError:
+            return ResponseObject(False, "Failed to write the interface address to the config file")
+
+
     def updatePeer(self, name: str, private_key: str,
-                   preshared_key: str,
-                   dns_addresses: str, allowed_ip: str, endpoint_allowed_ip: str, mtu: int,
-                   keepalive: int) -> ResponseObject:
+                preshared_key: str,
+                dns_addresses: str, allowed_ip: str, endpoint_allowed_ip: str, mtu: int,
+                keepalive: int) -> ResponseObject:
         if not self.configuration.getStatus():
             self.configuration.toggleConfiguration()
 
@@ -1176,7 +1260,17 @@ class Peer:
             pubKey = _generatePublicKey(private_key)
             if not pubKey[0] or pubKey[1] != self.id:
                 return ResponseObject(False, "Private key does not match with the public key")
+        
         try:
+
+            interface_address = self.get_current_address()
+            # Retrieve the current interface address
+            #interface_address = subprocess.check_output(
+            #    f"ip addr show {self.configuration.Name} | grep 'inet ' | awk '{{print $2}}'", 
+            #    shell=True
+            #).decode().strip()
+
+            # Set up peer update
             rd = random.Random()
             uid = uuid.UUID(int=rd.getrandbits(128), version=4)
             pskExist = len(preshared_key) > 0
@@ -1184,30 +1278,73 @@ class Peer:
             if pskExist:
                 with open(f"{uid}", "w+") as f:
                     f.write(preshared_key)
+                    
             newAllowedIPs = allowed_ip.replace(" ", "")
+            
+            # Update peer configuration with wg set
             updateAllowedIp = subprocess.check_output(
                 f"wg set {self.configuration.Name} peer {self.id} allowed-ips {newAllowedIPs}{f' preshared-key {uid}' if pskExist else ''}",
-                shell=True, stderr=subprocess.STDOUT)
+                shell=True, stderr=subprocess.STDOUT
+            )
             
-            if pskExist: os.remove(str(uid))
+            if pskExist:
+                os.remove(str(uid))
             
             if len(updateAllowedIp.decode().strip("\n")) != 0:
-                return ResponseObject(False,
-                                      "Update peer failed when updating Allowed IPs")
+                return ResponseObject(False, "Update peer failed when updating Allowed IPs")
+            
+            # Save configuration with wg-quick save
             saveConfig = subprocess.check_output(f"wg-quick save {self.configuration.Name}",
-                                                 shell=True, stderr=subprocess.STDOUT)
+                                                shell=True, stderr=subprocess.STDOUT)
             if f"wg showconf {self.configuration.Name}" not in saveConfig.decode().strip('\n'):
-                return ResponseObject(False,
-                                      "Update peer failed when saving the configuration")
+                return ResponseObject(False, "Update peer failed when saving the configuration")
+
+            # Rewrite the interface address to config file
+            try:
+                # Read the existing configuration file
+                with open(f"/etc/wireguard/{self.configuration.Name}.conf", "r") as conf_file:
+                    lines = conf_file.readlines()
+
+                # Find the position of the [Interface] section
+                interface_index = None
+                for i, line in enumerate(lines):
+                    if line.strip() == "[Interface]":
+                        interface_index = i
+                        break
+
+                # Check if Address is already present
+                address_present = any(line.strip().startswith("Address") for line in lines)
+
+                # If [Interface] section was found and Address is not present, insert the address below it
+                if interface_index is not None:
+                    if not address_present:
+                        lines.insert(interface_index + 1, f"Address = {interface_address}\n")
+
+                        # Write the updated configuration back to the file
+                        with open(f"/etc/wireguard/{self.configuration.Name}.conf", "w") as conf_file:
+                            conf_file.writelines(lines)
+                    else:
+                        return ResponseObject(False, "Address is already present in the config file")
+                else:
+                    return ResponseObject(False, "[Interface] section not found in the config file")
+
+            except IOError:
+                return ResponseObject(False, "Failed to write the interface address to the config file")
+
+
+            # Update database
             sqlUpdate(
                 '''UPDATE '%s' SET name = ?, private_key = ?, DNS = ?, endpoint_allowed_ip = ?, mtu = ?, 
                 keepalive = ?, preshared_key = ? WHERE id = ?''' % self.configuration.Name,
                 (name, private_key, dns_addresses, endpoint_allowed_ip, mtu,
-                 keepalive, preshared_key, self.id,)
+                keepalive, preshared_key, self.id,)
             )
+
             return ResponseObject()
+        
         except subprocess.CalledProcessError as exc:
             return ResponseObject(False, exc.output.decode("UTF-8").strip())
+
 
     def downloadPeer(self) -> dict[str, str]:
         filename = self.name
