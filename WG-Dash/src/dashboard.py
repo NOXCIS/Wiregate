@@ -1195,50 +1195,6 @@ class Peer:
     def __repr__(self):
         return str(self.toJson())
 
-    def get_current_address(self):
-        try:
-            # Retrieve the current interface address
-            interface_address = subprocess.check_output(
-                f"ip addr show {self.configuration.Name} | grep 'inet ' | awk '{{print $2}}'", 
-                    shell=True
-                        ).decode().strip()
-            return interface_address
-        except subprocess.CalledProcessError:
-            return None  # or handle the error as needed
-
-    def write_address_to_config(self, current_address):
-        try:
-            # Read the existing configuration file
-            with open(f"/etc/wireguard/{self.Name}.conf", "r") as conf_file:
-                lines = conf_file.readlines()
-
-            # Find the position of the [Interface] section
-            interface_index = None
-            for i, line in enumerate(lines):
-                if line.strip() == "[Interface]":
-                    interface_index = i
-                    break
-
-            # Check if Address is already present
-            address_present = any(line.strip().startswith("Address") for line in lines)
-
-            # If [Interface] section was found and Address is not present, insert the address below it
-            if interface_index is not None:
-                if not address_present:
-                    lines.insert(interface_index + 1, f"Address = {current_address}\n")
-
-                    # Write the updated configuration back to the file
-                    with open(f"/etc/wireguard/{self.Name}.conf", "w") as conf_file:
-                        conf_file.writelines(lines)
-                else:
-                    return ResponseObject(False, "Address is already present in the config file")
-            else:
-                return ResponseObject(False, "[Interface] section not found in the config file")
-
-        except IOError:
-            return ResponseObject(False, "Failed to write the interface address to the config file")
-
-
     def updatePeer(self, name: str, private_key: str,
                 preshared_key: str,
                 dns_addresses: str, allowed_ip: str, endpoint_allowed_ip: str, mtu: int,
@@ -1267,13 +1223,11 @@ class Peer:
                 return ResponseObject(False, "Private key does not match with the public key")
         
         try:
-
-            interface_address = self.get_current_address()
-            # Retrieve the current interface address
-            #interface_address = subprocess.check_output(
-            #    f"ip addr show {self.configuration.Name} | grep 'inet ' | awk '{{print $2}}'", 
-            #    shell=True
-            #).decode().strip()
+            #Retrieve the current interface address
+            interface_address = subprocess.check_output(
+                f"ip addr show {self.configuration.Name} | grep 'inet ' | awk '{{print $2}}'", 
+                shell=True
+            ).decode().strip()
 
             # Set up peer update
             rd = random.Random()
