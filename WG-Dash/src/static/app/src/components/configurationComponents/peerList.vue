@@ -8,83 +8,63 @@ import { Line, Bar } from 'vue-chartjs'
 import Fuse from "fuse.js";
 import {
 	Chart,
-	ArcElement,
 	LineElement,
-	BarElement,
-	PointElement,
+	BarElement, 
 	BarController,
-	BubbleController,
-	DoughnutController,
 	LineController,
-	PieController,
-	PolarAreaController,
-	RadarController,
-	ScatterController,
-	CategoryScale,
 	LinearScale,
-	LogarithmicScale,
-	RadialLinearScale,
-	TimeScale,
-	TimeSeriesScale,
-	Decimation,
-	Filler,
 	Legend,
 	Title,
-	Tooltip
+	Tooltip,
+	CategoryScale,
+	PointElement
 } from 'chart.js';
-import dayjs from "dayjs";
-import PeerSettings from "@/components/configurationComponents/peerSettings.vue";
-import PeerQRCode from "@/components/configurationComponents/peerQRCode.vue";
-import PeerCreate from "@/components/configurationComponents/peerCreate.vue";
-import PeerJobs from "@/components/configurationComponents/peerJobs.vue";
-import PeerJobsAllModal from "@/components/configurationComponents/peerJobsAllModal.vue";
-import PeerJobsLogsModal from "@/components/configurationComponents/peerJobsLogsModal.vue";
-import {ref} from "vue";
-import PeerShareLinkModal from "@/components/configurationComponents/peerShareLinkModal.vue";
-import LocaleText from "@/components/text/localeText.vue";
-import EditConfiguration from "@/components/configurationComponents/editConfiguration.vue";
-import SelectPeers from "@/components/configurationComponents/selectPeers.vue";
-import ConfigurationBackupRestore
-	from "@/components/configurationComponents/configurationBackupRestore.vue";
-import DeleteConfiguration from "@/components/configurationComponents/deleteConfiguration.vue";
-
 Chart.register(
-	ArcElement,
 	LineElement,
 	BarElement,
-	PointElement,
 	BarController,
-	BubbleController,
-	DoughnutController,
 	LineController,
-	PieController,
-	PolarAreaController,
-	RadarController,
-	ScatterController,
-	CategoryScale,
 	LinearScale,
-	LogarithmicScale,
-	RadialLinearScale,
-	TimeScale,
-	TimeSeriesScale,
-	Decimation,
-	Filler,
 	Legend,
 	Title,
-	Tooltip
+	Tooltip,
+	CategoryScale,
+	PointElement
 );
-
+import dayjs from "dayjs";
+import {defineAsyncComponent, ref} from "vue";
+import LocaleText from "@/components/text/localeText.vue";
 export default {
 	name: "peerList",
 	components: {
-		DeleteConfiguration,
-		ConfigurationBackupRestore,
-		SelectPeers,
-		EditConfiguration,
+		DeleteConfiguration:
+			defineAsyncComponent(() => import("@/components/configurationComponents/deleteConfiguration.vue")),
+		ConfigurationBackupRestore:
+			defineAsyncComponent(() => import("@/components/configurationComponents/configurationBackupRestore.vue")),
+		SelectPeers:
+			defineAsyncComponent(() => import("@/components/configurationComponents/selectPeers.vue")),
+		EditConfiguration:
+			defineAsyncComponent(() => import("@/components/configurationComponents/editConfiguration.vue")),
 		LocaleText,
-		PeerShareLinkModal,
-		PeerJobsLogsModal,
-		PeerJobsAllModal, PeerJobs, PeerCreate, PeerQRCode, PeerSettings, PeerSearch, Peer, Line, Bar},
+		PeerShareLinkModal:
+			defineAsyncComponent(() => import("@/components/configurationComponents/peerShareLinkModal.vue")),
+		PeerJobsLogsModal: 
+			defineAsyncComponent(() => import("@/components/configurationComponents/peerJobsLogsModal.vue")),
+		PeerJobsAllModal:
+			defineAsyncComponent(() => import("@/components/configurationComponents/peerJobsAllModal.vue")),
+		PeerJobs: 
+			defineAsyncComponent(() => import("@/components/configurationComponents/peerJobs.vue")), 
+		PeerCreate:
+			defineAsyncComponent(() => import("@/components/configurationComponents/peerCreate.vue")),
+		PeerQRCode:
+			defineAsyncComponent(() => import("@/components/configurationComponents/peerQRCode.vue")), 
+		PeerSettings:
+			defineAsyncComponent(() => import("@/components/configurationComponents/peerSettings.vue")), 
+		PeerSearch, 
+		Peer, 
+		Line, 
+		Bar
+	},
 	setup(){
 		const dashboardConfigurationStore = DashboardConfigurationStore();
 		const wireguardConfigurationStore = WireguardConfigurationsStore();
@@ -436,7 +416,7 @@ export default {
 					<LocaleText t="CONFIGURATION"></LocaleText>
 				</small>
 				<div class="d-flex align-items-center gap-3">
-					<h1 class="mb-0"><samp>{{this.configurationInfo.Name}}</samp></h1>
+					<h1 class="mb-0 display-4"><samp>{{this.configurationInfo.Name}}</samp></h1>
 				</div>
 			</div>
 			<div class="card rounded-3 bg-transparent shadow-sm ms-auto">
@@ -447,13 +427,10 @@ export default {
 						</small></p>
 						<div class="form-check form-switch ms-auto">
 							<label class="form-check-label" style="cursor: pointer" :for="'switch' + this.configurationInfo.id">
-								
 								<LocaleText t="Turning Off..." v-if="!this.configurationInfo.Status && this.configurationToggling"></LocaleText>
 								<LocaleText t="Turning On..." v-else-if="this.configurationInfo.Status && this.configurationToggling"></LocaleText>
 								<LocaleText t="On" v-else-if="this.configurationInfo.Status && !this.configurationToggling"></LocaleText>
 								<LocaleText t="Off" v-else-if="!this.configurationInfo.Status && !this.configurationToggling"></LocaleText>
-								
-								
 								<span v-if="this.configurationToggling"
 								      class="spinner-border spinner-border-sm ms-2" aria-hidden="true"></span>
 							</label>
@@ -470,9 +447,9 @@ export default {
 				</div>
 			</div>
 		</div>
+		<hr>
 		<div class="row mt-3 gy-2 gx-2 mb-2">
-			
-			<div class="col-6 col-lg-3">
+			<div class="col-12 col-lg-3">
 				<div class="card rounded-3 bg-transparent shadow-sm">
 					<div class="card-body py-2">
 						<p class="mb-0 text-muted"><small>
@@ -482,7 +459,7 @@ export default {
 					</div>
 				</div>
 			</div>
-			<div class="col-6 col-lg-3">
+			<div class="col-12 col-lg-3">
 				<div class="card rounded-3 bg-transparent shadow-sm">
 					<div class="card-body py-2">
 						<p class="mb-0 text-muted"><small>
@@ -504,7 +481,7 @@ export default {
 			</div>
 		</div>
 		<div class="row gx-2 gy-2 mb-2">
-			<div class="col-6 col-lg-3">
+			<div class="col-12 col-lg-3">
 				<div class="card rounded-3 bg-transparent shadow-sm">
 					<div class="card-body d-flex">
 						<div>
@@ -519,7 +496,7 @@ export default {
 					</div>
 				</div>
 			</div>
-			<div class="col-6 col-lg-3">
+			<div class="col-12 col-lg-3">
 				<div class="card rounded-3 bg-transparent shadow-sm">
 					<div class="card-body d-flex">
 						<div>
@@ -532,7 +509,7 @@ export default {
 					</div>
 				</div>
 			</div>
-			<div class="col-6 col-lg-3">
+			<div class="col-12 col-lg-3">
 				<div class="card rounded-3 bg-transparent shadow-sm">
 					<div class="card-body d-flex">
 						<div>
@@ -545,7 +522,7 @@ export default {
 					</div>
 				</div>
 			</div>
-			<div class="col-6 col-lg-3">
+			<div class="col-12 col-lg-3">
 				<div class="card rounded-3 bg-transparent shadow-sm">
 					<div class="card-body d-flex">
 						<div>

@@ -31,7 +31,6 @@ export default {
 </script>
 
 <template>
-	
 	<div class="mt-md-5 mt-3">
 		<div class="container-md">
 			<div class="d-flex mb-4 configurationListTitle align-items-center gap-3">
@@ -44,6 +43,12 @@ export default {
 				            class="btn btn-dark btn-brand rounded-3 p-2 shadow ms-auto rounded-3">
 					<h2 class="mb-0" style="line-height: 0">
 						<i class="bi bi-plus-circle"></i>
+					</h2>
+				</RouterLink>
+				<RouterLink to="/restore_configuration"
+				            class="btn btn-dark btn-brand p-2 shadow ms-2" style="border-radius: 100%">
+					<h2 class="mb-0" style="line-height: 0">
+						<i class="bi bi-clock-history "></i>
 					</h2>
 				</RouterLink>
 				
