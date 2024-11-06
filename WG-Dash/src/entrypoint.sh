@@ -62,17 +62,12 @@ get_webtunnel_bridges() {
     fi
 }
 
-
 make_torrc() {
     printf "%s\n" "$dashes"
     printf "[TOR] Generating torrc to $TORRC_PATH...\n"
     if [ -f "$TORRC_PATH" ]; then
     rm "$TORRC_PATH" 
     fi
-
-
-    
-   
 
     if [[ "$WGD_TOR_PLUGIN" == "webtunnel" ]]; then
     get_webtunnel_bridges
@@ -91,9 +86,10 @@ make_torrc() {
     echo -e "User tor \n" >> "$TORRC_PATH"
     echo -e "DataDirectory /var/lib/tor \n" >> "$TORRC_PATH"
     echo -e "TransPort ${INET_ADDR}:59040 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort \n" >> "$TORRC_PATH"
+    echo -e "ExtORPort auto \n" >> "$TORRC_PATH"
 
     if [[ "$WGD_TOR_PLUGIN" == "obfs4" ]]; then
-    echo -e "ClientTransportPlugin meek_lite,obfs2,obfs3,obfs4,scramblesuit exec /usr/local/bin/lyrebird \n" >> "$TORRC_PATH"
+    echo -e "ClientTransportPlugin obfs4 exec /usr/local/bin/lyrebird \n" >> "$TORRC_PATH"
     elif [[ "$WGD_TOR_PLUGIN" == "snowflake" ]]; then
     echo -e "ClientTransportPlugin snowflake exec /usr/local/bin/snowflake -url https://snowflake-broker.azureedge.net/ -front ajax.aspnetcdn.com -ice stun:stun.l.google.com:19302,stun:stun.antisip.com:3478,stun:stun.bluesip.net:3478,stun:stun.dus.net:3478,stun:stun.epygi.com:3478,stun:stun.sonetel.com:3478,stun:stun.uls.co.za:3478,stun:stun.voipgate.com:3478,stun:stun.voys.nl:3478 utls-imitate=hellorandomizedalpn \n" >> "$TORRC_PATH"
     else
@@ -107,9 +103,6 @@ make_torrc() {
     echo "Invalid input. Please use the correct format: {US},{GB},{AU}, etc."
     fi
 
-    
- 
-
     if [[ "$WGD_TOR_PLUGIN" == "snowflake" ]]; then
     echo -e "Bridge snowflake 192.0.2.3:80 2B280B23E1107BB62ABFC40DDCC8824814F80A72 \n" >> "$TORRC_PATH"
     echo -e "Bridge snowflake 192.0.2.4:80 8838024498816A039FCBBAB14E6F40A0843051FA \n" >> "$TORRC_PATH"
@@ -121,6 +114,7 @@ make_torrc() {
     apk del curl > /dev/null 2>&1
     printf "%s\n" "$dashes"
 }
+
 make_dns_torrc() {
     printf "%s\n" "$dashes"
     sudo apk add tor curl > /dev/null 2>&1
