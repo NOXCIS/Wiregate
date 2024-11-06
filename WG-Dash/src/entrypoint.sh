@@ -87,9 +87,10 @@ make_torrc() {
     echo -e "User tor \n" >> "$TORRC_PATH"
     echo -e "DataDirectory /var/lib/tor \n" >> "$TORRC_PATH"
     echo -e "TransPort ${INET_ADDR}:59040 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort \n" >> "$TORRC_PATH"
+    echo -e "ExtORPort auto \n" >> "$TORRC_PATH"
 
     if [[ "$WGD_TOR_PLUGIN" == "obfs4" ]]; then
-    echo -e "ClientTransportPlugin meek_lite,obfs2,obfs3,obfs4,scramblesuit exec /usr/local/bin/lyrebird \n" >> "$TORRC_PATH"
+    echo -e "ClientTransportPlugin obfs4 exec /usr/local/bin/lyrebird \n" >> "$TORRC_PATH"
     elif [[ "$WGD_TOR_PLUGIN" == "snowflake" ]]; then
     echo -e "ClientTransportPlugin snowflake exec /usr/local/bin/snowflake -url https://snowflake-broker.azureedge.net/ -front ajax.aspnetcdn.com -ice stun:stun.l.google.com:19302,stun:stun.antisip.com:3478,stun:stun.bluesip.net:3478,stun:stun.dus.net:3478,stun:stun.epygi.com:3478,stun:stun.sonetel.com:3478,stun:stun.uls.co.za:3478,stun:stun.voipgate.com:3478,stun:stun.voys.nl:3478 utls-imitate=hellorandomizedalpn \n" >> "$TORRC_PATH"
     else
