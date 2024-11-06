@@ -89,6 +89,7 @@ COPY --from=awg /go/amneziawg-tools/src/wg-quick/linux.bash /usr/bin/awg-quick
 
 #Entrypoint
 RUN apk add --no-cache wireguard-tools bash sudo iptables tzdata && \
+    apk upgrade && \
     chmod u+x /opt/wireguarddashboard/src/entrypoint.sh 
     #rm -r /opt/wireguarddashboard/src/static/app/src
 
