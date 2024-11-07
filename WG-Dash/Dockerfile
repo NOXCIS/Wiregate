@@ -33,13 +33,10 @@ COPY --from=pybuild /opt/wireguarddashboard/src/log /opt/wireguarddashboard/src/
 #Copy Built Frontend  
 COPY --from=builder /opt/wireguarddashboard/src /opt/wireguarddashboard/src
 
-
-
 #Tor Client Transport Plugins
 COPY --from=noxcis/tor-bins:latest /lyrebird /usr/local/bin/lyrebird
 COPY --from=noxcis/tor-bins:latest /webtunnel /usr/local/bin/webtunnel
 COPY --from=noxcis/tor-bins:latest /snowflake /usr/local/bin/snowflake
-
 
 #AmneziaWG Substitute install for WireGuard
 COPY --from=noxcis/awg-bins:latest /amneziawg-go /usr/bin/amneziawg-go
@@ -48,7 +45,7 @@ COPY --from=noxcis/awg-bins:latest /awg-quick /usr/bin/awg-quick
 
 
 #Entrypoint
-RUN apk add --no-cache wireguard-tools bash sudo iptables tzdata && \
+RUN apk add --no-cache wireguard-tools sudo iptables tzdata && \
     apk upgrade && \
     chmod u+x /opt/wireguarddashboard/src/entrypoint.sh 
 

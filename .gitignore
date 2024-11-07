@@ -24,6 +24,8 @@ Global-Configs/PiHole/etc-pihole/*
 !Global-Configs/PiHole/etc-pihole/dnsmasq.conf
 Global-Configs/PiHole/etc-dnsmasq.d/
 data/
+Global-Configs/Tor/
+Global-Configs/Logs/
 
 
 Unbound-Custom-Config/root.hints

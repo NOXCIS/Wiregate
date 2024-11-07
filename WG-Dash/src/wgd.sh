@@ -599,9 +599,6 @@ make_master_config() {
     if [ -f "$svr_config" ]; then
         # Check if the master peer with IP 10.0.0.254/32 is already configured
         if grep -q "AllowedIPs = 10.0.0.254/32" "$svr_config"; then
-            
-            
-            { date; python3 -m pip install --upgrade pip; printf "\n\n"; } >> ./log/install.txt
             echo "[WGDashboard][Docker] Master Peer Already Exists, Skipping..."
             return 0
         fi

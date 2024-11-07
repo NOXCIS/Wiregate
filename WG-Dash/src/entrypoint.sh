@@ -40,14 +40,16 @@ get_obfs4_bridges() {
     printf "[TOR] Fetching obfs4 bridges from Tor's BridgeDB...\n"
     
     response=$(curl -s "$BRIDGEDB_URL")
-    bridges=$(echo "$response" | sed -n 's/.*\(obfs4 [^<]*\)<br\/>.*/\1/p')
+    bridges=$(echo "$response" | sed -n 's/.*\(obfs4 [^<]*\)<br\/>.*/\1/p' | sed 's/&#43;/+/g')
     
     if [[ $response == *"obfs4"* ]]; then
         printf "[TOR] Bridges fetched successfully!\n"
+        echo "$bridges"
     else
         echo "No obfs4 bridges found or request failed."
     fi
 }
+
 # Function to get WebTunnel bridges from BridgeDB 
 get_webtunnel_bridges() {
     BRIDGEDB_URL="https://bridges.torproject.org/bridges?transport=webtunnel"
@@ -59,6 +61,7 @@ get_webtunnel_bridges() {
     
     if [[ $response == *"webtunnel"* ]]; then
         printf "[TOR] Bridges fetched successfully!\n"
+        echo "$bridges"
     else
         echo "No WebTunnel bridges found or request failed."
     fi
@@ -87,7 +90,6 @@ make_torrc() {
     echo -e "User tor \n" >> "$TORRC_PATH"
     echo -e "DataDirectory /var/lib/tor \n" >> "$TORRC_PATH"
     echo -e "TransPort ${INET_ADDR}:59040 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort \n" >> "$TORRC_PATH"
-
     if [[ "$WGD_TOR_PLUGIN" == "obfs4" ]]; then
     echo -e "ClientTransportPlugin obfs4 exec /usr/local/bin/lyrebird \n" >> "$TORRC_PATH"
     elif [[ "$WGD_TOR_PLUGIN" == "snowflake" ]]; then
@@ -145,7 +147,7 @@ run_tor_flux() {
     printf "%s\n" "$equals"
     printf "[TOR] Starting Tor ...\n"
     { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> ./log/tor_startup_log.txt &
-    { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> ./log/tor_startup_log.txt &
+    { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> ./log/dns_tor_startup_log.txt &
 
     TOR_PID=$!
 
@@ -161,7 +163,7 @@ run_tor_flux() {
         pkill tor 
         sleep $sleep_kill
         { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> ./log/tor_startup_log.txt &
-        { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> ./log/tor_startup_log.txt &
+        { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> ./log/dns_tor_startup_log.txt &
         TOR_PID=$!
     done
        

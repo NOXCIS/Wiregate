@@ -80,6 +80,8 @@ services:
       - wgd_configs:/etc/wireguard 
       - wgd_db:/opt/wireguarddashboard/src/db 
       - wgd_db:/opt/wireguarddashboard/src/dashboard_config
+      - ./Global-Configs/Tor:/etc/tor/
+      - ./Global-Configs/Logs:/opt/wireguarddashboard/src/log/
 
     environment:
     #Use Ofuscated Wireguard (AmneziaWG)
