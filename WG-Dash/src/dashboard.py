@@ -58,7 +58,9 @@ app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 5206928
 app.secret_key = secrets.token_urlsafe(32)
 
 #Docker ENV ARGS Import
-load_dotenv()
+if not os.path.exists(DASHBOARD_CONF):
+    load_dotenv()
+
 awg_activate = os.environ.get('AMNEZIA_WG')
 wgd_welcome = os.environ.get('WGD_WELCOME_SESSION')
 wgd_app_port = os.environ.get('WGD_REMOTE_ENDPOINT_PORT')
