@@ -20,6 +20,7 @@ COPY --from=builder /opt/wireguarddashboard/src/venv /opt/wireguarddashboard/src
 COPY --from=builder /opt/wireguarddashboard/src/log /opt/wireguarddashboard/src/log/
 
 RUN apk add --no-cache wireguard-tools sudo iptables tzdata && \
+    apk upgrade && \
     chmod u+x /opt/wireguarddashboard/src/entrypoint.sh 
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD \
