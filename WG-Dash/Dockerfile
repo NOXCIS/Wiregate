@@ -34,7 +34,7 @@ COPY --from=pybuild /opt/wireguarddashboard/src/log /opt/wireguarddashboard/src/
 COPY --from=builder /opt/wireguarddashboard/src /opt/wireguarddashboard/src
 
 #Tor Client Transport Plugins
-COPY --from=noxcis/tor-bins:latest /lyrebird /usr/local/bin/lyrebird
+COPY --from=noxcis/tor-bins:latest /lyrebird /usr/local/bin/obfs4
 COPY --from=noxcis/tor-bins:latest /webtunnel /usr/local/bin/webtunnel
 COPY --from=noxcis/tor-bins:latest /snowflake /usr/local/bin/snowflake
 
