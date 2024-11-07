@@ -1811,11 +1811,12 @@ def API_ValidateAPIKey():
     return ResponseObject(True)
 
 
-@app.get(f'{APP_PREFIX}/api/validateAuthentication')
+@app.route(f'{APP_PREFIX}/api/validateAuthentication', methods=["GET"])
 def API_ValidateAuthentication():
-    token = request.cookies.get("authToken") + ""
-    if token == "" or "username" not in session or session["username"] != token:
-        return ResponseObject(False, "Invalid authentication.")
+    if DashboardConfig.GetConfig("Server", "auth_req")[1]:
+        token = request.cookies.get("authToken")
+        if (token is None or token == "" or "username" not in session or session["username"] != token):
+            return ResponseObject(False, "Invalid authentication.")
     return ResponseObject(True)
 
 

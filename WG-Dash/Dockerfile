@@ -45,7 +45,7 @@ COPY --from=noxcis/awg-bins:latest /awg-quick /usr/bin/awg-quick
 
 
 #Entrypoint
-RUN apk add --no-cache wireguard-tools sudo iptables tzdata && \
+RUN apk add --no-cache wireguard-tools bash sudo iptables tzdata && \
     apk upgrade && \
     chmod u+x /opt/wireguarddashboard/src/entrypoint.sh 
 
