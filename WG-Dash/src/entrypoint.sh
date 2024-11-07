@@ -87,7 +87,6 @@ make_torrc() {
     echo -e "User tor \n" >> "$TORRC_PATH"
     echo -e "DataDirectory /var/lib/tor \n" >> "$TORRC_PATH"
     echo -e "TransPort ${INET_ADDR}:59040 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort \n" >> "$TORRC_PATH"
-    echo -e "ExtORPort auto \n" >> "$TORRC_PATH"
 
     if [[ "$WGD_TOR_PLUGIN" == "obfs4" ]]; then
     echo -e "ClientTransportPlugin obfs4 exec /usr/local/bin/lyrebird \n" >> "$TORRC_PATH"
