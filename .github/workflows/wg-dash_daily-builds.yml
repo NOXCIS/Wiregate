@@ -17,7 +17,7 @@ jobs:
     steps:
       # Step 1: Check out the repository code from the target branch
       - name: Checkout code from target branch
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           ref: 'refs/heads/main'  # Replace 'target-branch' with your desired branch name
 
