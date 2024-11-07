@@ -1,4 +1,4 @@
-name: Build and Push Docker Dev Image (Daily)
+name: Build and Push WGDashboard Docker Dev Image (Daily)
 
 on:
   schedule:
@@ -43,7 +43,7 @@ jobs:
           platforms: linux/amd64,linux/arm64,linux/arm/v6,linux/arm/v7
 
       # Step 5: Build and Push Docker Image with multi-platform support (No cache)
-      - name: Build and Push Docker Image (Multi-Arch)
+      - name: Build and Push WGDashboard Docker Dev (Multi-Arch)
         uses: docker/build-push-action@v6
         with:
           context: WG-Dash/  # Path to Dockerfile in repository
