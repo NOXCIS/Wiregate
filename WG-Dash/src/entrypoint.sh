@@ -1,4 +1,7 @@
 #!/bin/bash
+# Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
+# Under MIT License
+
 # Trap the SIGTERM signal and call the stop_service function
 trap 'stop_service' SIGTERM
 
