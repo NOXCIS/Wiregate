@@ -48,6 +48,6 @@ jobs:
         with:
           context: WG-Dash/  # Path to Dockerfile in repository
           push: true  # Push image after build
-          tags: noxcis/wg-dashboard:amneziawg-dev  # Tag for all platforms
+          tags: noxcis/wg-dashboard:terra-fuego-beta  # Tag for all platforms
           platforms: linux/amd64,linux/arm64,linux/arm/v6,linux/arm/v7  # Platforms to build for
           no-cache: true  # Disable caching to force a fresh build
