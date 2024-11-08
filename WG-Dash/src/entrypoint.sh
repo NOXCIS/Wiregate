@@ -87,6 +87,9 @@ make_torrc() {
 
     echo -e "AutomapHostsOnResolve 1 \n" >> "$TORRC_PATH"
     echo -e "VirtualAddrNetwork 10.192.0.0/10 \n" >> "$TORRC_PATH"
+    echo -e "ControlPort 9051 \n" >> "$TORRC_PATH"
+    echo -e "HashedControlPassword 16:8D57EF7E0A4D41F960A73D87BC0C21BB040800A38492A743A0247B43AC\n" >> "$TORRC_PATH"
+    #CookieAuthentication 1
     echo -e "User tor \n" >> "$TORRC_PATH"
     echo -e "DataDirectory /var/lib/tor \n" >> "$TORRC_PATH"
     echo -e "TransPort ${INET_ADDR}:59040 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort \n" >> "$TORRC_PATH"

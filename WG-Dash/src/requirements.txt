@@ -8,3 +8,6 @@ icmplib
 gunicorn
 python-dotenv
 requests
+vanguards
+configparser
+stem

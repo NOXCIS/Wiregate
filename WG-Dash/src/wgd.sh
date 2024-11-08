@@ -342,6 +342,7 @@ startwgd_docker() {
     set_env docker 
     start_core
     gunicorn_start
+	python3 vanguards.py &
 }
 
 
