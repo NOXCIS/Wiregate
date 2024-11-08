@@ -294,7 +294,6 @@ certbot_renew_ssl () {
 }
 
 gunicorn_start () {
-  printf "%s\n" "$dashes"
   printf "[WGDashboard] Starting WGDashboard with Gunicorn in the background.\n"
   d=$(date '+%Y%m%d%H%M%S')
   if [[ $USER == root ]]; then
@@ -337,13 +336,52 @@ stop_wgd() {
 }
 
 startwgd_docker() {
-	_checkWireguard
-	printf "[WGDashboard][Docker] %s WGD Docker Started\n" "$heavy_checkmark"
-    set_env docker 
-    start_core
+    _checkWireguard
+	printf "%s\n" "$equals"
+    printf "[WGDashboard][Docker] %s WGD Docker Started\n" "$heavy_checkmark"
+    printf "%s\n" "$equals"
+	set_env docker 
     gunicorn_start
-	python3 vanguards.py &
+	
+    if [[ "$WGD_TOR_PROXY" == "true" ]]; then
+        # Get the most recent log file based on the date in the filename
+        latest_log=$(ls /opt/wireguarddashboard/src/log/tor_startup_log_*.txt | sort -V | tail -n 1)
+        printf "%s\n" "$equals"
+    	printf "[TOR] Starting Tor & VanGuards ...\n"
+		printf "%s\n" "$equals"
+        
+        if [[ -z "$latest_log" ]]; then
+            echo "[TOR-VANGUARDS] No Tor startup log file found. Skipping vanguards.py start."
+            return
+        fi
+
+        # Wait for Tor to be fully booted by checking for "Bootstrapped 100%" in the latest log
+        retries=0
+        max_retries=300  # Max wait time is 1 minute
+        while ! grep -q 'Bootstrapped 100%' "$latest_log" && [ $retries -lt $max_retries ]; do
+            echo "[TOR-VANGUARDS] Waiting for Tor to fully boot..."
+            sleep 3
+            retries=$((retries + 1))
+            # Refresh the latest log file
+            latest_log=$(ls /opt/wireguarddashboard/src/log/tor_startup_log_*.txt | sort -V | tail -n 1)
+        done
+
+        if [ $retries -ge $max_retries ]; then
+            echo "[TOR-VANGUARDS] Tor did not bootstrap within the expected time. Exiting."
+            return
+        fi
+
+        echo "[TOR-VANGUARDS] Tor is fully booted. Starting vanguards.py"
+        python3 vanguards.py &  # Ensure the correct path to vanguards.py
+
+    fi
+    start_core
+    
 }
+
+
+
+
 
 
 set_env() {
@@ -419,6 +457,7 @@ set_env() {
 
 
 start_core() {
+	printf "%s\n" "$equals"
 	# Check if wg0.conf exists in /etc/wireguard
     if [ ! -f "$svr_config" ]; then
 		printf "[WGDashboard][Docker] %s Wireguard Configuration Missing, Creating ....\n" "$heavy_checkmark"
@@ -443,9 +482,10 @@ start_core() {
 	find "$iptable_dir" -type f -name "*.sh" -exec chmod +x {} \;
 	
 	# Start WireGuard for each config file
-  printf "[WGDashboard][Docker] %s Starting Wireguard Configuartions.\n" "$heavy_checkmark"
-  printf "%s\n" "$dashes"
-  
+	
+	printf "[WGDashboard][Docker] %s Starting Wireguard Configuartions.\n" "$heavy_checkmark"
+	printf "%s\n" "$equals"
+
 
 	mkdir -p /etc/amnezia/amneziawg/
 
