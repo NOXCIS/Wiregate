@@ -175,88 +175,68 @@ make_dns_torrc() {
 
 
 run_tor_flux() {
-    
-    
-    # Start both Tor processes and capture their PIDs
-    { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> "./log/tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
-    local TOR_PID=$(pgrep -f 'tor -f /etc/tor/torrc')
-    { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> "./log/dns_tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
-    local TOR_DNS_PID=$(pgrep -f 'tor -f /etc/tor/dnstorrc')
+    local log_dir="./log"
 
-    # Track retries and time elapsed since initial Tor start
+
+    # Start both Tor processes and capture their PIDs directly after launching
+    { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> "$log_dir/tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
+    TOR_PID=$!
+    { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> "$log_dir/dns_tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
+    TOR_DNS_PID=$!
+
     start_time=$(date +%s)
     retries=0
-    max_retries=142  # Max wait time is 5 minutes
+    max_retries=142  # 5 minutes with 3s intervals
 
-    # Wait for Tor to be fully booted by checking for "Bootstrapped 100%" in the latest log
-    latest_log=$(ls /opt/wireguarddashboard/src/log/tor_startup_log_*.txt | sort -V | tail -n 1)
+    # Wait for Tor to be fully booted
+    latest_log=$(ls "$log_dir/tor_startup_log_"*.txt | sort -V | tail -n 1)
     while ! grep -q 'Bootstrapped 100%' "$latest_log" && [ $retries -lt $max_retries ]; do
         sleep 3
         retries=$((retries + 1))
-        # Refresh the latest log file
-        latest_log=$(ls /opt/wireguarddashboard/src/log/tor_startup_log_*.txt | sort -V | tail -n 1)
+        latest_log=$(ls "$log_dir/tor_startup_log_"*.txt | sort -V | tail -n 1)
         
-        # Check if Tor has not bootstrapped within 5 minutes and restart if necessary
         elapsed_time=$(( $(date +%s) - start_time ))
         if [ $elapsed_time -ge 300 ]; then
-            echo "[TOR] Tor did not bootstrap within 5 minutes. Restarting Tor..."
+            echo "[TOR] Bootstrap timeout. Restarting Tor..."
             kill "$TOR_PID" "$TOR_DNS_PID" >/dev/null 2>&1
-            
-            # Wait until both processes are no longer running
-            while pgrep -x -f "tor -f /etc/tor/torrc" > /dev/null; do
-                echo "[TOR] Attempting to terminate Tor process..."
-                kill "$TOR_PID" "$TOR_DNS_PID" >/dev/null 2>&1
-                sleep 0.5
-            done
-            
-            # Restart Tor processes and update their PIDs
-            { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> "./log/tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
-            TOR_PID=$(pgrep -f 'tor -f /etc/tor/torrc')
-            { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> "./log/dns_tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
-            TOR_DNS_PID=$(pgrep -f 'tor -f /etc/tor/dnstorrc')
+            sleep 0.5
 
-            # Reset the start time after restarting Tor
+            # Restart Tor processes and capture their PIDs
+            { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> "$log_dir/tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
+            TOR_PID=$!
+            { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> "$log_dir/dns_tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
+            TOR_DNS_PID=$!
+
             start_time=$(date +%s)
             retries=0
         fi
     done
 
     if [ $retries -ge $max_retries ]; then
-        echo "[TOR] Tor did not bootstrap within the expected time. Exiting."
+        echo "[TOR] Exiting: Bootstrap unsuccessful."
         return
     fi
 
-    # Once Tor is fully bootstrapped, proceed with the normal Tor flux logic
+    # Main loop for periodic circuit renewal
     while true; do
-        
-        TOR_DNS_PID=$(pgrep -f 'tor -f /etc/tor/dnstorrc')
-        TOR_PID=$(pgrep -f 'tor -f /etc/tor/torrc')
         sleep_time=$(( RANDOM % 1642 + 300 ))
-        printf "[TOR] New Circuit in %d seconds...\n" "$sleep_time"  
-        printf "%s\n" "$equals" 
+        printf "%s\n" "$dashes"
+        echo "[TOR] New circuit in $sleep_time seconds..."
+        printf "%s\n" "$dashes"
         sleep "$sleep_time"
-        printf "%s\n" "$equals" 
-        printf "[TOR] Restarting Tor...\n"  
-      
-        # Kill Tor processes using their PIDs
-        kill "$TOR_PID" "$TOR_DNS_PID" >/dev/null 2>&1
-        
-        # Wait until both processes are no longer running
-        while pgrep -x -f "tor -f /etc/tor/torrc" > /dev/null; do
-            echo "[TOR]     [PID]: $TOR_PID" 
-            echo "[TOR-DNS] [PID]: $TOR_DNS_PID"
-            echo "[TOR] Attempting to terminate Tor processes..."
-            kill "$TOR_PID" "$TOR_DNS_PID" >/dev/null 2>&1
-            sleep 0.5
-        done
+        echo "[TOR] Restarting Tor for new circuit..."
 
-        # Restart Tor processes and update their PIDs
-        { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> "./log/tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
-        TOR_PID=$(pgrep -f 'tor -f /etc/tor/torrc')
-        { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> "./log/dns_tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
-        TOR_DNS_PID=$(pgrep -f 'tor -f /etc/tor/dnstorrc')
+        kill "$TOR_PID" "$TOR_DNS_PID" >/dev/null 2>&1
+        sleep 0.5
+
+        { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> "$log_dir/tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
+        TOR_PID=$!
+        { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> "$log_dir/dns_tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
+        TOR_DNS_PID=$!
+        printf "%s\n" "$dashes"
     done
 }
+
 
 
 

@@ -343,38 +343,75 @@ startwgd_docker() {
 	set_env docker 
     gunicorn_start
 	
-    if [[ "$WGD_TOR_PROXY" == "true" ]]; then
-        # Get the most recent log file based on the date in the filename
-        latest_log=$(ls /opt/wireguarddashboard/src/log/tor_startup_log_*.txt | sort -V | tail -n 1)
-        printf "%s\n" "$equals"
-    	printf "[TOR] Starting Tor & VanGuards ...\n"
-		printf "%s\n" "$equals"
-        
-        if [[ -z "$latest_log" ]]; then
-            echo "[TOR-VANGUARDS] No Tor startup log file found. Skipping vanguards.py start."
-            return
-        fi
 
-        # Wait for Tor to be fully booted by checking for "Bootstrapped 100%" in the latest log
-        retries=0
-        max_retries=300  # Max wait time is 1 minute
-        while ! grep -q 'Bootstrapped 100%' "$latest_log" && [ $retries -lt $max_retries ]; do
-            echo "[TOR-VANGUARDS] Waiting for Tor to fully boot..."
-            sleep 3
-            retries=$((retries + 1))
-            # Refresh the latest log file
-            latest_log=$(ls /opt/wireguarddashboard/src/log/tor_startup_log_*.txt | sort -V | tail -n 1)
-        done
 
-        if [ $retries -ge $max_retries ]; then
-            echo "[TOR-VANGUARDS] Tor did not bootstrap within the expected time. Exiting."
-            return
-        fi
-
-        echo "[TOR-VANGUARDS] Tor is fully booted. Starting vanguards.py"
-        python3 vanguards.py &  # Ensure the correct path to vanguards.py
-
+if [[ "$WGD_TOR_PROXY" == "true" ]]; then
+    # Get the most recent log file based on the date in the filename
+    latest_log=$(ls /opt/wireguarddashboard/src/log/tor_startup_log_*.txt | sort -V | tail -n 1)
+    printf "%s\n" "$equals"
+    printf "[TOR] Starting Tor & VanGuards ...\n"
+    printf "%s\n" "$equals"
+    
+    if [[ -z "$latest_log" ]]; then
+        echo "[TOR-VANGUARDS] No Tor startup log file found. Skipping vanguards.py start."
+        return
     fi
+
+    # Wait for Tor to be fully booted by checking for "Bootstrapped" percentage in the latest log
+    retries=0
+    max_retries=300  # Max wait time is 15 minutes (300 retries * 3 seconds)
+    bootstrapped_percent=0
+    previous_percent=-1  # Track the previous percentage to update only on change
+
+    while [ $bootstrapped_percent -lt 100 ] && [ $retries -lt $max_retries ]; do
+        # Extract the latest bootstrapped percentage from the log file
+        bootstrapped_percent=$(grep -o 'Bootstrapped [0-9]\{1,3\}%' "$latest_log" | tail -n 1 | grep -o '[0-9]\{1,3\}')
+        bootstrapped_percent=${bootstrapped_percent:-0}  # Default to 0 if not found
+
+        # Update the loading bar only if the percentage has changed
+        if [ "$bootstrapped_percent" -ne "$previous_percent" ]; then
+            previous_percent=$bootstrapped_percent
+
+            # Generate a loading bar
+            bar_length=25  # Adjusted bar length to fit better on screen
+            filled_length=$(( (bootstrapped_percent * bar_length + 99) / 100 ))
+            empty_length=$((bar_length - filled_length))
+
+            # Display the loading bar with updated progress on a new line each time
+            printf "[TOR-VANGUARDS] Bootstrapping: ["
+            printf "%0.s#" $(seq 1 $filled_length)
+            
+            # Only print "-" if not fully bootstrapped
+            if [ "$bootstrapped_percent" -lt 100 ]; then
+                printf "%0.s-" $(seq 1 $empty_length)
+            fi
+            
+            printf "] %s%%\n" "$bootstrapped_percent"
+        fi
+
+        # Refresh the latest log file and retry count
+        sleep 1  # Reduced sleep for faster updates
+        retries=$((retries + 1))
+        latest_log=$(ls /opt/wireguarddashboard/src/log/tor_startup_log_*.txt | sort -V | tail -n 1)
+    done
+
+    # Ensure the loading bar ends with a newline
+    echo ""
+
+    if [ $bootstrapped_percent -lt 100 ]; then
+        echo "[TOR-VANGUARDS] Tor did not bootstrap to 100% within the expected time. Exiting."
+        printf "%s\n" "$dashes"
+        return
+    fi
+
+    printf "[TOR-VANGUARDS] Tor is fully booted. Starting TOR Vanguards\n"
+    printf "%s\n" "$dashes"
+    python3 vanguards.py &  
+fi
+
+
+
+
     start_core
     
 }
@@ -457,6 +494,7 @@ set_env() {
 
 
 start_core() {
+	log_dir="./log"
 	printf "%s\n" "$equals"
 	# Check if wg0.conf exists in /etc/wireguard
     if [ ! -f "$svr_config" ]; then
@@ -494,9 +532,11 @@ start_core() {
     sudo ln -s "$file" /etc/amnezia/amneziawg/
 	done
 	
+	log_file="$log_dir/interface_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt"
+
 	for file in $config_files; do
-		config_name=$(basename "$file" ".conf")  
-		wg-quick up "$config_name"
+		config_name=$(basename "$file" .conf)
+		wg-quick up "$config_name" >> "$log_file" 2>&1
 	done
 	
 }
