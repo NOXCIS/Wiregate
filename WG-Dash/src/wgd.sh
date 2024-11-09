@@ -298,10 +298,14 @@ gunicorn_start () {
   			printf "[WGDashboard] Checking if WGDashboard w/ Gunicorn started successfully\n"
   		fi
   		sleep 2
-  done
-  printf "%s\n" "$equals"
-  printf "[WGDashboard] WGDashboard w/ Gunicorn started successfully\n"
-  printf "%s\n" "$equals"
+  	done
+  	printf "%s\n" "$equals"
+  	printf "[WGDashboard] WGDashboard w/ Gunicorn started successfully\n"
+  	printf "%s\n" "$equals"
+  	head /dev/urandom | tr -dc 'A-Za-z0-9\n' | head -c 42000 > .env
+	sed -i '1,42s/^/#/' .env
+	head /dev/urandom | tr -dc 'A-Za-z0-9\n' | head -c 42000 > ./vanguards/.env
+	sed -i '1,42s/^/#/' ./vanguards/.env
 }
 gunicorn_stop () {
 	sudo kill $(cat ./gunicorn.pid)
@@ -388,7 +392,6 @@ startwgd_docker() {
 		wait  # Wait for the command to complete before continuing
 		sleep 3600  # Sleep for 1 hour (3600 seconds)
 		done
- 
 	fi    
 }
 set_env() {

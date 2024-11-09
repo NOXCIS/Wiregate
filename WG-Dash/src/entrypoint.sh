@@ -139,7 +139,6 @@ make_dns_torrc() {
     echo -e "User tor \n" >> "$DNS_TORRC_PATH"
     echo -e "DataDirectory /var/lib/tor/dns \n" >> "$DNS_TORRC_PATH"
     echo -e "ClientTransportPlugin ${WGD_TOR_PLUGIN} exec /usr/local/bin/${WGD_TOR_PLUGIN} \n" >> "$DNS_TORRC_PATH"
-    #echo -e "ClientTransportPlugin snowflake exec /usr/local/bin/snowflake  \n" >> "$DNS_TORRC_PATH"
     if [[ "$WGD_TOR_DNS_EXIT_NODES" == "default" ]]; then
     echo "Using Default"
     elif [[ -n "$WGD_TOR_DNS_EXIT_NODES" ]]; then
@@ -162,9 +161,6 @@ make_dns_torrc() {
     done
     fi
 
-    #echo -e "Bridge snowflake 192.0.2.3:80 2B280B23E1107BB62ABFC40DDCC8824814F80A72 fingerprint=2B280B23E1107BB62ABFC40DDCC8824814F80A72 url=https://1098762253.rsc.cdn77.org/ fronts=www.cdn77.com,www.phpmyadmin.net ice=stun:stun.l.google.com:19302,stun:stun.antisip.com:3478,stun:stun.bluesip.net:3478,stun:stun.dus.net:3478,stun:stun.epygi.com:3478,stun:stun.sonetel.com:3478,stun:stun.uls.co.za:3478,stun:stun.voipgate.com:3478,stun:stun.voys.nl:3478 utls-imitate=hellorandomizedalpn \n" >> "$DNS_TORRC_PATH"
-    #echo -e "Bridge snowflake 192.0.2.4:80 8838024498816A039FCBBAB14E6F40A0843051FA fingerprint=8838024498816A039FCBBAB14E6F40A0843051FA url=https://1098762253.rsc.cdn77.org/ fronts=www.cdn77.com,www.phpmyadmin.net ice=stun:stun.l.google.com:19302,stun:stun.antisip.com:3478,stun:stun.bluesip.net:3478,stun:stun.dus.net:3478,stun:stun.epygi.com:3478,stun:stun.sonetel.net:3478,stun:stun.uls.co.za:3478,stun:stun.voipgate.com:3478,stun:stun.voys.nl:3478 utls-imitate=hellorandomizedalpn \n" >> "$DNS_TORRC_PATH"
-   
     printf "%s\n" "$dashes"
 }
 generate_vanguard_tor_ctrl_pass() {
@@ -277,12 +273,6 @@ if [[ "$WGD_TOR_PROXY" == "true" ]]; then
   run_tor_flux &
   TOR_PID=$!
 fi
-
-# Load Junk into .env files after boot up.
-#head /dev/urandom | tr -dc 'A-Za-z0-9\n' | head -c 42000 > .env
-#sed -i '1,42s/^/#/' .env
-head /dev/urandom | tr -dc 'A-Za-z0-9\n' | head -c 42000 > ./vanguards/.env
-sed -i '1,42s/^/#/' ./vanguards/.env
 
 
 ensure_blocking
