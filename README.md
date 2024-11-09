@@ -8,7 +8,7 @@
 
 > **Wiregate** Supported architectures: `x86-64` , `arm64`, `armv7`
 >  **Test OS**: Ubuntu LTS | Debian 12 
->  **Test Device:** Raspberry Pi 5 | M2 | x86 CPUs
+>  **Test Device:** Raspberry Pi 5 | Apple M2 | x86 CPUs
 >  **Build:** Daily
 
 ## Table of Contents
