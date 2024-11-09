@@ -51,9 +51,9 @@ RUN apk add --no-cache wireguard-tools bash sudo iptables tzdata && \
 
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD \
-    sh -c '/opt/wireguarddashboard/src/wgd.sh health_check' || exit 1
+    sh -c 'pgrep gunicorn > /dev/null && pgrep tail > /dev/null' || exit 1
 
 ENTRYPOINT ["/opt/wireguarddashboard/src/entrypoint.sh"]
-#CMD ["docker_start"]
+
 
 STOPSIGNAL SIGTERM
