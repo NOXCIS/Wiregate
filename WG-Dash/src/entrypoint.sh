@@ -23,7 +23,6 @@ stop_service() {
   pkill tor
   exit 0
 }
-
 clean_up() {
   echo "Looking for remains of previous instances..."
   if [ -f "/opt/wireguarddashboard/app/src/gunicorn.pid" ]; then
@@ -49,7 +48,6 @@ get_obfs4_bridges() {
         echo "No obfs4 bridges found or request failed."
     fi
 }
-
 # Function to get WebTunnel bridges from BridgeDB 
 get_webtunnel_bridges() {
     BRIDGEDB_URL="https://bridges.torproject.org/bridges?transport=webtunnel"
@@ -66,6 +64,7 @@ get_webtunnel_bridges() {
         echo "No WebTunnel bridges found or request failed."
     fi
 }
+
 make_torrc() {
     printf "%s\n" "$dashes"
     printf "[TOR] Generating torrc to $TORRC_PATH...\n"
@@ -88,8 +87,7 @@ make_torrc() {
     echo -e "AutomapHostsOnResolve 1 \n" >> "$TORRC_PATH"
     echo -e "VirtualAddrNetwork 10.192.0.0/10 \n" >> "$TORRC_PATH"
     echo -e "ControlPort 9051 \n" >> "$TORRC_PATH"
-    echo -e "HashedControlPassword 16:8D57EF7E0A4D41F960A73D87BC0C21BB040800A38492A743A0247B43AC\n" >> "$TORRC_PATH"
-    #CookieAuthentication 1
+    echo -e "HashedControlPassword $CTRL_P_PASS\n" >> "$TORRC_PATH"
     echo -e "User tor \n" >> "$TORRC_PATH"
     echo -e "DataDirectory /var/lib/tor \n" >> "$TORRC_PATH"
     echo -e "TransPort ${INET_ADDR}:59040 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort \n" >> "$TORRC_PATH"
@@ -108,8 +106,6 @@ make_torrc() {
     echo -e "Bridge snowflake 192.0.2.3:80 2B280B23E1107BB62ABFC40DDCC8824814F80A72 fingerprint=2B280B23E1107BB62ABFC40DDCC8824814F80A72 url=https://1098762253.rsc.cdn77.org/ fronts=www.cdn77.com,www.phpmyadmin.net ice=stun:stun.l.google.com:19302,stun:stun.antisip.com:3478,stun:stun.bluesip.net:3478,stun:stun.dus.net:3478,stun:stun.epygi.com:3478,stun:stun.sonetel.com:3478,stun:stun.uls.co.za:3478,stun:stun.voipgate.com:3478,stun:stun.voys.nl:3478 utls-imitate=hellorandomizedalpn \n" >> "$TORRC_PATH"
     echo -e "Bridge snowflake 192.0.2.4:80 8838024498816A039FCBBAB14E6F40A0843051FA fingerprint=8838024498816A039FCBBAB14E6F40A0843051FA url=https://1098762253.rsc.cdn77.org/ fronts=www.cdn77.com,www.phpmyadmin.net ice=stun:stun.l.google.com:19302,stun:stun.antisip.com:3478,stun:stun.bluesip.net:3478,stun:stun.dus.net:3478,stun:stun.epygi.com:3478,stun:stun.sonetel.net:3478,stun:stun.uls.co.za:3478,stun:stun.voipgate.com:3478,stun:stun.voys.nl:3478 utls-imitate=hellorandomizedalpn \n" >> "$TORRC_PATH"
   
-
-    
     else
     echo "$bridges" | while read -r bridge; do
         echo "Bridge $bridge" >> "$TORRC_PATH"
@@ -120,7 +116,7 @@ make_torrc() {
 }
 make_dns_torrc() {
     printf "%s\n" "$dashes"
-    sudo apk add tor curl > /dev/null 2>&1
+    sudo apk add --no-cache tor curl > /dev/null 2>&1
     printf "[TOR-DNS] Generating DNS-torrc to $DNS_TORRC_PATH...\n"
     if [ -f "$DNS_TORRC_PATH" ]; then
     rm "$DNS_TORRC_PATH" 
@@ -171,9 +167,16 @@ make_dns_torrc() {
    
     printf "%s\n" "$dashes"
 }
+generate_vanguard_tor_ctrl_pass() {
+  # Generate a 42-character long random password using /dev/urandom and base64
+  PASSWORD=$(head -c 32 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 42)
+  TOR_HASH=$(sudo -u tor tor --hash-password "$PASSWORD")
 
-
-
+  # Assign the Tor hash to VANGUARD
+  export CTRL_P_PASS="$TOR_HASH"
+  export VANGUARD="$PASSWORD"
+  echo "Generated Tor Hash: $CTRL_P_PASS"
+}
 run_tor_flux() {
     local log_dir="./log"
 
@@ -236,12 +239,6 @@ run_tor_flux() {
         printf "%s\n" "$dashes"
     done
 }
-
-
-
-
-
-
 ensure_blocking() {
   sleep 1s
   echo "Ensuring container continuation."
@@ -258,13 +255,15 @@ if [[ ! -c /dev/net/tun ]]; then
     mkdir -p /dev/net && mknod /dev/net/tun c 10 200
 fi
 
-
 # Cleanup old processes
 chmod u+x /opt/wireguarddashboard/src/wgd.sh
 { date; clean_up; printf "\n\n"; } >> ./log/install.txt
 
+
+
 make_dns_torrc
 if [[ "$WGD_TOR_PROXY" == "true" ]]; then
+  generate_vanguard_tor_ctrl_pass
   make_torrc
   
 fi
@@ -274,17 +273,18 @@ fi
 /opt/wireguarddashboard/src/wgd.sh docker_start &
 
 
-WGD_PID=$!
-
 if [[ "$WGD_TOR_PROXY" == "true" ]]; then
   run_tor_flux &
   TOR_PID=$!
 fi
 
-# Wait for background processes to finish (if they don't, the script will stay running)
-wait $WGD_PID
-rm -r .env
-echo "" >> .env 
+# Load Junk into .env files after boot up.
+#head /dev/urandom | tr -dc 'A-Za-z0-9\n' | head -c 42000 > .env
+#sed -i '1,42s/^/#/' .env
+head /dev/urandom | tr -dc 'A-Za-z0-9\n' | head -c 42000 > ./vanguards/.env
+sed -i '1,42s/^/#/' ./vanguards/.env
+
+
 ensure_blocking
 
 

@@ -20,6 +20,7 @@ try:
 except ImportError:
   from configparser import ConfigParser, Error
 
+from dotenv import load_dotenv
 ################# Global options ##################
 
 ENABLE_VANGUARDS=True
@@ -51,10 +52,11 @@ ONE_SHOT_VANGUARDS = True
 
 CLOSE_CIRCUITS = True
 
+ctrl_pass = os.environ.get('VANGUARD')
 CONTROL_IP = "127.0.0.1"
 CONTROL_PORT = "9051"
 CONTROL_SOCKET = ""
-CONTROL_PASS = "WireGateByNoxcis"
+CONTROL_PASS = ctrl_pass
 
 _RETRY_LIMIT = None
 

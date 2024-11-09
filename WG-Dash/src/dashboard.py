@@ -44,7 +44,7 @@ CONFIGURATION_PATH = os.getenv('CONFIGURATION_PATH', '.')
 DB_PATH = os.path.join(CONFIGURATION_PATH, 'db')
 if not os.path.isdir(DB_PATH):
     os.mkdir(DB_PATH)
-DASHBOARD_CONF = os.path.join(CONFIGURATION_PATH, 'dashboard_config','wg-dashboard.ini')
+DASHBOARD_CONF = os.path.join(CONFIGURATION_PATH, 'db','wg-dashboard.ini')
 
 # WireGuard's configuration path
 WG_CONF_PATH = None
