@@ -480,9 +480,7 @@ start_core() {
 	printf "[WGDashboard][Docker] %s Starting Wireguard Configuartions.\n" "$heavy_checkmark"
 	printf "%s\n" "$equals"
 
-
 	mkdir -p /etc/amnezia/amneziawg/
-
 
 	for file in /etc/wireguard/*; do
     # Check if the symbolic link already exists
@@ -676,12 +674,7 @@ if [ "$#" != 1 ];
 		if [ "$1" = "docker_start" ]; then
 				printf "%s\n" "$dashes"
 				startwgd_docker 
-				#start_core
 				printf "%s\n" "$dashes"
-			elif [ "$1" = "health_check" ]; then
-				printf "%s\n" "$dashes"
-				check_wgd_status
-				printf "%s\n" "$dashes"	
 			elif [ "$1" = "stop" ]; then
 				if check_wgd_status; then
 					printf "%s\n" "$dashes"
