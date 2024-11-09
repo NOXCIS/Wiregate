@@ -301,9 +301,9 @@ gunicorn_start () {
   	printf "%s\n" "$equals"
   	printf "[WGDashboard] WGDashboard w/ Gunicorn started successfully\n"
   	printf "%s\n" "$equals"
-  	head /dev/urandom | tr -dc 'A-Za-z0-9\n' | head -c 42000 > .env
+  	tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 42000 > .env
 	sed -i '1,42s/^/#/' .env
-	head /dev/urandom | tr -dc 'A-Za-z0-9\n' | head -c 42000 > ./vanguards/.env
+	tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 42000 > ./vanguards/.env
 	sed -i '1,42s/^/#/' ./vanguards/.env
 }
 gunicorn_stop () {

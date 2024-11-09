@@ -92,7 +92,7 @@ services:
     ##########################################################
       - WGD_TOR_PROXY=true
       - WGD_TOR_EXIT_NODES={ch}
-      - WGD_TOR_DNS_EXIT_NODES=default
+      - WGD_TOR_DNS_EXIT_NODES={br}
       - WGD_TOR_PLUGIN=webtunnel #OPTIONS webtunnel, obfs4, snowflake
       - WGD_TOR_BRIDGES=true
 
