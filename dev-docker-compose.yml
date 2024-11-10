@@ -1,4 +1,5 @@
-
+#Configure To YOUR Enviornment and RUN
+# docker compose -f dev-docker-compose.yml up -d
 networks:
   private_network:
     driver: bridge
@@ -92,7 +93,7 @@ services:
     ##########################################################
       - WGD_TOR_PROXY=true
       - WGD_TOR_EXIT_NODES={ch}
-      - WGD_TOR_DNS_EXIT_NODES={br}
+      - WGD_TOR_DNS_EXIT_NODES={us}
       - WGD_TOR_PLUGIN=webtunnel #OPTIONS webtunnel, obfs4, snowflake
       - WGD_TOR_BRIDGES=true
 
@@ -104,7 +105,7 @@ services:
       - WGD_PASS=admin
       - WGD_REMOTE_ENDPOINT=0.0.0.0
       - WGD_REMOTE_ENDPOINT_PORT=80
-      - WGD_PEER_ENDPOINT_ALLOWED_IP=0.0.0.0/0
+      - WGD_PEER_ENDPOINT_ALLOWED_IP="0.0.0.0/0, ::/0"
       - WGD_KEEP_ALIVE=21
       - WGD_MTU=1420
       - WGD_PORT_RANGE_STARTPORT=4430
@@ -133,6 +134,8 @@ services:
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.src_valid_mark=1
+      - net.ipv6.conf.all.forwarding=1
+      - net.ipv6.conf.default.forwarding=1
     networks:
       private_network:
         ipv4_address: 10.2.0.3

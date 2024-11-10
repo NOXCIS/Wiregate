@@ -216,6 +216,23 @@ _checkPythonVersion(){
 		kill $TOP_PID
 	fi
 }
+disable_ipv6() {
+    # Find all .conf files in /etc/wireguard and extract interface names
+    for config in /etc/wireguard/*.conf; do
+        # Extract interface name from the filename (e.g., wg0.conf -> wg0)
+        iface=$(basename "$config" .conf)
+        
+        # Check if the interface exists before disabling IPv6 settings
+        if ip link show "$iface" >/dev/null 2>&1; then
+            echo "Disabling IPv6 autoconf on interface $iface"
+            sysctl -w net.ipv6.conf."$iface".autoconf=0
+            sysctl -w net.ipv6.conf."$iface".accept_ra=0
+            sysctl -w net.ipv6.conf."$iface".use_tempaddr=0
+        else
+            echo "Interface $iface not found, skipping..."
+        fi
+    done
+}
 install_wgd(){
     printf "[WGDashboard] Starting to install WGDashboard\n"
     _checkWireguard
@@ -303,8 +320,7 @@ gunicorn_start () {
   	printf "%s\n" "$equals"
   	tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 42000 > .env
 	sed -i '1,42s/^/#/' .env
-	tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 42000 > ./vanguards/.env
-	sed -i '1,42s/^/#/' ./vanguards/.env
+	
 }
 gunicorn_stop () {
 	sudo kill $(cat ./gunicorn.pid)
@@ -388,10 +404,13 @@ startwgd_docker() {
 		sudo chown -R tor /etc/tor
 		while true; do
 		python3 vanguards.py --one_shot_vanguards &
-		wait  # Wait for the command to complete before continuing
+		wait
+		tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 42000 > ./vanguards/.env
+		sed -i '1,42s/^/#/' ./vanguards/.env  # Wait for the command to complete before continuing
 		sleep 3600  # Sleep for 1 hour (3600 seconds)
 		done
 	fi    
+	
 }
 set_env() {
   local env_file=".env"

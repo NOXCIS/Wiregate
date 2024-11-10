@@ -21,9 +21,8 @@ RUN chmod u+x ./builder.sh && ./builder.sh
 # Stage 3: Final image
 FROM alpine:latest
 LABEL maintainer="NOXCIS"
-ENV TZ=UTC
 WORKDIR /opt/wireguarddashboard/src
-
+ENV TZ=UTC
 COPY ./src /opt/wireguarddashboard/src/
 
 #Copy Built Bcrypt & Psutil Binarys
@@ -34,18 +33,22 @@ COPY --from=pybuild /opt/wireguarddashboard/src/log /opt/wireguarddashboard/src/
 COPY --from=builder /opt/wireguarddashboard/src /opt/wireguarddashboard/src
 
 #Tor Client Transport Plugins
+#UPSTREAM DOCKER GO COMPILE BUILD PIPELINE 
+#FOR TOR REPOS ~2hrs AHEAD DAILY UTC
 COPY --from=noxcis/tor-bins:latest /lyrebird /usr/local/bin/obfs4
 COPY --from=noxcis/tor-bins:latest /webtunnel /usr/local/bin/webtunnel
 COPY --from=noxcis/tor-bins:latest /snowflake /usr/local/bin/snowflake
 
 #AmneziaWG Substitute install for WireGuard
+#UPSTREAM DOCKER GO COMPILE BUILD PIPELINE 
+#FOR AMNEZIAWG REPOS ~1hrs AHEAD DAILY UTC
 COPY --from=noxcis/awg-bins:latest /amneziawg-go /usr/bin/amneziawg-go
 COPY --from=noxcis/awg-bins:latest /awg /usr/bin/awg
 COPY --from=noxcis/awg-bins:latest /awg-quick /usr/bin/awg-quick
 
 
 #Entrypoint
-RUN apk add --no-cache wireguard-tools bash sudo iptables tzdata && \
+RUN apk add --no-cache wireguard-tools bash sudo iptables ip6tables tzdata && \
     apk upgrade && \
     chmod u+x /opt/wireguarddashboard/src/entrypoint.sh 
 

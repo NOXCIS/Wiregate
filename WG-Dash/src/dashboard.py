@@ -1,5 +1,4 @@
-import itertools
-import random
+import itertools, random
 import shutil
 import sqlite3
 import configparser
@@ -7,7 +6,6 @@ import hashlib
 import ipaddress
 import json
 import traceback
-# Python Built-in Library
 import os
 import secrets
 import subprocess
@@ -17,43 +15,29 @@ import urllib.error
 import uuid
 from datetime import datetime, timedelta
 from typing import Any
-
 import bcrypt
-# PIP installed library
 import ifcfg
 import psutil
 import pyotp
 from flask import Flask, request, render_template, session, g
 from json import JSONEncoder
 from flask_cors import CORS
-
 from icmplib import ping, traceroute
-
-# Import other python files
 import threading
 
 from flask.json.provider import DefaultJSONProvider
-
-
 #Import Enviorment
 from dotenv import load_dotenv
 
-
-DASHBOARD_VERSION = 'v4.1'
+DASHBOARD_VERSION = 'v4.1.0'
 CONFIGURATION_PATH = os.getenv('CONFIGURATION_PATH', '.')
 DB_PATH = os.path.join(CONFIGURATION_PATH, 'db')
 if not os.path.isdir(DB_PATH):
     os.mkdir(DB_PATH)
-DASHBOARD_CONF = os.path.join(CONFIGURATION_PATH, 'db','wg-dashboard.ini')
-
-# WireGuard's configuration path
+DASHBOARD_CONF = os.path.join(CONFIGURATION_PATH, 'db', 'wg-dashboard.ini')
 WG_CONF_PATH = None
-# Dashboard Config Name
-# Upgrade Required
 UPDATE = None
-# Flask App Configuration
-
-app = Flask("WGDashboard")
+app = Flask("WGDashboard", template_folder=os.path.abspath("./static/app/dist"))
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 5206928
 app.secret_key = secrets.token_urlsafe(32)
 
@@ -87,8 +71,6 @@ wgd_h4 = os.environ.get('WGD_H4')
 
 
 
-
-
 class ModelEncoder(JSONEncoder):
     def default(self, o: Any) -> Any:
         if hasattr(o, 'toJson'):
@@ -96,11 +78,9 @@ class ModelEncoder(JSONEncoder):
         else:
             return super(ModelEncoder, self).default(o)
 
-
 '''
 Classes
 '''
-
 
 def ResponseObject(status=True, message=None, data=None) -> Flask.response_class:
     response = Flask.make_response(app, {
@@ -358,7 +338,20 @@ class PeerJobs:
                        self.Jobs))
         except Exception as e:
             return False, str(e)
-
+        
+    def updateJobConfigurationName(self, ConfigurationName: str, NewConfigurationName: str) -> tuple[bool, str]:
+        try:
+            with self.jobdb:
+                jobdbCursor = self.jobdb.cursor()
+                jobdbCursor.execute('''
+                        UPDATE PeerJobs SET Configuration = ? WHERE Configuration = ?
+                    ''', (NewConfigurationName, ConfigurationName, ))
+                self.jobdb.commit()
+            self.__getJobs()
+        except Exception as e:
+            return False, str(e)
+        
+    
     def runJob(self):
         needToDelete = []
         for job in self.Jobs:
@@ -390,6 +383,10 @@ class PeerJobs:
                             JobLogger.log(job.JobID, s["status"],
                                           f"Peer {fp.id} from {c.Name} failed {job.Action}ed."
                             )
+                else:
+                    needToDelete.append(job)
+            else:
+                needToDelete.append(job)
         for j in needToDelete:
             self.deleteJob(j)
 
@@ -551,7 +548,8 @@ class WireguardConfiguration:
         if self.getAutostartStatus() and not self.getStatus() and startup:
             self.toggleConfiguration()
             print(f"[WGDashboard] Autostart Configuration: {name}")
-    
+        
+                      
     def __initPeersList(self):
         self.Peers: list[Peer] = []
         self.getPeersList()
@@ -581,10 +579,13 @@ class WireguardConfiguration:
 
         existingTables = sqlSelect(f"SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '{self.Name}%'").fetchall()
 
-    def __createDatabase(self):
+    def __createDatabase(self, dbName = None):
+        if dbName is None:
+            dbName = self.Name
+        
         existingTables = sqlSelect("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
         existingTables = [t['name'] for t in existingTables]
-        if self.Name not in existingTables:
+        if dbName not in existingTables:
             sqlUpdate(
                 """
                 CREATE TABLE '%s'(
@@ -596,10 +597,10 @@ class WireguardConfiguration:
                     keepalive INT NULL, remote_endpoint VARCHAR NULL, preshared_key VARCHAR NULL,
                     PRIMARY KEY (id)
                 )
-                """ % self.Name
+                """ % dbName
             )
 
-        if f'{self.Name}_restrict_access' not in existingTables:
+        if f'{dbName}_restrict_access' not in existingTables:
             sqlUpdate(
                 """
                 CREATE TABLE '%s_restrict_access' (
@@ -611,9 +612,9 @@ class WireguardConfiguration:
                     keepalive INT NULL, remote_endpoint VARCHAR NULL, preshared_key VARCHAR NULL,
                     PRIMARY KEY (id)
                 )
-                """ % self.Name
+                """ % dbName
             )
-        if f'{self.Name}_transfer' not in existingTables:
+        if f'{dbName}_transfer' not in existingTables:
             sqlUpdate(
                 """
                 CREATE TABLE '%s_transfer' (
@@ -621,9 +622,9 @@ class WireguardConfiguration:
                     total_sent FLOAT NULL, total_data FLOAT NULL,
                     cumu_receive FLOAT NULL, cumu_sent FLOAT NULL, cumu_data FLOAT NULL, time DATETIME
                 )
-                """ % self.Name
+                """ % dbName
             )
-        if f'{self.Name}_deleted' not in existingTables:
+        if f'{dbName}_deleted' not in existingTables:
             sqlUpdate(
                 """
                 CREATE TABLE '%s_deleted' (
@@ -635,7 +636,7 @@ class WireguardConfiguration:
                     keepalive INT NULL, remote_endpoint VARCHAR NULL, preshared_key VARCHAR NULL,
                     PRIMARY KEY (id)
                 )
-                """ % self.Name
+                """ % dbName
             )
             
     def __dumpDatabase(self):
@@ -760,12 +761,63 @@ class WireguardConfiguration:
                 self.Peers.append(Peer(i, self))
             
     def addPeers(self, peers: list):
-        for p in peers:
-            subprocess.check_output(f"wg set {self.Name} peer {p['id']} allowed-ips {p['allowed_ip']}", 
-                                    shell=True, stderr=subprocess.STDOUT)
-        subprocess.check_output(
-            f"wg-quick save {self.Name}", shell=True, stderr=subprocess.STDOUT)    
-        self.getPeersList()
+        interface_address = self.get_awg_iface_address()
+        try:
+            for i in peers:
+                newPeer = {
+                    "id": i['id'],
+                    "private_key": i['private_key'],
+                    "DNS": i['DNS'],
+                    "endpoint_allowed_ip": i['endpoint_allowed_ip'],
+                    "name": i['name'],
+                    "total_receive": 0,
+                    "total_sent": 0,
+                    "total_data": 0,
+                    "endpoint": "N/A",
+                    "status": "stopped",
+                    "latest_handshake": "N/A",
+                    "allowed_ip": i.get("allowed_ip", "N/A"),
+                    "cumu_receive": 0,
+                    "cumu_sent": 0,
+                    "cumu_data": 0,
+                    "traffic": [],
+                    "mtu": i['mtu'],
+                    "keepalive": i['keepalive'],
+                    "remote_endpoint": DashboardConfig.GetConfig("Peers", "remote_endpoint")[1],
+                    "preshared_key": i["preshared_key"]
+                }
+                sqlUpdate(
+                    """
+                    INSERT INTO '%s'
+                        VALUES (:id, :private_key, :DNS, :endpoint_allowed_ip, :name, :total_receive, :total_sent, 
+                        :total_data, :endpoint, :status, :latest_handshake, :allowed_ip, :cumu_receive, :cumu_sent, 
+                        :cumu_data, :mtu, :keepalive, :remote_endpoint, :preshared_key);
+                    """ % self.Name
+                    , newPeer)
+            for p in peers:
+                subprocess.check_output(f"wg set {self.Name} peer {p['id']} allowed-ips {p['allowed_ip']}",
+                                        shell=True, stderr=subprocess.STDOUT)
+                presharedKeyExist = len(p['preshared_key']) > 0
+                rd = random.Random()
+                uid = uuid.UUID(int=rd.getrandbits(128), version=4)
+                if presharedKeyExist:
+                    with open(f"{uid}", "w+") as f:
+                        f.write(p['preshared_key'])
+                        
+                subprocess.check_output(f"wg set {self.Name} peer {p['id']} allowed-ips {p['allowed_ip']}{f' preshared-key {uid}' if presharedKeyExist else ''}",
+                                        shell=True, stderr=subprocess.STDOUT)
+            subprocess.check_output(
+                f"wg-quick save {self.Name}", shell=True, stderr=subprocess.STDOUT)
+            
+            write_error = self.patch_awg_iface_address(interface_address)
+            if write_error:
+                return write_error  
+
+            self.getPeersList()
+            return True
+        except Exception as e:
+            print(str(e))
+            return False
         
     def searchPeer(self, publicKey):
         for i in self.Peers:
@@ -776,122 +828,165 @@ class WireguardConfiguration:
     def allowAccessPeers(self, listOfPublicKeys):
         if not self.getStatus():
             self.toggleConfiguration()
-
         interface_address = self.get_awg_iface_address()
-        for public_key in listOfPublicKeys:
-            peer_data = sqlSelect("SELECT * FROM '%s_restrict_access' WHERE id = ?" % self.Name, (public_key,)).fetchone()
-            if peer_data is not None:
-                sqlUpdate("INSERT INTO '%s' SELECT * FROM %s_restrict_access WHERE id = ?" % (self.Name, self.Name), (peer_data['id'],))
-                sqlUpdate("DELETE FROM '%s_restrict_access' WHERE id = ?" % self.Name, (peer_data['id'],))
-
-                presharedKeyExist = len(peer_data['preshared_key']) > 0
-                uid = uuid.uuid4()
+        for i in listOfPublicKeys:
+            p = sqlSelect("SELECT * FROM '%s_restrict_access' WHERE id = ?" % self.Name, (i,)).fetchone()
+            if p is not None:
+                sqlUpdate("INSERT INTO '%s' SELECT * FROM %s_restrict_access WHERE id = ?"
+                               % (self.Name, self.Name,), (p['id'],))
+                sqlUpdate("DELETE FROM '%s_restrict_access' WHERE id = ?"
+                               % self.Name, (p['id'],))
+                
+                presharedKeyExist = len(p['preshared_key']) > 0
+                rd = random.Random()
+                uid = uuid.UUID(int=rd.getrandbits(128), version=4)
                 if presharedKeyExist:
                     with open(f"{uid}", "w+") as f:
-                        f.write(peer_data['preshared_key'])
-
-                subprocess.check_output(f"wg set {self.Name} peer {peer_data['id']} allowed-ips {peer_data['allowed_ip'].replace(' ', '')}{f' preshared-key {uid}' if presharedKeyExist else ''}",
+                        f.write(p['preshared_key'])
+                        
+                subprocess.check_output(f"wg set {self.Name} peer {p['id']} allowed-ips {p['allowed_ip'].replace(' ', '')}{f' preshared-key {uid}' if presharedKeyExist else ''}",
                                         shell=True, stderr=subprocess.STDOUT)
-                if presharedKeyExist:
-                    os.remove(str(uid))
+                if presharedKeyExist: os.remove(str(uid))
             else:
-                return ResponseObject(False, "Failed to allow access of peer " + public_key)
-
+                return ResponseObject(False, "Failed to allow access of peer " + i)
         if not self.__wgSave():
             return ResponseObject(False, "Failed to save configuration through WireGuard")
-
+        
         write_error = self.patch_awg_iface_address(interface_address)
         if write_error:
             return write_error
 
         self.__getPeers()
-        return ResponseObject(True, "Allow access successfully!")
+        return ResponseObject(True, "Allow access successfully")
 
     def restrictPeers(self, listOfPublicKeys):
         numOfRestrictedPeers = 0
         numOfFailedToRestrictPeers = 0
-
         if not self.getStatus():
             self.toggleConfiguration()
-
-        interface_address = self.get_awg_iface_address()
-        for public_key in listOfPublicKeys:
-            found, pf = self.searchPeer(public_key)
+        interface_address = self.get_awg_iface_address()    
+        for p in listOfPublicKeys:
+            found, pf = self.searchPeer(p)
             if found:
                 try:
-                    subprocess.check_output(f"wg set {self.Name} peer {pf.id} remove", shell=True, stderr=subprocess.STDOUT)
-                    sqlUpdate("INSERT INTO '%s_restrict_access' SELECT * FROM %s WHERE id = ?" % (self.Name, self.Name), (pf.id,))
-                    sqlUpdate("UPDATE '%s_restrict_access' SET status = 'stopped' WHERE id = ?" % (self.Name,), (pf.id,))
+                    subprocess.check_output(f"wg set {self.Name} peer {pf.id} remove",
+                                            shell=True, stderr=subprocess.STDOUT)
+                    sqlUpdate("INSERT INTO '%s_restrict_access' SELECT * FROM %s WHERE id = ?" %
+                                   (self.Name, self.Name,), (pf.id,))
+                    sqlUpdate("UPDATE '%s_restrict_access' SET status = 'stopped' WHERE id = ?" %
+                                   (self.Name,), (pf.id,))
                     sqlUpdate("DELETE FROM '%s' WHERE id = ?" % self.Name, (pf.id,))
                     numOfRestrictedPeers += 1
-                except Exception:
+                except Exception as e:
                     numOfFailedToRestrictPeers += 1
 
         if not self.__wgSave():
             return ResponseObject(False, "Failed to save configuration through WireGuard")
-
+        
         write_error = self.patch_awg_iface_address(interface_address)
         if write_error:
             return write_error
 
         self.__getPeers()
+
         if numOfRestrictedPeers == len(listOfPublicKeys):
             return ResponseObject(True, f"Restricted {numOfRestrictedPeers} peer(s)")
-        return ResponseObject(False, f"Restricted {numOfRestrictedPeers} peer(s) successfully. Failed to restrict {numOfFailedToRestrictPeers} peer(s)")
+        return ResponseObject(False,
+                              f"Restricted {numOfRestrictedPeers} peer(s) successfully. Failed to restrict {numOfFailedToRestrictPeers} peer(s)")
+        pass
 
     def deletePeers(self, listOfPublicKeys):
         numOfDeletedPeers = 0
         numOfFailedToDeletePeers = 0
-
         if not self.getStatus():
             self.toggleConfiguration()
-
-        interface_address = self.get_awg_iface_address()
-        for public_key in listOfPublicKeys:
-            found, pf = self.searchPeer(public_key)
+        interface_address = self.get_awg_iface_address()      
+        for p in listOfPublicKeys:
+            found, pf = self.searchPeer(p)
             if found:
                 try:
-                    subprocess.check_output(f"wg set {self.Name} peer {pf.id} remove", shell=True, stderr=subprocess.STDOUT)
+                    subprocess.check_output(f"wg set {self.Name} peer {pf.id} remove",
+                                            shell=True, stderr=subprocess.STDOUT)
                     sqlUpdate("DELETE FROM '%s' WHERE id = ?" % self.Name, (pf.id,))
                     numOfDeletedPeers += 1
-                except Exception:
+                except Exception as e:
                     numOfFailedToDeletePeers += 1
 
         if not self.__wgSave():
             return ResponseObject(False, "Failed to save configuration through WireGuard")
-
+        
         write_error = self.patch_awg_iface_address(interface_address)
         if write_error:
             return write_error
 
         self.__getPeers()
+
         if numOfDeletedPeers == len(listOfPublicKeys):
             return ResponseObject(True, f"Deleted {numOfDeletedPeers} peer(s)")
-        return ResponseObject(False, f"Deleted {numOfDeletedPeers} peer(s) successfully. Failed to delete {numOfFailedToDeletePeers} peer(s)")
-    
+        return ResponseObject(False,
+                              f"Deleted {numOfDeletedPeers} peer(s) successfully. Failed to delete {numOfFailedToDeletePeers} peer(s)")
+
+
     def get_awg_iface_address(self):
         try:
-            interface_address = subprocess.check_output(
-                f"ip addr show {self.Name} | grep 'inet ' | awk '{{print $2}}'",
-                shell=True).decode().strip()
-            return interface_address
+            # Fetch both inet (IPv4) and inet6 (IPv6) addresses
+            ipv4_address = subprocess.check_output(
+                f"ip addr show {self.Name} | awk '/inet /{{print $2}}'", shell=True
+            ).decode().strip()
+
+            # Capture all IPv6 addresses (link-local and global)
+            ipv6_addresses = subprocess.check_output(
+                f"ip addr show {self.Name} | awk '/inet6 /{{print $2}}'", shell=True
+            ).decode().splitlines()
+
+            # Filter out potential duplicates and retain unique IPv6 addresses
+            unique_ipv6_addresses = set(ipv6_addresses)
+            ipv6_address = ", ".join(unique_ipv6_addresses)
+
+            # Combine into the required format if addresses are available
+            address = ipv4_address if ipv4_address else ""
+            if ipv6_address:
+                if address:
+                    address += ", "  # Add a separator if both addresses are present
+                address += ipv6_address
+
+            return address if address else None  # Return combined address or None if no address found
+
         except subprocess.CalledProcessError:
-            return None  # or handle the error as needed
+            return None  # Handle errors if the command fails
+
 
     def patch_awg_iface_address(self, interface_address):
         try:
-            with open(f"/etc/wireguard/{self.Name}.conf", "r") as conf_file:
+            config_path = f"/etc/wireguard/{self.Name}.conf"
+            with open(config_path, "r") as conf_file:
                 lines = conf_file.readlines()
 
+            # Locate the [Interface] section and the Address line
             interface_index = next((i for i, line in enumerate(lines) if line.strip() == "[Interface]"), None)
-            address_present = any(line.strip().startswith("Address") for line in lines)
+            address_line_index = next((i for i, line in enumerate(lines) if line.strip().startswith("Address")), None)
 
-            if interface_index is not None and not address_present:
-                lines.insert(interface_index + 1, f"Address = {interface_address}\n")
-                with open(f"/etc/wireguard/{self.Name}.conf", "w") as conf_file:
-                    conf_file.writelines(lines)
+            # Create the new Address line with both IPv4 and IPv6 addresses
+            address_line = f"Address = {interface_address}\n"
+
+            # Check if the Address line exists, update it or insert after the [Interface] section
+            if address_line_index is not None:
+                lines[address_line_index] = address_line
+            elif interface_index is not None:
+                lines.insert(interface_index + 1, address_line)
+
+            # Remove any additional Address lines (IPv4 or IPv6) to prevent duplicates
+            lines = [line for i, line in enumerate(lines)
+                    if not (line.strip().startswith("Address") and i != address_line_index)]
+
+            # Write back the modified configuration to the file
+            with open(config_path, "w") as conf_file:
+                conf_file.writelines(lines)
+
         except IOError:
             return ResponseObject(False, "Failed to write the interface address to the config file")
+
+
 
     def __savePeers(self):
         for i in self.Peers:
@@ -1000,7 +1095,6 @@ class WireguardConfiguration:
     def toggleConfiguration(self) -> [bool, str]:
         self.getStatus()
         interface_address = self.get_awg_iface_address()
-
         if self.Status:
             try:
                 check = subprocess.check_output(f"wg-quick down {self.Name}",
@@ -1011,18 +1105,15 @@ class WireguardConfiguration:
             write_error = self.patch_awg_iface_address(interface_address)
             if write_error:
                 return write_error
-
         else:
             try:
                 check = subprocess.check_output(f"wg-quick up {self.Name}",
                                                 shell=True, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as exc:
                 return False, str(exc.output.strip().decode("utf-8"))
-
-        
         self.getStatus()
         return True, None
-        
+
     def getPeersList(self):
         self.__getPeers()
         return self.Peers
@@ -1059,7 +1150,7 @@ class WireguardConfiguration:
             os.mkdir(os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], 'WGDashboard_Backup'))
         time = datetime.now().strftime("%Y%m%d%H%M%S")
         shutil.copy(
-            os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], f'{self.Name}.conf'),
+            self.__configPath,
             os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], 'WGDashboard_Backup', f'{self.Name}_{time}.conf')
         )
         with open(os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], 'WGDashboard_Backup', f'{self.Name}_{time}.sql'), 'w+') as f:
@@ -1167,6 +1258,27 @@ class WireguardConfiguration:
         os.remove(self.__configPath)
         self.__dropDatabase()
         return True
+    
+    def renameConfiguration(self, newConfigurationName) -> tuple[bool, str]:
+        if newConfigurationName in WireguardConfigurations.keys():
+            return False, "Configuration name already exist"
+        try:
+            if self.getStatus():
+                self.toggleConfiguration()
+            self.__createDatabase(newConfigurationName)
+            sqlUpdate(f'INSERT INTO "{newConfigurationName}" SELECT * FROM "{self.Name}"')
+            sqlUpdate(f'INSERT INTO "{newConfigurationName}_restrict_access" SELECT * FROM "{self.Name}_restrict_access"')
+            sqlUpdate(f'INSERT INTO "{newConfigurationName}_deleted" SELECT * FROM "{self.Name}_deleted"')
+            sqlUpdate(f'INSERT INTO "{newConfigurationName}_transfer" SELECT * FROM "{self.Name}_transfer"')
+            AllPeerJobs.updateJobConfigurationName(self.Name, newConfigurationName)
+            shutil.copy(
+                self.__configPath,
+                os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], f'{newConfigurationName}.conf')
+            )
+            self.deleteConfiguration()
+        except Exception as e:
+            return False, str(e)
+        return True, None
         
 class Peer:
     def __init__(self, tableData, configuration: WireguardConfiguration):
@@ -1204,9 +1316,9 @@ class Peer:
         return str(self.toJson())
 
     def updatePeer(self, name: str, private_key: str,
-                preshared_key: str,
-                dns_addresses: str, allowed_ip: str, endpoint_allowed_ip: str, mtu: int,
-                keepalive: int) -> ResponseObject:
+                   preshared_key: str,
+                   dns_addresses: str, allowed_ip: str, endpoint_allowed_ip: str, mtu: int,
+                   keepalive: int) -> ResponseObject:
         if not self.configuration.getStatus():
             self.configuration.toggleConfiguration()
 
@@ -1229,15 +1341,7 @@ class Peer:
             pubKey = _generatePublicKey(private_key)
             if not pubKey[0] or pubKey[1] != self.id:
                 return ResponseObject(False, "Private key does not match with the public key")
-        
         try:
-            #Retrieve the current interface address
-            interface_address = subprocess.check_output(
-                f"ip addr show {self.configuration.Name} | grep 'inet ' | awk '{{print $2}}'", 
-                shell=True
-            ).decode().strip()
-
-            # Set up peer update
             rd = random.Random()
             uid = uuid.UUID(int=rd.getrandbits(128), version=4)
             pskExist = len(preshared_key) > 0
@@ -1245,67 +1349,28 @@ class Peer:
             if pskExist:
                 with open(f"{uid}", "w+") as f:
                     f.write(preshared_key)
-                    
             newAllowedIPs = allowed_ip.replace(" ", "")
-            
-            # Update peer configuration with wg set
             updateAllowedIp = subprocess.check_output(
                 f"wg set {self.configuration.Name} peer {self.id} allowed-ips {newAllowedIPs}{f' preshared-key {uid}' if pskExist else ''}",
-                shell=True, stderr=subprocess.STDOUT
-            )
+                shell=True, stderr=subprocess.STDOUT)
             
-            if pskExist:
-                os.remove(str(uid))
+            if pskExist: os.remove(str(uid))
             
             if len(updateAllowedIp.decode().strip("\n")) != 0:
-                return ResponseObject(False, "Update peer failed when updating Allowed IPs")
-            
-            # Save configuration with wg-quick save
+                return ResponseObject(False,
+                                      "Update peer failed when updating Allowed IPs")
             saveConfig = subprocess.check_output(f"wg-quick save {self.configuration.Name}",
-                                                shell=True, stderr=subprocess.STDOUT)
+                                                 shell=True, stderr=subprocess.STDOUT)
             if f"wg showconf {self.configuration.Name}" not in saveConfig.decode().strip('\n'):
-                return ResponseObject(False, "Update peer failed when saving the configuration")
-
-            # Rewrite the interface address to config file
-            try:
-                # Read the existing configuration file
-                with open(f"/etc/wireguard/{self.configuration.Name}.conf", "r") as conf_file:
-                    lines = conf_file.readlines()
-
-                # Find the position of the [Interface] section
-                interface_index = None
-                for i, line in enumerate(lines):
-                    if line.strip() == "[Interface]":
-                        interface_index = i
-                        break
-
-                # Check if Address is already present
-                address_present = any(line.strip().startswith("Address") for line in lines)
-
-                # If [Interface] section was found and Address is not present, insert the address below it
-                if interface_index is not None:
-                    if not address_present:
-                        lines.insert(interface_index + 1, f"Address = {interface_address}\n")
-
-                        # Write the updated configuration back to the file
-                        with open(f"/etc/wireguard/{self.configuration.Name}.conf", "w") as conf_file:
-                            conf_file.writelines(lines)
-                    
-
-            except IOError:
-                return ResponseObject(False, "Failed to write the interface address to the config file")
-
-
-            # Update database
+                return ResponseObject(False,
+                                      "Update peer failed when saving the configuration")
             sqlUpdate(
                 '''UPDATE '%s' SET name = ?, private_key = ?, DNS = ?, endpoint_allowed_ip = ?, mtu = ?, 
                 keepalive = ?, preshared_key = ? WHERE id = ?''' % self.configuration.Name,
                 (name, private_key, dns_addresses, endpoint_allowed_ip, mtu,
-                keepalive, preshared_key, self.id,)
+                 keepalive, preshared_key, self.id,)
             )
-
             return ResponseObject()
-        
         except subprocess.CalledProcessError as exc:
             return ResponseObject(False, exc.output.decode("UTF-8").strip())
 
@@ -1315,14 +1380,12 @@ class Peer:
             filename = "UntitledPeer"
         filename = "".join(filename.split(' '))
         filename = f"{filename}_{self.configuration.Name}"
-        
-        illegal_filename = [".", ",", "/", "?", "<", ">", "\\", ":", "*", '|', "\"", "com1", "com2", "com3",
+        illegal_filename = [".", ",", "/", "?", "<", ">", "\\", ":", "*", '|' '\"', "com1", "com2", "com3",
                             "com4", "com5", "com6", "com7", "com8", "com9", "lpt1", "lpt2", "lpt3", "lpt4",
                             "lpt5", "lpt6", "lpt7", "lpt8", "lpt9", "con", "nul", "prn"]
-        
         for i in illegal_filename:
             filename = filename.replace(i, "")
-        
+
         peerConfiguration = f'''[Interface]
 PrivateKey = {self.private_key}
 Address = {self.allowed_ip}
@@ -1330,7 +1393,7 @@ MTU = {str(self.mtu)}
 '''
         if len(self.DNS) > 0:
             peerConfiguration += f"DNS = {self.DNS}\n"
-        
+
         # Conditional block based on awg_activate
 
         # Retrieve and normalize activation state for `amneziawg_activate`
@@ -1348,6 +1411,7 @@ H3 = {DashboardConfig.GetConfig("Peers", "h3")[1]}
 H4 = {DashboardConfig.GetConfig("Peers", "h4")[1]}
 '''
 
+
         peerConfiguration += f'''
 [Peer]
 PublicKey = {self.configuration.PublicKey}
@@ -1357,7 +1421,6 @@ PersistentKeepalive = {str(self.keepalive)}
 '''
         if len(self.preshared_key) > 0:
             peerConfiguration += f"PresharedKey = {self.preshared_key}\n"
-        
         return {
             "fileName": filename,
             "file": peerConfiguration
@@ -1591,14 +1654,9 @@ class DashboardConfig:
                     the_dict[section][key] = self.GetConfig(section, key)[1]
         return the_dict
 
-
 '''
 Private Functions
 '''
-
-
-
-
 
 def _strToBool(value: str) -> bool:
     return value.lower() in ("yes", "true", "t", "1", 1)
@@ -1608,7 +1666,9 @@ def _regexMatch(regex, text):
     return pattern.search(text) is not None
 
 def _getConfigurationList(startup: bool = False):
-    for i in os.listdir(DashboardConfig.GetConfig("Server", "wg_conf_path")[1]):
+    confs = os.listdir(DashboardConfig.GetConfig("Server", "wg_conf_path")[1])
+    confs.sort()
+    for i in confs:
         if _regexMatch("^(.{1,}).(conf)$", i):
             i = i.replace('.conf', '')
             try:
@@ -1726,8 +1786,11 @@ def sqlSelect(statement: str, paramters: tuple = ()) -> sqlite3.Cursor:
         try:
             cursor = sqldb.cursor()
             return cursor.execute(statement, paramters)
+
         except sqlite3.OperationalError as error:
             print("[WGDashboard] SQLite Error:" + str(error) + " | Statement: " + statement)
+            return []
+
 
 def sqlUpdate(statement: str, paramters: tuple = ()) -> sqlite3.Cursor:
     with sqldb:
@@ -1748,12 +1811,9 @@ cors = CORS(app, resources={rf"{APP_PREFIX}/api/*": {
     "allow_headers": ["Content-Type", "wg-dashboard-apikey"]
 }})
 
-
 '''
 API Routes
 '''
-
-
 
 @app.before_request
 def auth_req():
@@ -1812,15 +1872,13 @@ def auth_req():
 def API_ValidateAPIKey():
     return ResponseObject(True)
 
-
-@app.route(f'{APP_PREFIX}/api/validateAuthentication', methods=["GET"])
+@app.get(f'{APP_PREFIX}/api/validateAuthentication')
 def API_ValidateAuthentication():
     if DashboardConfig.GetConfig("Server", "auth_req")[1]:
         token = request.cookies.get("authToken")
         if (token is None or token == "" or "username" not in session or session["username"] != token):
             return ResponseObject(False, "Invalid authentication.")
     return ResponseObject(True)
-
 
 @app.post(f'{APP_PREFIX}/api/authenticate')
 def API_AuthenticateLogin():
@@ -1857,19 +1915,16 @@ def API_AuthenticateLogin():
     else:
         return ResponseObject(False, "Sorry, your username or password is incorrect.")
 
-
 @app.get(f'{APP_PREFIX}/api/signout')
 def API_SignOut():
     resp = ResponseObject(True, "")
     resp.delete_cookie("authToken")
     return resp
 
-
 @app.route(f'{APP_PREFIX}/api/getWireguardConfigurations', methods=["GET"])
 def API_getWireguardConfigurations():
     _getConfigurationList()
     return ResponseObject(data=[wc for wc in WireguardConfigurations.values()])
-
 
 @app.route(f'{APP_PREFIX}/api/addWireguardConfiguration', methods=["POST"])
 def API_addWireguardConfiguration():
@@ -1917,7 +1972,6 @@ def API_addWireguardConfiguration():
         WireguardConfigurations[data['ConfigurationName']] = WireguardConfiguration(data=data)
     return ResponseObject()
 
-
 @app.get(f'{APP_PREFIX}/api/toggleWireguardConfiguration/')
 def API_toggleWireguardConfiguration():
     configurationName = request.args.get('configurationName')
@@ -1953,6 +2007,21 @@ def API_deleteWireguardConfiguration():
     if status:
         WireguardConfigurations.pop(data.get("Name"))
     return ResponseObject(status)
+
+@app.post(f'{APP_PREFIX}/api/renameWireguardConfiguration')
+def API_renameWireguardConfiguration():
+    data = request.get_json()
+    keys = ["Name", "NewConfigurationName"]
+    for k in keys:
+        if (k not in data.keys() or data.get(k) is None or len(data.get(k)) == 0 or 
+                (k == "Name" and data.get(k) not in WireguardConfigurations.keys())): 
+            return ResponseObject(False, "Please provide the configuration name you want to rename")
+        
+    status, message = WireguardConfigurations[data.get("Name")].renameConfiguration(data.get("NewConfigurationName"))
+    if status:
+        WireguardConfigurations.pop(data.get("Name"))
+        WireguardConfigurations[data.get("NewConfigurationName")] = WireguardConfiguration(data.get("NewConfigurationName"))
+    return ResponseObject(status, message)
 
 @app.get(f'{APP_PREFIX}/api/getWireguardConfigurationBackup')
 def API_getWireguardConfigurationBackup():
@@ -2042,7 +2111,6 @@ def API_restoreWireguardConfigurationBackup():
 def API_getDashboardConfiguration():
     return ResponseObject(data=DashboardConfig.toJson())
 
-
 @app.post(f'{APP_PREFIX}/api/updateDashboardConfigurationItem')
 def API_updateDashboardConfigurationItem():
     data = request.get_json()
@@ -2090,7 +2158,6 @@ def API_deleteDashboardAPIKey():
             return ResponseObject(True, data=DashboardConfig.DashboardAPIKeys)
     return ResponseObject(False, "Dashboard API Keys function is disbaled")
     
-
 @app.post(f'{APP_PREFIX}/api/updatePeerSettings/<configName>')
 def API_updatePeerSettings(configName):
     data = request.get_json()
@@ -2135,7 +2202,6 @@ def API_deletePeers(configName: str) -> ResponseObject:
         return configuration.deletePeers(peers)
 
     return ResponseObject(False, "Configuration does not exist")
-
 
 @app.post(f'{APP_PREFIX}/api/restrictPeers/<configName>')
 def API_restrictPeers(configName: str) -> ResponseObject:
@@ -2240,16 +2306,12 @@ def API_addPeers(configName):
                 dns_addresses = DashboardConfig.GetConfig("Peers", "peer_global_DNS")[1]
             if len(endpoint_allowed_ip) == 0:
                 endpoint_allowed_ip = DashboardConfig.GetConfig("Peers", "peer_endpoint_allowed_ip")[1]
-            
-    
             config = WireguardConfigurations.get(configName)
             if not bulkAdd and (len(public_key) == 0 or len(allowed_ips) == 0):
                 return ResponseObject(False, "Please provide at least public_key and allowed_ips")
             if not config.getStatus():
                 config.toggleConfiguration()
-    
             availableIps = _getWireguardConfigurationAvailableIP(configName)
-    
             if bulkAdd:
                 if type(preshared_key_bulkAdd) is not bool:
                     preshared_key_bulkAdd = False
@@ -2261,7 +2323,6 @@ def API_addPeers(configName):
                 if bulkAddAmount > len(availableIps[1]):
                     return ResponseObject(False,
                                           f"The maximum number of peers can add is {len(availableIps[1])}")
-    
                 keyPairs = []
                 for i in range(bulkAddAmount):
                     newPrivateKey = _generatePrivateKey()[1]
@@ -2270,18 +2331,15 @@ def API_addPeers(configName):
                         "id": _generatePublicKey(newPrivateKey)[1],
                         "preshared_key": (_generatePrivateKey()[1] if preshared_key_bulkAdd else ""),
                         "allowed_ip": availableIps[1][i],
-                        "name": f"BulkPeer #{(i + 1)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+                        "name": f"BulkPeer #{(i + 1)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
+                        "DNS": dns_addresses,
+                        "endpoint_allowed_ip": endpoint_allowed_ip,
+                        "mtu": mtu,
+                        "keepalive": keep_alive
                     })
                 if len(keyPairs) == 0:
                     return ResponseObject(False, "Generating key pairs by bulk failed")
                 config.addPeers(keyPairs)
-    
-                for kp in keyPairs:
-                    found, peer = config.searchPeer(kp['id'])
-                    if found:
-                        if not peer.updatePeer(kp['name'], kp['private_key'], kp['preshared_key'], dns_addresses,
-                                               kp['allowed_ip'], endpoint_allowed_ip, mtu, keep_alive):
-                            return ResponseObject(False, "Failed to add peers in bulk")
                 return ResponseObject()
     
             else:
@@ -2294,17 +2352,25 @@ def API_addPeers(configName):
                     if i not in availableIps[1]:
                         return ResponseObject(False, f"This IP is not available: {i}")
     
-                config.addPeers([{"id": public_key, "allowed_ip": ','.join(allowed_ips)}])
-                found, peer = config.searchPeer(public_key)
-                if found:
-                    return peer.updatePeer(name, private_key, preshared_key, dns_addresses, ",".join(allowed_ips),
-                                           endpoint_allowed_ip, mtu, keep_alive)
+                status = config.addPeers([
+                    {
+                        "name": name,
+                        "id": public_key,
+                        "private_key": private_key,
+                        "allowed_ip": ','.join(allowed_ips),
+                        "preshared_key": preshared_key,
+                        "endpoint_allowed_ip": endpoint_allowed_ip,
+                        "DNS": dns_addresses,
+                        "mtu": mtu,
+                        "keepalive": keep_alive
+                    }]
+                )
+                return ResponseObject(status)
         except Exception as e:
             print(e)
             return ResponseObject(False, "Add peers failed. Please see data for specific issue")
 
     return ResponseObject(False, "Configuration does not exist")
-
 
 @app.get(f"{APP_PREFIX}/api/downloadPeer/<configName>")
 def API_downloadPeer(configName):
@@ -2316,8 +2382,6 @@ def API_downloadPeer(configName):
     if len(data['id']) == 0 or not peerFound:
         return ResponseObject(False, "Peer does not exist")
     return ResponseObject(data=peer.downloadPeer())
-    
-    
 
 @app.get(f"{APP_PREFIX}/api/downloadAllPeers/<configName>")
 def API_downloadAllPeers(configName):
@@ -2334,12 +2398,10 @@ def API_downloadAllPeers(configName):
         peerData.append(file)
     return ResponseObject(data=peerData)
 
-
 @app.get(f"{APP_PREFIX}/api/getAvailableIPs/<configName>")
 def API_getAvailableIPs(configName):
     status, ips = _getWireguardConfigurationAvailableIP(configName)
     return ResponseObject(status=status, data=ips)
-
 
 @app.get(f'{APP_PREFIX}/api/getWireguardConfigurationInfo')
 def API_getConfigurationInfo():
@@ -2351,7 +2413,6 @@ def API_getConfigurationInfo():
         "configurationPeers": WireguardConfigurations[configurationName].getPeersList(),
         "configurationRestrictedPeers": WireguardConfigurations[configurationName].getRestrictedPeersList()
     })
-
 
 @app.get(f'{APP_PREFIX}/api/getDashboardTheme')
 def API_getDashboardTheme():
@@ -2411,12 +2472,9 @@ def API_getPeerScheduleJobLogs(configName):
         requestAll = True
     return ResponseObject(data=JobLogger.getLogs(requestAll, configName))
 
-
-
 '''
 Tools
 '''
-
 
 @app.get(f'{APP_PREFIX}/api/ping/getAllPeersIpAddress')
 def API_ping_getAllPeersIpAddress():
@@ -2645,11 +2703,7 @@ def API_Locale_Update():
 
 @app.get(f'{APP_PREFIX}/')
 def index():
-    """
-    Index page related
-    @return: Template
-    """
-    return render_template('index.html', APP_PREFIX=APP_PREFIX)
+    return render_template('index.html')
 
 def backGroundThread():
     global WireguardConfigurations

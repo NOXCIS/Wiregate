@@ -1,5 +1,6 @@
 listen_addresses = ['0.0.0.0:5053']
-proxy = 'socks5://wiregate:9053'
+ proxy = 'socks5://wiregate:9053'
+# http_proxy = 'http://wiregate:59040'
 
 force_tcp = true
 
@@ -14,11 +15,11 @@ max_clients = 250
 ipv4_servers = true
 ipv6_servers = false
 
-dnscrypt_servers = true
-doh_servers = true
+dnscrypt_servers = false
+doh_servers = false
 odoh_servers = true
 
-require_dnssec = false
+require_dnssec = true
 require_nolog = true
 require_nofilter = true
 
@@ -41,16 +42,13 @@ cache_neg_max_ttl = 600
 
 
 server_names = [
-    'odoh-cloudflare','onion.cloudflare'
+    'odoh-cloudflare'
 ]
 
 
 [static]
 [static.'odoh-cloudflare']
 stamp = 'sdns://BQcAAAAAAAAAF29kb2guY2xvdWRmbGFyZS1kbnMuY29tCi9kbnMtcXVlcnk'
-[static.'onion.cloudflare']
-stamp = 'sdns://AgcAAAAAAAAAAAA-ZG5zNHRvcnBubGZzMmlmdXoyczJ5ZjNmYzdyZG1zYmhtNnJ3NzVldWozNXBhYzZhcDI1emdxYWQub25pb24KL2Rucy1xdWVyeQ'
-
 
 [sources]
 [sources.'odoh-relays']
@@ -58,15 +56,19 @@ urls = ['https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3
 minisign_key = 'RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3'
 cache_file = 'odoh-relays.md'
 
-
+[sources.'odoh-servers']
+urls = ['https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-servers.md', 'https://download.dnscrypt.info/resolvers-list/v3/odoh-servers.md']
+minisign_key = 'RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3'
+cache_file = 'odoh-servers.md'
 
 
 
 [anonymized_dns]
 routes = [
     { server_name='odoh-cloudflare', via=['odohrelay-crypto-sx', 'odohrelay-se', 'odohrelay-ams'] },
-    { server_name='onion.cloudflare', via=['odohrelay-crypto-sx', 'odohrelay-se', 'odohrelay-ams'] }
-]
+     {server_name='odoh-cloudflare', via=['*'] }
+
+]   
 
 skip_incompatible = true
 

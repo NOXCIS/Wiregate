@@ -64,7 +64,6 @@ get_webtunnel_bridges() {
         echo "No WebTunnel bridges found or request failed."
     fi
 }
-
 make_torrc() {
     printf "%s\n" "$dashes"
     printf "[TOR] Generating torrc to $TORRC_PATH...\n"
@@ -235,6 +234,7 @@ run_tor_flux() {
         printf "%s\n" "$dashes"
     done
 }
+
 ensure_blocking() {
   sleep 1s
   echo "Ensuring container continuation."
@@ -267,7 +267,6 @@ fi
 
 /opt/wireguarddashboard/src/wgd.sh install
 /opt/wireguarddashboard/src/wgd.sh docker_start &
-
 
 if [[ "$WGD_TOR_PROXY" == "true" ]]; then
   run_tor_flux &
