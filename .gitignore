@@ -12,6 +12,8 @@ private_key.txt
 public_key.txt
 venv/**
 log/**
+logs/**
+/logs
 *.log
 release/*
 
@@ -64,3 +66,5 @@ test.sh
 preqsinstalled.txt
 .env
 .env.anim.run.txt
+/Static-Experiment/configs/logs
+/Static-Experiment/configs/tor
