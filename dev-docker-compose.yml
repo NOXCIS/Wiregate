@@ -75,12 +75,11 @@ services:
       - /dev/net/tun:/dev/net/tun
     cap_add:
       - NET_ADMIN
-      - SYS_MODULE
     restart: unless-stopped
     volumes:
       - wgd_configs:/etc/wireguard 
       - wgd_db:/opt/wireguarddashboard/src/db 
-      #- ./Global-Configs/Tor:/etc/tor/
+      - ./Global-Configs/Tor:/etc/tor/
       - ./Global-Configs/Logs:/opt/wireguarddashboard/src/log/
 
     environment:

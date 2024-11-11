@@ -1095,25 +1095,65 @@ class WireguardConfiguration:
     def toggleConfiguration(self) -> [bool, str]:
         self.getStatus()
         interface_address = self.get_awg_iface_address()
+        
         if self.Status:
             try:
                 check = subprocess.check_output(f"wg-quick down {self.Name}",
                                                 shell=True, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as exc:
                 return False, str(exc.output.strip().decode("utf-8"))
+            
             # Write the interface address after bringing it down
             write_error = self.patch_awg_iface_address(interface_address)
             if write_error:
                 return write_error
         else:
             try:
-                check = subprocess.check_output(f"wg-quick up {self.Name}",
-                                                shell=True, stderr=subprocess.STDOUT)
+                # Extract IPv6 address from the WireGuard configuration file
+                config_file_path = f"/etc/wireguard/{self.Name}.conf"
+                with open(config_file_path, 'r') as f:
+                    config_data = f.read()
+                
+                # Extract the IPv6 address from the Address line
+                # Assuming the Address line format is `Address = 10.0.0.1/24, fe80::cf23:35e8:7eea:ede0/64`
+                ipv6_address = None
+                for line in config_data.splitlines():
+                    if line.strip().startswith("Address"):
+                        parts = line.split("=")[1].strip().split(", ")
+                        for part in parts:
+                            if ":" in part:  # Check if the part looks like an IPv6 address
+                                ipv6_address = part.strip()
+                                break
+                        if ipv6_address:
+                            break
+                
+                # Modify the logic to continue without IPv6 if not found
+                if ipv6_address:
+                    # Bring the WireGuard interface up
+                    check = subprocess.check_output(f"wg-quick up {self.Name}",
+                                                    shell=True, stderr=subprocess.STDOUT)
+                    
+                    try:
+                        # Remove any existing IPv6 addresses for the interface
+                        remove_ipv6_cmd = f"ip -6 addr flush dev {self.Name}"
+                        subprocess.check_output(remove_ipv6_cmd, shell=True, stderr=subprocess.STDOUT)
+                        
+                        # Add the new IPv6 address with the desired parameters
+                        add_ipv6_cmd = f"ip -6 addr add {ipv6_address} dev {self.Name}"
+                        subprocess.check_output(add_ipv6_cmd, shell=True, stderr=subprocess.STDOUT)
+                    except subprocess.CalledProcessError as exc:
+                        return False, str(exc.output.strip().decode("utf-8"))
+                else:
+                    # No IPv6 address found, just bring the interface up without modifying IPv6
+                    check = subprocess.check_output(f"wg-quick up {self.Name}",
+                                                    shell=True, stderr=subprocess.STDOUT)
             except subprocess.CalledProcessError as exc:
                 return False, str(exc.output.strip().decode("utf-8"))
+            
         self.getStatus()
         return True, None
 
+    
     def getPeersList(self):
         self.__getPeers()
         return self.Peers
