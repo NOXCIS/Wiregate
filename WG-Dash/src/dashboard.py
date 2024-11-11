@@ -46,6 +46,7 @@ if not os.path.exists(DASHBOARD_CONF):
     load_dotenv()
 
 awg_activate = os.environ.get('AMNEZIA_WG')
+wgd_config_path = os.environ.get('WGD_CONF_PATH')
 wgd_welcome = os.environ.get('WGD_WELCOME_SESSION')
 wgd_app_port = os.environ.get('WGD_REMOTE_ENDPOINT_PORT')
 wgd_auth_req = os.environ.get('WGD_AUTH_REQ')
@@ -958,7 +959,7 @@ class WireguardConfiguration:
 
     def patch_awg_iface_address(self, interface_address):
         try:
-            config_path = f"/etc/wireguard/{self.Name}.conf"
+            config_path = os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], f"{self.Name}.conf")
             with open(config_path, "r") as conf_file:
                 lines = conf_file.readlines()
 
@@ -1095,7 +1096,9 @@ class WireguardConfiguration:
     def toggleConfiguration(self) -> [bool, str]:
         self.getStatus()
         interface_address = self.get_awg_iface_address()
-        
+
+        config_file_path = os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], f"{self.Name}.conf")
+
         if self.Status:
             try:
                 check = subprocess.check_output(f"wg-quick down {self.Name}",
@@ -1110,12 +1113,10 @@ class WireguardConfiguration:
         else:
             try:
                 # Extract IPv6 address from the WireGuard configuration file
-                config_file_path = f"/etc/wireguard/{self.Name}.conf"
                 with open(config_file_path, 'r') as f:
                     config_data = f.read()
                 
                 # Extract the IPv6 address from the Address line
-                # Assuming the Address line format is `Address = 10.0.0.1/24, fe80::cf23:35e8:7eea:ede0/64`
                 ipv6_address = None
                 for line in config_data.splitlines():
                     if line.strip().startswith("Address"):
@@ -1152,8 +1153,7 @@ class WireguardConfiguration:
             
         self.getStatus()
         return True, None
-
-    
+        
     def getPeersList(self):
         self.__getPeers()
         return self.Peers
@@ -1517,7 +1517,7 @@ class DashboardConfig:
             },
             "Server": {
                 "amneziawg_activate": awg_activate,
-                "wg_conf_path": "/etc/wireguard",
+                "wg_conf_path": wgd_config_path,
                 "app_prefix": "",
                 "app_ip": "0.0.0.0",
                 "app_port": wgd_app_port,

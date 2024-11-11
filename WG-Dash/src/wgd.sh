@@ -16,7 +16,7 @@ app_official_name="WGDashboard"
 venv_python="./venv/bin/python3"
 venv_gunicorn="./venv/bin/gunicorn"
 pythonExecutable="python3"
-svr_config="/etc/wireguard/ADMINS.conf"
+svr_config="${WGD_CONF_PATH}/ADMINS.conf"
 
 heavy_checkmark=$(printf "\xE2\x9C\x94")
 heavy_crossmark=$(printf "\xE2\x9C\x97")
@@ -217,8 +217,8 @@ _checkPythonVersion(){
 	fi
 }
 disable_ipv6() {
-    # Find all .conf files in /etc/wireguard and extract interface names
-    for config in /etc/wireguard/*.conf; do
+    # Find all .conf files in ${WGD_CONF_PATH} and extract interface names
+    for config in ${WGD_CONF_PATH}/*.conf; do
         # Extract interface name from the filename (e.g., wg0.conf -> wg0)
         iface=$(basename "$config" .conf)
         
@@ -236,12 +236,12 @@ disable_ipv6() {
 install_wgd(){
     printf "[WGDashboard] Starting to install WGDashboard\n"
     _checkWireguard
-    sudo chmod -R 755 /etc/wireguard/
+    sudo chmod -R 755 ${WGD_CONF_PATH}/
 
-	if [ ! -d "/etc/wireguard/WGDashboard_Backup" ]
+	if [ ! -d "${WGD_CONF_PATH}/WGDashboard_Backup" ]
     	then
-    		printf "[WGDashboard] Creating /etc/wireguard/WGDashboard_Backup folder\n"
-            mkdir "/etc/wireguard/WGDashboard_Backup"
+    		printf "[WGDashboard] Creating ${WGD_CONF_PATH}/WGDashboard_Backup folder\n"
+            mkdir "${WGD_CONF_PATH}/WGDashboard_Backup"
     fi
     
     if [ ! -d "log" ]
@@ -437,6 +437,7 @@ set_env() {
   if [[ "$env_type" == "docker" ]]; then
 	printf "VANGUARD=%s\n" "${PASSWORD}" >> "$van_env_file"
     printf "AMNEZIA_WG=%s\n" "${AMNEZIA_WG}" >> "$env_file"
+	printf "WGD_CONF_PATH=%s\n" "${WGD_CONF_PATH}" >> "$env_file"
     printf "WGD_WELCOME_SESSION=%s\n" "${WGD_WELCOME_SESSION}" >> "$env_file"
     printf "WGD_REMOTE_ENDPOINT_PORT=%s\n" "${WGD_REMOTE_ENDPOINT_PORT}" >> "$env_file"
 	printf "WGD_AUTH_REQ=%s\n" "${WGD_AUTH_REQ}" >> "$env_file"
@@ -466,7 +467,7 @@ set_env() {
 start_core() {
 	log_dir="./log"
 	printf "%s\n" "$equals"
-	# Check if wg0.conf exists in /etc/wireguard
+	# Check if wg0.conf exists in ${WGD_CONF_PATH}
     if [ ! -f "$svr_config" ]; then
 		printf "[WGDashboard][Docker] %s Wireguard Configuration Missing, Creating ....\n" "$heavy_checkmark"
 		set_proxy
@@ -490,10 +491,10 @@ start_core() {
 
 	
 	# Re-assign config_files to ensure it includes any newly created configurations
-	local config_files=$(find /etc/wireguard -type f -name "*.conf")
+	local config_files=$(find ${WGD_CONF_PATH} -type f -name "*.conf")
 	local iptable_dir="/opt/wireguarddashboard/src/iptable-rules"
 	# Set file permissions
-	find /etc/wireguard -type f -name "*.conf" -exec chmod 600 {} \;
+	find ${WGD_CONF_PATH} -type f -name "*.conf" -exec chmod 600 {} \;
 	find "$iptable_dir" -type f -name "*.sh" -exec chmod +x {} \;
 	
 	# Start WireGuard for each config file
@@ -503,7 +504,7 @@ start_core() {
 
 	mkdir -p /etc/amnezia/amneziawg/
 
-	for file in /etc/wireguard/*; do
+	for file in ${WGD_CONF_PATH}/*; do
     # Check if the symbolic link already exists
     if [ -L "/etc/amnezia/amneziawg/$(basename "$file")" ]; then
         echo "AmneziaWG Symbolic Links for $(basename "$file") already exists, skipping..."
@@ -516,11 +517,38 @@ start_core() {
 	
 	log_file="$log_dir/interface_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt"
 
-	for file in $config_files; do
-		config_name=$(basename "$file" .conf)
-		wg-quick up "$config_name" >> "$log_file" 2>&1
-	done
-	
+
+wg_conf_path="${WGD_CONF_PATH}"
+
+
+	# Loop over each .conf file in the specified directory
+for file in "$wg_conf_path"/*.conf; do
+    # Get the configuration name (without the .conf extension)
+    config_name=$(basename "$file" .conf)
+
+    # Extract the IPv6 address from the configuration file
+    ipv6_address=$(grep -E 'Address\s*=\s*.*,\s*([a-fA-F0-9:]+)' "$file" | sed -E 's/.*,\s*([a-fA-F0-9:]+)\/.*/\1/')
+
+    # Bring the WireGuard interface up
+    echo "Bringing up interface: $config_name" >> "$log_file"
+    wg-quick up "$config_name" >> "$log_file" 2>&1
+
+    # Check if an IPv6 address was found in the config
+    if [ -n "$ipv6_address" ]; then
+        echo "IPv6 address found: $ipv6_address for $config_name" >> "$log_file"
+
+        # Remove any existing IPv6 addresses for the interface
+        ip -6 addr flush dev "$config_name" >> "$log_file" 2>&1
+
+        # Add the new IPv6 address to the interface
+        echo "Adding IPv6 address $ipv6_address to $config_name" >> "$log_file"
+        ip -6 addr add "$ipv6_address" dev "$config_name" >> "$log_file" 2>&1
+    else
+        echo "No IPv6 address found for $config_name, skipping IPv6 configuration." >> "$log_file"
+    fi
+done
+
+
 }
 start_wgd_debug() {
 	printf "%s\n" "$dashes"
@@ -559,25 +587,25 @@ wg_config_zones() {
   
   case $index in
     0)
-      local config_file="/etc/wireguard/ADMINS.conf"
+      local config_file="${WGD_CONF_PATH}/ADMINS.conf"
       local address="10.0.0.1/24"
       local post_up="$AMDpostup"
       local pre_down="$AMDpostdown"
       ;;
     1)
-      local config_file="/etc/wireguard/MEMBERS.conf"
+      local config_file="${WGD_CONF_PATH}/MEMBERS.conf"
       local address="192.168.10.1/24"
       local post_up="$MEMpostup"
       local pre_down="$MEMpostdown"
       ;;
     2)
-      local config_file="/etc/wireguard/LANP2P.conf"
+      local config_file="${WGD_CONF_PATH}/LANP2P.conf"
       local address="172.16.0.1/24"
       local post_up="$LANpostup"
       local pre_down="$LANpostdown"
       ;;
     3)
-      local config_file="/etc/wireguard/GUESTS.conf"
+      local config_file="${WGD_CONF_PATH}/GUESTS.conf"
       local address="192.168.20.1/24"
       local post_up="$GSTpostup"
       local pre_down="$GSTpostdown"

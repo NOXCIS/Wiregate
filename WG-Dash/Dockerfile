@@ -23,6 +23,7 @@ FROM alpine:latest
 LABEL maintainer="NOXCIS"
 WORKDIR /opt/wireguarddashboard/src
 ENV TZ=UTC
+ENV WGD_CONF_PATH="/etc/wireguard"
 COPY ./src /opt/wireguarddashboard/src/
 
 #Copy Built Bcrypt & Psutil Binarys
