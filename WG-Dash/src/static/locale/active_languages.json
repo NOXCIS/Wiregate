@@ -35,6 +35,11 @@
 		"lang_name_localized": "Українська"
 	},
 	{
+		"lang_id": "es-es",
+		"lang_name": "Spanish",
+		"lang_name_localized": "Español"
+	},
+	{
 		"lang_id": "zh-cn",
 		"lang_name": "Chinese (Simplified)",
 		"lang_name_localized": "中文（简体）"
