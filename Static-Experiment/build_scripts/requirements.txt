@@ -1,0 +1,15 @@
+bcrypt
+ifcfg
+psutil
+pyotp
+Flask
+flask-cors
+icmplib
+gunicorn
+python-dotenv
+requests
+vanguards
+configparser
+stem
+pyinstaller
+waitress
