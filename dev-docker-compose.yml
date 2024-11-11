@@ -83,6 +83,8 @@ services:
       - ./Global-Configs/Logs:/opt/wireguarddashboard/src/log/
 
     environment:
+    #Config Path Optional
+     #- WGD_CONF_PATH="/etc/wireguard"
     #Use Ofuscated Wireguard (AmneziaWG)
       - AMNEZIA_WG=true
     #Set Timezone
