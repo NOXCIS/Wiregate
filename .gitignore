@@ -68,4 +68,6 @@ preqsinstalled.txt
 .env.anim.run.txt
 /Static-Experiment/configs/logs
 /Static-Experiment/configs/tor
-/Static-Experiment/configs
+/Static-Experiment/configs/master-key
+/Static-Experiment/configs/pihole
+
