@@ -255,15 +255,13 @@ if [[ "$WGD_TOR_PROXY" == "true" ]]; then
   generate_vanguard_tor_ctrl_pass
   make_torrc
   make_dns_torrc
+  run_tor_flux &
+  TOR_PID=$!
 fi
 
 ./wiregate.sh install
 ./wiregate.sh start &
 
-if [[ "$WGD_TOR_PROXY" == "true" ]]; then
-  run_tor_flux &
-  TOR_PID=$!
-fi
 
 
 ensure_blocking
