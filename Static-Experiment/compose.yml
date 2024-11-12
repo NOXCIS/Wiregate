@@ -72,8 +72,6 @@ services:
       #image: noxcis/wiregate:static-dev
       container_name: wiregate-static
       hostname: wiregate-static
-      devices:
-        - /dev/net/tun:/dev/net/tun
       cap_add:
         - NET_ADMIN
         - SYS_MODULE
@@ -116,7 +114,7 @@ services:
 
       #DNS Setiings (Set To use Containers Above) You can use your own DNS
       ##########################################################
-        - WGD_DNS=10.2.0.100
+        - WGD_DNS="10.2.0.100, 10.2.0.100"
         - WGD_IPTABLES_DNS=10.2.0.100
 
         

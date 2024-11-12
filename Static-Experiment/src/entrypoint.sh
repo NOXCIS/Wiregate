@@ -108,7 +108,6 @@ make_torrc() {
 }
 make_dns_torrc() {
     printf "%s\n" "$dashes"
-    sudo apk add --no-cache tor curl > /dev/null 2>&1
     printf "[TOR-DNS] Generating DNS-torrc to $DNS_TORRC_PATH...\n"
     if [ -f "$DNS_TORRC_PATH" ]; then
     rm "$DNS_TORRC_PATH" 
@@ -251,12 +250,11 @@ if [[ "$AMNEZIA_WG" == "true" ]]; then
 fi
 
 
-make_dns_torrc
-
 if [[ "$WGD_TOR_PROXY" == "true" ]]; then
+  sudo apk add --no-cache tor curl > /dev/null 2>&1
   generate_vanguard_tor_ctrl_pass
   make_torrc
-  
+  make_dns_torrc
 fi
 
 ./wiregate.sh install

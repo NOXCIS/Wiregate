@@ -34,7 +34,7 @@ RUN python3 -m venv venv \
 
 # Use PyInstaller to create a standalone binary with UPX compression
 RUN venv/bin/pip install pyinstaller && \
-    venv/bin/pyinstaller --onefile --upx-dir=/usr/bin --name dashboard dashboard.py && \
+    venv/bin/pyinstaller --onefile --name dashboard dashboard.py && \
     venv/bin/pyinstaller --onefile --strip --upx-dir=/usr/bin --name vanguards vanguards.py && \
     upx --best --lzma /build/dist/vanguards
 

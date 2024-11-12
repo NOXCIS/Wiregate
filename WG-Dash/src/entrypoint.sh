@@ -112,7 +112,6 @@ make_torrc() {
 }
 make_dns_torrc() {
     printf "%s\n" "$dashes"
-    sudo apk add --no-cache tor curl > /dev/null 2>&1
     printf "[TOR-DNS] Generating DNS-torrc to $DNS_TORRC_PATH...\n"
     if [ -f "$DNS_TORRC_PATH" ]; then
     rm "$DNS_TORRC_PATH" 
@@ -241,6 +240,7 @@ ensure_blocking() {
   fi
   wait
 }
+
 # create /dev/net/tun if it does not exist
 if [[ ! -c /dev/net/tun ]]; then
     mkdir -p /dev/net && mknod /dev/net/tun c 10 200
@@ -257,11 +257,12 @@ chmod u+x /opt/wireguarddashboard/src/wgd.sh
 { date; clean_up; printf "\n\n"; } >> ./log/install.txt
 
 
-make_dns_torrc
+
 if [[ "$WGD_TOR_PROXY" == "true" ]]; then
+  sudo apk add --no-cache tor curl > /dev/null 2>&1
   generate_vanguard_tor_ctrl_pass
   make_torrc
-  
+  make_dns_torrc
 fi
 
 
