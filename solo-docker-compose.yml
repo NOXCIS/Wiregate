@@ -11,7 +11,7 @@ networks:
     internal: false
     ipam:
       config:
-        - subnet: 10.2.0.0/24
+        - subnet: 10.5.0.0/24
 
 
 services:
@@ -55,14 +55,14 @@ services:
         - WGD_PASS=admin
         - WGD_REMOTE_ENDPOINT=0.0.0.0
         - WGD_REMOTE_ENDPOINT_PORT=80
-        - WGD_PEER_ENDPOINT_ALLOWED_IP=0.0.0.0/0, ::/0
+        - WGD_PEER_ENDPOINT_ALLOWED_IP="0.0.0.0/0, ::/0"
         - WGD_KEEP_ALIVE=21
         - WGD_MTU=1420
         - WGD_PORT_RANGE_STARTPORT=4430
 
       #DNS Setiings (Set To use Containers Above) You can use your own DNS
       ##########################################################
-        - WGD_DNS="1.1.1.1"
+        - WGD_DNS=1.1.1.1
         - WGD_IPTABLES_DNS=1.1.1.1
 
         
@@ -79,7 +79,7 @@ services:
         - WGD_H3=32345 #H3
         - WGD_H4=123123 #H4
       ports:
-        - "4430-4433:4430-4433/udp" #UDP Interface Listen Ports
+        #- "4430-4433:4430-4433/udp" #UDP Interface Listen Ports
         - 8000:80/tcp #Comment Out for full network lockdown
       sysctls:
         - net.ipv4.ip_forward=1
@@ -88,7 +88,7 @@ services:
         - net.ipv6.conf.default.forwarding=1
       networks:
         private_network:
-          ipv4_address: 10.2.0.3
+          ipv4_address: 10.5.0.3
     
 
 
