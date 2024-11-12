@@ -1,19 +1,23 @@
-# builder: FRONTEND - Vite Builder 
-FROM node:alpine AS node
+# node: FRONTEND - Vite Builder 
+FROM --platform=${BUILDPLATFORM} node:iron-alpine3.20 AS node
 WORKDIR /static/app
 COPY ./build_scripts/static /static
 RUN npm ci && npm run build          
 
 
-# Stage 1: Build stage
-FROM python:3.12-alpine AS builder
+# builder: WGDashboard & Vanguards Python Binary Build stage
+FROM python:alpine AS builder
 RUN apk add --no-cache \
     py3-virtualenv \
     py3-pip \
     gcc \
     musl-dev \
+    zlib-dev \
     libffi-dev \
     openssl-dev \
+    linux-headers \
+    rust \
+    cargo \
     upx 
 WORKDIR /build
 
@@ -35,7 +39,7 @@ RUN venv/bin/pip install pyinstaller && \
     upx --best --lzma /build/dist/vanguards
 
 
-# Stage 2: Final image
+# Stage 3: Final image
 FROM alpine:latest
 LABEL maintainer="NOXCIS"
 WORKDIR /WireGate
@@ -45,7 +49,11 @@ COPY ./src /WireGate/
 
 # Install necessary tools and libraries in the final image
 RUN apk add --no-cache wireguard-tools iptables ip6tables tzdata sudo && \
-    apk upgrade
+    apk upgrade && \
+    apk cache clean && \
+    rm -rf /tmp/* /var/tmp/*
+
+
 
 # Copy only the build output from the build-stage
 COPY --from=node /static/app/dist /WireGate/static/app/dist

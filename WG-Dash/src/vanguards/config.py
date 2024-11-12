@@ -21,6 +21,19 @@ except ImportError:
   from configparser import ConfigParser, Error
 
 from dotenv import load_dotenv
+
+VANGUARDS_CONF = ".env"
+
+# Check if .env file exists
+if os.path.exists(VANGUARDS_CONF):
+    with open(VANGUARDS_CONF, 'r') as file:
+        # Read the first non-empty line that isn't just a comment
+        for line in file:
+            stripped_line = line.strip()
+            if stripped_line and not stripped_line.startswith('#'):
+                load_dotenv()
+                break
+
 ################# Global options ##################
 
 ENABLE_VANGUARDS=True

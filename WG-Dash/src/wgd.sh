@@ -31,9 +31,15 @@ else
   cb_config_dir=/var/lib/letsencrypt
 fi
 
+if [[ "$AMNEZIA_WG" == "true" ]]; then
+    VPN_PROTO_TYPE="AmneziaWG"
+else
+    VPN_PROTO_TYPE="WireGuard"
+fi
+
 dashes='------------------------------------------------------------'
 equals='============================================================'
-helpMsg="[WGDashboard] Please check ./log/install.txt for more details. For further assistance, please open a ticket on https://github.com/donaldzou/WGDashboard/issues/new/choose, I'm more than happy to help :)"
+helpMsg="[WIREGATE] Please check ./log/install.txt for more details. For further assistance, please open a ticket on https://github.com/donaldzou/WGDashboard/issues/new/choose, I'm more than happy to help :)"
 help () {
   printf "=================================================================================\n"
   printf "+          <WGDashboard> by Donald Zou - https://github.com/donaldzou           +\n"
@@ -52,13 +58,13 @@ help () {
 _check_and_set_venv(){
     VIRTUAL_ENV="./venv"
     if [ ! -d $VIRTUAL_ENV ]; then
-    	printf "[WGDashboard] Creating Python Virtual Environment under ./venv\n"
+    	printf "[WIREGATE] Creating Python Virtual Environment under ./venv\n"
         { $pythonExecutable -m venv $VIRTUAL_ENV; } >> ./log/install.txt
     fi
     
     if ! $venv_python --version > /dev/null 2>&1
     then
-    	printf "[WGDashboard] %s Python Virtual Environment under ./venv failed to create. Halting now.\n" "$heavy_crossmark"	
+    	printf "[WIREGATE] %s Python Virtual Environment under ./venv failed to create. Halting now.\n" "$heavy_crossmark"	
     	kill  $TOP_PID
     fi
     
@@ -71,11 +77,11 @@ _determineOS(){
   elif [ -f /etc/redhat-release ]; then
       OS="redhat"
   else
-      printf "[WGDashboard] %s Sorry, your OS is not supported. Currently the install script only support Debian-based, Red Hat-based OS." "$heavy_crossmark"
+      printf "[WIREGATE] %s Sorry, your OS is not supported. Currently the install script only support Debian-based, Red Hat-based OS." "$heavy_crossmark"
       printf "%s\n" "$helpMsg"
       kill  $TOP_PID
   fi
-   printf "[WGDashboard] OS: %s\n" "$OS"
+   printf "[WIREGATE] OS: %s\n" "$OS"
 }
 _installPython(){
 	case "$OS" in
@@ -96,11 +102,11 @@ _installPython(){
 	
 	if ! python3 --version > /dev/null 2>&1
 	then
-		printf "[WGDashboard] %s Python is still not installed, halting script now.\n" "$heavy_crossmark"
+		printf "[WIREGATE] %s Python is still not installed, halting script now.\n" "$heavy_crossmark"
 		printf "%s\n" "$helpMsg"
 		kill  $TOP_PID
 	else
-		printf "[WGDashboard] %s Python is installed\n" "$heavy_checkmark"
+		printf "[WIREGATE] %s Python is installed\n" "$heavy_checkmark"
 	fi
 }
 _installPythonVenv(){
@@ -120,7 +126,7 @@ _installPythonVenv(){
 				{ apk add --no-cache py3-virtualenv; printf "\n\n"; } &>> ./log/install.txt 
 			;;
 			*)
-				printf "[WGDashboard] %s Sorry, your OS is not supported. Currently the install script only support Debian-based, Red Hat-based OS.\n" "$heavy_crossmark"
+				printf "[WIREGATE] %s Sorry, your OS is not supported. Currently the install script only support Debian-based, Red Hat-based OS.\n" "$heavy_crossmark"
 				printf "%s\n" "$helpMsg"
 				kill  $TOP_PID
 			;;
@@ -135,10 +141,10 @@ _installPythonVenv(){
 	
 	if ! $pythonExecutable -m venv -h > /dev/null 2>&1
 	then
-		printf "[WGDashboard] %s Python Virtual Environment is still not installed, halting script now.\n" "$heavy_crossmark"
+		printf "[WIREGATE] %s Python Virtual Environment is still not installed, halting script now.\n" "$heavy_crossmark"
 		printf "%s\n" "$helpMsg"
 	else
-		printf "[WGDashboard] %s Python Virtual Environment is installed\n" "$heavy_checkmark"
+		printf "[WIREGATE] %s Python Virtual Environment is installed\n" "$heavy_checkmark"
 	fi
 }
 _installPythonPip(){
@@ -164,7 +170,7 @@ _installPythonPip(){
 				{ apk add --no-cache py3-pip; printf "\n\n"; } &>> ./log/install.txt 
 			;;
 			*)
-				printf "[WGDashboard] %s Sorry, your OS is not supported. Currently the install script only support Debian-based, Red Hat-based OS.\n" "$heavy_crossmark"
+				printf "[WIREGATE] %s Sorry, your OS is not supported. Currently the install script only support Debian-based, Red Hat-based OS.\n" "$heavy_crossmark"
 				printf "%s\n" "$helpMsg"
 				kill  $TOP_PID
 			;;
@@ -173,22 +179,22 @@ _installPythonPip(){
     	
 	if ! $pythonExecutable -m pip -h > /dev/null 2>&1
 	then
-		printf "[WGDashboard] %s Python Package Manager (PIP) is still not installed, halting script now.\n" "$heavy_crossmark"
+		printf "[WIREGATE] %s Python Package Manager (PIP) is still not installed, halting script now.\n" "$heavy_crossmark"
 		printf "%s\n" "$helpMsg"
 		kill  $TOP_PID
 	else
-		printf "[WGDashboard] %s Python Package Manager (PIP) is installed\n" "$heavy_checkmark"
+		printf "[WIREGATE] %s Python Package Manager (PIP) is installed\n" "$heavy_checkmark"
 	fi
 }
 _checkWireguard(){
 	if ! wg -h > /dev/null 2>&1
 	then
-		printf "[WGDashboard] %s WireGuard is not installed. Please follow instruction on https://www.wireguard.com/install/ to install. \n" "$heavy_crossmark"
+		printf "[WIREGATE] %s ${VPN_PROTO_TYPE} is not installed. Please follow instruction on https://www.wireguard.com/install/ to install. \n" "$heavy_crossmark"
 		kill  $TOP_PID
 	fi
 	if ! wg-quick -h > /dev/null 2>&1
 	then
-		printf "[WGDashboard] %s WireGuard is not installed. Please follow instruction on https://www.wireguard.com/install/ to install. \n" "$heavy_crossmark"
+		printf "[WIREGATE] %s ${VPN_PROTO_TYPE} is not installed. Please follow instruction on https://www.wireguard.com/install/ to install. \n" "$heavy_crossmark"
 		kill  $TOP_PID
 	fi
 }
@@ -200,62 +206,45 @@ _checkPythonVersion(){
 			return;
 	elif python3.10 --version > /dev/null 2>&1
 		then
-	 		printf "[WGDashboard] %s Found Python 3.10. Will be using [python3.10] to install WGDashboard.\n" "$heavy_checkmark"
+	 		printf "[WIREGATE] %s Found Python 3.10. Will be using [python3.10] to install WGDashboard.\n" "$heavy_checkmark"
 	 		pythonExecutable="python3.10"
 	elif python3.11 --version > /dev/null 2>&1
     	 then
-    	 	printf "[WGDashboard] %s Found Python 3.11. Will be using [python3.11] to install WGDashboard.\n" "$heavy_checkmark"
+    	 	printf "[WIREGATE] %s Found Python 3.11. Will be using [python3.11] to install WGDashboard.\n" "$heavy_checkmark"
     	 	pythonExecutable="python3.11"
     elif python3.12 --version > /dev/null 2>&1
     	 then
-    	 	printf "[WGDashboard] %s Found Python 3.12. Will be using [python3.12] to install WGDashboard.\n" "$heavy_checkmark"
+    	 	printf "[WIREGATE] %s Found Python 3.12. Will be using [python3.12] to install WGDashboard.\n" "$heavy_checkmark"
     	 	pythonExecutable="python3.12"
 	else
-		printf "[WGDashboard] %s Could not find a compatible version of Python. Current Python is %s.\n" "$heavy_crossmark" "$version"
-		printf "[WGDashboard] WGDashboard required Python 3.10, 3.11 or 3.12. Halting install now.\n"
+		printf "[WIREGATE] %s Could not find a compatible version of Python. Current Python is %s.\n" "$heavy_crossmark" "$version"
+		printf "[WIREGATE] WGDashboard required Python 3.10, 3.11 or 3.12. Halting install now.\n"
 		kill $TOP_PID
 	fi
 }
-disable_ipv6() {
-    # Find all .conf files in ${WGD_CONF_PATH} and extract interface names
-    for config in ${WGD_CONF_PATH}/*.conf; do
-        # Extract interface name from the filename (e.g., wg0.conf -> wg0)
-        iface=$(basename "$config" .conf)
-        
-        # Check if the interface exists before disabling IPv6 settings
-        if ip link show "$iface" >/dev/null 2>&1; then
-            echo "Disabling IPv6 autoconf on interface $iface"
-            sysctl -w net.ipv6.conf."$iface".autoconf=0
-            sysctl -w net.ipv6.conf."$iface".accept_ra=0
-            sysctl -w net.ipv6.conf."$iface".use_tempaddr=0
-        else
-            echo "Interface $iface not found, skipping..."
-        fi
-    done
-}
 install_wgd(){
-    printf "[WGDashboard] Starting to install WGDashboard\n"
+    printf "[WIREGATE] Starting to install WGDashboard\n"
     _checkWireguard
     sudo chmod -R 755 ${WGD_CONF_PATH}/
 
 	if [ ! -d "${WGD_CONF_PATH}/WGDashboard_Backup" ]
     	then
-    		printf "[WGDashboard] Creating ${WGD_CONF_PATH}/WGDashboard_Backup folder\n"
+    		printf "[WIREGATE] Creating ${WGD_CONF_PATH}/WGDashboard_Backup folder\n"
             mkdir "${WGD_CONF_PATH}/WGDashboard_Backup"
     fi
     
     if [ ! -d "log" ]
 	  then 
-		printf "[WGDashboard] Creating ./log folder\n"
+		printf "[WIREGATE] Creating ./log folder\n"
 		mkdir "log"
 	fi
     _determineOS
     if ! python3 --version > /dev/null 2>&1
     then
-    	printf "[WGDashboard] Python is not installed, trying to install now\n"
+    	printf "[WIREGATE] Python is not installed, trying to install now\n"
     	_installPython
     else
-    	printf "[WGDashboard] %s Python is installed\n" "$heavy_checkmark"
+    	printf "[WIREGATE] %s Python is installed\n" "$heavy_checkmark"
     fi
     
     _checkPythonVersion
@@ -264,17 +253,17 @@ install_wgd(){
 
     if [ ! -d "db" ] 
 		then 
-			printf "[WGDashboard] Creating ./db folder\n"
+			printf "[WIREGATE] Creating ./db folder\n"
 			mkdir "db"
     fi
     _check_and_set_venv
-    printf "[WGDashboard] Upgrading Python Package Manage (PIP)\n"
+    printf "[WIREGATE] Upgrading Python Package Manage (PIP)\n"
 	{ date; python3 -m ensurepip --upgrade; printf "\n\n"; } >> ./log/install.txt
     { date; python3 -m pip install --no-cache-dir --upgrade pip; printf "\n\n"; } >> ./log/install.txt
-    printf "[WGDashboard] Installing latest Python dependencies\n"
+    printf "[WIREGATE] Installing latest Python dependencies\n"
     { date; python3 -m pip install --no-cache-dir -r requirements.txt ; printf "\n\n"; } >> ./log/install.txt
-    printf "[WGDashboard] WGDashboard installed successfully!\n"
-    printf "[WGDashboard] Enter ./wgd.sh start to start the dashboard\n"
+    printf "[WIREGATE] WGDashboard installed successfully!\n"
+    printf "[WIREGATE] Enter ./wgd.sh start to start the dashboard\n"
 }
 check_wgd_status(){
   if test -f "$PID_FILE"; then
@@ -304,9 +293,8 @@ gunicorn_start () {
   fi
   _check_and_set_venv
   . .env
-	export WGD_IPTABLES_DNS
   sudo "$venv_gunicorn" --config ./gunicorn.conf.py
-  sleep 5
+  sleep 3
   checkPIDExist=0
   while [ $checkPIDExist -eq 0 ]
   do
@@ -316,7 +304,7 @@ gunicorn_start () {
   		sleep 2
   	done
   	printf "%s\n" "$equals"
-  	printf "[WGDashboard] WGDashboard w/ Gunicorn started successfully\n"
+  	printf "[WIREGATE] WGDashboard w/ Gunicorn started successfully\n"
   	printf "%s\n" "$equals"
   	tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 42000 > .env
 	sed -i '1,42s/^/#/' .env
@@ -334,12 +322,12 @@ stop_wgd() {
 }
 startwgd_docker() {
     _checkWireguard
-	printf "%s\n" "$equals"
-    printf "[WGDashboard][Docker] %s WGD Docker Started\n" "$heavy_checkmark"
-    printf "%s\n" "$equals"
 	set_env docker 
     gunicorn_start
 	start_core
+	printf "%s\n" "$equals"
+    printf "[WIREGATE] %s Started\n" "$heavy_checkmark"
+    printf "%s\n" "$equals"
 	if [[ "$WGD_TOR_PROXY" == "true" ]]; then
 		# Get the most recent log file based on the date in the filename
 		latest_log=$(ls /opt/wireguarddashboard/src/log/tor_startup_log_*.txt | sort -V | tail -n 1)
@@ -373,6 +361,7 @@ startwgd_docker() {
 				empty_length=$((bar_length - filled_length))
 
 				# Display the loading bar with updated progress on a new line each time
+				printf "%s\n" "$dashes"
 				printf "[TOR-VANGUARDS] Bootstrapping: ["
 				printf "%0.s#" $(seq 1 $filled_length)
 				
@@ -390,15 +379,12 @@ startwgd_docker() {
 			latest_log=$(ls /opt/wireguarddashboard/src/log/tor_startup_log_*.txt | sort -V | tail -n 1)
 		done
 
-		# Ensure the loading bar ends with a newline
-		echo ""
-
 		if [ $bootstrapped_percent -lt 100 ]; then
 			echo "[TOR-VANGUARDS] Tor did not bootstrap to 100% within the expected time. Exiting."
 			printf "%s\n" "$dashes"
 			return
 		fi
-
+		printf "%s\n" "$dashes"
 		printf "[TOR-VANGUARDS] Tor is fully booted. Starting TOR Vanguards\n"
 		printf "%s\n" "$dashes"
 		sudo chown -R tor /etc/tor
@@ -406,11 +392,10 @@ startwgd_docker() {
 		python3 vanguards.py --one_shot_vanguards &
 		wait
 		tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 42000 > ./vanguards/.env
-		sed -i '1,42s/^/#/' ./vanguards/.env  # Wait for the command to complete before continuing
-		sleep 3600  # Sleep for 1 hour (3600 seconds)
+		sed -i '1,42s/^/#/' ./vanguards/.env  
+		sleep 3600  #Sleep for 1 hour befored Updating Vanguards Again
 		done
 	fi    
-	
 }
 set_env() {
   local env_file=".env"
@@ -419,7 +404,7 @@ set_env() {
 
   # Check if the env_file exists and is not empty
   if [[ -f "$env_file" && -s "$env_file" ]]; then
-    printf "[WGDashboard][Docker] %s Loading Enviornment File.\n" "$heavy_checkmark"
+    printf "[WIREGATE %s Loading Enviornment File.\n" "$heavy_checkmark"
     return 0
   fi
 
@@ -427,7 +412,7 @@ set_env() {
   if [[ ! -f "$env_file" ]]; then
     touch "$env_file"
 	touch "$van_env_file"
-    printf "[WGDashboard][Docker] %s Enviornment File Missing, Creating ...\n" "$heavy_checkmark" 
+    printf "[WIREGATE] %s Enviornment File Missing, Creating ...\n" "$heavy_checkmark" 
   fi
 
   # Clear the file to ensure it's updated with the latest values
@@ -435,7 +420,7 @@ set_env() {
   > "$van_env_file"
 
   if [[ "$env_type" == "docker" ]]; then
-	printf "VANGUARD=%s\n" "${PASSWORD}" >> "$van_env_file"
+	printf "VANGUARD=%s\n" "${VANGUARD}" >> "$van_env_file"
     printf "AMNEZIA_WG=%s\n" "${AMNEZIA_WG}" >> "$env_file"
 	printf "WGD_CONF_PATH=%s\n" "${WGD_CONF_PATH}" >> "$env_file"
     printf "WGD_WELCOME_SESSION=%s\n" "${WGD_WELCOME_SESSION}" >> "$env_file"
@@ -467,28 +452,14 @@ set_env() {
 start_core() {
 	log_dir="./log"
 	printf "%s\n" "$equals"
-	# Check if wg0.conf exists in ${WGD_CONF_PATH}
+	# Check if ADMINS.conf exists in ${WGD_CONF_PATH}
     if [ ! -f "$svr_config" ]; then
-		printf "[WGDashboard][Docker] %s Wireguard Configuration Missing, Creating ....\n" "$heavy_checkmark"
+		printf "[WIREGATE] %s ${VPN_PROTO_TYPE} Configurations Missing, Creating ....\n" "$heavy_checkmark"
 		set_proxy
 		newconf_wgd
 	else
-		printf "[WGDashboard][Docker] %s Loading Wireguard Configuartions.\n" "$heavy_checkmark"
+		printf "[WIREGATE] %s Loading ${VPN_PROTO_TYPE} Configuartions.\n" "$heavy_checkmark"
 	fi
-
-
-	if [[ "$AMNEZIA_WG" == "true" ]]; then
-    mkdir -p /usr/local/bin
-    ln -sf /usr/bin/awg /usr/local/bin/wg
-    ln -sf /usr/bin/awg-quick /usr/local/bin/wg-quick
-	fi
-
-	#if [[ "$AMNEZIA_WG" == "true" ]]; then
-	#	apk del wireguard-tools > /dev/null
-	#	ln -s /usr/bin/awg /usr/bin/wg > /dev/null
-	#	ln -s /usr/bin/awg-quick /usr/bin/wg-quick > /dev/null
-	#fi
-
 	
 	# Re-assign config_files to ensure it includes any newly created configurations
 	local config_files=$(find ${WGD_CONF_PATH} -type f -name "*.conf")
@@ -496,14 +467,12 @@ start_core() {
 	# Set file permissions
 	find ${WGD_CONF_PATH} -type f -name "*.conf" -exec chmod 600 {} \;
 	find "$iptable_dir" -type f -name "*.sh" -exec chmod +x {} \;
-	
-	# Start WireGuard for each config file
-	
-	printf "[WGDashboard][Docker] %s Starting Wireguard Configuartions.\n" "$heavy_checkmark"
+
+	printf "[WIREGATE] %s Starting ${VPN_PROTO_TYPE} Configuartions.\n" "$heavy_checkmark"
 	printf "%s\n" "$equals"
 
-	mkdir -p /etc/amnezia/amneziawg/
-
+	#Creating Symbolic Links For AmneziaWG if Enabled
+	if [[ "$AMNEZIA_WG" == "true" ]]; then
 	for file in ${WGD_CONF_PATH}/*; do
     # Check if the symbolic link already exists
     if [ -L "/etc/amnezia/amneziawg/$(basename "$file")" ]; then
@@ -513,16 +482,15 @@ start_core() {
     # Create the symbolic link if it doesn't exist
     sudo ln -s "$file" /etc/amnezia/amneziawg/
 	done
+	fi
 
 	
 	log_file="$log_dir/interface_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt"
+	wg_conf_path="${WGD_CONF_PATH}"
 
-
-wg_conf_path="${WGD_CONF_PATH}"
-
-
+	# Start WireGuard for each config file
 	# Loop over each .conf file in the specified directory
-for file in "$wg_conf_path"/*.conf; do
+	for file in "$wg_conf_path"/*.conf; do
     # Get the configuration name (without the .conf extension)
     config_name=$(basename "$file" .conf)
 
@@ -533,6 +501,7 @@ for file in "$wg_conf_path"/*.conf; do
     echo "Bringing up interface: $config_name" >> "$log_file"
     wg-quick up "$config_name" >> "$log_file" 2>&1
 
+	#Patching for AmneziaWG IPV6
     # Check if an IPv6 address was found in the config
     if [ -n "$ipv6_address" ]; then
         echo "IPv6 address found: $ipv6_address for $config_name" >> "$log_file"
@@ -553,7 +522,7 @@ done
 start_wgd_debug() {
 	printf "%s\n" "$dashes"
 	_checkWireguard
-	printf "[WGDashboard] Starting WGDashboard in the foreground.\n"
+	printf "[WIREGATE] Starting WGDashboard in the foreground.\n"
 	sudo "$venv_python" "$app_name"
 	printf "%s\n" "$dashes"
 }
@@ -639,18 +608,25 @@ EOF
 
 
 make_master_config() {
-    # Create the master-key directory if it doesn't exist
-    if [ ! -d "master-key" ]; then
-        mkdir "master-key"
+    # Ensure necessary variables are set
+    if [ -z "$svr_config" ]; then
+        echo "[Error] Server configuration file path (\$svr_config) is not set."
+        return 1
     fi
+
+    # Create the master-key directory if it doesn't exist
+    mkdir -p "master-key"
 
     # Check if the specified config file exists
     if [ -f "$svr_config" ]; then
         # Check if the master peer with IP 10.0.0.254/32 is already configured
         if grep -q "AllowedIPs = 10.0.0.254/32" "$svr_config"; then
-            echo "[WGDashboard][Docker] Master Peer Already Exists, Skipping..."
+            echo "[WIREGATE] Master Peer Already Exists, Skipping..."
             return 0
         fi
+    else
+        echo "[Error] Server configuration file ($svr_config) does not exist."
+        return 1
     fi
 
     # Function to generate a new peer's public key
@@ -659,51 +635,65 @@ make_master_config() {
         echo "$private_key" | wg pubkey
     }
 
-    # Function to generate a new preshared key
-    generate_preshared_key() {
-        wg genpsk
-    }
-
     # Generate the new peer's private key, public key, and preshared key
     wg_private_key=$(wg genkey)
+    if [ -z "$wg_private_key" ]; then
+        echo "[Error] Failed to generate ${VPN_PROTO_TYPE} private key."
+        return 1
+    fi
+
     peer_public_key=$(generate_public_key "$wg_private_key")
-    preshared_key=$(generate_preshared_key)
+    preshared_key=$(wg genpsk)
 
     # Add the peer to the WireGuard config file with the preshared key
-    echo -e "\n[Peer]" >> "$svr_config"
-    echo "#Name# = Master Key" >> "$svr_config"
-    echo "PublicKey = $peer_public_key" >> "$svr_config"
-    echo "PresharedKey = $preshared_key" >> "$svr_config"
-    echo "AllowedIPs = 10.0.0.254/32" >> "$svr_config"
+    {
+        echo -e "\n[Peer]"
+        echo "#Name# = Master Key"
+        echo "PublicKey = $peer_public_key"
+        echo "PresharedKey = $preshared_key"
+        echo "AllowedIPs = 10.0.0.254/32"
+    } >> "$svr_config"
 
+    # Extract the server's private key and generate its public key
     server_private_key=$(grep -E '^PrivateKey' "$svr_config" | awk '{print $NF}')
+    if [ -z "$server_private_key" ]; then
+        echo "[Error] Failed to extract server private key from configuration."
+        return 1
+    fi
     svrpublic_key=$(echo "$server_private_key" | wg pubkey)
 
     # Generate the client config file
-    cat <<EOF >"/opt/wireguarddashboard/src/master-key/master.conf"
-[Interface]
-PrivateKey = $wg_private_key
-Address = 10.0.0.254/32
-DNS = 10.2.0.100,10.2.0.100
-MTU = 1420
-Jc = $WGD_JC
-Jmin = $WGD_JMIN
-Jmax = $WGD_JMAX
-S1 = $WGD_S1
-S2 = $WGD_S2
-H1 = $WGD_H1
-H2 = $WGD_H2
-H3 = $WGD_H3
-H4 = $WGD_H4
+    {
+        echo "[Interface]"
+        echo "PrivateKey = $wg_private_key"
+        echo "Address = 10.0.0.254/32"
+        echo "DNS = 10.2.0.100,10.2.0.100"
+        echo -e "MTU = 1420\n" 
 
-[Peer]
-PublicKey = $svrpublic_key
-AllowedIPs = 0.0.0.0/0
-Endpoint = $WGD_REMOTE_ENDPOINT:$WGD_PORT_RANGE_STARTPORT
-PersistentKeepalive = 21
-PresharedKey = $preshared_key
-EOF
+        # Conditional block for AMNEZIA_WG
+        if [ "$AMNEZIA_WG" == "true" ]; then
+            echo "Jc = $WGD_JC"
+            echo "Jmin = $WGD_JMIN"
+            echo "Jmax = $WGD_JMAX"
+            echo "S1 = $WGD_S1"
+            echo "S2 = $WGD_S2"
+            echo "H1 = $WGD_H1"
+            echo "H2 = $WGD_H2"
+            echo "H3 = $WGD_H3"
+            echo -e "H4 = $WGD_H4\n"
+        fi
+
+        echo "[Peer]"
+        echo "PublicKey = $svrpublic_key"
+        echo "AllowedIPs = 0.0.0.0/0"
+        echo "Endpoint = $WGD_REMOTE_ENDPOINT:$WGD_PORT_RANGE_STARTPORT"
+        echo "PersistentKeepalive = 21"
+        echo "PresharedKey = $preshared_key"
+    } > "/opt/wireguarddashboard/src/master-key/master.conf"
+
+	printf "[WIREGATE] %s ${VPN_PROTO_TYPE} Master configuration created successfully.\n" "$heavy_checkmark"
 }
+
 
 
 
@@ -728,11 +718,11 @@ if [ "$#" != 1 ];
 				if check_wgd_status; then
 					printf "%s\n" "$dashes"
 					stop_wgd
-					printf "[WGDashboard] WGDashboard is stopped.\n"
+					printf "[WIREGATE] WGDashboard is stopped.\n"
 					printf "%s\n" "$dashes"
 					else
 						printf "%s\n" "$dashes"
-						printf "[WGDashboard] WGDashboard is not running.\n"
+						printf "[WIREGATE] WGDashboard is not running.\n"
 						printf "%s\n" "$dashes"
 				fi
 			elif [ "$1" = "update" ]; then
@@ -745,7 +735,7 @@ if [ "$#" != 1 ];
 				if check_wgd_status; then
 					printf "%s\n" "$dashes"
 					stop_wgd
-					printf "[WGDashboard] WGDashboard is stopped.\n"
+					printf "[WIREGATE] WGDashboard is stopped.\n"
 					sleep 4
 					start_wgd
 				else
@@ -753,7 +743,7 @@ if [ "$#" != 1 ];
 				fi
 			elif [ "$1" = "debug" ]; then
 				if check_wgd_status; then
-					printf "[WGDashboard] WGDashboard is already running.\n"
+					printf "[WIREGATE] WGDashboard is already running.\n"
 				else
 					start_wgd_debug
 				fi

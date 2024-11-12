@@ -1,13 +1,9 @@
 
 # builder: FRONTEND - Vite Builder 
-FROM  --platform=${BUILDPLATFORM} node:iron-alpine3.20 AS builder
-WORKDIR /opt/wireguarddashboard/src/static/app
-COPY ./src/static /opt/wireguarddashboard/src/static 
-RUN npm install && \                
-    npm update && \                
-    npm run build  && \              
-    rm -r ./node_modules && \
-    rm -r /opt/wireguarddashboard/src/static/app/src
+FROM  --platform=${BUILDPLATFORM} node:iron-alpine3.20 AS node
+WORKDIR /static/app
+COPY ./src/static /static 
+RUN npm ci && npm run build  
 
 
 # pybuild: BACKEND - WG-Dash Builder for Brcypt & Psutil Binary (Python)
@@ -26,12 +22,15 @@ ENV TZ=UTC
 ENV WGD_CONF_PATH="/etc/wireguard"
 COPY ./src /opt/wireguarddashboard/src/
 
-#Copy Built Bcrypt & Psutil Binarys
+
 COPY --from=pybuild /opt/wireguarddashboard/src/venv /opt/wireguarddashboard/src/venv
 COPY --from=pybuild /opt/wireguarddashboard/src/log /opt/wireguarddashboard/src/log
 
 #Copy Built Frontend  
-COPY --from=builder /opt/wireguarddashboard/src /opt/wireguarddashboard/src
+COPY --from=node /static/app/dist /opt/wireguarddashboard/src/static/app/dist
+COPY --from=node /static/app/index.html /opt/wireguarddashboard/src/static/app/index.html
+COPY --from=node /static/app/public /opt/wireguarddashboard/src/static/app/public
+COPY --from=node /static/locale /opt/wireguarddashboard/src/static/locale
 
 #Tor Client Transport Plugins
 #UPSTREAM DOCKER GO COMPILE BUILD PIPELINE 

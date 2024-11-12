@@ -12,8 +12,6 @@ dashes='------------------------------------------------------------'
 equals='============================================================'
 
 
-
-clear
 printf "%s\n" "$dashes"
 echo "Starting WireGate"
 printf "%s\n" "$equals"
@@ -110,7 +108,6 @@ make_torrc() {
         echo "Bridge $bridge" >> "$TORRC_PATH"
     done
     fi
-    apk del curl > /dev/null 2>&1
     printf "%s\n" "$dashes"
 }
 make_dns_torrc() {
@@ -234,7 +231,6 @@ run_tor_flux() {
         printf "%s\n" "$dashes"
     done
 }
-
 ensure_blocking() {
   sleep 1s
   echo "Ensuring container continuation."
@@ -245,16 +241,20 @@ ensure_blocking() {
   fi
   wait
 }
-
 # create /dev/net/tun if it does not exist
 if [[ ! -c /dev/net/tun ]]; then
     mkdir -p /dev/net && mknod /dev/net/tun c 10 200
+fi
+if [[ "$AMNEZIA_WG" == "true" ]]; then
+    mkdir -p /etc/amnezia/amneziawg/
+    mkdir -p /usr/local/bin
+    ln -sf /usr/bin/awg /usr/local/bin/wg
+    ln -sf /usr/bin/awg-quick /usr/local/bin/wg-quick
 fi
 
 # Cleanup old processes
 chmod u+x /opt/wireguarddashboard/src/wgd.sh
 { date; clean_up; printf "\n\n"; } >> ./log/install.txt
-
 
 
 make_dns_torrc

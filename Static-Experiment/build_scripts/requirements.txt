@@ -6,7 +6,6 @@ Flask
 flask-cors
 icmplib
 gunicorn
-python-dotenv
 requests
 vanguards
 configparser

@@ -19,12 +19,13 @@ printf "
 By Noxcis\n"
 
 stop_service() {
+  printf "%s\n" "$equals"  
   echo "[WIREGATE] Stopping WireGuard Dashboard and Tor."
-  ./wgd.sh stop
+  ./wiregate.sh stop
   pkill tor
+  printf "[WIREGATE] Tor EXITED.\n"
   exit 0
 }
-
 # Function to get obfs4 bridges from BridgeDB
 get_obfs4_bridges() {
     BRIDGEDB_URL="https://bridges.torproject.org/bridges?transport=obfs4"
@@ -166,8 +167,6 @@ generate_vanguard_tor_ctrl_pass() {
 }
 run_tor_flux() {
     local log_dir="./log"
-
-
     # Start both Tor processes and capture their PIDs directly after launching
     { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> "$log_dir/tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
     TOR_PID=$!
@@ -228,7 +227,7 @@ run_tor_flux() {
 }
 ensure_blocking() {
   sleep 1s
-  echo "Ensuring container continuation."
+  echo "[WIREGATE] Ensuring container continuation."
   err_log=$(find ./log -name "error_*.log" | head -n 1)
   acc_log=$(find ./log -name "access_*.log" | head -n 1)
   if [ -n "$err_log" ] || [ -n "$acc_log" ]; then
@@ -237,10 +236,13 @@ ensure_blocking() {
   wait
 }
 
+chmod u+x wiregate.sh
+
 # create /dev/net/tun if it does not exist
 if [[ ! -c /dev/net/tun ]]; then
     mkdir -p /dev/net && mknod /dev/net/tun c 10 200
 fi
+
 if [[ "$AMNEZIA_WG" == "true" ]]; then
     mkdir -p /etc/amnezia/amneziawg/
     mkdir -p /usr/local/bin
@@ -248,19 +250,17 @@ if [[ "$AMNEZIA_WG" == "true" ]]; then
     ln -sf /usr/bin/awg-quick /usr/local/bin/wg-quick
 fi
 
-# Cleanup old processes
-chmod u+x wiregate.sh
 
 make_dns_torrc
+
 if [[ "$WGD_TOR_PROXY" == "true" ]]; then
   generate_vanguard_tor_ctrl_pass
   make_torrc
   
 fi
 
-
 ./wiregate.sh install
-./wiregate.sh docker_start &
+./wiregate.sh start &
 
 if [[ "$WGD_TOR_PROXY" == "true" ]]; then
   run_tor_flux &

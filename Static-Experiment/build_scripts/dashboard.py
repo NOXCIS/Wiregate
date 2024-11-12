@@ -29,7 +29,6 @@ import threading
 
 from flask.json.provider import DefaultJSONProvider
 #Import Enviorment
-from dotenv import load_dotenv
 
 DASHBOARD_VERSION = 'v4.1.0'
 CONFIGURATION_PATH = os.getenv('CONFIGURATION_PATH', '.')
@@ -42,11 +41,6 @@ UPDATE = None
 app = Flask("WGDashboard", template_folder=os.path.abspath("./static/app/dist"))
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 5206928
 app.secret_key = secrets.token_urlsafe(32)
-
-#Docker ENV ARGS Import
-if not os.path.exists(DASHBOARD_CONF):
-    load_dotenv()
-
 awg_activate = os.environ.get('AMNEZIA_WG')
 wgd_config_path = os.environ.get('WGD_CONF_PATH')
 wgd_welcome = os.environ.get('WGD_WELCOME_SESSION')
@@ -704,12 +698,12 @@ class WireguardConfiguration:
                                 p[pCounter]["name"] = ""
                             else:
                                 if len(i) > 0:
-                                    split = re.split(r'\s*=\s*', i, 1)
+                                    split = re.split(r'\s*=\s*', i, maxsplit=1)
                                     if len(split) == 2:
                                         p[pCounter][split[0]] = split[1]
                         
                         if regex_match("#Name# = (.*)", i):
-                            split = re.split(r'\s*=\s*', i, 1)
+                            split = re.split(r'\s*=\s*', i, maxsplit=1)
                             if len(split) == 2:
                                 p[pCounter]["name"] = split[1]
                     

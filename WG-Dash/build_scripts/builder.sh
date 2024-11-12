@@ -8,16 +8,6 @@ pythonExecutable="python3"
 TOP_PID=$$
 
 
-build_frontend() {
-
-  cd ./static/app/ || exit 1   # Navigate to the app directory, exit if it fails
-  npm install                   # Install dependencies
-  npm update                    # Update packages
-  npm run build                 # Run the build process
-  rm -r ./node_modules           # Remove node_modules to clean up
-}
-
-
 _check_and_set_venv(){
     VIRTUAL_ENV="./venv"
     
@@ -93,6 +83,7 @@ build_core () {
         exit 1
     fi
 }
-#build_frontend &&
+
+
 build_core
 exit 0
