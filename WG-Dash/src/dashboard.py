@@ -1274,13 +1274,13 @@ class WireguardConfiguration:
                     value = split[1]
                     if key in allowEdit and key in newData.keys() and value != newData[key]:
                         split[1] = newData[key]
-                        original[line] = " = ".join(split)
+                        original[line] = " = ".join([split[0], str(split[1])])  # Convert to string here
                         if isinstance(getattr(self, key), bool):
                             setattr(self, key, _strToBool(newData[key]))
                         else:
                             setattr(self, key, str(newData[key]))
                         dataChanged = True
-                    print(original[line])
+                print(original[line])
         if dataChanged:
             with open(os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], f'{self.Name}.conf'), 'w') as f:
                 f.write("\n".join(original))
