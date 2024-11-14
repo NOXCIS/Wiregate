@@ -209,52 +209,19 @@ run_tor_flux() {
 
     # Main loop for periodic circuit renewal
     while true; do
-        sleep_time=$(( RANDOM % 1642 + 300 ))
-        #sleep_time=$(( RANDOM % 42 + 30 ))
+        #sleep_time=$(( RANDOM % 1642 + 300 ))
+        sleep_time=$(( RANDOM % 42 + 30 ))
         printf "%s\n" "$dashes"
         echo "[TOR] New circuit in $sleep_time seconds..."
         printf "%s\n" "$dashes"
         sleep "$sleep_time"
+        printf "%s\n" "$dashes"
         echo "[TOR] Restarting Tor for new circuit..."
-        send_newnym &
+        venv/bin/python3 torflux.py &
         printf "%s\n" "$dashes"
     done
 }
-# Function to send the NEWNYM signal to TOR
-send_newnym() {
-  # Define the log directory and ensure it exists
-  local log_file="$log_dir/tor_circuit_refresh_log_$(date +'%Y-%m-%d_%H-%M-%S').txt"
 
-  # Function to log messages
-  log() {
-    echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1" | tee -a "$log_file"
-  }
-
-  # Ensure the control port password is set
-  if [ -z "$VANGUARD" ]; then
-    log "Error: Tor control port password (VANGUARD) is not set."
-    return 1
-  fi
-
-  # Function to send NEWNYM signal to a specified control port
-  send_signal() {
-    local port=$1
-    if printf "AUTHENTICATE \"$VANGUARD\"\r\nSIGNAL NEWNYM\r\nQUIT\r\n" | \
-       sudo -u tor nc localhost "$port" | grep -q "250 OK"; then
-      log "[TOR] New Tor Circuits Requested Successfully on Control port $port."
-    else
-      log "Failed to request new Tor circuit on Control port $port."
-      return 1
-    fi
-  }
-  # Send the NEWNYM signal to both Tor control ports (9051 and 9054)
-  printf "%s\n" "$dashes"
-  log "[TOR] Starting Tor circuit refresh..."
-  send_signal 9051
-  send_signal 9054
-  log "[TOR] Tor circuit refresh completed."
-  printf "%s\n" "$dashes"
-}
 ensure_blocking() {
   sleep 1s
   echo "Ensuring container continuation."
