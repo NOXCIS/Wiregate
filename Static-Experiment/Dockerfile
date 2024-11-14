@@ -10,8 +10,8 @@ FROM python:alpine AS builder
 RUN apk add --no-cache \
     py3-virtualenv \
     py3-pip \
-    gcc \
     musl-dev \
+    build-base \
     zlib-dev \
     libffi-dev \
     openssl-dev \
@@ -22,7 +22,7 @@ RUN apk add --no-cache \
 WORKDIR /build
 
 # Copy application code and dependencies
-COPY ./build_scripts/torflux.py .
+COPY ./build_scripts/torflux.c .
 COPY ./build_scripts/dashboard.py .
 COPY ./build_scripts/requirements.txt .
 COPY ./build_scripts/vanguards /build/vanguards/
@@ -37,8 +37,7 @@ RUN python3 -m venv venv \
 RUN venv/bin/pip install pyinstaller && \
     venv/bin/pyinstaller --onefile --upx-dir=/usr/bin --name dashboard dashboard.py && \
     venv/bin/pyinstaller --onefile --strip --upx-dir=/usr/bin --name vanguards vanguards.py && \
-    venv/bin/pyinstaller --onefile --strip --upx-dir=/usr/bin --name torflux torflux.py && \
-    upx --best --lzma /build/dist/vanguards 
+    gcc -static -o torflux torflux.c
 
 
 # Stage 3: Final image
@@ -76,7 +75,7 @@ COPY --from=noxcis/awg-bins:latest /awg-quick /usr/bin/awg-quick
 # Copy WG-Dash & Tor Vanguards binaries
 COPY --from=builder /build/dist/dashboard /WireGate/dashboard
 COPY --from=builder /build/dist/vanguards /WireGate/vanguards
-COPY --from=builder /build/dist/torflux /WireGate/torflux
+COPY --from=builder /build/torflux /WireGate/torflux
 
 # Set executable permissions
 RUN chmod +x /WireGate/wiregate.sh && chmod +x /WireGate/entrypoint.sh
