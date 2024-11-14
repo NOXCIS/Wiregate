@@ -52,7 +52,10 @@ COPY ./src /WireGate/
 RUN apk add --no-cache wireguard-tools iptables ip6tables tzdata sudo && \
     apk upgrade && \
     apk cache clean && \
-    rm -rf /tmp/* /var/tmp/*
+    chmod +x /WireGate/wiregate.sh && chmod +x /WireGate/entrypoint.sh &&\
+    rm -rf /tmp/* /var/tmp/* && \
+    rm -rf /var/cache/apk/* && \
+    rm -rf /build /root/.cache /tmp/* /var/tmp/*
 
 
 

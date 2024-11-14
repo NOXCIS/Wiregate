@@ -51,7 +51,7 @@ get_obfs4_bridges() {
     
     if [[ $response == *"obfs4"* ]]; then
         printf "[TOR] Bridges fetched successfully!\n"
-        echo "[TOR] $bridges"
+        echo "[TOR-BRIDGE] $bridges"
     else
         echo "[TOR] No obfs4 bridges found or request failed."
     fi
@@ -67,7 +67,7 @@ get_webtunnel_bridges() {
     
     if [[ $response == *"webtunnel"* ]]; then
         printf "[TOR] Bridges fetched successfully!\n"
-        echo "[TOR] $bridges"
+        echo "[TOR-BRIDGE] $bridges"
     else
         echo "[TOR] No WebTunnel bridges found or request failed."
     fi

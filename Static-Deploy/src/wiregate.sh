@@ -113,8 +113,8 @@ stop_wiregate() {
 }
 init() {
     _checkWireguard
+    start_core
     dashboard_start
-	start_core
 	printf "%s\n" "$equals"
     printf "[WIREGATE] %s WGDashboard Started\n" "$heavy_checkmark"
     printf "%s\n" "$equals"
@@ -174,6 +174,7 @@ init() {
 			printf "%s\n" "$dashes"
 			return
 		fi
+
 		printf "%s\n" "$dashes"
 		printf "[TOR-VANGUARDS] Tor is fully booted. Starting TOR Vanguards\n"
 		printf "%s\n" "$dashes"
