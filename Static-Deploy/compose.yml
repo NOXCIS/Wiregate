@@ -134,8 +134,8 @@ services:
         - WGD_H4=123123 #H4
       ports:
         - "4430-4433:4430-4433/udp" #UDP Interface Listen Ports
-        - 6060:80/tcp #Comment Out for full network lockdown
-      sysctls:
+        - 6060:80/tcp #Comment Out for full network lockdown, I.E only Accessible via VPN conttenction at http://wire.gate using config in generated master-key folder
+      sysctls:        #Otherwise access the dashboard @ your-sever-ip/domain:6060
         - net.ipv4.ip_forward=1
         - net.ipv4.conf.all.src_valid_mark=1
         - net.ipv6.conf.all.forwarding=1
