@@ -82,6 +82,7 @@ services:
       - wgd_db:/opt/wireguarddashboard/src/db 
       - ./Global-Configs/Tor:/etc/tor/
       - ./Global-Configs/Logs:/opt/wireguarddashboard/src/log/
+      - ./Global-Configs/Master-Key:/opt/wireguarddashboard/src/master-key
 
     environment:
     #Config Path Optional

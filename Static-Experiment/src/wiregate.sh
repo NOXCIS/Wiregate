@@ -11,7 +11,7 @@ heavy_crossmark=$(printf "\xE2\x9C\x97")
 PID_FILE=./dashboard.pid
 dashes='------------------------------------------------------------'
 equals='============================================================'
-
+log_dir="./log"
 
 
 if [[ "$AMNEZIA_WG" == "true" ]]; then
@@ -70,9 +70,7 @@ dashboard_setup(){
     fi
 }
 dashboard_start() {
-	local log_dir="./log"
     printf "%s\n" "$equals"
-    
     # Start the dashboard executable in the background and capture its PID
     ./dashboard  >> "$log_dir/dashboard_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" & 
     echo $! > "$PID_FILE"
@@ -171,14 +169,17 @@ init() {
 		printf "%s\n" "$dashes"
 		sudo chown -R tor /etc/tor
 		while true; do
+        printf "%s\n" "$dashes"
+        echo "[TOR-VANGUARDS] Updating Tor Vanguards..."
+        printf "%s\n" "$dashes"
 		./vanguards --one_shot_vanguards &
-		sleep 3600  #Sleep for 1 hour befored Updating Vanguards Again
+		printf "%s\n" "$dashes"
+        sleep 3600  #Sleep for 1 hour befored Updating Vanguards Again
 		done
 	fi    
 	
 }
 start_core() {
-	log_dir="./log"
 	# Check if ADMINS.conf exists in ${WGD_CONF_PATH}
     if [ ! -f "$svr_config" ]; then
 		printf "[WIREGATE] %s ${VPN_PROTO_TYPE} Configurations Missing, Creating ....\n" "$heavy_checkmark"

@@ -17,7 +17,7 @@ venv_python="./venv/bin/python3"
 venv_gunicorn="./venv/bin/gunicorn"
 pythonExecutable="python3"
 svr_config="${WGD_CONF_PATH}/ADMINS.conf"
-
+log_dir="./log"
 heavy_checkmark=$(printf "\xE2\x9C\x94")
 heavy_crossmark=$(printf "\xE2\x9C\x97")
 
@@ -389,7 +389,11 @@ startwgd_docker() {
 		printf "%s\n" "$dashes"
 		sudo chown -R tor /etc/tor
 		while true; do
+		printf "%s\n" "$dashes"
+        echo "[TOR-VANGUARDS] Updating Tor Vanguards..."
+        printf "%s\n" "$dashes"
 		python3 vanguards.py --one_shot_vanguards &
+		printf "%s\n" "$dashes"
 		wait
 		tr -dc 'A-Za-z0-9' < /dev/urandom | head -c 42000 > ./vanguards/.env
 		sed -i '1,42s/^/#/' ./vanguards/.env  
@@ -450,7 +454,6 @@ set_env() {
   fi
 }
 start_core() {
-	log_dir="./log"
 	printf "%s\n" "$equals"
 	# Check if ADMINS.conf exists in ${WGD_CONF_PATH}
     if [ ! -f "$svr_config" ]; then

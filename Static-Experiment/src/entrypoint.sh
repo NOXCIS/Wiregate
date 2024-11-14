@@ -10,6 +10,7 @@ DNS_TORRC_PATH="/etc/tor/dnstorrc"
 INET_ADDR="$(hostname -i | awk '{print $1}')"
 dashes='------------------------------------------------------------'
 equals='============================================================'
+log_dir="./log"
 
 printf "
 ▗▖ ▗▖▗▄▄▄▖▗▄▄▖ ▗▄▄▄▖ ▗▄▄▖ ▗▄▖▗▄▄▄▖▗▄▄▄▖
@@ -37,9 +38,9 @@ get_obfs4_bridges() {
     
     if [[ $response == *"obfs4"* ]]; then
         printf "[TOR] Bridges fetched successfully!\n"
-        echo "$bridges"
+        echo "[TOR] $bridges"
     else
-        echo "No obfs4 bridges found or request failed."
+        echo "[TOR] No obfs4 bridges found or request failed."
     fi
 }
 # Function to get WebTunnel bridges from BridgeDB 
@@ -53,9 +54,9 @@ get_webtunnel_bridges() {
     
     if [[ $response == *"webtunnel"* ]]; then
         printf "[TOR] Bridges fetched successfully!\n"
-        echo "$bridges"
+        echo "[TOR] $bridges"
     else
-        echo "No WebTunnel bridges found or request failed."
+        echo "[TOR] No WebTunnel bridges found or request failed."
     fi
 }
 make_torrc() {
@@ -126,7 +127,9 @@ make_dns_torrc() {
     fi
 
     echo -e "AutomapHostsOnResolve 1 \n" >> "$DNS_TORRC_PATH"
-    echo -e "VirtualAddrNetwork 10.193.0.0/10 \n" >> "$TORRC_PATH"
+    echo -e "VirtualAddrNetwork 10.193.0.0/10 \n" >> "$DNS_TORRC_PATH"
+    echo -e "ControlPort 9054 \n" >> "$DNS_TORRC_PATH"
+    echo -e "HashedControlPassword $CTRL_P_PASS\n" >> "$DNS_TORRC_PATH"
     echo -e "User tor \n" >> "$DNS_TORRC_PATH"
     echo -e "DataDirectory /var/lib/tor/dns \n" >> "$DNS_TORRC_PATH"
     echo -e "ClientTransportPlugin ${WGD_TOR_PLUGIN} exec /usr/local/bin/${WGD_TOR_PLUGIN} \n" >> "$DNS_TORRC_PATH"
@@ -162,15 +165,12 @@ generate_vanguard_tor_ctrl_pass() {
   # Assign the Tor hash to VANGUARD
   export CTRL_P_PASS="$TOR_HASH"
   export VANGUARD="$PASSWORD"
-  echo "Generated Tor Hash: $CTRL_P_PASS"
+  echo "[TOR] Generated Tor Hash: $CTRL_P_PASS"
 }
 run_tor_flux() {
-    local log_dir="./log"
     # Start both Tor processes and capture their PIDs directly after launching
     { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> "$log_dir/tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
-    TOR_PID=$!
     { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> "$log_dir/dns_tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
-    TOR_DNS_PID=$!
 
     start_time=$(date +%s)
     retries=0
@@ -186,14 +186,13 @@ run_tor_flux() {
         elapsed_time=$(( $(date +%s) - start_time ))
         if [ $elapsed_time -ge 300 ]; then
             echo "[TOR] Bootstrap timeout. Restarting Tor..."
-            kill "$TOR_PID" "$TOR_DNS_PID" >/dev/null 2>&1
+            pkill tor >/dev/null 2>&1
             sleep 0.5
 
             # Restart Tor processes and capture their PIDs
             { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> "$log_dir/tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
-            TOR_PID=$!
             { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> "$log_dir/dns_tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
-            TOR_DNS_PID=$!
+
 
             start_time=$(date +%s)
             retries=0
@@ -208,22 +207,52 @@ run_tor_flux() {
     # Main loop for periodic circuit renewal
     while true; do
         sleep_time=$(( RANDOM % 1642 + 300 ))
+        #sleep_time=$(( RANDOM % 42 + 30 ))
         printf "%s\n" "$dashes"
         echo "[TOR] New circuit in $sleep_time seconds..."
         printf "%s\n" "$dashes"
         sleep "$sleep_time"
         echo "[TOR] Restarting Tor for new circuit..."
-
-        kill "$TOR_PID" "$TOR_DNS_PID" >/dev/null 2>&1
-        sleep 0.5
-
-        { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> "$log_dir/tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
-        TOR_PID=$!
-        { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> "$log_dir/dns_tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
-        TOR_DNS_PID=$!
+        send_newnym &
         printf "%s\n" "$dashes"
     done
 }
+# Function to send the NEWNYM signal to TOR
+send_newnym() {
+  # Define the log directory and ensure it exists
+  local log_file="$log_dir/tor_circuit_refresh_log_$(date +'%Y-%m-%d_%H-%M-%S').txt"
+
+  # Function to log messages
+  log() {
+    echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1" | tee -a "$log_file"
+  }
+
+  # Ensure the control port password is set
+  if [ -z "$VANGUARD" ]; then
+    log "Error: Tor control port password (VANGUARD) is not set."
+    return 1
+  fi
+
+  # Function to send NEWNYM signal to a specified control port
+  send_signal() {
+    local port=$1
+    if printf "AUTHENTICATE \"$VANGUARD\"\r\nSIGNAL NEWNYM\r\nQUIT\r\n" | \
+       sudo -u tor nc localhost "$port" | grep -q "250 OK"; then
+      log "[TOR] New Tor Circuits Requested Successfully on Control port $port."
+    else
+      log "Failed to request new Tor circuit on Control port $port."
+      return 1
+    fi
+  }
+  # Send the NEWNYM signal to both Tor control ports (9051 and 9054)
+  printf "%s\n" "$dashes"
+  log "[TOR] Starting Tor circuit refresh..."
+  send_signal 9051
+  send_signal 9054
+  log "[TOR] Tor circuit refresh completed."
+  printf "%s\n" "$dashes"
+}
+
 ensure_blocking() {
   sleep 1s
   echo "[WIREGATE] Ensuring container continuation."
@@ -251,12 +280,11 @@ fi
 
 
 if [[ "$WGD_TOR_PROXY" == "true" ]]; then
-  sudo apk add --no-cache tor curl > /dev/null 2>&1
+  sudo apk add --no-cache tor netcat-openbsd curl > /dev/null 2>&1
   generate_vanguard_tor_ctrl_pass
   make_torrc
   make_dns_torrc
   run_tor_flux &
-  TOR_PID=$!
 fi
 
 ./wiregate.sh install
