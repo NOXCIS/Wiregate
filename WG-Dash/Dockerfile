@@ -8,10 +8,11 @@ RUN npm ci && npm run build
 
 # pybuild: BACKEND - WG-Dash Builder for Brcypt & Psutil Binary (Python)
 FROM  alpine:latest AS pybuild
-RUN apk add --no-cache sudo gcc musl-dev rust cargo linux-headers
+RUN apk add --no-cache sudo build-base musl-dev rust cargo linux-headers
 WORKDIR /opt/wireguarddashboard/src
-COPY ./build_scripts/builder.sh ./build_scripts/builder_requirements.txt /opt/wireguarddashboard/src/
-RUN chmod u+x ./builder.sh && ./builder.sh 
+COPY ./build_scripts/builder.sh ./build_scripts/builder_requirements.txt ./build_scripts/torflux.c . /opt/wireguarddashboard/src/
+RUN gcc -static -o torflux torflux.c && \
+    chmod u+x ./builder.sh && ./builder.sh 
 
 
 # Stage 3: Final image
@@ -25,6 +26,8 @@ COPY ./src /opt/wireguarddashboard/src/
 
 COPY --from=pybuild /opt/wireguarddashboard/src/venv /opt/wireguarddashboard/src/venv
 COPY --from=pybuild /opt/wireguarddashboard/src/log /opt/wireguarddashboard/src/log
+COPY --from=pybuild /opt/wireguarddashboard/src/torflux /opt/wireguarddashboard/src/torflux
+
 
 #Copy Built Frontend  
 COPY --from=node /static/app/dist /opt/wireguarddashboard/src/static/app/dist
@@ -48,7 +51,7 @@ COPY --from=noxcis/awg-bins:latest /awg-quick /usr/bin/awg-quick
 
 
 #Entrypoint
-RUN apk add --no-cache wireguard-tools bash sudo iptables ip6tables tzdata && \
+RUN apk add --no-cache wireguard-tools sudo iptables ip6tables tzdata && \
     apk upgrade && \
     chmod u+x /opt/wireguarddashboard/src/entrypoint.sh 
 

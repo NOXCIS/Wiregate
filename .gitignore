@@ -71,3 +71,6 @@ preqsinstalled.txt
 /Static-Experiment/configs/master-key
 /Static-Experiment/configs/pihole
 
+/Static-Deploy/configs/logs
+/Static-Deploy/configs/logs
+Static-Deploy/configs/master-key/master.conf

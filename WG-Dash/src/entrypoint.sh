@@ -210,14 +210,14 @@ run_tor_flux() {
     # Main loop for periodic circuit renewal
     while true; do
         sleep_time=$(( RANDOM % 1042 + 342 ))
-        #sleep_time=$(( RANDOM % 42 + 30 ))
+        #sleep_time=$(( RANDOM % 30 + 20 ))
         printf "%s\n" "$dashes"
         echo "[TOR] New circuit in $sleep_time seconds..."
         printf "%s\n" "$dashes"
         sleep "$sleep_time"
         printf "%s\n" "$dashes"
-        echo "[TOR] Restarting Tor for new circuit..."
-        venv/bin/python3 torflux.py &
+        echo "[TOR] Sending Signal for New Circuits..."
+        ./torflux &
         printf "%s\n" "$dashes"
     done
 }

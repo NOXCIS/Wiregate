@@ -1,9 +1,0 @@
-[WGDashboard] Initialized Configuration: ADMINS
-[WGDashboard] GUESTS Error: '[Peer]' is not in list
-[WGDashboard] Initialized Configuration: GUESTS
-[WGDashboard] LANP2P Error: '[Peer]' is not in list
-[WGDashboard] Initialized Configuration: LANP2P
-[WGDashboard] MEMBERS Error: '[Peer]' is not in list
-[WGDashboard] Initialized Configuration: MEMBERS
-[WGDashboard] Background Thread #1 Started
-[WGDashboard] Background Thread #2 Started
