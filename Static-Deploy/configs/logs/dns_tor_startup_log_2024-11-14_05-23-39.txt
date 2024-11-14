@@ -1,0 +1,165 @@
+Thu Nov 14 05:23:39 CST 2024
+Nov 14 05:23:39.882 [notice] Tor 0.4.8.13 running on Linux with Libevent 2.1.12-stable, OpenSSL 3.3.2, Zlib 1.3.1, Liblzma 5.6.2, Libzstd 1.5.6 and Unknown N/A as libc.
+Nov 14 05:23:39.882 [notice] Tor can't help you if you use it wrong! Learn how to be safe at https://support.torproject.org/faq/staying-anonymous/
+Nov 14 05:23:39.883 [notice] Read configuration file "/etc/tor/dnstorrc".
+Nov 14 05:23:39.885 [notice] You configured a non-loopback address '10.2.0.3:9053' for SocksPort. This allows everybody on your local network to use your machine as a proxy. Make sure this is what you wanted.
+Nov 14 05:23:39.885 [notice] Opening Socks listener on 10.2.0.3:9053
+Nov 14 05:23:39.885 [notice] Opened Socks listener connection (ready) on 10.2.0.3:9053
+Nov 14 05:23:39.885 [notice] Opening Control listener on 127.0.0.1:9054
+Nov 14 05:23:39.886 [notice] Opened Control listener connection (ready) on 127.0.0.1:9054
+Nov 14 05:23:39.000 [notice] Parsing GEOIP IPv4 file /usr/share/tor/geoip.
+Nov 14 05:23:40.000 [notice] Parsing GEOIP IPv6 file /usr/share/tor/geoip6.
+Nov 14 05:23:40.000 [notice] Bootstrapped 0% (starting): Starting
+Nov 14 05:23:40.000 [notice] Starting with guard context "bridges"
+Nov 14 05:23:40.000 [notice] Delaying directory fetches: No running bridges
+Nov 14 05:23:40.000 [notice] Bridge 'bauruine' has both an IPv4 and an IPv6 address.  Will prefer using its IPv6 address ([2001:db8:7171:e398:cd24:ab68:48e:3fcc]:443) based on the configured Bridge address.
+Nov 14 05:23:40.000 [notice] new bridge descriptor 'bauruine' (cached): $96A26D40171B440A046AE38CFF78F4F5BB0C4F44~bauruine [cLRHURIsm10kl8L/CU87WFVX0u/X2cPq579gt8ZSXpA] at 95.214.53.96 and [2001:db8:7171:e398:cd24:ab68:48e:3fcc]
+Nov 14 05:23:40.000 [notice] Bridge 'TunnelToFreedom' has both an IPv4 and an IPv6 address.  Will prefer using its IPv6 address ([2001:db8:e8e9:17e2:29e:4000:4f30:1802]:443) based on the configured Bridge address.
+Nov 14 05:23:40.000 [notice] new bridge descriptor 'TunnelToFreedom' (cached): $DDEF980C8AC6C18344914F482BEC2B3BE7D37538~TunnelToFreedom [Nqc6DuUM8EYI2BYhlkSTNLPEWLi7MeO1GE6MXgSaj1I] at 81.169.200.3 and [2001:db8:e8e9:17e2:29e:4000:4f30:1802]
+Nov 14 05:23:41.000 [notice] Bridge 'TunnelToFreedom' has both an IPv4 and an IPv6 address.  Will prefer using its IPv6 address ([2001:db8:e8e9:17e2:29e:4000:4f30:1802]:443) based on the configured Bridge address.
+Nov 14 05:23:41.000 [notice] Bridge 'bauruine' has both an IPv4 and an IPv6 address.  Will prefer using its IPv6 address ([2001:db8:7171:e398:cd24:ab68:48e:3fcc]:443) based on the configured Bridge address.
+Nov 14 05:23:41.000 [notice] Bootstrapped 1% (conn_pt): Connecting to pluggable transport
+Nov 14 05:23:41.000 [notice] Bootstrapped 2% (conn_done_pt): Connected to pluggable transport
+Nov 14 05:23:41.000 [notice] Bootstrapped 10% (conn_done): Connected to a relay
+Nov 14 05:23:42.000 [notice] Bootstrapped 14% (handshake): Handshaking with a relay
+Nov 14 05:23:42.000 [notice] Bootstrapped 15% (handshake_done): Handshake with a relay done
+Nov 14 05:23:42.000 [notice] Bootstrapped 75% (enough_dirinfo): Loaded enough directory info to build circuits
+Nov 14 05:23:42.000 [notice] Bootstrapped 95% (circuit_create): Establishing a Tor circuit
+Nov 14 05:23:42.000 [notice] Bridge 'TunnelToFreedom' has both an IPv4 and an IPv6 address.  Will prefer using its IPv6 address ([2001:db8:e8e9:17e2:29e:4000:4f30:1802]:443) based on the configured Bridge address.
+Nov 14 05:23:42.000 [notice] Bridge 'bauruine' has both an IPv4 and an IPv6 address.  Will prefer using its IPv6 address ([2001:db8:7171:e398:cd24:ab68:48e:3fcc]:443) based on the configured Bridge address.
+Nov 14 05:23:42.000 [notice] Bootstrapped 100% (done): Done
+Nov 14 05:46:45.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 05:46:45.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 05:46:45.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 06:01:43.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 06:01:44.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 06:01:44.000 [notice] Rate limiting NEWNYM request: delaying by 9 second(s)
+Nov 14 06:15:46.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 06:15:46.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 06:15:46.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 06:32:26.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 06:32:27.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 06:32:27.000 [notice] Rate limiting NEWNYM request: delaying by 9 second(s)
+Nov 14 06:41:06.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 06:41:06.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 06:41:06.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 06:54:10.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 06:54:10.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 06:54:10.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 07:14:39.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 07:14:39.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 07:14:39.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 07:32:08.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 07:32:08.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 07:32:08.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 07:52:12.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 07:52:12.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 07:52:12.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 08:02:13.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 08:02:13.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 08:02:13.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 08:20:11.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 08:20:11.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 08:20:11.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 08:23:42.000 [notice] Bridge 'TunnelToFreedom' has both an IPv4 and an IPv6 address.  Will prefer using its IPv6 address ([2001:db8:e8e9:17e2:29e:4000:4f30:1802]:443) based on the configured Bridge address.
+Nov 14 08:23:42.000 [notice] Bridge 'bauruine' has both an IPv4 and an IPv6 address.  Will prefer using its IPv6 address ([2001:db8:7171:e398:cd24:ab68:48e:3fcc]:443) based on the configured Bridge address.
+Nov 14 08:23:42.000 [notice] Bridge 'TunnelToFreedom' has both an IPv4 and an IPv6 address.  Will prefer using its IPv6 address ([2001:db8:e8e9:17e2:29e:4000:4f30:1802]:443) based on the configured Bridge address.
+Nov 14 08:23:42.000 [notice] new bridge descriptor 'TunnelToFreedom' (fresh): $DDEF980C8AC6C18344914F482BEC2B3BE7D37538~TunnelToFreedom [Nqc6DuUM8EYI2BYhlkSTNLPEWLi7MeO1GE6MXgSaj1I] at 81.169.200.3 and [2001:db8:e8e9:17e2:29e:4000:4f30:1802]
+Nov 14 08:23:42.000 [notice] Bridge 'bauruine' has both an IPv4 and an IPv6 address.  Will prefer using its IPv6 address ([2001:db8:7171:e398:cd24:ab68:48e:3fcc]:443) based on the configured Bridge address.
+Nov 14 08:23:42.000 [notice] new bridge descriptor 'bauruine' (fresh): $96A26D40171B440A046AE38CFF78F4F5BB0C4F44~bauruine [cLRHURIsm10kl8L/CU87WFVX0u/X2cPq579gt8ZSXpA] at 95.214.53.96 and [2001:db8:7171:e398:cd24:ab68:48e:3fcc]
+Nov 14 08:28:02.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 08:28:02.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 08:28:02.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 08:46:59.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 08:46:59.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 08:46:59.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 08:56:45.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 08:56:45.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 08:56:45.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 09:14:17.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 09:14:17.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 09:14:17.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 09:22:50.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 09:22:50.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 09:22:50.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 09:45:41.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 09:45:41.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 09:45:41.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 09:54:03.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 09:54:03.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 09:54:03.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 10:15:42.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 10:15:42.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 10:15:42.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 10:29:56.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 10:29:56.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 10:29:56.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 10:43:03.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 10:43:03.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 10:43:03.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 11:02:07.000 [notice] Failed to find node for hop #1 of our path. Discarding this circuit.
+Nov 14 11:02:07.000 [notice] Our circuit 0 (id: 308) died due to an invalid selected path, purpose Unlinked conflux circuit. This may be a torrc configuration issue, or a bug.
+Nov 14 11:05:10.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 11:05:10.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 11:05:10.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 11:23:41.000 [notice] Heartbeat: Tor's uptime is 6:00 hours, with 5 circuits open. I've sent 4.05 MB and received 6.51 MB. I've received 463 connections on IPv4 and 0 on IPv6. I've made 0 connections with IPv4 and 42 with IPv6.
+Nov 14 11:23:41.000 [notice] While bootstrapping, fetched this many bytes: 3652 (server descriptor fetch)
+Nov 14 11:23:41.000 [notice] While not bootstrapping, fetched this many bytes: 3656 (server descriptor fetch); 646195 (consensus network-status fetch); 28891 (microdescriptor fetch)
+Nov 14 11:23:41.000 [notice] Average packaged cell fullness: 46.937%. TLS write overhead: 4%
+Nov 14 11:23:42.000 [notice] Bridge 'TunnelToFreedom' has both an IPv4 and an IPv6 address.  Will prefer using its IPv6 address ([2001:db8:e8e9:17e2:29e:4000:4f30:1802]:443) based on the configured Bridge address.
+Nov 14 11:23:42.000 [notice] Bridge 'bauruine' has both an IPv4 and an IPv6 address.  Will prefer using its IPv6 address ([2001:db8:7171:e398:cd24:ab68:48e:3fcc]:443) based on the configured Bridge address.
+Nov 14 11:23:42.000 [notice] Bridge 'bauruine' has both an IPv4 and an IPv6 address.  Will prefer using its IPv6 address ([2001:db8:7171:e398:cd24:ab68:48e:3fcc]:443) based on the configured Bridge address.
+Nov 14 11:23:42.000 [notice] new bridge descriptor 'bauruine' (fresh): $96A26D40171B440A046AE38CFF78F4F5BB0C4F44~bauruine [cLRHURIsm10kl8L/CU87WFVX0u/X2cPq579gt8ZSXpA] at 95.214.53.96 and [2001:db8:7171:e398:cd24:ab68:48e:3fcc]
+Nov 14 11:23:42.000 [notice] Bridge 'TunnelToFreedom' has both an IPv4 and an IPv6 address.  Will prefer using its IPv6 address ([2001:db8:e8e9:17e2:29e:4000:4f30:1802]:443) based on the configured Bridge address.
+Nov 14 11:23:42.000 [notice] new bridge descriptor 'TunnelToFreedom' (fresh): $DDEF980C8AC6C18344914F482BEC2B3BE7D37538~TunnelToFreedom [Nqc6DuUM8EYI2BYhlkSTNLPEWLi7MeO1GE6MXgSaj1I] at 81.169.200.3 and [2001:db8:e8e9:17e2:29e:4000:4f30:1802]
+Nov 14 11:24:03.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 11:24:03.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 11:24:03.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 11:41:18.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 11:41:18.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 11:41:18.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 11:48:31.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 11:48:31.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 11:48:31.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 11:54:32.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 11:54:32.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 11:54:32.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 12:09:40.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 12:09:40.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 12:09:40.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 12:12:43.000 [warn] Proxy Client: unable to connect OR connection (handshaking (proxy)) with [2001:db8:e8e9:17e2:29e:4000:4f30:1802]:443 ID=Nqc6DuUM8EYI2BYhlkSTNLPEWLi7MeO1GE6MXgSaj1I RSA_ID=DDEF980C8AC6C18344914F482BEC2B3BE7D37538 ("general SOCKS server failure")
+Nov 14 12:12:46.000 [notice] Failed to find node for hop #1 of our path. Discarding this circuit.
+Nov 14 12:12:46.000 [notice] Our circuit 0 (id: 361) died due to an invalid selected path, purpose Unlinked conflux circuit. This may be a torrc configuration issue, or a bug.
+Nov 14 12:26:29.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 12:26:29.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 12:26:29.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 12:46:02.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 12:46:02.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 12:46:02.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 12:59:48.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 12:59:48.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 12:59:48.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 13:15:04.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 13:15:04.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 13:15:04.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 13:36:02.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 13:36:02.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 13:36:02.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 13:42:38.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 13:42:38.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 13:42:38.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 13:51:15.000 [notice] Your system clock just jumped 306 seconds forward; assuming established circuits no longer work.
+Nov 14 13:58:22.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 13:58:22.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 13:58:22.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 14:06:58.000 [notice] Your system clock just jumped 404 seconds forward; assuming established circuits no longer work.
+Nov 14 14:23:42.000 [notice] Bridge 'TunnelToFreedom' has both an IPv4 and an IPv6 address.  Will prefer using its IPv6 address ([2001:db8:e8e9:17e2:29e:4000:4f30:1802]:443) based on the configured Bridge address.
+Nov 14 14:23:42.000 [notice] Bridge 'bauruine' has both an IPv4 and an IPv6 address.  Will prefer using its IPv6 address ([2001:db8:7171:e398:cd24:ab68:48e:3fcc]:443) based on the configured Bridge address.
+Nov 14 14:23:42.000 [notice] Bridge 'TunnelToFreedom' has both an IPv4 and an IPv6 address.  Will prefer using its IPv6 address ([2001:db8:e8e9:17e2:29e:4000:4f30:1802]:443) based on the configured Bridge address.
+Nov 14 14:23:42.000 [notice] new bridge descriptor 'TunnelToFreedom' (fresh): $DDEF980C8AC6C18344914F482BEC2B3BE7D37538~TunnelToFreedom [Nqc6DuUM8EYI2BYhlkSTNLPEWLi7MeO1GE6MXgSaj1I] at 81.169.200.3 and [2001:db8:e8e9:17e2:29e:4000:4f30:1802]
+Nov 14 14:23:42.000 [notice] Bridge 'bauruine' has both an IPv4 and an IPv6 address.  Will prefer using its IPv6 address ([2001:db8:7171:e398:cd24:ab68:48e:3fcc]:443) based on the configured Bridge address.
+Nov 14 14:23:42.000 [notice] new bridge descriptor 'bauruine' (fresh): $96A26D40171B440A046AE38CFF78F4F5BB0C4F44~bauruine [cLRHURIsm10kl8L/CU87WFVX0u/X2cPq579gt8ZSXpA] at 95.214.53.96 and [2001:db8:7171:e398:cd24:ab68:48e:3fcc]
+Nov 14 14:27:32.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 14:27:32.000 [notice] New control connection opened from 127.0.0.1.
+Nov 14 14:27:32.000 [notice] Rate limiting NEWNYM request: delaying by 10 second(s)
+Nov 14 14:29:07.000 [notice] Catching signal TERM, exiting cleanly.

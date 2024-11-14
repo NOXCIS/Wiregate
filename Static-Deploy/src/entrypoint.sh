@@ -1,6 +1,17 @@
 #!/bin/bash
 # Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
-# Under MIT License
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 # Trap the SIGTERM signal and call the stop_service function
 trap 'stop_service' SIGTERM
@@ -220,10 +231,8 @@ run_tor_flux() {
         printf "%s\n" "$dashes"
     done
 }
-
 ensure_blocking() {
   sleep 1s
-  echo "[WIREGATE] Ensuring container continuation."
   err_log=$(find ./log -name "error_*.log" | head -n 1)
   acc_log=$(find ./log -name "access_*.log" | head -n 1)
   if [ -n "$err_log" ] || [ -n "$acc_log" ]; then
@@ -246,7 +255,6 @@ if [[ "$AMNEZIA_WG" == "true" ]]; then
     ln -sf /usr/bin/awg-quick /usr/local/bin/wg-quick
 fi
 
-
 if [[ "$WGD_TOR_PROXY" == "true" ]]; then
   sudo apk add --no-cache tor curl > /dev/null 2>&1
   generate_vanguard_tor_ctrl_pass
@@ -257,8 +265,6 @@ fi
 
 ./wiregate.sh install
 ./wiregate.sh start &
-
-
 
 ensure_blocking
 
