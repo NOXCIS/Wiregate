@@ -208,8 +208,8 @@ run_tor_flux() {
 
     # Main loop for periodic circuit renewal
     while true; do
-        #sleep_time=$(( RANDOM % 1642 + 300 ))
-        sleep_time=$(( RANDOM % 30 + 20 ))
+        sleep_time=$(( RANDOM % 1042 + 342 ))
+        #sleep_time=$(( RANDOM % 30 + 20 ))
         printf "%s\n" "$dashes"
         echo "[TOR] New circuit in $sleep_time seconds..."
         printf "%s\n" "$dashes"
@@ -248,7 +248,7 @@ fi
 
 
 if [[ "$WGD_TOR_PROXY" == "true" ]]; then
-  sudo apk add --no-cache tor netcat-openbsd curl > /dev/null 2>&1
+  sudo apk add --no-cache tor curl > /dev/null 2>&1
   generate_vanguard_tor_ctrl_pass
   make_torrc
   make_dns_torrc
