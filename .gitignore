@@ -58,19 +58,14 @@ WG-Dash/master-key/*.conf
 
 WG-Dash/src/wg-dashboard.ini
 
-wget-log
-run-log.txt
 
 test.py
 test.sh
 preqsinstalled.txt
 .env
 .env.anim.run.txt
-/Static-Experiment/configs/logs
-/Static-Experiment/configs/tor
-/Static-Experiment/configs/master-key
-/Static-Experiment/configs/pihole
 
-/Static-Deploy/configs/logs
-/Static-Deploy/configs/logs
-Static-Deploy/configs/master-key/master.conf
+
+/Static-Deploy/configs/*
+!/Static-Deploy/configs/dncrypt/
+
