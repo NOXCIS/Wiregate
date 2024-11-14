@@ -1,13 +1,11 @@
-import logging
 from waitress import serve
-import itertools, random
+import random
 import shutil
 import sqlite3
 import configparser
 import hashlib
 import ipaddress
 import json
-import traceback
 import os
 import secrets
 import subprocess
@@ -2767,24 +2765,6 @@ def peerJobScheduleBackgroundThread():
             AllPeerJobs.runJob()
             time.sleep(180)
 
-# Configuration
-def gunicornConfig():
-    _, app_ip = DashboardConfig.GetConfig("Server", "app_ip")
-    _, app_port = DashboardConfig.GetConfig("Server", "app_port")
-    return app_ip, int(app_port)
-
-# Global variables initialization
-AllPeerShareLinks: PeerShareLinks = PeerShareLinks()
-AllPeerJobs: PeerJobs = PeerJobs()
-JobLogger: PeerJobLogger = PeerJobLogger()
-DashboardLogger: DashboardLogger = DashboardLogger()
-_, app_ip = DashboardConfig.GetConfig("Server", "app_ip")
-_, app_port = DashboardConfig.GetConfig("Server", "app_port")
-_, WG_CONF_PATH = DashboardConfig.GetConfig("Server", "wg_conf_path")
-
-WireguardConfigurations: dict[str, WireguardConfiguration] = {}
-_getConfigurationList(startup=True)
-
 # Start background threads
 def startThreads():
     bgThread = threading.Thread(target=backGroundThread)
@@ -2795,22 +2775,34 @@ def startThreads():
     scheduleJobThread.daemon = True
     scheduleJobThread.start()
 
-# Logging setup
-date = datetime.today().strftime('%Y_%m_%d_%H_%M_%S')
-os.makedirs('./log', exist_ok=True)
+# Fetch configurations
+_, app_ip = DashboardConfig.GetConfig("Server", "app_ip")
+_, app_port = DashboardConfig.GetConfig("Server", "app_port")
 
-access_log = f"./log/access_{date}.log"
-error_log = f"./log/error_{date}.log"
 
-logging.basicConfig(filename=access_log, level=logging.DEBUG)
-logging.getLogger().addHandler(logging.StreamHandler())
-
-# Start background threads
-startThreads()
 
 # Production Server using Waitress
 if __name__ == "__main__":
-    print(f"[WGDashboard] Running WGDashboard with Waitress on {app_ip}:{app_port}")
-    print(f"[WGDashboard] Access log at {access_log}")
-    print(f"[WGDashboard] Error log at {error_log}")
-    serve(app, host=app_ip, port=app_port, threads=4)
+    # Global variables initialization
+    AllPeerShareLinks: PeerShareLinks = PeerShareLinks()
+    AllPeerJobs: PeerJobs = PeerJobs()
+    JobLogger: PeerJobLogger = PeerJobLogger()
+    DashboardLogger: DashboardLogger = DashboardLogger()
+
+    _, WG_CONF_PATH = DashboardConfig.GetConfig("Server", "wg_conf_path")
+
+    WireguardConfigurations: dict[str, WireguardConfiguration] = {}
+    _getConfigurationList(startup=True)
+
+    # Start background threads
+    startThreads()
+
+    # Start the Waitress server with access logging enabled
+    serve(
+        app,
+        host=app_ip,
+        port=app_port,
+        threads=8,
+        _quiet=False,  # Ensures Waitress uses the 'waitress.access' logger for requests
+        #out=sys.stdout  # Explicitly set stdout for waitress
+    )

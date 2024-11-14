@@ -5,7 +5,6 @@ pyotp
 Flask
 flask-cors
 icmplib
-gunicorn
 requests
 vanguards
 configparser
