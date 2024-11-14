@@ -69,7 +69,7 @@ services:
 
   wiregate-static:
       build: .
-      #image: noxcis/wiregate:static-dev
+      #image: noxcis/wiregate:latest
       container_name: wiregate-static
       hostname: wiregate-static
       devices:
