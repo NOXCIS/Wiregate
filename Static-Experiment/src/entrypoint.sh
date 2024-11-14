@@ -215,7 +215,7 @@ run_tor_flux() {
         printf "%s\n" "$dashes"
         sleep "$sleep_time"
         printf "%s\n" "$dashes"
-        echo "[TOR] Restarting Tor for new circuit..."
+        echo "[TOR] Sending Signal for New Circuits..."
         ./torflux &
         printf "%s\n" "$dashes"
     done

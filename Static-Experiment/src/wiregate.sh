@@ -106,7 +106,7 @@ init() {
     dashboard_start
 	start_core
 	printf "%s\n" "$equals"
-    printf "[WIREGATE] %s Started\n" "$heavy_checkmark"
+    printf "[WIREGATE] %s WGDashboard Started\n" "$heavy_checkmark"
     printf "%s\n" "$equals"
 	if [[ "$WGD_TOR_PROXY" == "true" ]]; then
 		# Get the most recent log file based on the date in the filename
