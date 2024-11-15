@@ -50,6 +50,11 @@
 		"lang_name_localized": "中文（繁體）"
 	},
 	{
+		"lang_id": "tr-tr",
+		"lang_name": "Turkish",
+		"lang_name_localized": "Türkçe"
+	},
+	{
 		"lang_id": "pl",
 		"lang_name": "Polish)",
 		"lang_name_localized": "Polski"
