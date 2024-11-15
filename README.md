@@ -1,9 +1,137 @@
+> [!NOTE]
+> **Obfs4 Plugin**: Has alot of latency and connection drops, use webtunnel or snowflake plugins if possible.
+>
+> **AmneziaWG** support is fully functional but is still in devlopement under the **amneziawg** branch for those that want to use AmneziaWG with WGDashboard.
+<hr>
+
 # WireGate ![GitHub Repo stars](https://img.shields.io/github/stars/NOXCIS/WireGate?style=social) ![Docker Pulls](https://img.shields.io/docker/pulls/noxcis/wg-dashboard.svg?style=flat&label=pulls&logo=docker) ![Docker Image Size (tag)](https://img.shields.io/docker/image-size/noxcis/wg-dashboard/terra-firma.svg?style=flat&label=image&logo=docker) ![Hits](https://hits.seeyoufarm.com/api/count/incr/badge.svg?url=https://github.com/NOXCIS/WireGate&icon=github.svg&icon_color=%23FFFFFF&title=hits&edge_flat=false) ![GitHub Clones](https://img.shields.io/badge/dynamic/json?color=success&label=Clone&query=count&url=https://gist.githubusercontent.com/NOXCIS/a08fe945ac095cea4f3cc21178ee43fb/raw/clone.json&logo=github)
 
 > **Wiregate** Supported architectures: `x86-64` , `arm64`, `armv7`
 >  **Test OS**: Ubuntu LTS | Debian 12 
->  **Test Device:** Raspberry Pi 5 | M2 | x86 CPUs
+>  **Test Device:** Raspberry Pi 5 | Apple M2 | x86 CPUs
 >  **Build:** Daily
+
+
+
+
+  
+
+# Traffic Correlation and Deobfuscation Analysis
+
+
+Traffic correlation involves analyzing packet timings, sizes, and patterns to identify relationships between incoming and outgoing traffic at different points on the network.
+
+  
+
+### 1. WireGuard with Obfuscation
+
+-  **Goal**: Make WireGuard traffic appear as generic encrypted UDP traffic to evade Deep Packet Inspection (DPI).
+
+-  **Effectiveness**: Randomized junk headers obscure WireGuard traffic, requiring adversaries to rely on statistical analysis rather than signature-based detection.
+
+-  **Mathematical Complexity**:
+
+- Let \( N \) be the number of possible random header combinations.
+
+- The detection problem requires searching a space of size \( O(N) \).
+
+- The higher \( N \), the harder it is to detect WireGuard.
+
+  
+
+### 2. Tor TransPort
+
+-  **Goal**: Anonymize traffic using Tor's multi-hop network.
+
+-  **Effectiveness**: Frequent Tor circuit updates (every 2-8 minutes) reduce correlation probability. Tor Vanguard adds further complexity by frequently changing guards and using isolation techniques.
+
+-  **Mathematical Complexity**:
+
+- Let \( T \) be the size of the Tor network, with \( n = 3 \) hops per circuit.
+
+- The correlation problem involves searching a space of size \( O(T^n) \).
+
+- Given randomized circuit rotation, this becomes a stochastic process, significantly increasing computational difficulty.
+
+  
+
+### Information Theoretic Perspective
+
+-  **Total Entropy Increase**:
+
+-  \( H_{WG} \): Entropy from WireGuard obfuscation
+
+-  \( H_{Tor} \): Entropy from Tor circuits
+
+-  \( H_{DNS} \): Entropy from DNS handling chain
+
+-  **Cumulative Entropy**: \( H_{total} = H_{WG} + H_{Tor} + H_{DNS} \)
+
+  
+
+### 3. DNS Deobfuscation and Tracking
+
+Your DNS chain is robust, utilizing multiple layers of encryption and anonymization:
+
+  
+
+-  **DNS Path**: WireGuard → Pi-hole/AdGuard → Unbound → DNSCrypt → Tor SOCKS → Tor Network → ODoH.
+
+-  **Effectiveness**: ODoH ensures DNS queries cannot be linked back to your IP address. Cloudflare only sees requests from the Oblivious proxy.
+
+-  **Mathematical Complexity**:
+
+- Tracking DNS queries involves breaking through multiple layers of encryption, modeled as \( O(E^n) \), where \( E \) is the entropy per layer.
+
+  
+
+### 4. Multi-Container Docker Network Isolation
+
+-  **Goal**: Limit attack surface by isolating each container and exposing minimal ports.
+
+-  **Mathematical Complexity**:
+
+- Assuming an attacker can only observe encrypted traffic, the probability of correlation is low.
+
+- Complexity grows as \( O(P^C) \), where \( P \) is the number of observable ports/protocols and \( C \) is the number of containers.
+
+  
+
+## Overall Difficulty in Mathematical Terms
+
+The overall difficulty of correlation and deobfuscation is the combined complexity of breaking through each layer:
+
+  
+
+\[ ext{Difficulty} pprox O(N) imes O(T^n) imes O(E^n) imes O(P^C)\]
+
+  
+
+Given your setup:
+
+-  **\( N \)** is large due to WireGuard obfuscation.
+
+-  **\( T \)** (Tor network size) is large with \( n = 3 \) hops.
+
+-  **\( E \)** is high due to multi-layered DNS encryption.
+
+-  **\( C \)** is relatively small (minimal exposed ports).
+
+  
+
+### Conclusion
+
+In practical terms, adversaries would need access to multiple observation points and perform extensive statistical analysis over time. The entropy added at each stage makes correlation exponentially difficult. Thus:
+
+  
+
+-  **Traffic Correlation**: Extremely challenging without global surveillance capabilities.
+
+-  **Deobfuscation**: Computationally infeasible without significant resources.
+
+  
+
+
 
 ## Table of Contents
 - [About](#About)
@@ -61,11 +189,11 @@ Wiregate is configured with 4 zones that peers can be added to. The zone a peer 
 
 
 ## Installation
+
 To get started, run the installation script using the following command:
 
 ### Via Quick Installer
 Running the command below installs prerequsites and runs the terminal based menu.
-
 ```bash
 curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh && \
 sudo chmod +x stackscript.sh && \
@@ -76,23 +204,23 @@ The command can also accept passed arguments to skip the menu. **BRANCH** -Selec
 ```bash
 curl -O https://raw.githubusercontent.com/NOXCIS/Wiregate/main/stackscript.sh && \
 sudo chmod +x stackscript.sh && \
-sudo ./stackscript.sh [-b branch] [-c arg5] [-e arg1] [-t arg2] [-n arg3] 
+sudo ./stackscript.sh [-b branch]  [-r arg1]  [-t arg2]  [-n arg3] 
 ```
 Example Usage:
 ```bash
-./stackscript.sh -b main -c Podman -e E-P-D -t Tor-br-snow -n {CH},{GB} 
+./stackscript.sh -b main -r E-P-D -t Tor-br-snow -n {CH},{GB} 
 ```
 
  The available options are:
-- `-c` for specifying **Container Orchestrator**
-- `-b` for specifying a **Branch**
-- `-e` for specifying **Enviornment**
-- `-t` for specifying **Tor**
-- `-n` for specifying **Exit Node**
+
+- `-b` for specifying a branch.
+- `-r` for specifying Resolvers
+- `-t` for specifying Tor.
+- `-n` for specifying Exit Node.
 
 
----
----
+
+
 ### Via Docker In Docker 
 
 **Interactive Menu**
@@ -121,21 +249,20 @@ chmod +x stackscript.sh && \
 ```
 Example Usage:
 ```bash
-./stackscript.sh -b main -e E-P-D -t Tor-br-snow -n {CH},{GB} -d dind
+./stackscript.sh -b main -r E-P-D -t Tor-br-snow -n {CH},{GB} -d dind
 ```
  The available options are:
-- `-b` for specifying a **Branch**
-- `-e` for specifying **Enviornment**
-- `-t` for specifying **Tor**
-- `-n` for specifying **Exit Node**
+
+- `-b` for specifying a branch.
+- `-r` for specifying Resolvers
+- `-t` for specifying Tor.
+- `-n` for specifying Exit Node.
+- `-d` for specifying Docker in Docker.
 
 
-## Install Arguments
 
 
-### ARG1:  Enviornment Install Options
-
-
+### ARG1:  Resolver Install Options
 |  |  |
 |--|--|
 | **E-A-D**: | `Express, AdGuard, Darkwire`
@@ -151,7 +278,10 @@ Example Usage:
 | **reset**:| `Reset WireGate`
 
 
-### ARG2: TOR Configuration Options
+
+
+
+### ARG2: TOR Options
 |  |  |
 |--|--|
 | **off**: |`Disable TOR`
@@ -161,7 +291,6 @@ Example Usage:
 | **Tor-snow**:| 			`Use Tor without bridges (snowflake)`
 | **Tor-webtun**:| 		`Use Tor without bridges (webtunnel)`
 | **Tor-obfs4**: |			`Use Tor without bridges (obfs4)`
----
 
 ### ARG3:  TOR Exit Node Country Code String
 |  |  |
@@ -169,24 +298,13 @@ Example Usage:
 | **Format Example**: | `{US},{GB},{AU} `
 |**Default**| `default` |
 For more exit node options go to [Tor Country codes list](https://sccmrookie.blogspot.com/2016/03/tor-country-codes-list.html).
-___
+
 
 ### ARG4: OPTIONAL  Docker in Docker Deployment
-- Used for Deploying container Stack in a single Container.
-
 |  |  |
 |--|--|
 | **dind**: | `Docker in Docker Enviorment Setup`
----
 
-### ARG5: Container Orchestrator
- - Podman Users will have to install Podman before hand.
- 
-|  |  |
-|--|--|
-| **Podman**: | `Use Podman Conatiner Engine `
-| **Docker**: | `Use Docker Container Engine`
----
 
 ### Install via Docker Compose
 ````yaml
