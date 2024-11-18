@@ -21,18 +21,22 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/stat.h>
+#include <errno.h>
+#include <sys/time.h> 
+
 
 #define LOG_DIR "./log"
 #define LOG_FILE LOG_DIR "/tor_circuit_refresh_log.txt"
-#define BUFFER_SIZE 1024
+#define BUFFER_SIZE 8192
 #define TOR_CONTROL_PORT_1 9051
 #define TOR_CONTROL_PORT_2 9054
+#define SOCKET_TIMEOUT 5  // Timeout in seconds
 
 // Function prototypes
 void log_message(const char *message, int add_newlines, int to_console);
 int send_signal(int port, const char *password, char *status_buffer);
-int circuits_are_different(const char *old_status, const char *new_status);
 void get_timestamp(char *buffer, size_t size);
+void set_socket_timeout(int sockfd);
 
 // Function to log messages
 void log_message(const char *message, int add_newlines, int to_console) {
@@ -62,6 +66,8 @@ void log_message(const char *message, int add_newlines, int to_console) {
             }
         }
         fclose(log_f);
+    } else {
+        perror("[ERROR] Could not open log file");
     }
 }
 
@@ -72,21 +78,33 @@ void get_timestamp(char *buffer, size_t size) {
     strftime(buffer, size, "%Y-%m-%d %H:%M:%S", t);
 }
 
+// Set a timeout for the socket
+void set_socket_timeout(int sockfd) {
+    struct timeval timeout;
+    timeout.tv_sec = SOCKET_TIMEOUT;
+    timeout.tv_usec = 0;
+    setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
+    setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+}
+
 // Function to send NEWNYM signal to Tor control port
 int send_signal(int port, const char *password, char *status_buffer) {
-    int sockfd;
+    int sockfd = -1;
     struct sockaddr_in serv_addr;
     char buffer[BUFFER_SIZE];
     int bytes_received;
+    int success = 0; // Track success
 
-    log_message("[TOR] Sending NEWNYM signal...", 0, 0);
+    log_message("[TOR-FLUX] Sending NEWNYM signal...", 0, 0);
 
     // Create socket
     sockfd = socket(AF_INET, SOCK_STREAM, 0);
     if (sockfd < 0) {
-        log_message("[ERROR] Socket creation failed", 0, 0);
+        log_message("[TOR-FLUX] [ERROR] Socket creation failed", 0, 0);
         return 0;
     }
+
+    set_socket_timeout(sockfd);
 
     // Set up server address
     serv_addr.sin_family = AF_INET;
@@ -95,20 +113,18 @@ int send_signal(int port, const char *password, char *status_buffer) {
 
     // Connect to Tor control port
     if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0) {
-        log_message("[ERROR] Connection to Tor control port failed", 0, 0);
-        close(sockfd);
-        return 0;
+        log_message("[TOR-FLUX] [ERROR] Connection to Tor control port failed", 0, 0);
+        goto cleanup;
     }
 
     // Authenticate with Tor control port
-    if (password != NULL) {
+    if (password && *password != '\0') {
         snprintf(buffer, sizeof(buffer), "AUTHENTICATE \"%s\"\r\n", password);
         send(sockfd, buffer, strlen(buffer), 0);
         bytes_received = recv(sockfd, buffer, sizeof(buffer), 0);
         if (bytes_received < 1 || strstr(buffer, "250") == NULL) {
-            log_message("[ERROR] Tor authentication failed", 0, 0);
-            close(sockfd);
-            return 0;
+            log_message("[TOR-FLUX] [ERROR] Tor authentication failed", 0, 0);
+            goto cleanup;
         }
     }
 
@@ -116,9 +132,8 @@ int send_signal(int port, const char *password, char *status_buffer) {
     send(sockfd, "SIGNAL NEWNYM\r\n", 15, 0);
     bytes_received = recv(sockfd, buffer, sizeof(buffer), 0);
     if (bytes_received < 1 || strstr(buffer, "250") == NULL) {
-        log_message("[ERROR] Failed to send NEWNYM signal", 0, 0);
-        close(sockfd);
-        return 0;
+        log_message("[TOR-FLUX] [ERROR] Failed to send NEWNYM signal", 0, 0);
+        goto cleanup;
     }
 
     // Get circuit status
@@ -126,55 +141,38 @@ int send_signal(int port, const char *password, char *status_buffer) {
     bytes_received = recv(sockfd, status_buffer, BUFFER_SIZE - 1, 0);
     if (bytes_received > 0) {
         status_buffer[bytes_received] = '\0';
+        success = 1;
     } else {
         status_buffer[0] = '\0';
     }
 
     // Log the current circuit status
-    log_message("[TOR] Current Circuit Status:", 0, 0);
-    log_message(status_buffer, 0, 0);  // Log the received circuit status
+    log_message("[TOR-FLUX] Current Circuit Status:", 0, 0);
+    log_message(status_buffer, 0, 0);
+    log_message("[TOR-FLUX] New Tor Circuits Requested Successfully.", 0, 0);
 
-    log_message("[TOR] New Tor Circuits Requested Successfully.", 0, 0);
-    close(sockfd);
-    return 1;
-}
-
-// Function to check if circuits are different
-int circuits_are_different(const char *old_status, const char *new_status) {
-    return strcmp(old_status, new_status) != 0;
+cleanup:
+    if (sockfd >= 0) {
+        close(sockfd);
+    }
+    return success;
 }
 
 int main() {
-    char old_status_9051[BUFFER_SIZE] = {0};
-    char old_status_9054[BUFFER_SIZE] = {0};
+    const char *VANGUARD = getenv("VANGUARD");
+    if (!VANGUARD || strlen(VANGUARD) == 0) {
+        log_message("[TOR-FLUX] [ERROR] Tor control port password (VANGUARD) is not set or empty.", 0, 1);
+        return 1;
+    }
+
+    log_message("[TOR-FLUX] Starting Tor circuit refresh...", 0, 1);
+
+    // Send NEWNYM signal and get circuit statuses
     char new_status_9051[BUFFER_SIZE] = {0};
     char new_status_9054[BUFFER_SIZE] = {0};
-
-    const char *VANGUARD = getenv("VANGUARD");
-    if (!VANGUARD) {
-        log_message("Error: Tor control port password (VANGUARD) is not set.", 0, 1);
-        return 1;
-    }
-
-    log_message("Starting Tor circuit refresh...", 0, 1);
-
-    // Get initial circuit status
-    if (!send_signal(TOR_CONTROL_PORT_1, VANGUARD, old_status_9051) ||
-        !send_signal(TOR_CONTROL_PORT_2, VANGUARD, old_status_9054)) {
-        return 1;
-    }
-
-    // Send NEWNYM signal again and compare statuses
     send_signal(TOR_CONTROL_PORT_1, VANGUARD, new_status_9051);
     send_signal(TOR_CONTROL_PORT_2, VANGUARD, new_status_9054);
 
-    if (circuits_are_different(old_status_9051, new_status_9051) ||
-        circuits_are_different(old_status_9054, new_status_9054)) {
-        log_message("Tor circuits have been successfully refreshed.", 1, 1);
-    } else {
-        log_message("Tor circuits did not change. Retrying...", 0, 0);
-    }
-
-    log_message("Tor circuit refresh completed.", 1, 1);
+    log_message("[TOR-FLUX] Tor circuit refresh completed.", 1, 1);
     return 0;
 }

@@ -107,7 +107,7 @@ services:
         - WGD_AUTH_REQ=false
         - WGD_USER=admin
         - WGD_PASS=admin
-        - WGD_REMOTE_ENDPOINT=192.168.0.9
+        - WGD_REMOTE_ENDPOINT=192.168.0.2
         - WGD_REMOTE_ENDPOINT_PORT=80
         - WGD_PEER_ENDPOINT_ALLOWED_IP=0.0.0.0/0, ::/0
         - WGD_KEEP_ALIVE=21

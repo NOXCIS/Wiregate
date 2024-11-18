@@ -16,7 +16,6 @@ import uuid
 from datetime import datetime, timedelta
 from typing import Any
 import bcrypt
-import ifcfg
 import psutil
 import pyotp
 from flask import Flask, request, render_template, session, g
@@ -45,30 +44,39 @@ app.secret_key = secrets.token_urlsafe(32)
 if not os.path.exists(DASHBOARD_CONF):
     load_dotenv()
 
-awg_activate = os.environ.get('AMNEZIA_WG')
-wgd_config_path = os.environ.get('WGD_CONF_PATH')
-wgd_welcome = os.environ.get('WGD_WELCOME_SESSION')
-wgd_app_port = os.environ.get('WGD_REMOTE_ENDPOINT_PORT')
-wgd_auth_req = os.environ.get('WGD_AUTH_REQ')
-wgd_user = os.environ.get('WGD_USER')
-wgd_pass = os.environ.get('WGD_PASS')
-wgd_global_dns = os.environ.get('WGD_DNS')
-wgd_peer_endpoint_allowed_ip = os.environ.get('WGD_PEER_ENDPOINT_ALLOWED_IP')
-wgd_remote_endpoint = os.environ.get('WGD_REMOTE_ENDPOINT')
-if wgd_remote_endpoint == '0.0.0.0':
-    default_interface = ifcfg.default_interface()
-    wgd_remote_endpoint = default_interface['inet']
-wgd_keep_alive = os.environ.get('WGD_KEEP_ALIVE')
-wgd_mtu = os.environ.get('WGD_MTU')
-wgd_jc = os.environ.get('WGD_JC')
-wgd_jmin = os.environ.get('WGD_JMIN')
-wgd_jmax = os.environ.get('WGD_JMAX')
-wgd_s1 = os.environ.get('WGD_S1')
-wgd_s2 = os.environ.get('WGD_S2')
-wgd_h1 = os.environ.get('WGD_H1')
-wgd_h2 = os.environ.get('WGD_H2')
-wgd_h3 = os.environ.get('WGD_H3')
-wgd_h4 = os.environ.get('WGD_H4')
+awg_activate = os.environ.get('AMNEZIA_WG') or "false"
+wgd_config_path = os.environ.get('WGD_CONF_PATH') or "/etc/wireguard"
+wgd_welcome = os.environ.get('WGD_WELCOME_SESSION') or "true"
+wgd_app_port = os.environ.get('WGD_REMOTE_ENDPOINT_PORT') or "10086"
+wgd_auth_req = os.environ.get('WGD_AUTH_REQ') or "true"
+wgd_user = os.environ.get('WGD_USER') or "admin"
+wgd_pass = os.environ.get('WGD_PASS') or "admin"
+wgd_global_dns = os.environ.get('WGD_DNS') or "1.1.1.1"
+wgd_peer_endpoint_allowed_ip = os.environ.get('WGD_PEER_ENDPOINT_ALLOWED_IP') or "0.0.0.0/0, ::/0"
+wgd_remote_endpoint = os.environ.get('WGD_REMOTE_ENDPOINT') or "127.0.0.1"
+wgd_keep_alive = os.environ.get('WGD_KEEP_ALIVE') or "21"
+wgd_mtu = os.environ.get('WGD_MTU') or "1420"
+
+if awg_activate == "true":
+        wgd_jc = os.environ.get('WGD_JC') or "5"
+        wgd_jmin = os.environ.get('WGD_JMIN') or "550"
+        wgd_jmax = os.environ.get('WGD_JMAX') or "550"
+        wgd_s1 = os.environ.get('WGD_S1') or "30"
+        wgd_s2 = os.environ.get('WGD_S2') or "40"
+        wgd_h1 = os.environ.get('WGD_H1') or "123456"
+        wgd_h2 = os.environ.get('WGD_H2') or "67543"
+        wgd_h3 = os.environ.get('WGD_H3') or "32345"
+        wgd_h4 = os.environ.get('WGD_H4') or "123123"
+else:
+    wgd_jc = ""
+    wgd_jmin = ""
+    wgd_jmax = ""
+    wgd_s1 = ""
+    wgd_s2 = ""
+    wgd_h1 = ""
+    wgd_h2 = ""
+    wgd_h3 = ""
+    wgd_h4 = ""
 
 
 

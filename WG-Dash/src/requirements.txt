@@ -1,5 +1,4 @@
 bcrypt
-ifcfg
 psutil
 pyotp
 Flask

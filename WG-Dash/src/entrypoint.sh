@@ -209,8 +209,8 @@ run_tor_flux() {
 
     # Main loop for periodic circuit renewal
     while true; do
-        sleep_time=$(( RANDOM % 1042 + 342 ))
-        #sleep_time=$(( RANDOM % 30 + 20 ))
+       #sleep_time=$(( RANDOM % 1042 + 342 ))
+        sleep_time=$(( RANDOM % 300 + 120 ))
         printf "%s\n" "$dashes"
         echo "[TOR] New circuit in $sleep_time seconds..."
         printf "%s\n" "$dashes"
