@@ -153,8 +153,13 @@ export default {
 			</div>
 		</div>
 		<small class="text-muted pb-3 d-block w-100 text-center mt-3">
-			<a href="https://github.com/NOXCIS/Wiregate" target="_blank"><strong>WireGate</strong></a> Build: <strong>{{ this.version }}</strong> | UI Powered by 
-			<a href="https://github.com/donaldzou/WGDashboard" target="_blank"><strong>WGDashboard</strong></a>
+			<a href="https://github.com/NOXCIS/Wiregate" target="_blank" style="color: #4a4a4a;">
+				<strong>WireGate</strong>
+			</a> 
+			Build: <strong>{{ this.version }}</strong> | UI Powered by 
+			<a href="https://github.com/donaldzou/WGDashboard" target="_blank" style="color: #4a4a4a;">
+				<strong>WGDashboard</strong>
+			</a>
 		</small>
 		<div class="messageCentre text-body position-absolute end-0 m-3">
 			<TransitionGroup name="message" tag="div" class="position-relative">
