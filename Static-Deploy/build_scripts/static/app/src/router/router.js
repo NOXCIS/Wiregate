@@ -152,12 +152,12 @@ router.beforeEach(async (to, from, next) => {
 
 	if (to.meta.title){
 		if (to.params.id){
-			document.title = to.params.id + " | WGDashboard";
+			document.title = to.params.id + " | WireGate";
 		}else{
-			document.title = to.meta.title + " | WGDashboard";
+			document.title = to.meta.title + " | WireGate";
 		}
 	}else{
-		document.title = "WGDashboard"
+		document.title = "WireGate"
 	}
 	dashboardConfigurationStore.ShowNavBar = false;
 	document.querySelector(".loadingBar").classList.remove("loadingDone")
@@ -174,7 +174,7 @@ router.beforeEach(async (to, from, next) => {
 			}else{
 				dashboardConfigurationStore.Redirect = to;
 				next("/signin")
-				dashboardConfigurationStore.newMessage("WGDashboard", "Sign in session ended, please sign in again", "warning")
+				dashboardConfigurationStore.newMessage("WireGate", "Sign in session ended, please sign in again", "warning")
 			}
 		}else{
 			await dashboardConfigurationStore.getConfiguration()

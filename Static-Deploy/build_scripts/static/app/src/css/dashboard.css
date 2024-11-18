@@ -286,15 +286,20 @@
 }
 
 [data-bs-theme="dark"] a:-webkit-any-link {
-    color: #c7c5c5 !important;
     cursor: pointer !important;
     text-decoration: none !important;
 }
 
+
 [data-bs-theme="light"] a:-webkit-any-link {
-    color: #4e4e4e !important;
+
     cursor: pointer !important;
     text-decoration: none !important;
+}
+
+
+[data-bs-theme="light"] .text-primary-subtle {
+    color: #ffffff !important;
 }
 
 [data-bs-theme="dark"] .nav-link {
