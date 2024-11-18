@@ -28,7 +28,7 @@ from flask.json.provider import DefaultJSONProvider
 #Import Enviorment
 from dotenv import load_dotenv
 
-DASHBOARD_VERSION = 'v4.1.0'
+DASHBOARD_VERSION = 'Chimera'
 CONFIGURATION_PATH = os.getenv('CONFIGURATION_PATH', '.')
 DB_PATH = os.path.join(CONFIGURATION_PATH, 'db')
 if not os.path.isdir(DB_PATH):
@@ -710,12 +710,12 @@ class WireguardConfiguration:
                                 p[pCounter]["name"] = ""
                             else:
                                 if len(i) > 0:
-                                    split = re.split(r'\s*=\s*', i, 1)
+                                    split = re.split(r'\s*=\s*', i, maxsplit=1)
                                     if len(split) == 2:
                                         p[pCounter][split[0]] = split[1]
                         
                         if regex_match("#Name# = (.*)", i):
-                            split = re.split(r'\s*=\s*', i, 1)
+                            split = re.split(r'\s*=\s*', i, maxsplit=1)
                             if len(split) == 2:
                                 p[pCounter]["name"] = split[1]
                     
@@ -2807,4 +2807,4 @@ def startThreads():
 
 if __name__ == "__main__":
     startThreads()
-    app.run(host=app_ip, debug=False, port=app_port)
+    app.run(host=app_ip, debug=True, port=app_port)

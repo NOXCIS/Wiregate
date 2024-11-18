@@ -41,7 +41,7 @@ export default {
 			tabs: [
 				{
 					id: "WGDashboard",
-					title: "WGDashboard Settings"
+					title: "Dashboard Settings"
 				},
 				{
 					id: "Peers",
@@ -49,7 +49,7 @@ export default {
 				},
 				{
 					id: "WireGuardConfiguration",
-					title: "WireGuard Configuration Settings"
+					title: "Configuration Settings"
 				}
 			]
 		}

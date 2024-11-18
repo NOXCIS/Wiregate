@@ -4,8 +4,8 @@
     "display": "fullscreen",
     "scope": "/",
     "start_url": "/",
-    "name": "WGDashboard",
-    "short_name": "WGDashboard",
+    "name": "WireGate",
+    "short_name": "WireGate",
     "screenshots": [
         {
             "src": "https://donaldzou.github.io/WGDashboard-Documentation/images/sign-in.png",

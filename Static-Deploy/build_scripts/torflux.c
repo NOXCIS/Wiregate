@@ -22,15 +22,14 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <errno.h>
-#include <sys/time.h> 
-
+#include <sys/time.h>
 
 #define LOG_DIR "./log"
 #define LOG_FILE LOG_DIR "/tor_circuit_refresh_log.txt"
 #define BUFFER_SIZE 8192
 #define TOR_CONTROL_PORT_1 9051
 #define TOR_CONTROL_PORT_2 9054
-#define SOCKET_TIMEOUT 5  // Timeout in seconds
+#define SOCKET_TIMEOUT 5 // Timeout in seconds
 
 // Function prototypes
 void log_message(const char *message, int add_newlines, int to_console);
@@ -91,9 +90,9 @@ void set_socket_timeout(int sockfd) {
 int send_signal(int port, const char *password, char *status_buffer) {
     int sockfd = -1;
     struct sockaddr_in serv_addr;
-    char buffer[BUFFER_SIZE];
+    char buffer[BUFFER_SIZE] = {0};
     int bytes_received;
-    int success = 0; // Track success
+    int success = 0;
 
     log_message("[TOR-FLUX] Sending NEWNYM signal...", 0, 0);
 
@@ -136,20 +135,24 @@ int send_signal(int port, const char *password, char *status_buffer) {
         goto cleanup;
     }
 
-    // Get circuit status
+    // Clear the status buffer
+    memset(status_buffer, 0, BUFFER_SIZE);
+
+    // Loop to receive full circuit status
     send(sockfd, "GETINFO circuit-status\r\n", 24, 0);
-    bytes_received = recv(sockfd, status_buffer, BUFFER_SIZE - 1, 0);
-    if (bytes_received > 0) {
-        status_buffer[bytes_received] = '\0';
-        success = 1;
-    } else {
-        status_buffer[0] = '\0';
+    int total_bytes = 0;
+    while ((bytes_received = recv(sockfd, status_buffer + total_bytes, BUFFER_SIZE - total_bytes - 1, 0)) > 0) {
+        total_bytes += bytes_received;
+        if (total_bytes >= BUFFER_SIZE - 1) break; // Prevent buffer overflow
     }
+    status_buffer[total_bytes] = '\0';
 
     // Log the current circuit status
     log_message("[TOR-FLUX] Current Circuit Status:", 0, 0);
     log_message(status_buffer, 0, 0);
     log_message("[TOR-FLUX] New Tor Circuits Requested Successfully.", 0, 0);
+
+    success = 1;
 
 cleanup:
     if (sockfd >= 0) {

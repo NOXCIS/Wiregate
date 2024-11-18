@@ -36,7 +36,7 @@ export default {
 			<div class="d-flex mb-4 configurationListTitle align-items-center gap-3">
 				<h2 class="text-body d-flex">
 					<span>
-						<LocaleText t="WireGuard Configurations"></LocaleText>
+						<LocaleText t="Configurations"></LocaleText>
 					</span>
 				</h2>
 				<RouterLink to="/new_configuration"
@@ -57,7 +57,7 @@ export default {
 				<p class="text-muted" 
 				   key="noConfiguration"
 				   v-if="this.configurationLoaded && this.wireguardConfigurationsStore.Configurations.length === 0">
-					<LocaleText t="You don't have any WireGuard configurations yet. Please check the configuration folder or change it in Settings. By default the folder is /etc/wireguard."></LocaleText>
+					<LocaleText t="You don't have any configurations yet. Please check the configuration folder or change it in Settings. By default the folder is /etc/wireguard."></LocaleText>
 				</p>
 				<ConfigurationCard v-for="(c, index) in this.wireguardConfigurationsStore.Configurations"
 				                   :delay="index*0.05 + 's'"

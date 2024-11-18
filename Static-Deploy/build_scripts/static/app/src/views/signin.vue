@@ -103,10 +103,8 @@ export default {
 	     :data-bs-theme="this.theme">
 		<div class="login-box m-auto" >
 			<div class="m-auto" style="width: 700px;">
-				<h4 class="mb-0 text-body">
-					<LocaleText t="Welcome to"></LocaleText>
-				</h4>
-				<span class="dashboardLogo display-3"><strong>WGDashboard</strong></span>
+			
+				<span class="dashboardLogo display-3"><strong>WireGate</strong></span>
 				<div class="alert alert-danger mt-2 mb-0" role="alert" v-if="loginError">
 					<LocaleText :t="this.loginErrorMessage"></LocaleText>
 				</div>

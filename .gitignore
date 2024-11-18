@@ -69,3 +69,5 @@ preqsinstalled.txt
 /Static-Deploy/configs/*
 !/Static-Deploy/configs/dncrypt/
 
+/WG-Dash/src/db
+/WG-Dash/src/config_demo

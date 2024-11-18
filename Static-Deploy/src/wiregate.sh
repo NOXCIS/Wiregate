@@ -183,6 +183,7 @@ init() {
         printf "%s\n" "$dashes"
         echo "[TOR-VANGUARDS] Updating Tor Vanguards..."
         printf "%s\n" "$dashes"
+        sudo rm -r ./log/tor_circuit_refresh_log.txt > /dev/null 2>&1
 		./vanguards --one_shot_vanguards &
 		printf "%s\n" "$dashes"
         sleep 3600  #Sleep for 1 hour befored Updating Vanguards Again

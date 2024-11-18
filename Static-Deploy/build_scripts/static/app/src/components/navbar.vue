@@ -58,7 +58,7 @@ export default {
 			<div class="sidebar-sticky ">
 				<div class="text-white text-center m-0 py-3 mb-3 btn-brand">
 					<h5 class="mb-0">
-						WGDashboard
+						WireGate
 					</h5>
 					<small class="ms-auto" v-if="getActiveCrossServer !== undefined">
 						<i class="bi bi-hdd-rack-fill me-2"></i>{{getActiveCrossServer.host}}
@@ -124,18 +124,6 @@ export default {
 						<i class="bi bi-box-arrow-left me-2"></i>
 						<LocaleText t="Sign Out"></LocaleText>	
 					</a>
-					</li>
-					<li class="nav-item" style="font-size: 0.8rem">
-						<a :href="this.updateUrl" v-if="this.updateAvailable" class="text-decoration-none rounded-3" target="_blank">
-							<small class="nav-link text-muted rounded-3" >
-								<LocaleText :t="this.updateMessage"></LocaleText>
-								(<LocaleText t="Current Version:"></LocaleText> {{ dashboardConfigurationStore.Configuration.Server.version }})
-							</small>
-						</a>
-						<small class="nav-link text-muted rounded-3" v-else>
-							<LocaleText :t="this.updateMessage"></LocaleText>
-							({{ dashboardConfigurationStore.Configuration.Server.version }})
-						</small>
 					</li>
 				</ul>
 			</div>

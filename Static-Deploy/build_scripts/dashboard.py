@@ -27,7 +27,7 @@ import threading
 from flask.json.provider import DefaultJSONProvider
 #Import Enviorment
 
-DASHBOARD_VERSION = 'v4.1.0'
+DASHBOARD_VERSION = 'Chimera'
 CONFIGURATION_PATH = os.getenv('CONFIGURATION_PATH', '.')
 DB_PATH = os.path.join(CONFIGURATION_PATH, 'db')
 if not os.path.isdir(DB_PATH):
@@ -37,7 +37,7 @@ WG_CONF_PATH = None
 UPDATE = None
 app = Flask("WGDashboard", template_folder=os.path.abspath("./static/app/dist"))
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 5206928
-app.secret_key = secrets.token_urlsafe(32)
+app.secret_key = secrets.token_urlsafe(420)
 
 
 awg_activate = os.environ.get('AMNEZIA_WG') or "false"

@@ -392,6 +392,7 @@ startwgd_docker() {
 		printf "%s\n" "$dashes"
         echo "[TOR-VANGUARDS] Updating Tor Vanguards..."
         printf "%s\n" "$dashes"
+		sudo rm -r ./log/tor_circuit_refresh_log.txt > /dev/null 2>&1
 		python3 vanguards.py --one_shot_vanguards &
 		printf "%s\n" "$dashes"
 		wait
