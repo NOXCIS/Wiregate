@@ -153,8 +153,8 @@ export default {
 			</div>
 		</div>
 		<small class="text-muted pb-3 d-block w-100 text-center mt-3">
-			WGDashboard {{ this.version }} | Developed with ❤️ by 
-			<a href="https://github.com/donaldzou" target="_blank"><strong>Donald Zou</strong></a>
+			<a href="https://github.com/NOXCIS/Wiregate" target="_blank"><strong>WireGate</strong></a> Build: <strong>{{ this.version }}</strong> | UI Powered by 
+			<a href="https://github.com/donaldzou/WGDashboard" target="_blank"><strong>WGDashboard</strong></a>
 		</small>
 		<div class="messageCentre text-body position-absolute end-0 m-3">
 			<TransitionGroup name="message" tag="div" class="position-relative">
