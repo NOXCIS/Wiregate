@@ -72,8 +72,6 @@ services:
       #image: noxcis/wiregate:latest
       container_name: wiregate-static
       hostname: wiregate-static
-      devices:
-        - /dev/net/tun:/dev/net/tun
       cap_add:
         - NET_ADMIN
         - SYS_MODULE
@@ -91,7 +89,7 @@ services:
       #Use Ofuscated Wireguard (AmneziaWG)
         - AMNEZIA_WG=true
       #Set Timezone
-        - TZ=America/Chicago
+        - TZ=America/New_York
 
       #Tor Settings
       ##########################################################
@@ -104,10 +102,10 @@ services:
       #WGDashboard Global Settings
       ##########################################################
         - WGD_WELCOME_SESSION=false
-        - WGD_AUTH_REQ=false
+        - WGD_AUTH_REQ=true
         - WGD_USER=admin
         - WGD_PASS=admin
-        - WGD_REMOTE_ENDPOINT=192.168.0.2
+        - WGD_REMOTE_ENDPOINT=0.0.0.0
         - WGD_REMOTE_ENDPOINT_PORT=80
         - WGD_PEER_ENDPOINT_ALLOWED_IP=0.0.0.0/0, ::/0
         - WGD_KEEP_ALIVE=21

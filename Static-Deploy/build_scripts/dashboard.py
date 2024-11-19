@@ -7,6 +7,7 @@ import hashlib
 import ipaddress
 import json
 import os
+import socket
 import secrets
 import subprocess
 import time
@@ -49,7 +50,16 @@ wgd_user = os.environ.get('WGD_USER') or "admin"
 wgd_pass = os.environ.get('WGD_PASS') or "admin"
 wgd_global_dns = os.environ.get('WGD_DNS') or "1.1.1.1"
 wgd_peer_endpoint_allowed_ip = os.environ.get('WGD_PEER_ENDPOINT_ALLOWED_IP') or "0.0.0.0/0, ::/0"
-wgd_remote_endpoint = os.environ.get('WGD_REMOTE_ENDPOINT') or "127.0.0.1"
+wgd_remote_endpoint = os.environ.get('WGD_REMOTE_ENDPOINT') or "0.0.0.0"
+if wgd_remote_endpoint == '0.0.0.0':
+    try:
+        # Get the default IP address using a socket trick
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as s:
+            s.connect(("1.1.1.1", 80))  # Connecting to a public IP
+            wgd_remote_endpoint = s.getsockname()[0]
+    except Exception:
+        wgd_remote_endpoint = '0.0.0.0'  # Fallback if socket fails
+
 wgd_keep_alive = os.environ.get('WGD_KEEP_ALIVE') or "21"
 wgd_mtu = os.environ.get('WGD_MTU') or "1420"
 

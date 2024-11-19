@@ -71,8 +71,6 @@ services:
     #image: noxcis/wg-dashboard:terra-fuego-beta
     container_name: wiregate
     hostname: wiregate
-    devices:
-      - /dev/net/tun:/dev/net/tun
     cap_add:
       - NET_ADMIN
       - SYS_MODULE
