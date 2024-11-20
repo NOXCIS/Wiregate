@@ -95,6 +95,11 @@
     inherits: false;
 }
 
+@property --brandColor5 {
+    syntax: '<color>';
+    initial-value: #ffffff;
+    inherits: false;
+}
 
 
 
@@ -108,6 +113,29 @@
     syntax: '<angle>';
     initial-value: 234deg;
     inherits: false;
+}
+
+.dashboardNavBarLogo {
+    display: flex;
+    align-items: center;
+    -webkit-text-fill-color: whitesmoke;
+    font-size: 2.3em;
+    position: relative;
+    padding-left: 70px; /* Adjust padding for text offset */
+    
+}
+
+.dashboardNavBarLogo::before {
+    content: '';
+    background-image: url('/img/logo.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    width: 55px; /* Adjust width as needed */
+    height: 55px; /* Adjust height as needed */
+    position: absolute;
+    padding-left: 70px;
+    left: 0;
 }
 
 .dashboardLogo {

@@ -68,6 +68,6 @@ preqsinstalled.txt
 
 /Static-Deploy/configs/*
 !/Static-Deploy/configs/dncrypt/
-
+!/Static-Deploy/configs/pihole/etc-pihole/custom.list
 /WG-Dash/src/db
 /WG-Dash/src/config_demo

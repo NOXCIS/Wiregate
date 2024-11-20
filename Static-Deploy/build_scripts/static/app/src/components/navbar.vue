@@ -57,7 +57,7 @@ export default {
 		<nav id="sidebarMenu" class=" bg-body-tertiary sidebar border h-100 rounded-3 shadow overflow-y-scroll" >
 			<div class="sidebar-sticky ">
 				<div class="text-white text-center m-0 py-3 mb-3 btn-brand">
-					<h5 class="mb-0">
+					<h5 class="dashboardNavBarLogo">
 						WireGate
 					</h5>
 					<small class="ms-auto" v-if="getActiveCrossServer !== undefined">

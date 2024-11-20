@@ -16,7 +16,7 @@ RUN gcc -static -o torflux torflux.c && \
 
 
 # Stage 3: Final image
-FROM alpine:latest
+FROM noxcis/hellpine:latest
 LABEL maintainer="NOXCIS"
 WORKDIR /opt/wireguarddashboard/src
 ENV TZ=UTC

@@ -96,7 +96,7 @@ services:
         - WGD_TOR_PROXY=true
         - WGD_TOR_EXIT_NODES={ch}
         - WGD_TOR_DNS_EXIT_NODES={us}
-        - WGD_TOR_PLUGIN=webtunnel #OPTIONS webtunnel, obfs4, snowflake
+        - WGD_TOR_PLUGIN=snowflake #OPTIONS webtunnel, obfs4, snowflake
         - WGD_TOR_BRIDGES=true
 
       #WGDashboard Global Settings

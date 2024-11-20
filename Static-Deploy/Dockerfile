@@ -41,7 +41,7 @@ RUN venv/bin/pip install pyinstaller && \
 
 
 # Stage 3: Final image
-FROM alpine:latest
+FROM noxcis/hellpine:latest
 LABEL maintainer="NOXCIS"
 WORKDIR /WireGate
 ENV TZ=UTC
