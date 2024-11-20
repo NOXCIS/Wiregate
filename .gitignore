@@ -37,6 +37,7 @@
 !/Dynamic-Deploy/src/wiregate.sh
 !/Dynamic-Deploy/src/iptable-rules
 !/Dynamic-Deploy/src/vanguards
+!/Dynamic-Deploy/src/dnscrypt
 
 
 /Dynamic-Deploy/build_scripts/static/*

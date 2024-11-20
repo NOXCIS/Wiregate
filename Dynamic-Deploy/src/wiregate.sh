@@ -609,8 +609,6 @@ EOF
 
   [ "$index" -eq 0 ] && make_master_config
 }
-
-
 make_master_config() {
     # Ensure necessary variables are set
     if [ -z "$svr_config" ]; then
@@ -697,13 +695,6 @@ make_master_config() {
 
 	printf "[WIREGATE] %s ${VPN_PROTO_TYPE} Master configuration created successfully.\n" "$heavy_checkmark"
 }
-
-
-
-
-
-
-
 
 
 

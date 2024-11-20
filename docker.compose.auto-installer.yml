@@ -17,7 +17,7 @@ services:
     restart: unless-stopped
     container_name: dnscrypt
     volumes:
-      - ./configs/dnscrypt/dnscrypt-proxy.toml:/config/dnscrypt-proxy.toml
+      - dns_conf:/config
     networks:
       private_network:
         ipv4_address: 10.2.0.42
@@ -84,10 +84,13 @@ services:
       - NET_ADMIN
     restart: unless-stopped
     volumes:
-      - wgd_configs:/etc/wireguard
-      - wgd_db:/opt/wireguarddashboard/src/db
-      - wgd_db:/opt/wireguarddashboard/src/dashboard_config
-      - ./Global-Configs/Master-Key:/opt/wireguarddashboard/src/master-key
+        - dns_conf:/WireGate/dnscrypt
+        - pf_conf:/WireGate/iptable-rules/
+        - conf:/etc/wireguard 
+        - db:/WireGate/db
+        - ./configs/tor:/etc/tor/
+        - ./configs/logs:/WireGate/log/
+        - ./configs/master-key:/WireGate/master-key
     environment:
       - AMNEZIA_WG=${AMNEZIA_WG}
       - TZ={PI_HOLE_TZ}
@@ -134,8 +137,10 @@ services:
 
 
 volumes:
-    wgd_configs:
-    wgd_db:
-  
+    db:
+    conf:
+    pf_conf:
+    dns_conf:
+    
 
   

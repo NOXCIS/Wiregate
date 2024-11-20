@@ -21,7 +21,7 @@ services:
     restart: unless-stopped
     container_name: dnscrypt
     volumes:
-      - ./configs/dnscrypt/dnscrypt-proxy.toml:/config/dnscrypt-proxy.toml
+      - dns_conf:/config
     networks:
       private_network:
         ipv4_address: 10.2.0.42
@@ -96,6 +96,8 @@ services:
         - NET_ADMIN
       restart: unless-stopped
       volumes:
+        - dns_conf:/WireGate/dnscrypt
+        - pf_conf:/WireGate/iptable-rules/
         - conf:/etc/wireguard 
         - db:/WireGate/db
         - ./configs/tor:/etc/tor/
@@ -163,6 +165,9 @@ services:
 
 
 volumes:
-    conf:
     db:
+    conf:
+    pf_conf:
+    dns_conf:
+    
   

@@ -30,6 +30,7 @@ services:
         - NET_ADMIN
       restart: unless-stopped
       volumes:
+        - pf_conf:/WireGate/iptable-rules
         - conf:/etc/wireguard 
         - db:/WireGate/db
         - ./configs/tor:/etc/tor/
@@ -97,6 +98,7 @@ services:
 
 
 volumes:
-    conf:
     db:
+    conf:
+    pf_conf:
   

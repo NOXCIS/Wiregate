@@ -11,6 +11,7 @@ INET_ADDR="$(hostname -i | awk '{print $1}')"
 dashes='------------------------------------------------------------'
 equals='============================================================'
 log_dir="./log"
+dnscrypt_conf=dnscrypt-proxy.toml
 
 printf "
 ▗▖ ▗▖▗▄▄▄▖▗▄▄▖ ▗▄▄▄▖ ▗▄▄▖ ▗▄▖▗▄▄▄▖▗▄▄▄▖
@@ -261,12 +262,17 @@ if [[ "$AMNEZIA_WG" == "true" ]]; then
 fi
 
 if [[ "$WGD_TOR_PROXY" == "true" ]]; then
-  sudo apk add --no-cache tor curl > /dev/null 2>&1
-  generate_vanguard_tor_ctrl_pass
-  make_torrc
-  make_dns_torrc
-  run_tor_flux &
+    sudo apk add --no-cache tor curl > /dev/null 2>&1
+    sed -i "s/^#\(proxy = 'socks5:\/\/wiregate:9053'\)/\1/" "$dnscrypt_conf"
+    generate_vanguard_tor_ctrl_pass
+    make_torrc
+    make_dns_torrc
+    run_tor_flux &
+    else
+        sed -i "s/^\(proxy = 'socks5:\/\/wiregate:9053'\)/#\1/" "$dnscrypt_conf"
 fi
+
+
 
 ./wiregate.sh install
 ./wiregate.sh docker_start &
