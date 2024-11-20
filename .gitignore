@@ -14,8 +14,6 @@
 !Dynamic-Deploy/.dockerignore
 !Dynamic-Deploy/Dockerfile
 !Dynamic-Deploy/LICENSE
-
-**/Dynamic-Deploy/src*
 !Dynamic-Deploy/src/iptable-rules*
 !Dynamic-Deploy/src/vanguards*
 !Dynamic-Deploy/src/dashboard.py
@@ -25,8 +23,6 @@
 !Dynamic-Deploy/src/certbot.ini
 !Dynamic-Deploy/src/wiregate.sh
 !Dynamic-Deploy/src/entrypoint.sh
-
-**Dynamic-Deploy/src/static/app/*
 !Dynamic-Deploy/src/static/locale*
 !Dynamic-Deploy/src/static/app/src
 !Dynamic-Deploy/src/static/app/public
