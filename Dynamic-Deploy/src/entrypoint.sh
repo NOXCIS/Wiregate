@@ -12,13 +12,21 @@ dashes='------------------------------------------------------------'
 equals='============================================================'
 log_dir="./log"
 
-printf "%s\n" "$dashes"
-echo "Starting WireGate"
-printf "%s\n" "$equals"
+printf "
+▗▖ ▗▖▗▄▄▄▖▗▄▄▖ ▗▄▄▄▖ ▗▄▄▖ ▗▄▖▗▄▄▄▖▗▄▄▄▖
+▐▌ ▐▌  █  ▐▌ ▐▌▐▌   ▐▌   ▐▌ ▐▌ █  ▐▌   
+▐▌ ▐▌  █  ▐▛▀▚▖▐▛▀▀▘▐▌▝▜▌▐▛▀▜▌ █  ▐▛▀▀▘
+▐▙█▟▌▗▄█▄▖▐▌ ▐▌▐▙▄▄▖▝▚▄▞▘▐▌ ▐▌ █  ▐▙▄▄▖
+By Noxcis
+
+\n"
+
 stop_service() {
+  printf "%s\n" "$equals"  
   echo "[WIREGATE] Stopping WireGuard Dashboard and Tor."
-  ./wgd.sh stop
+  ./wiregate.sh stop
   pkill tor
+  printf "[WIREGATE] Tor EXITED.\n"
   exit 0
 }
 clean_up() {
@@ -171,7 +179,7 @@ generate_vanguard_tor_ctrl_pass() {
   echo "Generated Tor Hash: $CTRL_P_PASS"
 }
 run_tor_flux() {
-    # Start both Tor processes and capture their PIDs directly after launching
+    # Start both Tor processes
     { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> "$log_dir/tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
     { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> "$log_dir/dns_tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
 
@@ -209,8 +217,7 @@ run_tor_flux() {
 
     # Main loop for periodic circuit renewal
     while true; do
-       #sleep_time=$(( RANDOM % 1042 + 342 ))
-        sleep_time=$(( RANDOM % 300 + 120 ))
+        sleep_time=$(( RANDOM % 600 + 142 ))
         printf "%s\n" "$dashes"
         echo "[TOR] New circuit in $sleep_time seconds..."
         printf "%s\n" "$dashes"
@@ -221,34 +228,37 @@ run_tor_flux() {
         printf "%s\n" "$dashes"
     done
 }
-
 ensure_blocking() {
   sleep 1s
   echo "Ensuring container continuation."
-  err_log=$(find /WireGate/log -name "error_*.log" | head -n 1)
-  acc_log=$(find /WireGate/log -name "access_*.log" | head -n 1)
+  err_log=$(find ./log -name "error_*.log" | head -n 1)
+  acc_log=$(find ./log -name "access_*.log" | head -n 1)
   if [ -n "$err_log" ] || [ -n "$acc_log" ]; then
     tail -f $err_log $acc_log &
   fi
   wait
 }
 
+
+#MAIN
+################################
+
+
+chmod u+x wiregate.sh
+{ date; clean_up; printf "\n\n"; } >> ./log/install.txt
+
+
 # create /dev/net/tun if it does not exist
 if [[ ! -c /dev/net/tun ]]; then
     mkdir -p /dev/net && mknod /dev/net/tun c 10 200
 fi
+
 if [[ "$AMNEZIA_WG" == "true" ]]; then
     mkdir -p /etc/amnezia/amneziawg/
     mkdir -p /usr/local/bin
     ln -sf /usr/bin/awg /usr/local/bin/wg
     ln -sf /usr/bin/awg-quick /usr/local/bin/wg-quick
 fi
-
-# Cleanup old processes
-chmod u+x wiregate.sh
-{ date; clean_up; printf "\n\n"; } >> ./log/install.txt
-
-
 
 if [[ "$WGD_TOR_PROXY" == "true" ]]; then
   sudo apk add --no-cache tor curl > /dev/null 2>&1
@@ -257,7 +267,6 @@ if [[ "$WGD_TOR_PROXY" == "true" ]]; then
   make_dns_torrc
   run_tor_flux &
 fi
-
 
 ./wiregate.sh install
 ./wiregate.sh docker_start &

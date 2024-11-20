@@ -489,38 +489,37 @@ start_core() {
 	done
 	fi
 
-	
 	log_file="$log_dir/interface_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt"
 	wg_conf_path="${WGD_CONF_PATH}"
 
 	# Start WireGuard for each config file
 	# Loop over each .conf file in the specified directory
 	for file in "$wg_conf_path"/*.conf; do
-    # Get the configuration name (without the .conf extension)
-    config_name=$(basename "$file" .conf)
+		# Get the configuration name (without the .conf extension)
+		config_name=$(basename "$file" .conf)
 
-    # Extract the IPv6 address from the configuration file
-    ipv6_address=$(grep -E 'Address\s*=\s*.*,\s*([a-fA-F0-9:]+)' "$file" | sed -E 's/.*,\s*([a-fA-F0-9:]+)\/.*/\1/')
+		# Extract the IPv6 address from the configuration file
+		ipv6_address=$(grep -E 'Address\s*=\s*.*,\s*([a-fA-F0-9:]+)' "$file" | sed -E 's/.*,\s*([a-fA-F0-9:]+)\/.*/\1/')
 
-    # Bring the WireGuard interface up
-    echo "Bringing up interface: $config_name" >> "$log_file"
-    wg-quick up "$config_name" >> "$log_file" 2>&1
+		# Bring the WireGuard interface up
+		echo "Bringing up interface: $config_name" >> "$log_file"
+		wg-quick up "$config_name" >> "$log_file" 2>&1
 
-	#Patching for AmneziaWG IPV6
-    # Check if an IPv6 address was found in the config
-    if [ -n "$ipv6_address" ]; then
-        echo "IPv6 address found: $ipv6_address for $config_name" >> "$log_file"
+		#Patching for AmneziaWG IPV6
+		# Check if an IPv6 address was found in the config
+		if [ -n "$ipv6_address" ]; then
+			echo "IPv6 address found: $ipv6_address for $config_name" >> "$log_file"
 
-        # Remove any existing IPv6 addresses for the interface
-        ip -6 addr flush dev "$config_name" >> "$log_file" 2>&1
+			# Remove any existing IPv6 addresses for the interface
+			ip -6 addr flush dev "$config_name" >> "$log_file" 2>&1
 
-        # Add the new IPv6 address to the interface
-        echo "Adding IPv6 address $ipv6_address to $config_name" >> "$log_file"
-        ip -6 addr add "$ipv6_address" dev "$config_name" >> "$log_file" 2>&1
-    else
+			# Add the new IPv6 address to the interface
+			echo "Adding IPv6 address $ipv6_address to $config_name" >> "$log_file"
+			ip -6 addr add "$ipv6_address" dev "$config_name" >> "$log_file" 2>&1
+		else
         echo "No IPv6 address found for $config_name, skipping IPv6 configuration." >> "$log_file"
-    fi
-done
+    	fi
+	done
 
 
 }
@@ -537,7 +536,6 @@ set_proxy () {
     elif [[ "$WGD_TOR_PROXY" == "false" ]]; then
         postType="post"
     fi
-
 
 	AMDpostup="/WireGate/iptable-rules/Admins/${postType}up.sh"
 	GSTpostup="/WireGate/iptable-rules/Guest/${postType}up.sh"

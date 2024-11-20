@@ -16,6 +16,7 @@ networks:
 
 services:
   dnscrypt:
+    depends_on: [wiregate]
     image: "noxcis/dnscrypt:latest"
     restart: unless-stopped
     container_name: dnscrypt
@@ -26,6 +27,7 @@ services:
         ipv4_address: 10.2.0.42
 
   unbound:
+    depends_on: [dnscrypt]
     image: "noxcis/unbound:latest"
     container_name: unbound
     restart: unless-stopped

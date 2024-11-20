@@ -3,7 +3,9 @@
 .idea
 
 /configs/logs
+/configs/tor
 /configs/master-key
+
 
 /configs/adguard/*
 !/configs/adguard/AdGuardHome.yaml
