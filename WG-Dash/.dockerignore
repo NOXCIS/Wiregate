@@ -21,3 +21,4 @@ log/**
 release/*
 src/db/wgdashboard.db
 .jshintrc
+src/venv
