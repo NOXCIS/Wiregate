@@ -1,7 +1,5 @@
-
-
 #Configure To YOUR Enviornment and RUN
-# docker compose -f solo-docker-compose.yml up -d
+# docker compose -f dev-docker-compose.yml up -d
 networks:
   private_network:
     driver: bridge
@@ -14,19 +12,21 @@ networks:
         - subnet: 10.2.0.0/24
 
 
+
 services:
   dnscrypt:
-    image: "klutchell/dnscrypt-proxy"
+    image: "noxcis/dnscrypt:latest"
     restart: unless-stopped
     container_name: dnscrypt
     volumes:
-      - ./configs/tor/dnscrypt-proxy.toml:/config/dnscrypt-proxy.toml
+      - ./configs/dnscrypt/dnscrypt-proxy.toml:/config/dnscrypt-proxy.toml
     networks:
       private_network:
         ipv4_address: 10.2.0.42
 
+
   unbound:
-    image: "noxcis/unbound:latest"
+    image: "noxcis/unbound:latest" 
     container_name: unbound
     restart: unless-stopped
     hostname: "unbound"
@@ -44,48 +44,66 @@ services:
       private_network:
         ipv4_address: 10.2.0.200
   
-  pihole:
+# pihole:
+#    depends_on: [unbound]
+#    container_name: pihole
+#    image: pihole/pihole:latest
+#    restart: unless-stopped
+#    hostname: pihole
+#    dns:
+#      - 10.2.0.200 # Points to unbound
+#    environment:
+#      TZ: "America/Chicago"
+#      WEBPASSWORD: ""
+#     ServerIP: 10.2.0.100 # Internal IP of pihole
+#      DNS1: 10.2.0.200 # Unbound IP
+#      DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
+#    volumes:
+#      - "./Global-Configs/PiHole/etc-pihole/:/etc/pihole/"
+#      - "./Global-Configs/PiHole/etc-pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/"
+#    cap_add:
+#      - NET_ADMIN
+#    networks:
+#      private_network:
+#        ipv4_address: 10.2.0.100
+##
+
+
+  adguard:
     depends_on: [unbound]
-    container_name: pihole
-    image: pihole/pihole:latest
+    container_name: adguard
+    image: adguard/adguardhome
     restart: unless-stopped
-    hostname: pihole
-    dns:
-      - 10.2.0.200 # Points to unbound
-    environment:
-      TZ: "America/Chicago"
-      WEBPASSWORD: ""
-      ServerIP: 10.2.0.100 # Internal IP of pihole
-      DNS1: 10.2.0.200 # Unbound IP
-      DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
+    hostname: adguard
+    # Volumes store your data between container upgrades
     volumes:
-      - "./configs/pihole/etc-pihole/:/etc/pihole/"
-      - "./configs/pihole/etc-pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/"
-    cap_add:
-      - NET_ADMIN
+      - "./configs/adguard/Data:/opt/adguardhome/work"
+      - "./configs/adguard:/opt/adguardhome/conf"
     networks:
       private_network:
-        ipv4_address: 10.2.0.100
+        ipv4_address: 10.2.0.100      
 
-  wiregate-static:
-      build: .
-      #image: noxcis/wiregate:latest
-      container_name: wiregate-static
-      hostname: wiregate-static
+  
+  wiregate:
+      build:
+        context: ./Dynamic-Deploy
+        dockerfile: Dockerfile
+      #image: noxcis/wiregate:chimera
+      container_name: wiregate
+      hostname: wiregate
       cap_add:
         - NET_ADMIN
-        - SYS_MODULE
       restart: unless-stopped
       volumes:
-        - configs:/etc/wireguard 
-        - wgd_db:/WireGate/db
+        - conf:/etc/wireguard 
+        - db:/WireGate/db
         - ./configs/tor:/etc/tor/
         - ./configs/logs:/WireGate/log/
         - ./configs/master-key:/WireGate/master-key
 
       environment:
       #Config Path Optional
-        #- WGD_CONF_PATH=/etc/wireguard
+        #- WGDCONF_PATH=/etc/wireguard
       #Use Ofuscated Wireguard (AmneziaWG)
         - AMNEZIA_WG=true
       #Set Timezone
@@ -93,12 +111,11 @@ services:
 
       #Tor Settings
       ##########################################################
-        - WGD_TOR_PROXY=true
-        - WGD_TOR_EXIT_NODES={ch}
+        - WGD_TOR_PROXY=true          #Enable Tor
+        - WGD_TOR_EXIT_NODES={ch}     #Ex. {gb},{fr}
         - WGD_TOR_DNS_EXIT_NODES={us}
-        - WGD_TOR_PLUGIN=snowflake #OPTIONS webtunnel, obfs4, snowflake
-        - WGD_TOR_BRIDGES=true
-
+        - WGD_TOR_BRIDGES=true        #Enable Tor Bridges
+        - WGD_TOR_PLUGIN=snowflake    #OPTIONS webtunnel, obfs4, snowflake
       #WGDashboard Global Settings
       ##########################################################
         - WGD_WELCOME_SESSION=false
@@ -131,8 +148,8 @@ services:
         - WGD_H3=32345 #H3
         - WGD_H4=123123 #H4
       ports:
-        - "4430-4433:4430-4433/udp" #UDP Interface Listen Ports
-        - 6060:80/tcp #Comment Out for full network lockdown, I.E only Accessible via VPN conttenction at http://wire.gate using config in generated master-key folder
+        - "4430-4433:4430-4433/udp" #UDP Interface Listen Ports For Zones
+        - 8000:80/tcp #Comment Out for full network lockdown, I.E only Accessible via VPN conttenction at http://wire.gate using config in generated master-key folder
       sysctls:        #Otherwise access the dashboard @ your-sever-ip/domain:6060
         - net.ipv4.ip_forward=1
         - net.ipv4.conf.all.src_valid_mark=1
@@ -145,6 +162,8 @@ services:
 
 
 volumes:
-    configs:
-    wgd_db:
+    conf:
+    db:
   
+
+

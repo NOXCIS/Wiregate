@@ -6,19 +6,6 @@
     "start_url": "/",
     "name": "WireGate",
     "short_name": "WireGate",
-    "screenshots": [
-        {
-            "src": "https://donaldzou.github.io/WGDashboard-Documentation/images/sign-in.png",
-            "sizes": "2880x1826",
-            "type": "image/png",
-            "form_factor": "wide"
-        },
-        {
-            "src": "https://donaldzou.github.io/WGDashboard-Documentation/images/sign-in.png",
-            "sizes": "2880x1826",
-            "type": "image/png"
-        }
-    ],
     "icons": [
         {
             "src": "../img/icon-192x192.png",

@@ -65,12 +65,22 @@ COPY --from=node /static/app/index.html /WireGate/static/app/index.html
 COPY --from=node /static/app/public /WireGate/static/app/public
 COPY --from=node /static/locale /WireGate/static/locale
 
+
+
 # Copy Tor Client Transport Plugin binaries
+#   Tor Client Transport Plugins
+#   UPSTREAM DOCKER GO COMPILE BUILD PIPELINE 
+#   https://github.com/NOXCIS/Docker-Tor-Transports/blob/main/Dockerfile 
+#   FOR TOR REPOS ~2hrs AHEAD DAILY UTC
 COPY --from=noxcis/tor-bins:latest /lyrebird /usr/local/bin/obfs4
 COPY --from=noxcis/tor-bins:latest /webtunnel /usr/local/bin/webtunnel
 COPY --from=noxcis/tor-bins:latest /snowflake /usr/local/bin/snowflake
 
 # Copy AmneziaWG binaries
+#   AmneziaWG Substitute install for WireGuard
+#   UPSTREAM DOCKER GO COMPILE BUILD PIPELINE
+#   https://github.com/NOXCIS/Docker-AmneziaWG-GO/blob/main/Dockerfile
+#   FOR AMNEZIAWG REPOS ~1hrs AHEAD DAILY UTC
 COPY --from=noxcis/awg-bins:latest /amneziawg-go /usr/bin/amneziawg-go
 COPY --from=noxcis/awg-bins:latest /awg /usr/bin/awg
 COPY --from=noxcis/awg-bins:latest /awg-quick /usr/bin/awg-quick
@@ -80,8 +90,9 @@ COPY --from=builder /build/dist/dashboard /WireGate/dashboard
 COPY --from=builder /build/dist/vanguards /WireGate/vanguards
 COPY --from=builder /build/torflux /WireGate/torflux
 
-# Set executable permissions
-RUN chmod +x /WireGate/wiregate.sh && chmod +x /WireGate/entrypoint.sh
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD \
+    sh -c 'pgrep dashboard > /dev/null && pgrep tail > /dev/null' || exit 1
 
 ENTRYPOINT ["/WireGate/entrypoint.sh"]
 STOPSIGNAL SIGTERM

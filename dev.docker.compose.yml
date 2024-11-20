@@ -20,7 +20,7 @@ services:
     restart: unless-stopped
     container_name: dnscrypt
     volumes:
-      - ./configs/tor/dnscrypt-proxy.toml:/config/dnscrypt-proxy.toml
+      - ./configs/dnscrypt/dnscrypt-proxy.toml:/config/dnscrypt-proxy.toml
     networks:
       private_network:
         ipv4_address: 10.2.0.42
@@ -68,7 +68,9 @@ services:
         ipv4_address: 10.2.0.100
 
   wiregate-static:
-      build: .
+      build:
+        context: ./Static-Deploy
+        dockerfile: Dockerfile
       #image: noxcis/wiregate:latest
       container_name: wiregate-static
       hostname: wiregate-static
@@ -77,7 +79,7 @@ services:
         - SYS_MODULE
       restart: unless-stopped
       volumes:
-        - configs:/etc/wireguard 
+        - wgd_configs:/etc/wireguard 
         - wgd_db:/WireGate/db
         - ./configs/tor:/etc/tor/
         - ./configs/logs:/WireGate/log/
@@ -145,6 +147,6 @@ services:
 
 
 volumes:
-    configs:
+    wgd_configs:
     wgd_db:
   

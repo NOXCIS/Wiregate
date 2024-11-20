@@ -1,1 +1,0 @@
-export const proxy = "http://localhost:10086/"

@@ -241,6 +241,9 @@ ensure_blocking() {
   wait
 }
 
+
+mv /WireGate/dnscrypt-proxy.toml /etc/tor/
+
 chmod u+x wiregate.sh
 
 # create /dev/net/tun if it does not exist
@@ -265,6 +268,7 @@ fi
 
 ./wiregate.sh install
 ./wiregate.sh start &
+
 
 ensure_blocking
 
