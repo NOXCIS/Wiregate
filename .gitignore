@@ -1,3 +1,6 @@
+.vscode
+.DS_Store
+.idea
 
 /configs/logs
 /configs/master-key
