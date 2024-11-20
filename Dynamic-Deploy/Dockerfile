@@ -1,9 +1,9 @@
 
-# builder: FRONTEND - Vite Builder 
-FROM  --platform=${BUILDPLATFORM} node:iron-alpine3.20 AS node
+# node: FRONTEND - Vite Builder 
+FROM --platform=${BUILDPLATFORM} node:iron-alpine3.20 AS node
 WORKDIR /static/app
-COPY ./src/static /static 
-RUN npm ci && npm run build  
+COPY ./build_scripts/static /static
+RUN npm ci && npm run build     
 
 
 # pybuild: BACKEND - WG-Dash Builder for Brcypt & Psutil Binary (Python)

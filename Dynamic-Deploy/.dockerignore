@@ -15,18 +15,18 @@
 !src/wiregate.sh
 !src/entrypoint.sh
 
-# Ignore everything in src/static except the specified files and directories
+# Ignore everything in build_scripts/static except the specified files and directories
 
-**/src/static/app/*
-!src/static/locale*
-!src/static/app/src
-!src/static/app/public
-!src/static/app/index.html
-!src/static/app/jsconfig.json
-!src/static/app/package.json
-!src/static/app/package-lock.json
-!src/static/app/proxy.js
-!src/static/app/vite.config.js
+**/build_scripts/static/app/*
+!build_scripts/static/locale*
+!build_scripts/static/app/src
+!build_scripts/static/app/public
+!build_scripts/static/app/index.html
+!build_scripts/static/app/jsconfig.json
+!build_scripts/static/app/package.json
+!build_scripts/static/app/package-lock.json
+!build_scripts/static/app/proxy.js
+!build_scripts/static/app/vite.config.js
 
 
 
