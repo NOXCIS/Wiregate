@@ -4,21 +4,8 @@
     "display": "fullscreen",
     "scope": "/",
     "start_url": "/",
-    "name": "WGDashboard",
-    "short_name": "WGDashboard",
-    "screenshots": [
-        {
-            "src": "https://donaldzou.github.io/WGDashboard-Documentation/images/sign-in.png",
-            "sizes": "2880x1826",
-            "type": "image/png",
-            "form_factor": "wide"
-        },
-        {
-            "src": "https://donaldzou.github.io/WGDashboard-Documentation/images/sign-in.png",
-            "sizes": "2880x1826",
-            "type": "image/png"
-        }
-    ],
+    "name": "WireGate",
+    "short_name": "WireGate",
     "icons": [
         {
             "src": "../img/icon-192x192.png",

@@ -292,7 +292,7 @@ gunicorn_start () {
     export PATH=$PATH:/usr/local/bin:$HOME/.local/bin
   fi
   _check_and_set_venv
-  . .env
+  #. .env
   sudo "$venv_gunicorn" --config ./gunicorn.conf.py
   sleep 3
   checkPIDExist=0
@@ -330,7 +330,7 @@ startwgd_docker() {
     printf "%s\n" "$equals"
 	if [[ "$WGD_TOR_PROXY" == "true" ]]; then
 		# Get the most recent log file based on the date in the filename
-		latest_log=$(ls /opt/wireguarddashboard/src/log/tor_startup_log_*.txt | sort -V | tail -n 1)
+		latest_log=$(ls /WireGate/log/tor_startup_log_*.txt | sort -V | tail -n 1)
 		printf "%s\n" "$equals"
 		printf "[TOR] Starting Tor & VanGuards ...\n"
 		printf "%s\n" "$equals"
@@ -362,7 +362,7 @@ startwgd_docker() {
 
 				# Display the loading bar with updated progress on a new line each time
 				printf "%s\n" "$dashes"
-				printf "[TOR-VANGUARDS] Bootstrapping: ["
+				printf "[TOR-VANGUARDS] Bootstrapping TOR: ["
 				printf "%0.s#" $(seq 1 $filled_length)
 				
 				# Only print "-" if not fully bootstrapped
@@ -376,7 +376,7 @@ startwgd_docker() {
 			# Refresh the latest log file and retry count
 			sleep 1  # Reduced sleep for faster updates
 			retries=$((retries + 1))
-			latest_log=$(ls /opt/wireguarddashboard/src/log/tor_startup_log_*.txt | sort -V | tail -n 1)
+			latest_log=$(ls /WireGate/log/tor_startup_log_*.txt | sort -V | tail -n 1)
 		done
 
 		if [ $bootstrapped_percent -lt 100 ]; then
@@ -384,6 +384,7 @@ startwgd_docker() {
 			printf "%s\n" "$dashes"
 			return
 		fi
+
 		printf "%s\n" "$dashes"
 		printf "[TOR-VANGUARDS] Tor is fully booted. Starting TOR Vanguards\n"
 		printf "%s\n" "$dashes"
@@ -467,7 +468,7 @@ start_core() {
 	
 	# Re-assign config_files to ensure it includes any newly created configurations
 	local config_files=$(find ${WGD_CONF_PATH} -type f -name "*.conf")
-	local iptable_dir="/opt/wireguarddashboard/src/iptable-rules"
+	local iptable_dir="/WireGate/iptable-rules"
 	# Set file permissions
 	find ${WGD_CONF_PATH} -type f -name "*.conf" -exec chmod 600 {} \;
 	find "$iptable_dir" -type f -name "*.sh" -exec chmod +x {} \;
@@ -488,38 +489,37 @@ start_core() {
 	done
 	fi
 
-	
 	log_file="$log_dir/interface_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt"
 	wg_conf_path="${WGD_CONF_PATH}"
 
 	# Start WireGuard for each config file
 	# Loop over each .conf file in the specified directory
 	for file in "$wg_conf_path"/*.conf; do
-    # Get the configuration name (without the .conf extension)
-    config_name=$(basename "$file" .conf)
+		# Get the configuration name (without the .conf extension)
+		config_name=$(basename "$file" .conf)
 
-    # Extract the IPv6 address from the configuration file
-    ipv6_address=$(grep -E 'Address\s*=\s*.*,\s*([a-fA-F0-9:]+)' "$file" | sed -E 's/.*,\s*([a-fA-F0-9:]+)\/.*/\1/')
+		# Extract the IPv6 address from the configuration file
+		ipv6_address=$(grep -E 'Address\s*=\s*.*,\s*([a-fA-F0-9:]+)' "$file" | sed -E 's/.*,\s*([a-fA-F0-9:]+)\/.*/\1/')
 
-    # Bring the WireGuard interface up
-    echo "Bringing up interface: $config_name" >> "$log_file"
-    wg-quick up "$config_name" >> "$log_file" 2>&1
+		# Bring the WireGuard interface up
+		echo "Bringing up interface: $config_name" >> "$log_file"
+		wg-quick up "$config_name" >> "$log_file" 2>&1
 
-	#Patching for AmneziaWG IPV6
-    # Check if an IPv6 address was found in the config
-    if [ -n "$ipv6_address" ]; then
-        echo "IPv6 address found: $ipv6_address for $config_name" >> "$log_file"
+		#Patching for AmneziaWG IPV6
+		# Check if an IPv6 address was found in the config
+		if [ -n "$ipv6_address" ]; then
+			echo "IPv6 address found: $ipv6_address for $config_name" >> "$log_file"
 
-        # Remove any existing IPv6 addresses for the interface
-        ip -6 addr flush dev "$config_name" >> "$log_file" 2>&1
+			# Remove any existing IPv6 addresses for the interface
+			ip -6 addr flush dev "$config_name" >> "$log_file" 2>&1
 
-        # Add the new IPv6 address to the interface
-        echo "Adding IPv6 address $ipv6_address to $config_name" >> "$log_file"
-        ip -6 addr add "$ipv6_address" dev "$config_name" >> "$log_file" 2>&1
-    else
+			# Add the new IPv6 address to the interface
+			echo "Adding IPv6 address $ipv6_address to $config_name" >> "$log_file"
+			ip -6 addr add "$ipv6_address" dev "$config_name" >> "$log_file" 2>&1
+		else
         echo "No IPv6 address found for $config_name, skipping IPv6 configuration." >> "$log_file"
-    fi
-done
+    	fi
+	done
 
 
 }
@@ -537,15 +537,15 @@ set_proxy () {
         postType="post"
     fi
 
-	AMDpostup="/opt/wireguarddashboard/src/iptable-rules/Admins/${postType}up.sh"
-	GSTpostup="/opt/wireguarddashboard/src/iptable-rules/Guest/${postType}up.sh"
-	LANpostup="/opt/wireguarddashboard/src/iptable-rules/LAN-only-users/postup.sh"
-	MEMpostup="/opt/wireguarddashboard/src/iptable-rules/Members/${postType}up.sh"
+	AMDpostup="/WireGate/iptable-rules/Admins/${postType}up.sh"
+	GSTpostup="/WireGate/iptable-rules/Guest/${postType}up.sh"
+	LANpostup="/WireGate/iptable-rules/LAN-only-users/postup.sh"
+	MEMpostup="/WireGate/iptable-rules/Members/${postType}up.sh"
 
-	AMDpostdown="/opt/wireguarddashboard/src/iptable-rules/Admins/${postType}down.sh"
-	GSTpostdown="/opt/wireguarddashboard/src/iptable-rules/Guest/${postType}down.sh"
-	LANpostdown="/opt/wireguarddashboard/src/iptable-rules/LAN-only-users/postdown.sh"
-	MEMpostdown="/opt/wireguarddashboard/src/iptable-rules/Members/${postType}down.sh"
+	AMDpostdown="/WireGate/iptable-rules/Admins/${postType}down.sh"
+	GSTpostdown="/WireGate/iptable-rules/Guest/${postType}down.sh"
+	LANpostdown="/WireGate/iptable-rules/LAN-only-users/postdown.sh"
+	MEMpostdown="/WireGate/iptable-rules/Members/${postType}down.sh"
 }
 newconf_wgd() {
   for i in {0..3}; do
@@ -609,8 +609,6 @@ EOF
 
   [ "$index" -eq 0 ] && make_master_config
 }
-
-
 make_master_config() {
     # Ensure necessary variables are set
     if [ -z "$svr_config" ]; then
@@ -693,17 +691,10 @@ make_master_config() {
         echo "Endpoint = $WGD_REMOTE_ENDPOINT:$WGD_PORT_RANGE_STARTPORT"
         echo "PersistentKeepalive = 21"
         echo "PresharedKey = $preshared_key"
-    } > "/opt/wireguarddashboard/src/master-key/master.conf"
+    } > "/WireGate/master-key/master.conf"
 
 	printf "[WIREGATE] %s ${VPN_PROTO_TYPE} Master configuration created successfully.\n" "$heavy_checkmark"
 }
-
-
-
-
-
-
-
 
 
 

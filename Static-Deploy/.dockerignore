@@ -1,11 +1,4 @@
-
-node_modules/**
-build_scripts/static/app/node_modules
-build_scripts/static/app/dist
-configs/
-.vscode
-.DS_Store
-.idea
-__pycache__
-*.db
-*.conf
+*
+**/node_modules/*
+!build_scripts/*
+!src/*

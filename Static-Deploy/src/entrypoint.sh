@@ -1,17 +1,6 @@
 #!/bin/bash
 # Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
+# Under MIT License
 
 # Trap the SIGTERM signal and call the stop_service function
 trap 'stop_service' SIGTERM
@@ -22,13 +11,16 @@ INET_ADDR="$(hostname -i | awk '{print $1}')"
 dashes='------------------------------------------------------------'
 equals='============================================================'
 log_dir="./log"
+dnscrypt_conf=./dnscrypt/dnscrypt-proxy.toml
 
 printf "
+[STATIC]
 ▗▖ ▗▖▗▄▄▄▖▗▄▄▖ ▗▄▄▄▖ ▗▄▄▖ ▗▄▖▗▄▄▄▖▗▄▄▄▖
 ▐▌ ▐▌  █  ▐▌ ▐▌▐▌   ▐▌   ▐▌ ▐▌ █  ▐▌   
 ▐▌ ▐▌  █  ▐▛▀▚▖▐▛▀▀▘▐▌▝▜▌▐▛▀▜▌ █  ▐▛▀▀▘
 ▐▙█▟▌▗▄█▄▖▐▌ ▐▌▐▙▄▄▖▝▚▄▞▘▐▌ ▐▌ █  ▐▙▄▄▖
 By Noxcis
+
 
 \n"
 
@@ -181,7 +173,7 @@ generate_vanguard_tor_ctrl_pass() {
   echo "[TOR] Generated Tor Hash: $CTRL_P_PASS"
 }
 run_tor_flux() {
-    # Start both Tor processes and capture their PIDs directly after launching
+    # Start both Tor processes
     { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> "$log_dir/tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
     { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> "$log_dir/dns_tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
 
@@ -219,8 +211,7 @@ run_tor_flux() {
 
     # Main loop for periodic circuit renewal
     while true; do
-        #sleep_time=$(( RANDOM % 1042 + 342 ))
-        sleep_time=$(( RANDOM % 300 + 120 ))
+        sleep_time=$(( RANDOM % 600 + 142 ))
         printf "%s\n" "$dashes"
         echo "[TOR] New circuit in $sleep_time seconds..."
         printf "%s\n" "$dashes"
@@ -241,6 +232,11 @@ ensure_blocking() {
   wait
 }
 
+
+#MAIN
+################################
+
+
 chmod u+x wiregate.sh
 
 # create /dev/net/tun if it does not exist
@@ -256,15 +252,20 @@ if [[ "$AMNEZIA_WG" == "true" ]]; then
 fi
 
 if [[ "$WGD_TOR_PROXY" == "true" ]]; then
-  sudo apk add --no-cache tor curl > /dev/null 2>&1
-  generate_vanguard_tor_ctrl_pass
-  make_torrc
-  make_dns_torrc
-  run_tor_flux &
+    sudo apk add --no-cache tor curl > /dev/null 2>&1
+    sed -i "s/^#\(proxy = 'socks5:\/\/wiregate:9053'\)/\1/" "$dnscrypt_conf"
+    generate_vanguard_tor_ctrl_pass
+    make_torrc
+    make_dns_torrc
+    run_tor_flux &
+    else
+        sed -i "s/^\(proxy = 'socks5:\/\/wiregate:9053'\)/#\1/" "$dnscrypt_conf"
 fi
+
 
 ./wiregate.sh install
 ./wiregate.sh start &
+
 
 ensure_blocking
 

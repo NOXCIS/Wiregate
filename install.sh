@@ -14,14 +14,14 @@ export WGD_TOR_BRIDGES="false"
 export WGD_TOR_EXIT_NODES="default"
 
 #CORE_IMPORTS
-source ./Core-Installer-Functions/OS-Reqs.sh
-source ./Core-Installer-Functions/Menu.sh
-source ./Core-Installer-Functions/Title.sh
-source ./Core-Installer-Functions/Reset-WormHole.sh
-source ./Core-Installer-Functions/Pihole/Pihole-ENV-setup.sh
-source ./Core-Installer-Functions/WG-Dash/WG-Dash-ENV-setup.sh
-source ./Core-Installer-Functions/AdGuard/AdGuard-ENV-setup.sh
-source ./Core-Installer-Functions/Anim/frames.sh
+source ./AutoInstaller-Functions/OS-Reqs.sh
+source ./AutoInstaller-Functions/Menu.sh
+source ./AutoInstaller-Functions/Title.sh
+source ./AutoInstaller-Functions/Reset-WormHole.sh
+source ./AutoInstaller-Functions/Pihole/Pihole-ENV-setup.sh
+source ./AutoInstaller-Functions/WG-Dash/WG-Dash-ENV-setup.sh
+source ./AutoInstaller-Functions/AdGuard/AdGuard-ENV-setup.sh
+source ./AutoInstaller-Functions/Anim/frames.sh
 
 
 setup_environment() {

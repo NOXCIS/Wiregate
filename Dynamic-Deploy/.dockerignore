@@ -1,0 +1,37 @@
+# Ignore all node_modules directories
+**/node_modules/*
+
+# Ignore everything in src except the specified files and directories
+**/src/*
+
+
+!src/iptable-rules*
+!src/dnscrypt*
+!src/vanguards*
+!src/dashboard.py
+!src/vanguards.py
+!src/gunicorn.conf.py
+!src/requirements.txt
+!src/certbot.ini
+!src/wiregate.sh
+!src/entrypoint.sh
+
+# Ignore everything in build_scripts/static except the specified files and directories
+
+**/build_scripts/static/app/*
+!build_scripts/static/locale*
+!build_scripts/static/app/src
+!build_scripts/static/app/public
+!build_scripts/static/app/index.html
+!build_scripts/static/app/jsconfig.json
+!build_scripts/static/app/package.json
+!build_scripts/static/app/package-lock.json
+!build_scripts/static/app/proxy.js
+!build_scripts/static/app/vite.config.js
+
+
+
+
+
+# Un-ignore specific build scripts
+!build_scripts/*
