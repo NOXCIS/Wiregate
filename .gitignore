@@ -66,3 +66,5 @@
 !/Static-Deploy/src
 !/Static-Deploy/.dockerignore
 !/Static-Deploy/Dockerfile
+.env.anim.run.txt
+.env
