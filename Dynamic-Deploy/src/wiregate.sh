@@ -463,7 +463,7 @@ start_core() {
 		set_proxy
 		newconf_wgd
 	else
-		printf "[WIREGATE] %s Loading ${VPN_PROTO_TYPE} Configuartions.\n" "$heavy_checkmark"
+		printf "[WIREGATE] %s Loading ${VPN_PROTO_TYPE} Configurations.\n" "$heavy_checkmark"
 	fi
 	
 	# Re-assign config_files to ensure it includes any newly created configurations
@@ -473,7 +473,7 @@ start_core() {
 	find ${WGD_CONF_PATH} -type f -name "*.conf" -exec chmod 600 {} \;
 	find "$iptable_dir" -type f -name "*.sh" -exec chmod +x {} \;
 
-	printf "[WIREGATE] %s Starting ${VPN_PROTO_TYPE} Configuartions.\n" "$heavy_checkmark"
+	printf "[WIREGATE] %s Starting ${VPN_PROTO_TYPE} Configurations.\n" "$heavy_checkmark"
 	printf "%s\n" "$equals"
 
 	#Creating Symbolic Links For AmneziaWG if Enabled

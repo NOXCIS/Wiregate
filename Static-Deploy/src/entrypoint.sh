@@ -213,13 +213,14 @@ run_tor_flux() {
     while true; do
         sleep_time=$(( RANDOM % 600 + 142 ))
         printf "%s\n" "$dashes"
-        echo "[TOR] New circuit in $sleep_time seconds..."
+        #echo "[TOR] New circuit in $sleep_time seconds..."
         printf "%s\n" "$dashes"
         sleep "$sleep_time"
         printf "%s\n" "$dashes"
         echo "[TOR] Sending Signal for New Circuits..."
         ./torflux &
         printf "%s\n" "$dashes"
+        echo "[TOR] New circuit in $sleep_time seconds..."
     done
 }
 ensure_blocking() {

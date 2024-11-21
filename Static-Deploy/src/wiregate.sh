@@ -50,12 +50,12 @@ check_dashboard_status(){
   fi
 }
 dashboard_setup(){
-    printf "[WIREGATE] Setting Up WGDashboard\n"
+    printf "[WIREGATE] Setting Up Dashboard\n"
     sudo chmod -R 755 ${WGD_CONF_PATH}/
 
 	if [ ! -d "${WGD_CONF_PATH}/WGDashboard_Backup" ]
     	then
-    		printf "[WIREGATE] Creating WGDashboard_Backup folder\n"
+    		printf "[WIREGATE] Creating Dashboard_Backup folder\n"
             mkdir "${WGD_CONF_PATH}/WGDashboard_Backup"
     fi
     
@@ -106,7 +106,7 @@ init() {
     start_core
     dashboard_start
 	printf "%s\n" "$equals"
-    printf "[WIREGATE] %s WGDashboard Started\n" "$heavy_checkmark"
+    printf "[WIREGATE] %s Dashboard Started\n" "$heavy_checkmark"
     printf "%s\n" "$equals"
 	if [[ "$WGD_TOR_PROXY" == "true" ]]; then
 		# Get the most recent log file based on the date in the filename
@@ -188,7 +188,7 @@ start_core() {
 		set_proxy
 		newconf_wgd
 	else
-		printf "[WIREGATE] %s Loading ${VPN_PROTO_TYPE} Configuartions.\n" "$heavy_checkmark"
+		printf "[WIREGATE] %s Loading ${VPN_PROTO_TYPE} Configurations.\n" "$heavy_checkmark"
 	fi
 	
 	# Re-assign config_files to ensure it includes any newly created configurations
@@ -198,7 +198,7 @@ start_core() {
 	find ${WGD_CONF_PATH} -type f -name "*.conf" -exec chmod 600 {} \;
 	find "$iptable_dir" -type f -name "*.sh" -exec chmod +x {} \;
 	
-	printf "[WIREGATE] %s Starting ${VPN_PROTO_TYPE} Configuartions.\n" "$heavy_checkmark"
+	printf "[WIREGATE] %s Starting ${VPN_PROTO_TYPE} Configurations.\n" "$heavy_checkmark"
 	printf "%s\n" "$equals"
 
     #Creating Symbolic Links For AmneziaWG if Enabled
@@ -429,11 +429,11 @@ else
         if check_dashboard_status; then
             printf "%s\n" "$dashes"
             stop_wiregate
-            printf "[WIREGATE] WGDashboard EXITED.\n"
+            printf "[WIREGATE] Dashboard EXITED.\n"
             printf "%s\n" "$dashes"
         else
             printf "%s\n" "$dashes"
-            printf "[WIREGATE] WGDashboard is not running.\n"
+            printf "[WIREGATE] Dashboard is not running.\n"
             printf "%s\n" "$dashes"
         fi
     elif [ "$1" = "install" ]; then

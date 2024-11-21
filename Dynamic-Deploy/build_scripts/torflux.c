@@ -22,8 +22,7 @@
 #include <sys/socket.h>
 #include <sys/stat.h>
 #include <errno.h>
-#include <sys/time.h> 
-
+#include <sys/time.h>
 
 #define LOG_DIR "./log"
 #define LOG_FILE LOG_DIR "/tor_circuit_refresh_log.txt"
@@ -32,11 +31,22 @@
 #define TOR_CONTROL_PORT_2 9054
 #define SOCKET_TIMEOUT 5  // Timeout in seconds
 
+// Struct for reference-counted memory
+typedef struct {
+    void *ptr;
+    size_t size;
+    int ref_count;
+} gc_ptr_t;
+
 // Function prototypes
 void log_message(const char *message, int add_newlines, int to_console);
 int send_signal(int port, const char *password, char *status_buffer);
 void get_timestamp(char *buffer, size_t size);
 void set_socket_timeout(int sockfd);
+
+// GC functions
+gc_ptr_t *gc_malloc(size_t size);
+void gc_free(gc_ptr_t *gc_ptr);
 
 // Function to log messages
 void log_message(const char *message, int add_newlines, int to_console) {
@@ -85,6 +95,32 @@ void set_socket_timeout(int sockfd) {
     timeout.tv_usec = 0;
     setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
     setsockopt(sockfd, SOL_SOCKET, SO_SNDTIMEO, &timeout, sizeof(timeout));
+}
+
+// GC Malloc function (wraps standard malloc)
+gc_ptr_t *gc_malloc(size_t size) {
+    gc_ptr_t *gc_ptr = (gc_ptr_t *)malloc(sizeof(gc_ptr_t));
+    if (!gc_ptr) {
+        perror("[ERROR] Memory allocation failed");
+        return NULL;
+    }
+    gc_ptr->ptr = malloc(size);
+    if (!gc_ptr->ptr) {
+        free(gc_ptr);
+        perror("[ERROR] Memory allocation failed");
+        return NULL;
+    }
+    gc_ptr->size = size;
+    gc_ptr->ref_count = 1; // Initial reference count is 1
+    return gc_ptr;
+}
+
+// GC Free function (decrements ref count, frees memory when ref count hits 0)
+void gc_free(gc_ptr_t *gc_ptr) {
+    if (gc_ptr && --gc_ptr->ref_count == 0) {
+        free(gc_ptr->ptr);
+        free(gc_ptr);
+    }
 }
 
 // Function to send NEWNYM signal to Tor control port
@@ -168,10 +204,15 @@ int main() {
     log_message("[TOR-FLUX] Starting Tor circuit refresh...", 0, 1);
 
     // Send NEWNYM signal and get circuit statuses
-    char new_status_9051[BUFFER_SIZE] = {0};
-    char new_status_9054[BUFFER_SIZE] = {0};
-    send_signal(TOR_CONTROL_PORT_1, VANGUARD, new_status_9051);
-    send_signal(TOR_CONTROL_PORT_2, VANGUARD, new_status_9054);
+    gc_ptr_t *new_status_9051 = gc_malloc(BUFFER_SIZE);
+    gc_ptr_t *new_status_9054 = gc_malloc(BUFFER_SIZE);
+    
+    send_signal(TOR_CONTROL_PORT_1, VANGUARD, new_status_9051->ptr);
+    send_signal(TOR_CONTROL_PORT_2, VANGUARD, new_status_9054->ptr);
+
+    // After usage, free memory
+    gc_free(new_status_9051);
+    gc_free(new_status_9054);
 
     log_message("[TOR-FLUX] Tor circuit refresh completed.", 1, 1);
     return 0;
