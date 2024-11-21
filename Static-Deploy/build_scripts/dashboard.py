@@ -1,8 +1,11 @@
-from waitress import serve
+
 import random
 import shutil
 import sqlite3
 import configparser
+import bcrypt
+import psutil
+import pyotp
 import hashlib
 import ipaddress
 import json
@@ -14,20 +17,26 @@ import time
 import re
 import urllib.error
 import uuid
+import threading
+import logging
+
+import waitress 
+
+from logging.handlers import RotatingFileHandler
+from time import strftime
 from datetime import datetime, timedelta
-from typing import Any
-import bcrypt
-import psutil
-import pyotp
+from typing import Any, List
 from flask import Flask, request, render_template, session, g
 from json import JSONEncoder
 from flask_cors import CORS
 from icmplib import ping, traceroute
-import threading
-
 from flask.json.provider import DefaultJSONProvider
-#Import Enviorment
 
+
+
+
+
+#Import Enviorment
 DASHBOARD_VERSION = 'Chimera'
 CONFIGURATION_PATH = os.getenv('CONFIGURATION_PATH', '.')
 DB_PATH = os.path.join(CONFIGURATION_PATH, 'db')
@@ -181,7 +190,7 @@ class PeerJobLogger:
         self.loggerdb = sqlite3.connect(os.path.join(CONFIGURATION_PATH, 'db', 'wgdashboard_log.db'),
                                      check_same_thread=False)
         self.loggerdb.row_factory = sqlite3.Row
-        self.logs:list(Log) = []
+        self.logs: List[Log] = [] 
         self.__createLogDatabase()
         
     def __createLogDatabase(self):
@@ -1107,7 +1116,7 @@ class WireguardConfiguration:
                           , (data_usage[count + 1], data_usage[count],))
             count += 2
 
-    def toggleConfiguration(self) -> [bool, str]:
+    def toggleConfiguration(self) -> tuple[bool, str]:
         self.getStatus()
         interface_address = self.get_awg_iface_address()
 
@@ -1606,7 +1615,7 @@ class DashboardConfig:
         sqlUpdate("UPDATE DashboardAPIKeys SET ExpiredAt = datetime('now', 'localtime') WHERE Key = ?", (key, ))
         self.DashboardAPIKeys = self.__getAPIKeys()
     
-    def __configValidation(self, key, value: Any) -> [bool, str]:
+    def __configValidation(self, key, value: Any) -> tuple[bool, str]:
         if type(value) is str and len(value) == 0:
             return False, "Field cannot be empty!"
         if key == "peer_global_dns":
@@ -1614,6 +1623,7 @@ class DashboardConfig:
         if key == "peer_endpoint_allowed_ip":
             value = value.split(",")
             for i in value:
+                i = i.strip()  # Remove leading/trailing whitespace
                 try:
                     ipaddress.ip_network(i, strict=False)
                 except Exception as e:
@@ -1636,7 +1646,7 @@ class DashboardConfig:
     def __checkPassword(self, plainTextPassword: str, hashedPassword: bytes):
         return bcrypt.checkpw(plainTextPassword.encode("utf-8"), hashedPassword)
 
-    def SetConfig(self, section: str, key: str, value: any, init: bool = False) -> [bool, str]:
+    def SetConfig(self, section: str, key: str, value: any, init: bool = False) -> tuple[bool, str]:
         if key in self.hiddenAttribute and not init:
             return False, None
 
@@ -1681,7 +1691,7 @@ class DashboardConfig:
         except Exception as e:
             return False
 
-    def GetConfig(self, section, key) -> [bool, any]:
+    def GetConfig(self, section, key) -> tuple[bool, any]:
         if section not in self.__config:
             return False, None
 
@@ -1781,7 +1791,7 @@ def _generatePublicKey(privateKey) -> tuple[bool, str] | tuple[bool, None]:
     except subprocess.CalledProcessError:
         return False, None
 
-def _generatePrivateKey() -> [bool, str]:
+def _generatePrivateKey() -> tuple[bool, str]:
     try:
         publicKey = subprocess.check_output(f"wg genkey", shell=True,
                                             stderr=subprocess.STDOUT)
@@ -2739,6 +2749,9 @@ class Locale:
     
 Locale = Locale()
 
+
+
+
 @app.get(f'{APP_PREFIX}/api/locale')
 def API_Locale_CurrentLang():    
     return ResponseObject(data=Locale.getLanguage())
@@ -2786,6 +2799,22 @@ def peerJobScheduleBackgroundThread():
             AllPeerJobs.runJob()
             time.sleep(180)
 
+def waitressInit():
+    _, app_ip = DashboardConfig.GetConfig("Server", "app_ip")
+    _, app_port = DashboardConfig.GetConfig("Server", "app_port")
+    return app_ip, app_port
+
+AllPeerShareLinks: PeerShareLinks = PeerShareLinks()
+AllPeerJobs: PeerJobs = PeerJobs()
+JobLogger: PeerJobLogger = PeerJobLogger()
+logger: DashboardLogger = DashboardLogger()
+_, app_ip = DashboardConfig.GetConfig("Server", "app_ip")
+_, app_port = DashboardConfig.GetConfig("Server", "app_port")
+_, WG_CONF_PATH = DashboardConfig.GetConfig("Server", "wg_conf_path")
+
+WireguardConfigurations: dict[str, WireguardConfiguration] = {}
+_getConfigurationList(startup=True)
+
 # Start background threads
 def startThreads():
     bgThread = threading.Thread(target=backGroundThread)
@@ -2796,34 +2825,68 @@ def startThreads():
     scheduleJobThread.daemon = True
     scheduleJobThread.start()
 
+def get_timestamped_filename():
+    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+    return f'./log/access_{timestamp}.log'
+
+@app.before_request
+def before_request():
+    """Store the start time of the request."""
+    g.start_time = time.time()
+
+@app.after_request
+def after_request(response):
+    """Log access details after the request is processed."""
+    # Safeguard in case g.start_time is not set
+    start_time = getattr(g, 'start_time', time.time())
+    response_time = round((time.time() - start_time) * 1000, 2)  # in milliseconds
+    
+    # Format log entry
+    timestamp = strftime('[%Y-%b-%d %H:%M]')
+    log_entry = (
+        f"{timestamp} "
+        f"User-Agent: {request.user_agent.string} "
+        f"IP: {request.remote_addr} "
+        f"Referrer: {request.referrer or 'No Referrer'} "
+        f"Method: {request.method} "
+        f"Scheme: {request.scheme} "
+        f"Path: {request.full_path} "
+        f"Status: {response.status_code} "
+        f"Response Time: {response_time} ms"
+    )
+    logger.info(log_entry)
+    
+    return response
+
+
+
 # Fetch configurations
-_, app_ip = DashboardConfig.GetConfig("Server", "app_ip")
-_, app_port = DashboardConfig.GetConfig("Server", "app_port")
+
 
 
 
 # Production Server using Waitress
 if __name__ == "__main__":
-    # Global variables initialization
-    AllPeerShareLinks: PeerShareLinks = PeerShareLinks()
-    AllPeerJobs: PeerJobs = PeerJobs()
-    JobLogger: PeerJobLogger = PeerJobLogger()
-    DashboardLogger: DashboardLogger = DashboardLogger()
-
-    _, WG_CONF_PATH = DashboardConfig.GetConfig("Server", "wg_conf_path")
-
-    WireguardConfigurations: dict[str, WireguardConfiguration] = {}
-    _getConfigurationList(startup=True)
-
+   
+    waitressInit()
     # Start background threads
     startThreads()
 
+    # Initialize logger 
+    # Set up the rotating file handler with dynamic filename
+    log_filename = get_timestamped_filename()
+    handler = RotatingFileHandler(log_filename, maxBytes=1000000, backupCount=3)
+
+    logger = logging.getLogger('wiregate')
+    logger.setLevel(logging.INFO)
+    logger.addHandler(handler)
+
+
     # Start the Waitress server with access logging enabled
-    serve(
+    waitress.serve(
         app,
         host=app_ip,
         port=app_port,
         threads=8,
         _quiet=False,  # Ensures Waitress uses the 'waitress.access' logger for requests
-        #out=sys.stdout  # Explicitly set stdout for waitress
     )

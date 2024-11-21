@@ -2,32 +2,36 @@ import random
 import shutil
 import sqlite3
 import configparser
+import bcrypt
+import psutil
+import pyotp
 import hashlib
 import ipaddress
 import json
 import os
-import secrets
 import socket
+import secrets
 import subprocess
 import time
 import re
 import urllib.error
 import uuid
+import threading
+
 from datetime import datetime, timedelta
-from typing import Any
-import bcrypt
-import psutil
-import pyotp
+from typing import Any, List
 from flask import Flask, request, render_template, session, g
 from json import JSONEncoder
 from flask_cors import CORS
 from icmplib import ping, traceroute
-import threading
-
 from flask.json.provider import DefaultJSONProvider
-#Import Enviorment
 from dotenv import load_dotenv
 
+
+
+
+
+#Import Enviorment
 DASHBOARD_VERSION = 'Chimera'
 CONFIGURATION_PATH = os.getenv('CONFIGURATION_PATH', '.')
 DB_PATH = os.path.join(CONFIGURATION_PATH, 'db')
@@ -186,7 +190,7 @@ class PeerJobLogger:
         self.loggerdb = sqlite3.connect(os.path.join(CONFIGURATION_PATH, 'db', 'wgdashboard_log.db'),
                                      check_same_thread=False)
         self.loggerdb.row_factory = sqlite3.Row
-        self.logs:list(Log) = []
+        self.logs: List[Log] = []
         self.__createLogDatabase()
         
     def __createLogDatabase(self):
@@ -1112,7 +1116,7 @@ class WireguardConfiguration:
                           , (data_usage[count + 1], data_usage[count],))
             count += 2
 
-    def toggleConfiguration(self) -> [bool, str]:
+    def toggleConfiguration(self) -> tuple[bool, str]:
         self.getStatus()
         interface_address = self.get_awg_iface_address()
 
@@ -1610,7 +1614,7 @@ class DashboardConfig:
         sqlUpdate("UPDATE DashboardAPIKeys SET ExpiredAt = datetime('now', 'localtime') WHERE Key = ?", (key, ))
         self.DashboardAPIKeys = self.__getAPIKeys()
     
-    def __configValidation(self, key, value: Any) -> [bool, str]:
+    def __configValidation(self, key, value: Any) -> tuple[bool, str]:
         if type(value) is str and len(value) == 0:
             return False, "Field cannot be empty!"
         if key == "peer_global_dns":
@@ -1618,6 +1622,7 @@ class DashboardConfig:
         if key == "peer_endpoint_allowed_ip":
             value = value.split(",")
             for i in value:
+                i = i.strip()  # Remove leading/trailing whitespace
                 try:
                     ipaddress.ip_network(i, strict=False)
                 except Exception as e:
@@ -1634,13 +1639,14 @@ class DashboardConfig:
                     return False, "New passwords does not match"
         return True, ""
 
+
     def generatePassword(self, plainTextPassword: str):
         return bcrypt.hashpw(plainTextPassword.encode("utf-8"), bcrypt.gensalt())
 
     def __checkPassword(self, plainTextPassword: str, hashedPassword: bytes):
         return bcrypt.checkpw(plainTextPassword.encode("utf-8"), hashedPassword)
 
-    def SetConfig(self, section: str, key: str, value: any, init: bool = False) -> [bool, str]:
+    def SetConfig(self, section: str, key: str, value: any, init: bool = False) -> tuple[bool, str]:
         if key in self.hiddenAttribute and not init:
             return False, None
 
@@ -1685,7 +1691,7 @@ class DashboardConfig:
         except Exception as e:
             return False
 
-    def GetConfig(self, section, key) -> [bool, any]:
+    def GetConfig(self, section, key) -> tuple[bool, any]:
         if section not in self.__config:
             return False, None
 
@@ -1785,7 +1791,7 @@ def _generatePublicKey(privateKey) -> tuple[bool, str] | tuple[bool, None]:
     except subprocess.CalledProcessError:
         return False, None
 
-def _generatePrivateKey() -> [bool, str]:
+def _generatePrivateKey() -> tuple[bool, str]:
     try:
         publicKey = subprocess.check_output(f"wg genkey", shell=True,
                                             stderr=subprocess.STDOUT)
@@ -2798,7 +2804,7 @@ def gunicornConfig():
 AllPeerShareLinks: PeerShareLinks = PeerShareLinks()
 AllPeerJobs: PeerJobs = PeerJobs()
 JobLogger: PeerJobLogger = PeerJobLogger()
-DashboardLogger: DashboardLogger = DashboardLogger()
+logger: DashboardLogger = DashboardLogger()
 _, app_ip = DashboardConfig.GetConfig("Server", "app_ip")
 _, app_port = DashboardConfig.GetConfig("Server", "app_port")
 _, WG_CONF_PATH = DashboardConfig.GetConfig("Server", "wg_conf_path")
