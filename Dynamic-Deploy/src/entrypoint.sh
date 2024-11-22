@@ -11,7 +11,7 @@ INET_ADDR="$(hostname -i | awk '{print $1}')"
 dashes='------------------------------------------------------------'
 equals='============================================================'
 log_dir="./log"
-dnscrypt_conf=dnscrypt-proxy.toml
+dnscrypt_conf=./dnscrypt/dnscrypt-proxy.toml
 
 printf "
 [DYNAMIC]

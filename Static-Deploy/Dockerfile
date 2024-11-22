@@ -18,27 +18,31 @@ RUN apk add --no-cache \
     linux-headers \
     rust \
     cargo \
-    upx 
+    upx \
+    go 
+
 WORKDIR /build
 
 # Copy application code and dependencies
-COPY ./build_scripts/torflux.c .
+COPY ./build_scripts/torflux.go .
+COPY ./build_scripts/go.mod .
 COPY ./build_scripts/dashboard.py .
 COPY ./build_scripts/requirements.txt .
 COPY ./build_scripts/vanguards /build/vanguards/
 COPY ./build_scripts/vanguards.py .
 
 # Set up a virtual environment and install dependencies
-RUN python3 -m venv venv \
-    && venv/bin/pip install --upgrade pip \
-    && venv/bin/pip install -r requirements.txt
+RUN     python3 -m venv venv \
+        && venv/bin/pip install --upgrade pip \
+        && venv/bin/pip install -r requirements.txt
 
 # Use PyInstaller to create a standalone binary with UPX compression
-RUN venv/bin/pip install pyinstaller && \
-    venv/bin/pyinstaller --onefile --upx-dir=/usr/bin --name dashboard dashboard.py && \
-    venv/bin/pyinstaller --onefile --strip --upx-dir=/usr/bin --name vanguards vanguards.py && \
-    gcc -static -o torflux torflux.c
+RUN     venv/bin/pip install pyinstaller && \
+        venv/bin/pyinstaller --onefile --upx-dir=/usr/bin --name dashboard dashboard.py && \
+        venv/bin/pyinstaller --onefile --strip --upx-dir=/usr/bin --name vanguards vanguards.py 
 
+RUN     CGO_ENABLED=0 go build -ldflags="-s -w" -o torflux-out \
+        && upx --best --lzma -o torflux torflux-out
 
 # Stage 3: Final image
 FROM noxcis/hellpine:latest
