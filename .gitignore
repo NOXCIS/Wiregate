@@ -68,3 +68,4 @@
 !/Static-Deploy/Dockerfile
 .env.anim.run.txt
 .env
+.DS_Store

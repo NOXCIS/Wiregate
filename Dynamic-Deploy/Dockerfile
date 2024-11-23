@@ -12,8 +12,7 @@ RUN apk add --no-cache sudo build-base musl-dev rust cargo linux-headers go upx
 WORKDIR /WireGate
 COPY ./build_scripts/builder.sh ./build_scripts/builder_requirements.txt ./build_scripts/torflux.go ./build_scripts/go.mod . /WireGate/
 RUN chmod u+x ./builder.sh && ./builder.sh \
-    && CGO_ENABLED=0 go build -ldflags="-s -w" -o torflux-out \
-    && upx --best --lzma -o torflux torflux-out
+    && CGO_ENABLED=0 go build -buildmode=pie -ldflags="-s -w" -o torflux 
 
 
 # Stage 3: Final image

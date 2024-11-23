@@ -1,50 +1,34 @@
 listen_addresses = ['0.0.0.0:5053']
 proxy = 'socks5://wiregate:9053'
-force_tcp = true
-timeout = 5000
-keepalive = 30
 max_clients = 250
 ipv4_servers = true
 ipv6_servers = false
-dnscrypt_servers = false
+dnscrypt_servers = true
 doh_servers = false
-odoh_servers = true
-require_dnssec = true
+require_dnssec = false
 require_nolog = true
 require_nofilter = true
+force_tcp = true
+timeout = 2500
 cert_refresh_delay = 240
 dnscrypt_ephemeral_keys = true
+fallback_resolvers = ['81.17.31.34:53', '163.172.34.56:53']
+ignore_system_dns = false
 block_ipv6 = true
-block_unqualified = true
-block_undelegated = true
-reject_ttl = 10
 cache = true
-cache_size = 4096
-cache_min_ttl = 2400
+cache_size = 4200
+cache_min_ttl = 600
 cache_max_ttl = 86400
-cache_neg_min_ttl = 60
-cache_neg_max_ttl = 600
-server_names = [
-    'odoh-cloudflare'
-]
-[static]
-[static.'odoh-cloudflare']
-stamp = 'sdns://BQcAAAAAAAAAF29kb2guY2xvdWRmbGFyZS1kbnMuY29tCi9kbnMtcXVlcnk'
+cache_neg_ttl = 60
 [sources]
-[sources.'odoh-relays']
-urls = ['https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-relays.md', 'https://download.dnscrypt.info/resolvers-list/v3/odoh-relays.md']
-minisign_key = 'RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3'
-cache_file = 'odoh-relays.md'
-[sources.'odoh-servers']
-urls = ['https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/odoh-servers.md', 'https://download.dnscrypt.info/resolvers-list/v3/odoh-servers.md']
-minisign_key = 'RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3'
-cache_file = 'odoh-servers.md'
-[anonymized_dns]
-routes = [
-    { server_name='odoh-cloudflare', via=['odohrelay-crypto-sx', 'odohrelay-se', 'odohrelay-ams'] },
-     {server_name='odoh-cloudflare', via=['*'] }
+[sources.'cs-resolvers']
+urls = ['https://cryptostorm.is/cs-resolvers.md', 'https://raw.githubusercontent.com/cryptostorm/cstorm_deepDNS/master/cs-resolvers.md']
+cache_file = 'cs-resolvers.md'
+minisign_key = 'RWTzXTWKLLKfM3fRQW0CUwSN17U3YMsVcVdfi3ERraxuttv2tL8dsdUE'
+refresh_delay = 72
+[sources.'cs-relays']
+urls = ['https://cryptostorm.is/cs-relays.md', 'https://raw.githubusercontent.com/cryptostorm/cstorm_deepDNS/master/cs-relays.md']
+cache_file = 'cs-relays.md'
+minisign_key = 'RWTzXTWKLLKfM3fRQW0CUwSN17U3YMsVcVdfi3ERraxuttv2tL8dsdUE'
+prefix = ''
 
-]   
-skip_incompatible = true
-[broken_implementations]
-fragments_blocked = ['cisco', 'cisco-ipv6', 'cisco-familyshield', 'cisco-familyshield-ipv6', 'cisco-sandbox', 'cleanbrowsing-adult', 'cleanbrowsing-adult-ipv6', 'cleanbrowsing-family', 'cleanbrowsing-family-ipv6', 'cleanbrowsing-security', 'cleanbrowsing-security-ipv6']

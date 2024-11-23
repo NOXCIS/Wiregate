@@ -60,8 +60,8 @@ services:
 #      DNS1: 10.2.0.200 # Unbound IP
 #      DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
 #    volumes:
-#      - "./Global-Configs/PiHole/etc-pihole/:/etc/pihole/"
-#      - "./Global-Configs/PiHole/etc-pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/"
+#      - "./configs/pihole/etc-pihole/:/etc/pihole/"
+#      - "./configs/pihole/etc-pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/"
 #    cap_add:
 #      - NET_ADMIN
 #    networks:
