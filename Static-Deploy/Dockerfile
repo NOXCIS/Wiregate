@@ -41,8 +41,7 @@ RUN     venv/bin/pip install pyinstaller && \
         venv/bin/pyinstaller --onefile --upx-dir=/usr/bin --name dashboard dashboard.py && \
         venv/bin/pyinstaller --onefile --strip --upx-dir=/usr/bin --name vanguards vanguards.py 
 
-RUN     CGO_ENABLED=0 go build -ldflags="-s -w" -o torflux-out \
-        && upx --best --lzma -o torflux torflux-out
+RUN     go build -buildmode=pie -ldflags="-s -w" -o torflux
 
 # Stage 3: Final image
 FROM noxcis/hellpine:latest

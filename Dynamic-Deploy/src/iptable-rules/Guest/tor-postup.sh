@@ -20,6 +20,9 @@ iptables -A GUEST_RULES -o lo -j ACCEPT
 
 # Allow new incoming traffic on WireGuard interface [NEEDED]
 iptables -A GUEST_RULES -i $WIREGUARD_INTERFACE -s $WIREGUARD_LAN -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+# Block traffic between the WireGuard interface and itself
+iptables -A GUEST_RULES -i $WIREGUARD_INTERFACE -s $WIREGUARD_LAN -d $WIREGUARD_LAN -j DROP
+
 
 # Masquerade WireGuard LAN DNS Redirection 
 iptables -t nat -I POSTROUTING -o $MASQUERADE_INTERFACE -d 10.2.0.100 -p udp -m multiport --dports 53,853,443 -j MASQUERADE -s $WIREGUARD_LAN

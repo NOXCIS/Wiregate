@@ -6,7 +6,7 @@
 WIREGUARD_INTERFACE=GUESTS
 WIREGUARD_LAN=192.168.20.1/24
 MASQUERADE_INTERFACE=eth0
-GLOBAL_DNS=${WGD_IPTABLES_DNS}
+DNS_SERVER=${WGD_IPTABLES_DNS}
 
 # Enable NAT on the interface
 iptables -t nat -I POSTROUTING -o $MASQUERADE_INTERFACE -j MASQUERADE -s $WIREGUARD_LAN
@@ -30,10 +30,10 @@ iptables -A INPUT -i $WIREGUARD_INTERFACE -j DROP
 
 #START OF GLOBAL DNS FORWARDING RULES 
 ##############################################################################################################
-iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d $GLOBAL_DNS -p tcp --dport 53 -j ACCEPT
-iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d $GLOBAL_DNS -p udp --dport 53 -j ACCEPT
-iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d $GLOBAL_DNS -p tcp --dport 853 -j ACCEPT
-iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d $GLOBAL_DNS -p udp --dport 853 -j ACCEPT
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d $DNS_SERVER -p tcp --dport 53 -j ACCEPT
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d $DNS_SERVER -p udp --dport 53 -j ACCEPT
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d $DNS_SERVER -p tcp --dport 853 -j ACCEPT
+iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -d $DNS_SERVER -p udp --dport 853 -j ACCEPT
 #END OF GLOBAL DNS FORWARDING RULES 
 ##############################################################################################################
 

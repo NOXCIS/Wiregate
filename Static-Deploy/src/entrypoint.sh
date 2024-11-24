@@ -85,6 +85,8 @@ make_torrc() {
 
     echo -e "AutomapHostsOnResolve 1 \n" >> "$TORRC_PATH"
     echo -e "VirtualAddrNetwork 10.192.0.0/10 \n" >> "$TORRC_PATH"
+    echo -e "MaxMemInQueues 32 MB \n" >> "$TORRC_PATH"
+
     echo -e "ControlPort 9051 \n" >> "$TORRC_PATH"
     echo -e "HashedControlPassword $CTRL_P_PASS\n" >> "$TORRC_PATH"
     echo -e "User tor \n" >> "$TORRC_PATH"
@@ -133,6 +135,7 @@ make_dns_torrc() {
 
     echo -e "AutomapHostsOnResolve 1 \n" >> "$DNS_TORRC_PATH"
     echo -e "VirtualAddrNetwork 10.193.0.0/10 \n" >> "$DNS_TORRC_PATH"
+    echo -e "MaxMemInQueues 32 MB \n" >> "$DNS_TORRC_PATH"
     echo -e "ControlPort 9054 \n" >> "$DNS_TORRC_PATH"
     echo -e "HashedControlPassword $CTRL_P_PASS\n" >> "$DNS_TORRC_PATH"
     echo -e "User tor \n" >> "$DNS_TORRC_PATH"
@@ -240,6 +243,17 @@ ensure_blocking() {
 
 
 chmod u+x wiregate.sh
+
+
+# Loop over each .sh file in the directory and its subdirectories
+    find /WireGate/iptable-rules/ -type f -name "*.sh" | while read -r file; do
+        # Check if the file contains the line with DNS_SERVER=${WGD_IPTABLES_DNS}
+        if grep -q "DNS_SERVER=\${WGD_IPTABLES_DNS}" "$file"; then
+            # Replace the line with the current value of WGD_IPTABLES_DNS
+            sed -i "s|DNS_SERVER=\${WGD_IPTABLES_DNS}|DNS_SERVER=${WGD_IPTABLES_DNS}|" "$file"
+            echo "Updated DNS_SERVER in $file"
+        fi
+    done
 
 # create /dev/net/tun if it does not exist
 if [[ ! -c /dev/net/tun ]]; then
