@@ -46,7 +46,7 @@ jobs:
       - name: Build and Push WGDashboard Docker Dev (Multi-Arch)
         uses: docker/build-push-action@v6
         with:
-          context: WG-Dash/  # Path to Dockerfile in repository
+          context: Dynamic-Deploy/  # Path to Dockerfile in repository
           push: true  # Push image after build
           tags: noxcis/wg-dashboard:terra-fuego-beta  # Tag for all platforms
           platforms: linux/amd64,linux/arm64,linux/arm/v6,linux/arm/v7  # Platforms to build for
