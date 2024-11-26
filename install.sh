@@ -168,7 +168,6 @@ mkey_output() {
             title
             generate_wireguard_qr  &&
             readme_title &&
-            encrypt_file >/dev/null 2>&1 &&
             if [ "$system" = "AdGuard" ]; then
                 env_var_adguard_title
                 adguard_compose_swap >/dev/null 2>&1
@@ -316,24 +315,6 @@ compose_down() {
             sudo rm "$masterkey_file"
             echo "Existing '$masterkey_file' removed."
         fi
-    }
-    encrypt_file() {
-        local characters="A-Za-z0-9!@#$%^&*()"
-        local file_path="./WG-Dash/master-key/master.conf"
-        local password=$(head /dev/urandom | tr -dc "$characters" | head -c 16)
-        # Generate a salt
-        salt=$(openssl rand -base64 8 | tr -d '=')
-        # Derive the encryption key from the password and salt using PBKDF2
-        encryption_key=$(echo -n "$password$salt" | openssl dgst -sha256 -binary | xxd -p -c 256)
-        # Encrypt the file using aes-256-cbc algorithm with the derived key
-        openssl enc -aes-256-cbc -in "$file_path" -out "${file_path}.enc" -K "$encryption_key" -iv 0
-        if [ $? -eq 0 ]; then
-            echo "Worm-Hole Master Key encrypted successfully."
-            rm "$file_path"
-        else
-            echo "Worm-Hole Master Key encryption failed."
-        fi
-        export MASTER_KEY_PASSWORD="$password"
     }
     nuke_bash_hist() {
         # Overwrite ~/.bash_history with "noxcis" 42 times

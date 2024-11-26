@@ -58,6 +58,7 @@ install_prerequisites() {
         gnupg
         openssl
         apache2-utils
+        pwgen
         jq
     )
 

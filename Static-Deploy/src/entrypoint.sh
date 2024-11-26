@@ -251,7 +251,6 @@ chmod u+x wiregate.sh
         if grep -q "DNS_SERVER=\${WGD_IPTABLES_DNS}" "$file"; then
             # Replace the line with the current value of WGD_IPTABLES_DNS
             sed -i "s|DNS_SERVER=\${WGD_IPTABLES_DNS}|DNS_SERVER=${WGD_IPTABLES_DNS}|" "$file"
-            echo "Updated DNS_SERVER in $file"
         fi
     done
 
