@@ -12,11 +12,12 @@ networks:
 
 services:
   dnscrypt:
-    image: "klutchell/dnscrypt-proxy"
+    depends_on: [wiregate]
+    image: "noxcis/dnscrypt:latest"
     restart: unless-stopped
     container_name: dnscrypt
     volumes:
-      - ./Global-Configs/DnsCrypt/dnscrypt-proxy.toml:/config/dnscrypt-proxy.toml
+      - ./configs/dnscrypt:/config
     networks:
       private_network:
         ipv4_address: 10.2.0.42
@@ -55,62 +56,92 @@ services:
       DNS1: 10.2.0.200 # Unbound IP
       DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
     volumes:
-      - "./Global-Configs/PiHole/etc-pihole/:/etc/pihole/"
-      - "./Global-Configs/PiHole/etc-pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/"
+      - "./configs/pihole/etc-pihole/:/etc/pihole/"
+      - "./configs/pihole/etc-pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/"
     cap_add:
       - NET_ADMIN
     networks:
       private_network:
         ipv4_address: 10.2.0.100
 
-
         
   wiregate:
+    image: noxcis/${STATE}:${TAG}
     container_name: wiregate
-    image: noxcis/wg-dashboard:${TAG}
+    hostname: wiregate
     cap_add:
       - NET_ADMIN
     restart: unless-stopped
-    volumes:
-      - wgd_configs:/etc/wireguard 
-      - wgd_db:/opt/wireguarddashboard/src/db 
-      - ./Global-Configs/Tor:/etc/tor/
-      - ./Global-Configs/Logs:/opt/wireguarddashboard/src/log/
-      - ./Global-Configs/Master-Key:/opt/wireguarddashboard/src/master-key
+    volumes: 
+        - pf_conf:/WireGate/iptable-rules/
+        - conf:/etc/wireguard 
+        - db:/WireGate/db
+        - ./configs/dnscrypt:/WireGate/dnscrypt
+        - ./configs/tor:/etc/tor/
+        - ./configs/logs:/WireGate/log/
+        - ./configs/master-key:/WireGate/master-key
+
     environment:
-      - TZ=${PI_HOLE_TZ}
-      - AMNEZIA_WG=${AMNEZIA_WG}
-      - WGD_TOR_EXIT_NODES=${WGD_TOR_EXIT_NODES}
-      - WGD_TOR_PROXY=${WGD_TOR_PROXY}
-      - WGD_TOR_PLUGIN=${WGD_TOR_PLUGIN}
-      - WGD_TOR_BRIDGES=${WGD_TOR_BRIDGES}
-      - WGD_WELCOME_SESSION=false
-      - WGD_AUTH_REQ=true
-      - WGD_USER=${WGD_USER}
-      - WGD_PASS=${WGD_PASS}
-      - WGD_REMOTE_ENDPOINT=${WGD_REMOTE_ENDPOINT}
-      - WGD_REMOTE_ENDPOINT_PORT=80
-      - WGD_DNS="10.2.0.100, 10.2.0.100"
-      - WGD_IPTABLES_DNS=10.2.0.100
-      - WGD_PEER_ENDPOINT_ALLOWED_IP=0.0.0.0/0
-      - WGD_KEEP_ALIVE=21
-      - WGD_MTU=1420
-      - WGD_PORT_RANGE_STARTPORT=${WGD_PORT_RANGE_STARTPORT}
+      #Config Path Optional
+        #- WGDCONF_PATH=/etc/wireguard
+      #Use Ofuscated Wireguard (AmneziaWG)
+        - AMNEZIA_WG=${AMNEZIA_WG}
+      #Set Timezone
+        - TZ={PI_HOLE_TZ}
+
+      #Tor Settings
+      ##########################################################
+        - WGD_TOR_PROXY=${WGD_TOR_PROXY}         #Enable Tor
+        - WGD_TOR_EXIT_NODES=${WGD_TOR_EXIT_NODES}   #Ex. {gb},{fr}
+        - WGD_TOR_BRIDGES=${WGD_TOR_BRIDGES}       #Enable Tor Bridges
+        - WGD_TOR_PLUGIN=${WGD_TOR_PLUGIN}   #OPTIONS webtunnel, obfs4, snowflake
+      #WGDashboard Global Settings
+      ##########################################################
+        - WGD_WELCOME_SESSION=false
+        - WGD_AUTH_REQ=true
+        - WGD_WELCOME_SESSION=false
+        - WGD_USER=${WGD_USER}
+        - WGD_PASS=${WGD_PASS}
+        - WGD_REMOTE_ENDPOINT=${WGD_REMOTE_ENDPOINT}
+        - WGD_REMOTE_ENDPOINT_PORT=80
+        - WGD_PEER_ENDPOINT_ALLOWED_IP=0.0.0.0/0, ::/0
+        - WGD_KEEP_ALIVE=21
+        - WGD_MTU=1420
+        - WGD_PORT_RANGE_STARTPORT=${WGD_PORT_RANGE_STARTPORT}
+
+      #DNS Setiings (Set To use Containers Above) You can use your own DNS
+      ##########################################################
+        - WGD_DNS=10.2.0.100
+        - WGD_IPTABLES_DNS=10.2.0.100
+
+        
+      #Obfuscated Wireguard via AmneziaWG Junk Headder Settings
+      #All parameters should be the same between Client and Server, except Jc - it can vary.
+      #########################################################
+        - WGD_JC=${WGD_JC} #Jc — 1 ≤ Jc ≤ 128; recommended range is from 3 to 10 inclusive
+        - WGD_JMIN=${WGD_JMIN} #Jmin — Jmin < Jmax; recommended value is 50
+        - WGD_JMAX=${WGD_JMAX} #Jmax — Jmin < Jmax ≤ 1280; recommended value is 1000
+        - WGD_S1=${WGD_S1} #S1 — S1 < 1280; S1 + 56 ≠ S2; recommended range is from 15 to 150 inclusive
+        - WGD_S2=${WGD_S2} #S2 — S2 < 1280; recommended range is from 15 to 150 inclusive
+        - WGD_H1=${WGD_H1} #H1/H2/H3/H4 — must be unique among each other; recommended range is from 5 to 2147483647 inclusive
+        - WGD_H2=${WGD_H2} #H2
+        - WGD_H3=${WGD_H3} #H3
+        - WGD_H4=${WGD_H4} #H4
     ports:
-      - "${WGD_PORT_MAPPINGS}"
-    sysctls:
-      - net.ipv4.ip_forward=1
-      - net.ipv4.conf.all.src_valid_mark=1
-      - net.ipv6.conf.all.forwarding=1
-      - net.ipv6.conf.default.forwarding=1
+        - "${WGD_PORT_MAPPINGS}" #Comment Out for full network lockdown, I.E only Accessible via VPN conttenction at http://wire.gate using config in generated master-key folder
+    sysctls:        #Otherwise access the dashboard @ your-sever-ip/domain:6060
+        - net.ipv4.ip_forward=1
+        - net.ipv4.conf.all.src_valid_mark=1
+        - net.ipv6.conf.all.forwarding=1
+        - net.ipv6.conf.default.forwarding=1
     networks:
       private_network:
         ipv4_address: 10.2.0.3
-
-
+    
 
 volumes:
-    wgd_configs:
-    wgd_db:
+    db:
+    conf:
+    pf_conf:
   
   
