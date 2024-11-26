@@ -60,6 +60,7 @@ ________________________________________________________________________________
 |    ╚══╝╚══╝ ╚═╝╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝         
 |                                                                                  
 |'$yellow'   ['$blue'CONTAINER ORCHESTRATOR'$yellow']'$reset'  \033[1;95m'"$DEPLOY_SYSTEM"'\033[32m 
+|'$yellow'   ['$blue'PROTOCOL TYPE'$yellow']'$reset'           \033[1;95m'"$PROTOCOL_TYPE"'\033[32m  
 |   [TOR] Transport Plugin:   \033[33m'"$WGD_TOR_PLUGIN"'\033[32m                    
 |   [TOR] Transport Enabled:  \033[33m'"$DEPLOY_TYPE"'\033[32m                        
 |   [TOR] Use Bridges:        \033[33m'"$WGD_TOR_BRIDGES"'\033[32m                        

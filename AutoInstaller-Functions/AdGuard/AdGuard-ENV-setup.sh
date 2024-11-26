@@ -3,7 +3,7 @@
 # Under MIT License
 
 set_adguard_pass() {
-    local adguard_yaml_file="./Global-Configs/AdGuard/Config/AdGuardHome.yaml"
+    local adguard_yaml_file="./configs/adguard/AdGuardHome.yaml"
     local timer=$TIMER_VALUE
     local user_activity=false
     local username="USER"
@@ -84,7 +84,7 @@ set_adguard_pass() {
 
 }
 set_adguard_user() {
-    local adguard_yaml_file="./Global-Configs/AdGuard/Config/AdGuardHome.yaml"
+    local adguard_yaml_file="./configs/adguard/AdGuardHome.yaml"
     local timer=$TIMER_VALUE
     local user_activity=false
 

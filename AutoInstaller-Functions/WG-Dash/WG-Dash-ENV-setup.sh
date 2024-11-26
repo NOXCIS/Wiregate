@@ -22,7 +22,7 @@ set_wiregate_env() {
         set_port_range
         echo "WGD_PORT_RANGE_STARTPORT=\"$HOST_PORT_START\"" >> "$env_file"
         echo "WGD_PORT_MAPPINGS=\"$port_mappings\"" >> "$env_file"
-        echo "WGD_REMOTE_ENDPOINT=\"$ip\"" >> "$env_file"
+        echo "ip=\"$ip\"" >> "$env_file"
         
 
     # Export the values from the .env file
@@ -53,9 +53,28 @@ update_server_ip() {
     done
     
     if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
-        ip=$(curl -s ifconfig.me)
-        #export WGD_REMOTE_ENDPOINT="$ip"
+    # Array of websites to query for the public IP
+    websites=("ifconfig.me" "ipinfo.io/ip" "icanhazip.com" "checkip.amazonaws.com")
+    
+    ip=""
+    for site in "${websites[@]}"; do
+        ip=$(curl -s "$site")
+        if [[ $ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            break # Exit loop once a valid IP is found
+        fi
+    done
+    
+    # If no IP was retrieved, handle the error
+    if [ -z "$ip" ]; then
+        echo "Failed to retrieve public IP address."
+        exit 1
     fi
+
+    echo "Public IP: $ip"
+    # Uncomment the next line to set WGD_REMOTE_ENDPOINT
+    export WGD_REMOTE_ENDPOINT="$ip"
+fi
+
 
 
     if [[ "$user_activity" == true ]]; then
@@ -77,7 +96,7 @@ update_server_ip() {
             echo -e "\033[31mInvalid IPv4 address format. Please enter a valid IPv4 address.\033[0m"
             continue
         fi
-                #export WGD_REMOTE_ENDPOINT="$ip"
+                export WGD_REMOTE_ENDPOINT="$ip"
                 break
             
         done
@@ -177,7 +196,7 @@ set_port_range() {
 }
 
 generate_wireguard_qr() {
-    local config_file="./Global-Configs/Master-Key/master.conf"
+    local config_file="./configs/master-key/master.conf"
     echo -n "Generating Master Key"
 
     while ! [ -f "$config_file" ]; do
@@ -193,7 +212,7 @@ generate_wireguard_qr() {
     master_key_title
     printf "%s\n" "$stars"
     printf "%s\n" "$dashes" $yellow
-    cat ./Global-Configs/Master-Key/master.conf 
+    cat ./configs/master-key/master.conf 
     printf $green"%s\n" "$equals"
     printf "%s\n"
     qrencode -t ANSIUTF8 < "$config_file"

@@ -169,7 +169,6 @@ volumes:
     db:
     conf:
     pf_conf:
-    dns_conf:
     
   
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
 # Under MIT License
-
+export STATE="wiregate"
 export HISTFILE=/dev/null
 export DEBIAN_FRONTEND=noninteractive
 export DOCKER_CONTENT_TRUST=1
@@ -12,6 +12,8 @@ export WGD_TOR_PROXY="false"
 export WGD_TOR_PLUGIN="obfs4"
 export WGD_TOR_BRIDGES="false"
 export WGD_TOR_EXIT_NODES="default"
+export AMNEZIA_WG="false"
+export PROTOCOL_TYPE="WireGuard"
 
 #CORE_IMPORTS
 source ./AutoInstaller-Functions/OS-Reqs.sh
@@ -129,10 +131,6 @@ setup_environment() {
             ;;
     esac
 }
-
-
-
-
 run_Pihole_setup() {
         if [ "$mode" = "Express" ]; then
             TIMER_VALUE=0
@@ -164,8 +162,6 @@ run_AdGuard_setup() {
         clear &&
         mkey_output
 }
-
-
 
 mkey_output() {
     #FINAL_OUTPUT
@@ -238,67 +234,65 @@ compose_down() {
     fi
 }
 #MISC
-set_tag() {
-    # Docker Hub repository
-    REPO="noxcis/wg-dashboard"
+    set_tag() {
+        # Docker Hub repository
 
-    # Fetch the tags from Docker Hub API
-    response=$(curl -s -f "https://hub.docker.com/v2/repositories/${REPO}/tags/?page_size=100")
+        REPO="noxcis/${STATE}"
 
-    # Initialize the search pattern
-    pattern=""
+        # Fetch the tags from Docker Hub API
+        response=$(curl -s -f "https://hub.docker.com/v2/repositories/${REPO}/tags/?page_size=100")
 
-    # Check input arguments
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            --allow-dev)
-                pattern="dev"
-                shift
-                ;;
-            --allow-beta)
-                pattern="beta"
-                shift
-                ;;
-            --stable)
-                pattern="exclude" # Indicate exclusion for beta and dev
-                shift
-                ;;
-            *)
-                echo "Invalid option: $1"
-                exit 1
-                ;;
-        esac
-    done
+        # Initialize the search pattern
+        pattern=""
 
-    # Construct jq filter based on the pattern
-    if [[ $pattern == "exclude" ]]; then
-        # Default behavior to exclude tags with 'beta' or 'dev'
-        filter="select(.name | test(\"beta|dev\"; \"i\") | not)"
-    elif [[ -n "$pattern" ]]; then
-        # Only include tags that contain the specified pattern
-        filter="select(.name | test(\"$pattern\"; \"i\"))"
-    else
-        # No pattern provided, which could be an error state.
-        echo "No valid pattern provided."
-        exit 1
-    fi
+        # Check input arguments
+        while [[ $# -gt 0 ]]; do
+            case $1 in
+                --allow-dev)
+                    pattern="dev"
+                    shift
+                    ;;
+                --allow-beta)
+                    pattern="beta"
+                    shift
+                    ;;
+                --stable)
+                    pattern="exclude" # Indicate exclusion for beta and dev
+                    shift
+                    ;;
+                *)
+                    echo "Invalid option: $1"
+                    exit 1
+                    ;;
+            esac
+        done
 
-    # Extract the latest updated tag based on the filter using jq
-    latest_tag=$(echo "$response" | jq -r "[.results[] | $filter] | sort_by(.last_updated) | last(.[]).name")
+        # Construct jq filter based on the pattern
+        if [[ $pattern == "exclude" ]]; then
+            # Default behavior to exclude tags with 'beta' or 'dev'
+            filter="select(.name | test(\"beta|dev\"; \"i\") | not)"
+        elif [[ -n "$pattern" ]]; then
+            # Only include tags that contain the specified pattern
+            filter="select(.name | test(\"$pattern\"; \"i\"))"
+        else
+            # No pattern provided, which could be an error state.
+            echo "No valid pattern provided."
+            exit 1
+        fi
 
-    # Check if the tag is extracted
-    if [ -z "$latest_tag" ]; then
-        echo "Failed to fetch a suitable latest updated tag."
-        exit 1
-    else
-        echo "Latest suitable updated tag: $latest_tag"
-    fi
+        # Extract the latest updated tag based on the filter using jq
+        latest_tag=$(echo "$response" | jq -r "[.results[] | $filter] | sort_by(.last_updated) | last(.[]).name")
 
-    export TAG="$latest_tag"
-}
+        # Check if the tag is extracted
+        if [ -z "$latest_tag" ]; then
+            echo "Failed to fetch a suitable latest updated tag."
+            exit 1
+        else
+            echo "Latest suitable updated tag: $latest_tag"
+        fi
 
-
-
+        export TAG="$latest_tag"
+    }
     dev_build() {
         local adguard_yaml_file="./Global-Configs/AdGuard/Config/AdGuardHome.yaml"
         local adguard_password='$2a$12$t6CGhUcXtY6lGF2/A9Jd..Wn315A0RIiuhLlHbNHG2EmDbsN7miwO'
@@ -315,8 +309,6 @@ set_tag() {
 
 
     }
-
-    
     rm_exst_configs() {
         local masterkey_file="/Global-Configs/Master-Key/master.conf"
         if [ -f "$masterkey_file" ]; then
@@ -355,56 +347,92 @@ set_tag() {
         history -c
         clear
     }
-    
-
     switch_tor() {
-    # Accept the input argument as a string
-    input_string="$1"
-    
-    # Split the input string by '-' into components
-    IFS='-' read -r transport_type bridge_type plugin_type <<< "$input_string"
-    
-    # Default bridge_type to an empty string if omitted
-    if [[ -z "$bridge_type" ]]; then
-        bridge_type=""
-    fi
+        # Accept the input argument as a string
+        input_string="$1"
+        
+        # Split the input string by '-' into components
+        IFS='-' read -r transport_type bridge_type plugin_type <<< "$input_string"
+        
+        # Default bridge_type to an empty string if omitted
+        if [[ -z "$bridge_type" ]]; then
+            bridge_type=""
+        fi
 
-    # Check if the first component is 'Tor'
-    if [[ "$transport_type" == "Tor" ]]; then
-        export WGD_TOR_PROXY="true"
-        export DEPLOY_TYPE="true "
-    else
-        export WGD_TOR_PROXY="false"
-        export DEPLOY_TYPE="false"
-    fi
+        # Check if the first component is 'Tor'
+        if [[ "$transport_type" == "Tor" ]]; then
+            export WGD_TOR_PROXY="true"
+            export DEPLOY_TYPE="true "
+        else
+            export WGD_TOR_PROXY="false"
+            export DEPLOY_TYPE="false"
+        fi
 
-    # Set bridge options
-    if [[ "$bridge_type" == "br" ]]; then
-        export WGD_TOR_BRIDGES="true"
-    elif [[ "$bridge_type" == "nobrg" ]]; then
-        export WGD_TOR_BRIDGES="false"
-    else
-        echo "Invalid bridge."
-        sleep 5
-    fi
+        # Set bridge options
+        if [[ "$bridge_type" == "br" ]]; then
+            export WGD_TOR_BRIDGES="true"
+        elif [[ "$bridge_type" == "nobrg" ]]; then
+            export WGD_TOR_BRIDGES="false"
+        else
+            echo "Invalid bridge."
+            sleep 5
+        fi
 
-    # Set plugin type
-    if [[ "$plugin_type" == "snow" ]]; then
-        export WGD_TOR_PLUGIN="snowflake"
-    elif [[ "$plugin_type" == "obfs4" ]]; then
-        export WGD_TOR_PLUGIN="obfs4"
-    elif [[ "$plugin_type" == "webtun" ]]; then
-        export WGD_TOR_PLUGIN="webtunnel"
-    else 
-        echo "Invalid plugin choice. Please choose 'snow', 'obfs4', or 'webtun'."
-        return 1  # Exit with error
-    fi
+        # Set plugin type
+        if [[ "$plugin_type" == "snow" ]]; then
+            export WGD_TOR_PLUGIN="snowflake"
+        elif [[ "$plugin_type" == "obfs4" ]]; then
+            export WGD_TOR_PLUGIN="obfs4"
+        elif [[ "$plugin_type" == "webtun" ]]; then
+            export WGD_TOR_PLUGIN="webtunnel"
+        else 
+            echo "Invalid plugin choice. Please choose 'snow', 'obfs4', or 'webtun'."
+            return 1  # Exit with error
+        fi
+    }
+    generate_awgd_values() {
+        # Random generator for a range
+        rand_range() {
+            local min=$1
+            local max=$2
+            echo $((RANDOM % (max - min + 1) + min))
+        }
+
+        # Generate WGD_JC (1 ≤ Jc ≤ 128; recommended 3 to 10)
+        export WGD_JC=$(rand_range 3 10)
+
+            # Generate WGD_JMIN and WGD_JMAX (Jmin < Jmax; Jmax ≤ 1280; recommended Jmin=50, Jmax=1000)
+            export WGD_JMIN=$(rand_range 50 500)
+            export WGD_JMAX=$(rand_range $((WGD_JMIN + 1)) 1000)
+
+        # Generate WGD_S1 and WGD_S2 (S1 < 1280, S2 < 1280; S1 + 56 ≠ S2; recommended 15 ≤ S1, S2 ≤ 150)
+        while :; do
+            S1=$(rand_range 15 150)
+            S2=$(rand_range 15 150)
+            [ $((S1 + 56)) -ne $S2 ] && break
+        done
+        export WGD_S1=$S1
+        export WGD_S2=$S2
+
+        # Generate unique H1, H2, H3, and H4 (5 ≤ H ≤ 2147483647)
+        declare -A unique_hashes
+        for h in H1 H2 H3 H4; do
+            while :; do
+            val=$(rand_range 5 2147483647)
+            if [[ -z ${unique_hashes[$val]} ]]; then
+                unique_hashes[$val]=1
+                export "WGD_$h=$val"
+                break
+            fi
+            done
+        done
 }
 
 
 
+
 # Parse options with getopts
-while getopts ":c:n:t:" opt; do
+while getopts ":c:n:t:p:" opt; do
   case $opt in
     c)  # Deployment system (Docker or Podman)
       case "${OPTARG}" in
@@ -416,6 +444,23 @@ while getopts ":c:n:t:" opt; do
           ;;
         *)
           echo "Invalid input for -s. Expected 'Docker' or 'Podman'."
+          exit 1
+          ;;
+      esac
+      ;;
+    p)  # Deployment system (Docker or Podman)
+      case "${OPTARG}" in
+        awg)
+          export AMNEZIA_WG="true"
+          generate_awgd_values
+          export PROTOCOL_TYPE="AmneziaWG"
+          ;;
+        wg)
+          export AMNEZIA_WG="false"
+          export PROTOCOL_TYPE="WireGuard"
+          ;;
+        *)
+          echo "Invalid input for -p. Expected 'Docker' or 'Podman'."
           exit 1
           ;;
       esac
