@@ -114,7 +114,6 @@ services:
       ##########################################################
         - WGD_DNS=10.2.0.100
         - WGD_IPTABLES_DNS=10.2.0.100
-
         
       #Obfuscated Wireguard via AmneziaWG Junk Headder Settings
       #All parameters should be the same between Client and Server, except Jc - it can vary.
@@ -139,7 +138,6 @@ services:
       private_network:
         ipv4_address: 10.2.0.3
     
-
 
 volumes:
     db:

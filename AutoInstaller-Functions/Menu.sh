@@ -9,6 +9,10 @@ menu() {
     printf "%s\n" "$equals"
     echo "|[$blue Toggle         $yellow]|$reset Tor Transport Proxy  $red ($blue A $red) $yellow|$reset Tor Plugin $red($blue B $red) $yellow|$reset Tor Bridges $red($blue C $red) $yellow|$reset Use Podman $red($blue D $red) $yellow"
     printf "%s\n" "$dashes"
+    echo "|[$blue Toggle         $yellow]|$reset DEPLOY STATE  $red ($blue S $red) $yellow|$yellow "
+    printf "%s\n" "$dashes"
+    echo "|[$blue Toggle         $yellow]|$reset PROTOCOL TYPE  $red ($blue W $red) $yellow|$yellow "
+    printf "%s\n" "$dashes"
     echo "|[$blue Set Exit Nodes $yellow]|$reset Ex. <{US},{GB},{AU}> $red ($blue N $red) $yellow|"
 
     echo "-------------------------------------------------------------------------------------------"
@@ -32,11 +36,44 @@ menu() {
         R) fresh_install ;;
         H) help ;;
         E) clear; exit ;;
+        S) toggle_dstate_type ;;
+        W) toggle_proto_type ;;
         *) 
                 clear
                 echo "Invalid choice. Please try again."
                 menu;;
     esac
+}
+
+toggle_dstate_type() {
+    if [ "$DEPLOY_STATE" == "STATIC" ]; then
+        DEPLOY_STATE="DYNAMIC"
+        STATE="wg-dashboard"
+    else
+        DEPLOY_STATE="STATIC"
+        STATE="wiregate"
+    fi
+
+    export DEPLOY_STATE
+    export STATE
+    clear
+    menu
+}
+
+toggle_proto_type() {
+    if [ "$PROTOCOL_TYPE" == "WireGuard" ]; then
+        PROTOCOL_TYPE="AmneziaWG"
+        AMNEZIA_WG="true"
+        generate_awgd_values
+    else
+        PROTOCOL_TYPE="WireGuard"
+        AMNEZIA_WG="false"
+    fi
+
+    export PROTOCOL_TYPE
+    export AMNEZIA_WG
+    clear
+    menu
 }
 
 toggle_container_orchestrator () {

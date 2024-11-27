@@ -14,6 +14,7 @@ export WGD_TOR_BRIDGES="false"
 export WGD_TOR_EXIT_NODES="default"
 export AMNEZIA_WG="false"
 export PROTOCOL_TYPE="WireGuard"
+export DEPLOY_STATE="STATIC"
 
 #CORE_IMPORTS
 source ./AutoInstaller-Functions/OS-Reqs.sh
@@ -413,7 +414,7 @@ compose_down() {
 
 
 # Parse options with getopts
-while getopts ":c:n:t:p:" opt; do
+while getopts ":c:n:t:p:s:" opt; do
   case $opt in
     c)  # Deployment system (Docker or Podman)
       case "${OPTARG}" in
@@ -441,7 +442,23 @@ while getopts ":c:n:t:p:" opt; do
           export PROTOCOL_TYPE="WireGuard"
           ;;
         *)
-          echo "Invalid input for -p. Expected 'Docker' or 'Podman'."
+          echo "Invalid input for -p [PROTOCOL]. Expected 'wg' or 'awg'."
+          exit 1
+          ;;
+      esac
+      ;;
+    s)  # Deployment system (Docker or Podman)
+      case "${OPTARG}" in
+        static)
+          export STATE="wiregate"
+          export DEPLOY_STATE="STATIC"
+          ;;
+        dynamic)
+          export STATE="wg-dashboard"
+          export DEPLOY_STATE="DYNAMIC"
+          ;;
+        *)
+          echo "Invalid input for -s [STATE]. Expected 'dynamic' or 'static'."
           exit 1
           ;;
       esac
