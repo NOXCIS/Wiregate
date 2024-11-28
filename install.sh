@@ -372,43 +372,7 @@ compose_down() {
             return 1  # Exit with error
         fi
     }
-    generate_awgd_values() {
-        # Random generator for a range
-        rand_range() {
-            local min=$1
-            local max=$2
-            echo $((RANDOM % (max - min + 1) + min))
-        }
-
-        # Generate WGD_JC (1 ≤ Jc ≤ 128; recommended 3 to 10)
-        export WGD_JC=$(rand_range 3 10)
-
-            # Generate WGD_JMIN and WGD_JMAX (Jmin < Jmax; Jmax ≤ 1280; recommended Jmin=50, Jmax=1000)
-            export WGD_JMIN=$(rand_range 50 500)
-            export WGD_JMAX=$(rand_range $((WGD_JMIN + 1)) 1000)
-
-        # Generate WGD_S1 and WGD_S2 (S1 < 1280, S2 < 1280; S1 + 56 ≠ S2; recommended 15 ≤ S1, S2 ≤ 150)
-        while :; do
-            S1=$(rand_range 15 150)
-            S2=$(rand_range 15 150)
-            [ $((S1 + 56)) -ne $S2 ] && break
-        done
-        export WGD_S1=$S1
-        export WGD_S2=$S2
-
-        # Generate unique H1, H2, H3, and H4 (5 ≤ H ≤ 2147483647)
-        declare -A unique_hashes
-        for h in H1 H2 H3 H4; do
-            while :; do
-            val=$(rand_range 5 2147483647)
-            if [[ -z ${unique_hashes[$val]} ]]; then
-                unique_hashes[$val]=1
-                break
-            fi
-            done
-        done
-}
-
+    
 
 
 
@@ -433,7 +397,6 @@ while getopts ":c:n:t:p:s:" opt; do
       case "${OPTARG}" in
         awg)
           export AMNEZIA_WG="true"
-          generate_awgd_values
           export PROTOCOL_TYPE="AmneziaWG"
           ;;
         wg)
