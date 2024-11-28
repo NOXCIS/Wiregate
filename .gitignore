@@ -1,6 +1,10 @@
 .vscode
 .DS_Store
 .idea
+.env
+
+
+
 
 /configs/logs
 /configs/tor
@@ -69,3 +73,4 @@
 .env.anim.run.txt
 .env
 .DS_Store
+preqsinstalled.txt
