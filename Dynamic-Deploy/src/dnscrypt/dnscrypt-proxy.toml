@@ -12,6 +12,7 @@ force_tcp = true
 timeout = 2500
 cert_refresh_delay = 240
 dnscrypt_ephemeral_keys = true
+#fallback_resolvers = ['81.17.31.34:53', '163.172.34.56:53']
 ignore_system_dns = true
 block_ipv6 = false
 cache = true
@@ -31,5 +32,3 @@ urls = ['https://cryptostorm.is/cs-resolvers.md', 'https://raw.githubusercontent
 cache_file = 'cs-resolvers.md'
 minisign_key = 'RWTzXTWKLLKfM3fRQW0CUwSN17U3YMsVcVdfi3ERraxuttv2tL8dsdUE'
 refresh_delay = 72
-
-
