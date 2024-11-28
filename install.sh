@@ -403,7 +403,6 @@ compose_down() {
             val=$(rand_range 5 2147483647)
             if [[ -z ${unique_hashes[$val]} ]]; then
                 unique_hashes[$val]=1
-                export "WGD_$h=$val"
                 break
             fi
             done

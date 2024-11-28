@@ -8,6 +8,7 @@ env_file=".env"
 # Create environment file if it doesn't exist
 if [ ! -f "$env_file" ]; then
         touch "$env_file"
+
 fi
 
     # Function to check if .env file is empty
@@ -16,9 +17,57 @@ is_env_file_empty() {
 }
 
 
+generate_awgd_values() {
+        # Random generator for a range
+        rand_range() {
+            local min=$1
+            local max=$2
+            echo $((RANDOM % (max - min + 1) + min))
+        }
+
+        # Generate WGD_JC (1 ≤ Jc ≤ 128; recommended 3 to 10)
+        export WGD_JC=$(rand_range 3 10)
+
+            # Generate WGD_JMIN and WGD_JMAX (Jmin < Jmax; Jmax ≤ 1280; recommended Jmin=50, Jmax=1000)
+            export WGD_JMIN=$(rand_range 50 500)
+            export WGD_JMAX=$(rand_range $((WGD_JMIN + 1)) 1000)
+
+        # Generate WGD_S1 and WGD_S2 (S1 < 1280, S2 < 1280; S1 + 56 ≠ S2; recommended 15 ≤ S1, S2 ≤ 150)
+        while :; do
+            S1=$(rand_range 15 150)
+            S2=$(rand_range 15 150)
+            [ $((S1 + 56)) -ne $S2 ] && break
+        done
+        export WGD_S1=$S1
+        export WGD_S2=$S2
+
+        # Generate unique H1, H2, H3, and H4 (5 ≤ H ≤ 2147483647)
+        declare -A unique_hashes
+        for h in H1 H2 H3 H4; do
+            while :; do
+            val=$(rand_range 5 2147483647)
+            if [[ -z ${unique_hashes[$val]} ]]; then
+                unique_hashes[$val]=1
+                export "WGD_$h=$val"
+                break
+            fi
+            done
+        done
+}
+
+
 set_wiregate_env() {
-    # Check if the .env file exists and is empty
-    if is_env_file_empty; then 
+    local awg_vars=("WGD_JC" "WGD_JMIN" "WGD_JMAX" "WGD_S1" "WGD_S2" "WGD_H1" "WGD_H2" "WGD_H3" "WGD_H4")
+    local missing_vars=()
+
+    # Ensure the .env file exists
+    if [[ ! -f "$env_file" ]]; then
+        echo "Error: $env_file not found. Creating it." >&2
+        touch "$env_file"
+    fi
+
+    # Check if .env file is empty
+    if is_env_file_empty; then
         # Update server IP and port range
         if ! update_server_ip; then
             echo "Error: Failed to update server IP." >&2
@@ -30,24 +79,34 @@ set_wiregate_env() {
             return 1
         fi
 
-        # Write configuration to the .env file
+        # Write base configuration to .env file
         {
             echo "WGD_PORT_RANGE_STARTPORT=\"$HOST_PORT_START\""
             echo "WGD_PORT_MAPPINGS=\"$port_mappings\""
             echo "WGD_REMOTE_ENDPOINT=\"$ip\""
-            echo "WGD_JC=\"$WGD_JC\""
-            echo "WGD_JMIN=\"$WGD_JMIN\""
-            echo "WGD_JMAX=\"$WGD_JMAX\""
-            echo "WGD_S1=\"$WGD_S1\""
-            echo "WGD_S2=\"$WGD_S2\""
-            echo "WGD_H1=\"$WGD_H1\""
-            echo "WGD_H2=\"$WGD_H2\""
-            echo "WGD_H3=\"$WGD_H3\""
-            echo "WGD_H4=\"$WGD_H4\""
         } >> "$env_file"
     fi
 
-    # Export the variables
+    # Check if any awg_vars are missing in the .env file
+    for var in "${awg_vars[@]}"; do
+        if ! grep -q "^$var=" "$env_file"; then
+            missing_vars+=("$var")
+        fi
+    done
+
+    # Update .env with missing awg_vars based on AMNEZIA_WG flag
+    if [[ "${#missing_vars[@]}" -gt 0 ]]; then
+        echo "Updating missing AWG parameters in $env_file."
+        for var in "${missing_vars[@]}"; do
+            if [[ "$AMNEZIA_WG" == "true" ]]; then
+                echo "$var=\"${!var}\"" >> "$env_file"
+            else
+                echo "$var=" >> "$env_file"
+            fi
+        done
+    fi
+
+    # Reload environment variables
     export $(grep -v '^#' "$env_file" | xargs)
 }
 
@@ -94,7 +153,7 @@ update_server_ip() {
     echo "Public IP: $ip"
     # Uncomment the next line to set WGD_REMOTE_ENDPOINT
     export WGD_REMOTE_ENDPOINT="$ip"
-fi
+    fi
 
 
 
@@ -376,7 +435,11 @@ set_wg-dash_user() {
 }
 
 set_wg-dash_config() {
+    if [[ "$AMNEZIA_WG" == "true" ]]; then
+    generate_awgd_values
+    fi
     set_wiregate_env
+
 
 }
 set_wg-dash_account() {
