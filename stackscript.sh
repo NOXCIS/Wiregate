@@ -4,21 +4,27 @@
 
 # Initialize variables for flags
 BRANCH="main"
-ARG1=""
-ARG2=""
-ARG3=""
-ARG4=""
-ARG5=""
+ENV=""
+TOR=""
+TNODE=""
+DIND=""
+DSYS=""
+DSTATE=""
+DPROTO=""
+
+
 # Parse options
-while getopts "b:e:t:n:d:c:" opt; do
+while getopts "b:e:t:n:d:c:s:p:" opt; do
   case "$opt" in
-    b)  BRANCH="$OPTARG" ;;   # -b for branch
-    e)  ARG1="$OPTARG" ;;     # -1 for ARG1
-    t)  ARG2="$OPTARG" ;;     # -2 for ARG2
-    n)  ARG3="$OPTARG" ;;     # -3 for ARG3
-    d)  ARG4="$OPTARG" ;;     # -4 for ARG4
-    c)  ARG5="$OPTARG" ;;     # -4 for ARG4
-    \?) echo "Usage: $0 [-b branch] [-e arg1] [-t arg2] [-n arg3] [-d arg4] [-c arg5]"; exit 1 ;;
+    b)  BRANCH="$OPTARG" ;;     # -b for branch
+    e)  ENV="$OPTARG" ;;        # -e for ENV
+    t)  TOR="$OPTARG" ;;        # -t for TOR
+    n)  TNODE="$OPTARG" ;;      # -n for TNODE
+    d)  DIND="$OPTARG" ;;       # -d for DIND
+    c)  DSYS="$OPTARG" ;;       # -c for DSYS
+    s)  DSTATE="$OPTARG" ;;     # -s for DSTATE
+    p)  DPROTO="$OPTARG" ;;     # -p for DPROTO
+    \?) echo "Usage: $0 [-b branch] [-e ENV] [-t arg2] [-n arg3] [-d DIND] [-c DSYS]"; exit 1 ;;
   esac
 done
 shift "$((OPTIND - 1))"  # Shift past processed options
@@ -31,7 +37,7 @@ git clone --branch $BRANCH https://github.com/NOXCIS/Wiregate.git
 cd Wiregate
 
 
-if [ "$ARG4" = "dind" ]; then
+if [ "$DIND" = "dind" ]; then
         env_file=".env"
 
     if [ ! -f "$env_file" ]; then
@@ -50,17 +56,26 @@ chmod +x install.sh
 
 
 
-if [[ -n "$ARG1" && -n "$ARG2" && -n "$ARG3" && -n "$ARG5" ]]; then
-    ./install.sh  -c "$ARG5" -t "$ARG2" -n "$ARG3" "$ARG1"
+if [[ -n "$ENV" && -n "$TOR" && -n "$TNODE" && -n "$DSYS" && -n "$DSTATE" && -n "$DPROTO" ]]; then
+    ./install.sh  -c "$DSYS" -s "$DSTATE" -p "$DPROTO" -t "$TOR" -n "$TNODE" "$ENV"
 
-elif [[ -n "$ARG1" && -n "$ARG2" && -n "$ARG3" ]]; then
-    ./install.sh -t "$ARG2" -n "$ARG3" "$ARG1"
 
-elif [[ -n "$ARG1" && -n "$ARG2" ]]; then
-    ./install.sh -t "$ARG2" "$ARG1"
+elif [[ -n "$ENV" && -n "$TOR" && -n "$TNODE" && -n "$DSYS" && -n "$DSTATE" ]]; then
+    ./install.sh  -c "$DSYS" -s "$DSTATE" -t "$TOR" -n "$TNODE" "$ENV"
 
-elif [[ -n "$ARG1" ]]; then
-    ./install.sh "$ARG1"  # Only ARG1 is passed to install.sh
+elif [[ -n "$ENV" && -n "$TOR" && -n "$TNODE" && -n "$DSYS" ]]; then
+    ./install.sh  -c "$DSYS" -t "$TOR" -n "$TNODE" "$ENV"
+
+elif [[ -n "$ENV" && -n "$TOR" && -n "$TNODE" ]]; then
+    ./install.sh -t "$TOR" -n "$TNODE" "$ENV"
+
+elif [[ -n "$ENV" && -n "$TOR" ]]; then
+    ./install.sh -t "$TOR" "$ENV"
+
+elif [[ -n "$ENV" ]]; then
+    ./install.sh "$ENV"  # Only ENV is passed to install.sh
 else
     ./install.sh  # No arguments are passed to install.sh
 fi
+
+echo "$TNODE"
