@@ -17,20 +17,40 @@ is_env_file_empty() {
 
 
 set_wiregate_env() {
+    # Check if the .env file exists and is empty
     if is_env_file_empty; then 
-        update_server_ip
-        set_port_range
-        echo "WGD_PORT_RANGE_STARTPORT=\"$HOST_PORT_START\"" >> "$env_file"
-        echo "WGD_PORT_MAPPINGS=\"$port_mappings\"" >> "$env_file"
-        echo "WGD_REMOTE_ENDPOINT=\"$ip\"" >> "$env_file"
-        
+        # Update server IP and port range
+        if ! update_server_ip; then
+            echo "Error: Failed to update server IP." >&2
+            return 1
+        fi
 
-    # Export the values from the .env file
-    export $(grep -v '^#' "$env_file" | xargs)
-    else
-    export $(grep -v '^#' "$env_file" | xargs)
+        if ! set_port_range; then
+            echo "Error: Failed to set port range." >&2
+            return 1
+        fi
+
+        # Write configuration to the .env file
+        {
+            echo "WGD_PORT_RANGE_STARTPORT=\"$HOST_PORT_START\""
+            echo "WGD_PORT_MAPPINGS=\"$port_mappings\""
+            echo "WGD_REMOTE_ENDPOINT=\"$ip\""
+            echo "WGD_JC=\"$WGD_JC\""
+            echo "WGD_JMIN=\"$WGD_JMIN\""
+            echo "WGD_JMAX=\"$WGD_JMAX\""
+            echo "WGD_S1=\"$WGD_S1\""
+            echo "WGD_S2=\"$WGD_S2\""
+            echo "WGD_H1=\"$WGD_H1\""
+            echo "WGD_H2=\"$WGD_H2\""
+            echo "WGD_H3=\"$WGD_H3\""
+            echo "WGD_H4=\"$WGD_H4\""
+        } >> "$env_file"
     fi
-}   
+
+    # Export the variables
+    export $(grep -v '^#' "$env_file" | xargs)
+}
+
 
 update_server_ip() {
     local timer=$TIMER_VALUE
