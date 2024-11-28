@@ -23,12 +23,13 @@ cache_neg_ttl = 60
 [sources]
 
 [sources.'public-resolvers']
-urls = ['https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/public-resol>
+urls = ['https://raw.githubusercontent.com/DNSCrypt/dnscrypt-resolvers/master/v3/public-resolvers.md', 'https://download.dnscrypt.info/resolvers-list/v3/public-resolvers.md']
 minisign_key = 'RWQf6LRCGA9i53mlYecO4IzT51TGPpvWucNSCh1CBM0QTaLn73Y7GFO3'
 cache_file = 'public-resolvers.md'
 
+
 [sources.'cs-resolvers']
-urls = ['https://cryptostorm.is/cs-resolvers.md', 'https://raw.githubusercontent.com/cryptost>
+urls = ['https://cryptostorm.is/cs-resolvers.md', 'https://raw.githubusercontent.com/cryptostorm/cstorm_deepDNS/master/cs-resolvers.md']
 cache_file = 'cs-resolvers.md'
 minisign_key = 'RWTzXTWKLLKfM3fRQW0CUwSN17U3YMsVcVdfi3ERraxuttv2tL8dsdUE'
 refresh_delay = 72
