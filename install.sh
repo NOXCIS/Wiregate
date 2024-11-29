@@ -426,10 +426,11 @@ while getopts ":c:n:t:p:s:" opt; do
       esac
       ;;
     n)  
-      if [[ "${OPTARG}" =~ \{[A-Z][A-Z]\}(,\{[A-Z][A-Z]\})* ]]; then
+     if [[ "${OPTARG}" =~ \{[A-Za-z][A-Za-z]\}(,\{[A-Za-z][A-Za-z]\})* ]]; then
         WGD_TOR_EXIT_NODES="${OPTARG}"
         export WGD_TOR_EXIT_NODES
       else
+        
         echo "Invalid input for -e. Expected format: {US},{GB},{AU}, etc."
         exit 1
       fi
@@ -514,4 +515,3 @@ else
       ;;
   esac
 fi
-

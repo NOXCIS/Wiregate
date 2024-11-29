@@ -12,7 +12,6 @@ DSYS=""
 DSTATE=""
 DPROTO=""
 
-
 # Parse options
 while getopts "b:e:t:n:d:c:s:p:" opt; do
   case "$opt" in
@@ -29,53 +28,39 @@ while getopts "b:e:t:n:d:c:s:p:" opt; do
 done
 shift "$((OPTIND - 1))"  # Shift past processed options
 
+# Clone repository and navigate into it
+git clone --branch "$BRANCH" https://github.com/NOXCIS/Wiregate.git
+cd Wiregate || exit 1
 
-
-
-
-git clone --branch $BRANCH https://github.com/NOXCIS/Wiregate.git   
-cd Wiregate
-
-
+# Handle DIND-related logic
 if [ "$DIND" = "dind" ]; then
-        env_file=".env"
-
+    env_file=".env"
     if [ ! -f "$env_file" ]; then
         touch "$env_file"
-        fi
-
+    fi
     if [ ! -s "$env_file" ]; then 
         ip=$(curl -s ifconfig.me)
-            echo "WGD_PORT_RANGE_STARTPORT=\"4430\"" >> "$env_file"
-            echo "WGD_PORT_MAPPINGS=\"4430-4433:4430-4433/udp\"" >> "$env_file"
-            echo "WGD_REMOTE_ENDPOINT=\"$ip\"" >> "$env_file"
-        fi
+        cat <<EOF >"$env_file"
+WGD_PORT_RANGE_STARTPORT="4430"
+WGD_PORT_MAPPINGS="4430-4433:4430-4433/udp"
+WGD_REMOTE_ENDPOINT="$ip"
+EOF
+    fi
 fi
 
 chmod +x install.sh
 
+# Dynamically build the arguments for install.sh
+INSTALL_ARGS=()
+[ -n "$DSYS" ] && INSTALL_ARGS+=("-c" "$DSYS")
+[ -n "$DSTATE" ] && INSTALL_ARGS+=("-s" "$DSTATE")
+[ -n "$DPROTO" ] && INSTALL_ARGS+=("-p" "$DPROTO")
+[ -n "$TOR" ] && INSTALL_ARGS+=("-t" "$TOR")
+[ -n "$TNODE" ] && INSTALL_ARGS+=("-n" "$TNODE")
+[ -n "$ENV" ] && INSTALL_ARGS+=("$ENV")
 
+# Execute the install script with the constructed arguments
+./install.sh "${INSTALL_ARGS[@]}"
 
-if [[ -n "$ENV" && -n "$TOR" && -n "$TNODE" && -n "$DSYS" && -n "$DSTATE" && -n "$DPROTO" ]]; then
-    ./install.sh  -c "$DSYS" -s "$DSTATE" -p "$DPROTO" -t "$TOR" -n "$TNODE" "$ENV"
-
-
-elif [[ -n "$ENV" && -n "$TOR" && -n "$TNODE" && -n "$DSYS" && -n "$DSTATE" ]]; then
-    ./install.sh  -c "$DSYS" -s "$DSTATE" -t "$TOR" -n "$TNODE" "$ENV"
-
-elif [[ -n "$ENV" && -n "$TOR" && -n "$TNODE" && -n "$DSYS" ]]; then
-    ./install.sh  -c "$DSYS" -t "$TOR" -n "$TNODE" "$ENV"
-
-elif [[ -n "$ENV" && -n "$TOR" && -n "$TNODE" ]]; then
-    ./install.sh -t "$TOR" -n "$TNODE" "$ENV"
-
-elif [[ -n "$ENV" && -n "$TOR" ]]; then
-    ./install.sh -t "$TOR" "$ENV"
-
-elif [[ -n "$ENV" ]]; then
-    ./install.sh "$ENV"  # Only ENV is passed to install.sh
-else
-    ./install.sh  # No arguments are passed to install.sh
-fi
-
+# Output TNODE for debugging or further use
 echo "$TNODE"
