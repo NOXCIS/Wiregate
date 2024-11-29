@@ -141,7 +141,7 @@ run_Pihole_setup() {
     set_pihole_config &&
     set_wg-dash_config &&
     set_wg-dash_account &&
-    rm_exst_configs >/dev/null 2>&1 &&
+    #rm_exst_configs >/dev/null 2>&1 &&
     clear &&
     compose_up &&
     clear &&
@@ -157,7 +157,7 @@ run_AdGuard_setup() {
         set_adguard_config &&
         set_wg-dash_config && 
         set_wg-dash_account &&
-        rm_exst_configs >/dev/null 2>&1 &&  
+        #rm_exst_configs >/dev/null 2>&1 &&  
         clear &&
         compose_up &&
         clear &&
