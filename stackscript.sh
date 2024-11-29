@@ -62,5 +62,3 @@ INSTALL_ARGS=()
 # Execute the install script with the constructed arguments
 ./install.sh "${INSTALL_ARGS[@]}"
 
-# Output TNODE for debugging or further use
-echo "$TNODE"
