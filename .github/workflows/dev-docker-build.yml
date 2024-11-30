@@ -12,7 +12,7 @@ on:
 jobs:
   build_and_push_multiarch:
     runs-on: ubuntu-22.04
-    timeout-minutes: 42  # Job will timeout after 42 minutes
+    timeout-minutes: 20  # Job will timeout after 42 minutes
 
     steps:
       # Step 1: Check out the repository code from the target branch
