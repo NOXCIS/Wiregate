@@ -9,6 +9,7 @@ TORRC_PATH="/etc/tor/torrc"
 DNS_TORRC_PATH="/etc/tor/dnstorrc"
 INET_ADDR="$(hostname -i | awk '{print $1}')"
 log_dir="./log"
+dnscrypt_conf=./Global-Configs/DnsCrypt/dnscrypt-proxy.toml
 dashes='------------------------------------------------------------'
 equals='============================================================'
 
@@ -90,6 +91,8 @@ make_torrc() {
     echo -e "VirtualAddrNetwork 10.192.0.0/10 \n" >> "$TORRC_PATH"
     echo -e "User tor \n" >> "$TORRC_PATH"
     echo -e "DataDirectory /var/lib/tor \n" >> "$TORRC_PATH"
+    echo -e "ControlPort 9051 \n" >> "$TORRC_PATH"
+    echo -e "HashedControlPassword $CTRL_P_PASS\n" >> "$TORRC_PATH"
     echo -e "TransPort ${INET_ADDR}:59040 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort \n" >> "$TORRC_PATH"
 
     if [[ "$WGD_TOR_PLUGIN" == "obfs4" ]]; then
@@ -130,6 +133,8 @@ make_dns_torrc() {
     echo -e "VirtualAddrNetwork 10.193.0.0/10 \n" >> "$TORRC_PATH"
     echo -e "User tor \n" >> "$DNS_TORRC_PATH"
     echo -e "DataDirectory /var/lib/tor/dns \n" >> "$DNS_TORRC_PATH"
+    echo -e "ControlPort 9054 \n" >> "$DNS_TORRC_PATH"
+    echo -e "HashedControlPassword $CTRL_P_PASS\n" >> "$DNS_TORRC_PATH"
 
     if [[ "$WGD_TOR_DNS_EXIT_NODES" == "default" ]]; then
     echo "Using Default"
@@ -142,7 +147,16 @@ make_dns_torrc() {
     echo -e "SocksPort ${INET_ADDR}:9053 \n" >> "$DNS_TORRC_PATH"
     printf "%s\n" "$dashes"
 }
+generate_vanguard_tor_ctrl_pass() {
+  # Generate a 42-character long random password using /dev/urandom and base64
+  PASSWORD=$(head -c 32 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 42)
+  TOR_HASH=$(sudo -u tor tor --hash-password "$PASSWORD")
 
+  # Assign the Tor hash to VANGUARD
+  export CTRL_P_PASS="$TOR_HASH"
+  export VANGUARD="$PASSWORD"
+  echo "Generated Tor Hash: $CTRL_P_PASS"
+}
 run_tor_flux() {
     # Start both Tor processes
     { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> "$log_dir/tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
@@ -210,26 +224,25 @@ ensure_blocking() {
 chmod u+x /opt/wireguarddashboard/src/wgd.sh
 { date; clean_up; printf "\n\n"; } >> ./log/install.txt
 
-make_dns_torrc
 if [[ "$WGD_TOR_PROXY" == "true" ]]; then
-  make_torrc
-  
+    sudo apk add --no-cache tor curl > /dev/null 2>&1
+    sed -i "s/^#\(proxy = 'socks5:\/\/wiregate:9053'\)/\1/" "$dnscrypt_conf"
+    generate_vanguard_tor_ctrl_pass
+    make_torrc
+    make_dns_torrc
+    run_tor_flux &
+    else
+        sed -i "s/^\(proxy = 'socks5:\/\/wiregate:9053'\)/#\1/" "$dnscrypt_conf"
 fi
 
 
 /opt/wireguarddashboard/src/wgd.sh install
 /opt/wireguarddashboard/src/wgd.sh docker_start &
-WGD_PID=$!
 
-if [[ "$WGD_TOR_PROXY" == "true" ]]; then
-  run_tor_flux &
-  TOR_PID=$!
-fi
+
 
 # Wait for background processes to finish (if they don't, the script will stay running)
-wait $WGD_PID
-rm -r .env
-echo "wiregate" >> .env
+
 ensure_blocking
 
 
