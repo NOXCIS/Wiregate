@@ -1,10 +1,12 @@
-# builder: WG-Dash Builder for Brcypt & Psutil Binary
-FROM  alpine:latest AS builder
+# pybuild: WG-Dash Builder for Brcypt | Psutil | TorFlux
+FROM  alpine:latest AS pybuild
 LABEL maintainer="NOXCIS"
+RUN apk add --no-cache sudo build-base musl-dev rust cargo linux-headers go upx
 WORKDIR /opt/wireguarddashboard/src
-RUN apk add --no-cache sudo gcc musl-dev rust cargo linux-headers
-COPY ./src/builder.sh ./src/builder_requirements.txt /opt/wireguarddashboard/src/
-RUN chmod u+x ./builder.sh && ./builder.sh 
+COPY ./src/builder.sh ./src/builder_requirements.txt ./src/torflux.go ./src/go.mod . /opt/wireguarddashboard/src/
+RUN chmod u+x ./builder.sh && ./builder.sh \
+    && go build -buildmode=pie -ldflags="-s -w" -o torflux
+
 
 
 
@@ -16,8 +18,9 @@ COPY ./src /opt/wireguarddashboard/src/
 COPY --from=noxcis/tor-bins:latest /lyrebird /usr/local/bin/lyrebird
 COPY --from=noxcis/tor-bins:latest /webtunnel /usr/local/bin/webtunnel
 COPY --from=noxcis/tor-bins:latest /snowflake /usr/local/bin/snowflake
-COPY --from=builder /opt/wireguarddashboard/src/venv /opt/wireguarddashboard/src/venv
-COPY --from=builder /opt/wireguarddashboard/src/log /opt/wireguarddashboard/src/log/
+COPY --from=pybuild /opt/wireguarddashboard/src/venv /opt/wireguarddashboard/src/venv
+COPY --from=pybuild /opt/wireguarddashboard/src/log /opt/wireguarddashboard/src/log/
+COPY --from=pybuild /opt/wireguarddashboard/src/torflux /opt/wireguarddashboard/src/torflux
 
 RUN apk add --no-cache wireguard-tools sudo iptables tzdata && \
     apk upgrade && \

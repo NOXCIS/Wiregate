@@ -8,6 +8,7 @@ trap 'stop_service' SIGTERM
 TORRC_PATH="/etc/tor/torrc"
 DNS_TORRC_PATH="/etc/tor/dnstorrc"
 INET_ADDR="$(hostname -i | awk '{print $1}')"
+log_dir="./log"
 dashes='------------------------------------------------------------'
 equals='============================================================'
 
@@ -141,31 +142,59 @@ make_dns_torrc() {
     echo -e "SocksPort ${INET_ADDR}:9053 \n" >> "$DNS_TORRC_PATH"
     printf "%s\n" "$dashes"
 }
+
 run_tor_flux() {
-    printf "%s\n" "$equals"
-    printf "[TOR] Starting Tor ...\n"
-    { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> ./log/tor_startup_log.txt &
-    { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> ./log/tor_startup_log.txt &
+    # Start both Tor processes
+    { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> "$log_dir/tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
+    { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> "$log_dir/dns_tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
 
-    TOR_PID=$!
+    start_time=$(date +%s)
+    retries=0
+    max_retries=142  # 5 minutes with 3s intervals
 
-    while true; do
-        sleep_time=$(( RANDOM % (1642 - 300 + 1) + 300 ))
-        sleep_kill=$(awk -v seed="$RANDOM" 'BEGIN { srand(seed); printf "%.2f\n", 0.04 + (rand() * (0.50 - 0.04)) }')
-        #sleep_time=$(( RANDOM % (15 - 10 + 1) + 10 ))
-        printf "[TOR] New Circuit in $sleep_time seconds...\n"  
-        printf "%s\n" "$equals" 
-        sleep $sleep_time
-        printf "%s\n" "$equals" 
-        printf "[TOR] Restarting Tor...\n"  
-        pkill tor 
-        sleep $sleep_kill
-        { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> ./log/tor_startup_log.txt &
-        { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> ./log/tor_startup_log.txt &
-        TOR_PID=$!
+    # Wait for Tor to be fully booted
+    latest_log=$(ls "$log_dir/tor_startup_log_"*.txt | sort -V | tail -n 1)
+    while ! grep -q 'Bootstrapped 100%' "$latest_log" && [ $retries -lt $max_retries ]; do
+        sleep 3
+        retries=$((retries + 1))
+        latest_log=$(ls "$log_dir/tor_startup_log_"*.txt | sort -V | tail -n 1)
+        
+        elapsed_time=$(( $(date +%s) - start_time ))
+        if [ $elapsed_time -ge 300 ]; then
+            echo "[TOR] Bootstrap timeout. Restarting Tor..."
+            pkill tor >/dev/null 2>&1
+            sleep 0.5
+
+            # Restart Tor processes and capture their PIDs
+            { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> "$log_dir/tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
+            { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> "$log_dir/dns_tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
+
+
+            start_time=$(date +%s)
+            retries=0
+        fi
     done
-       
+
+    if [ $retries -ge $max_retries ]; then
+        echo "[TOR] Exiting: Bootstrap unsuccessful."
+        return
+    fi
+
+    # Main loop for periodic circuit renewal
+    while true; do
+        sleep_time=$(( RANDOM % 600 + 142 ))
+        printf "%s\n" "$dashes"
+        echo "[TOR] New circuit in $sleep_time seconds..."
+        printf "%s\n" "$dashes"
+        sleep "$sleep_time"
+        printf "%s\n" "$dashes"
+        echo "[TOR] Sending Signal for New Circuits..."
+        ./torflux &
+        printf "%s\n" "$dashes"
+    done
 }
+
+
 ensure_blocking() {
   sleep 1s
   echo "Ensuring container continuation."
