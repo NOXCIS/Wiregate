@@ -4,7 +4,7 @@
 >
 > Dont Expose your Dashboard.
 >
-> Use Static State until Further Notice
+> Use Static State Image until Further Notice
 <hr>
 
   
