@@ -1,10 +1,9 @@
 
 > [!NOTE]
-> Everypone use the [noxcis/wiregate:vidar](https://hub.docker.com/layers/noxcis/wiregate/vidar/images/sha256-427d75bfa850dfd7ebd185b6f1de7f8ffe667ef6a8fe247db8fe59be72a39055?context=explore) docker image. 
->
+
+>  Everypone use the [noxcis/wiregate:vidar](https://hub.docker.com/layers/noxcis/wiregate/vidar/images/sha256-427d75bfa850dfd7ebd185b6f1de7f8ffe667ef6a8fe247db8fe59be72a39055?context=explore) docker image. 
 > Dont Expose your Dashboard.
->
-> Use Static State Image until Further Notice
+> Use Static State until Further Notice
 <hr>
 
   
@@ -32,13 +31,14 @@ Give a ⭐ if this project helped you!
 
 - [About](#About)
 
-- [Infrastructure Map](#Infrastructure)
+- [Infrastructure Map](#infrastructure)
+- [Screenshots](#screenshots)
 - [Installation](#installation)
 	- [Quick Install](#via-quick-installer) 
 	- [Docker Compose](#install-full-stack-via-docker-compose) 
 	- [Docker Compose Standalone](#install-standalone-via-docker-compose) 
 - [Additional Resourses](#additional-resourses)
-- [Acknowledgements](#Acknowledgements)
+- [Acknowledgements](#acknowledgements)
 - [Contributing](#contributing)
 - [License](#license)
 
@@ -502,8 +502,14 @@ However, the upstream projects and their authors most certainly also deserve cre
   
   
   
+## Screenshots
+![enter image description here](https://github.com/NOXCIS/Wiregate/blob/main/Docs/screenshots/Screenshot-SignIn.png?raw=true)
+![enter image description here](https://github.com/NOXCIS/Wiregate/blob/main/Docs/screenshots/Screenshot-New-Config.png?raw=true)
 
+![enter image description here](https://github.com/NOXCIS/Wiregate/blob/main/Docs/screenshots/Screenshot-Config-List.png?raw=true)
+![enter image description here](https://github.com/NOXCIS/Wiregate/blob/main/Docs/screenshots/Screenshot-Config-Settings.png?raw=true)
 
+![enter image description here](https://github.com/NOXCIS/Wiregate/blob/main/Docs/screenshots/Screenshot-Backup-Restore.png?raw=true)
 
 
 ## Contributing
