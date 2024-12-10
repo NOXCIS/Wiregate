@@ -1,7 +1,6 @@
 #!/bin/bash
-
-
-#OS
+# Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
+# Under MIT License
 
 
 run_os_update() {
@@ -23,7 +22,26 @@ run_os_update() {
 
     clear
 }
+x_alpine_repo() {
+  # Path to repositories file
+  REPO_FILE="/etc/apk/repositories"
+  
+  # Check if the community repository is already present (commented or uncommented)
+  if grep -q "#.*community" "$REPO_FILE"; then
+    echo "Uncommenting Alpine community repository..."
+    # Uncomment the line containing 'community'
+    sed -i 's/^#.*community/http:\/\/dl-cdn.alpinelinux.org\/alpine\/$(cat /etc/alpine-release | cut -d '.' -f 1)\/community/' "$REPO_FILE"
+  elif ! grep -q "community" "$REPO_FILE"; then
+    echo "Adding Alpine community repository..."
+    # Add the community repository (adjust the URL to your Alpine version)
+    echo "http://dl-cdn.alpinelinux.org/alpine/$(cat /etc/alpine-release | cut -d '.' -f 1)/community" >> "$REPO_FILE"
+  else
+    echo "Alpine community repository is already active."
+  fi
 
+  # Update APK index
+  apk update
+}
 install_prerequisites() {
     echo -e "\033[33m\n" 
     echo "#######################################################################"
@@ -40,6 +58,7 @@ install_prerequisites() {
         gnupg
         openssl
         apache2-utils
+        pwgen
         jq
     )
 
@@ -176,33 +195,66 @@ install_confirm() {
         !!!!!!
 EOF
 }
+
 install_requirements() {
     local MAX_ATTEMPTS=3
     local attempts=1
     local install_check="preqsinstalled.txt"
 
+    # Function to check if a command exists
+    check_command() {
+        if ! command -v "$1" &>/dev/null; then
+            echo "Error: $1 is not installed. Please install it to proceed."
+            return 1
+        fi
+        return 0
+    }
+
     while [ $attempts -le $MAX_ATTEMPTS ]; do
         echo "Attempt $attempts of $MAX_ATTEMPTS"
 
         # Attempt the installation
-        run_os_update &&
-        install_prerequisites &&
-        install_docker &&
-        create_swap &&
-        install_confirm &&
+        if run_os_update && install_prerequisites; then
+            if [[ "$DEPLOY_SYSTEM" == "docker" ]]; then
+                install_docker || { echo "Docker installation failed."; exit 1; }
+            elif [[ "$DEPLOY_SYSTEM" == "podman" ]]; then
+                clear
+                echo "Checking for required tools for Podman deployment..."
 
-        # Check if the installation was successful
-        if [ -f "$install_check" ]; then
-            echo "Installation successful."
-            break  # Exit the loop if successful
-        elif [ ! -f "$install_check" ]; then
-            echo "Installation failed. Retrying..."
-            ((attempts++))
+                # Check for Podman
+                if ! check_command "podman"; then
+                    podman_install_title
+                    exit 1
+                fi
+
+                # Check for Podman Compose
+                if ! (command -v "podman-compose" &>/dev/null || podman compose version &>/dev/null); then
+                    echo "Error: podman-compose or 'podman compose' is not installed. Please install it to proceed."
+                    exit 1
+                fi
+            fi
+
+            # Create swap space and confirm installation
+            if create_swap && install_confirm; then
+                # Verify successful installation
+                if [ -f "$install_check" ]; then
+                    echo "Installation successful."
+                    break
+                else
+                    echo "Installation verification failed. Retrying..."
+                fi
+            else
+                echo "Installation steps failed. Retrying..."
+            fi
+        else
+            echo "OS update or prerequisites installation failed. Retrying..."
         fi
+
+        ((attempts++))
     done
 
     if [ $attempts -gt $MAX_ATTEMPTS ]; then
         echo "Max attempts reached. Installation failed."
+        exit 1
     fi
 }
-

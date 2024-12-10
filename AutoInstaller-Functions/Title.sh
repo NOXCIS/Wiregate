@@ -1,4 +1,6 @@
 #!/bin/bash
+# Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
+# Under MIT License
 
 red="$(tput setaf 1)"
 green="$(tput setaf 2)"
@@ -57,13 +59,17 @@ ________________________________________________________________________________
 |   ╚███╔███╔╝██║██║  ██║███████╗╚██████╔╝██║  ██║   ██║   ███████╗         
 |    ╚══╝╚══╝ ╚═╝╚═╝  ╚═╝╚══════╝ ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚══════╝         
 |                                                                                  
+|'$yellow'   ['$blue'CONTAINER ORCHESTRATOR'$yellow']'$reset'  \033[1;95m'"$DEPLOY_SYSTEM"'\033[32m 
+|'$yellow'   ['$blue'DEPLOY STATE'$yellow']'$reset'            \033[1;95m'"$DEPLOY_STATE"'\033[32m  
+|'$yellow'   ['$blue'PROTOCOL TYPE'$yellow']'$reset'           \033[1;95m'"$PROTOCOL_TYPE"'\033[32m  
 |   [TOR] Transport Plugin:   \033[33m'"$WGD_TOR_PLUGIN"'\033[32m                    
 |   [TOR] Transport Enabled:  \033[33m'"$DEPLOY_TYPE"'\033[32m                        
 |   [TOR] Use Bridges:        \033[33m'"$WGD_TOR_BRIDGES"'\033[32m                        
 |   [TOR] Exit Nodes:         \033[33m'"$WGD_TOR_EXIT_NODES"'\033[32m                        
-|
+|   [TOR] DNS Exit Nodes:     \033[33m'"$WGD_TOR_DNS_EXIT_NODES"'\033[32m 
 |_______________________________________________________________________________'                                                               
     echo -e "\033[0m"  # Reset to default text color
+
 }
 
 
@@ -86,7 +92,6 @@ ____________________________________|___________________________________________
 ------------------------------------|-------------------------------------------------------------------------------------------------
     WIREGUARD PORT MAPPINGS         |   \033[33m'"$WGD_PORT_MAPPINGS"'\033[0m              
 ------------------------------------|-------------------------------------------------------------------------------------------------
-    MASTER KEY DECRYPTION KEY       |   \033[33m'"$MASTER_KEY_PASSWORD"'\033[0m              
 ------------------------------------|-------------------------------------------------------------------------------------------------'
     echo -e "\033[0m"  # Reset text color to default
     return 0
@@ -111,8 +116,7 @@ ____________________________________|___________________________________________
     WIREGUARD DASHBOARD PASSWORD    |   \033[33m'"$WGD_PASS"'\033[0m               
 ------------------------------------|-------------------------------------------------------------------------------------------------
     WIREGUARD PORT MAPPINGS         |   \033[33m'"$WGD_PORT_MAPPINGS"'\033[0m              
-------------------------------------|-------------------------------------------------------------------------------------------------
-    MASTER KEY DECRYPTION KEY       |   \033[33m'"$MASTER_KEY_PASSWORD"'\033[0m              
+------------------------------------|-------------------------------------------------------------------------------------------------            
 ------------------------------------|-------------------------------------------------------------------------------------------------'
     echo -e "\033[0m"  # Reset text color to default
     return 0
@@ -267,6 +271,19 @@ run_docker_title() {
     printf "%s\n" "$dashes"
     echo -e "\n\033[0m"
 }
+
+podman_install_title() {
+    echo -e "\033[33m\n" 
+    echo "#######################################################################"
+    echo ""
+    echo "                     Install Podman On Your System "
+    echo "        Then run the installer again or use the dev-docker-compose.yml"
+    echo ""
+    echo "#######################################################################"
+    echo -e "\n\033[0m"
+
+
+}
 master_key_title() {
 
     echo -e "$green
@@ -297,13 +314,7 @@ readme_title() {
     echo "#######################################################################"
     echo -e "\n\033[0m"
 }
-master_key_pass_title() {
-    echo -e "\033[33m\n" 
-    printf "%s\n" "$dashes"
-    echo "MASTER KEY DECRYPTION PASSWORD: '"$MASTER_KEY_PASSWORD"'   "
-    printf "%s" "$dashes"
-    echo -e "\n\033[0m"
-}
+
 
 leave_a_star_title() {
 

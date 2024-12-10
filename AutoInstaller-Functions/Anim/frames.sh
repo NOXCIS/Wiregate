@@ -1,12 +1,15 @@
 #!/bin/bash
+# Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
+# Under MIT License
+
 
 # Define colors
 GREEN="\033[32m"
 YELLOW="\033[33m"
-BLUE="\033[34m"
 RESET="\033[0m"
 
 # Define a variable for sleep time (adjust to modify animation speed)
+TRACK_FILE=".env.anim.run.txt"
 SPEED=0.49
 SPEED2=0.09
 
@@ -29,7 +32,7 @@ ________________________________________________________________________________
 
 
 f1() {
-    echo -e "$BLUE"
+    echo -e "$blue"
     echo '
 ________________________________________________________________________________
 |                                                                               
@@ -44,7 +47,7 @@ ________________________________________________________________________________
 }
 
 f1.1() {
-    echo -e "$BLUE"
+    echo -e "$blue"
     echo '
 ________________________________________________________________________________
 |                                                                               
@@ -55,11 +58,11 @@ ________________________________________________________________________________
 |       ╚███╔███╔╝██║    
 |        ╚══╝╚══╝ ╚═╝   
 |_______________________________________________________________________________'                                                               
-    echo -e "$BLUE"
+    echo -e "$blue"
 }
 
 f1.2() {
-    echo -e "$BLUE"
+    echo -e "$blue"
     echo '
 ________________________________________________________________________________
 |                                                                               
@@ -74,7 +77,7 @@ ________________________________________________________________________________
 }
 
 f1.3() {
-    echo -e "$BLUE"
+    echo -e "$blue"
     echo '
 ________________________________________________________________________________
 |                                                                               
@@ -154,11 +157,7 @@ ________________________________________________________________________________
 
 
 
-
-
-
-# Run the animation sequence
-run_animation_seq() {
+run() {
     f0
     sleep $SPEED
     clear
@@ -189,8 +188,25 @@ run_animation_seq() {
     sleep $SPEED
     clear
     f1.7
-    sleep 1
     clear
+}
+
+
+
+
+# Run the animation sequence
+run_animation_seq() {
+   if [ ! -f "$TRACK_FILE" ]; then
+      # First run: use default speed
+      run
+      # Create the file to indicate the first run is done
+      touch "$TRACK_FILE"
+   else
+      # Subsequent runs: use super fast speed
+      SPEED=0.03
+      SPEED2=0.003
+      run
+   fi
 }
 
 

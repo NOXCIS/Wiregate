@@ -8,7 +8,7 @@ networks:
     ipam:
       config:
         - subnet: 10.2.0.0/24
-
+  
 
 services:
   dnscrypt:
@@ -40,32 +40,31 @@ services:
     networks:
       private_network:
         ipv4_address: 10.2.0.200
-
-  adguard:
+  
+  pihole:
     depends_on: [unbound]
-    container_name: adguard
-    image: adguard/adguardhome
+    container_name: pihole
+    image: pihole/pihole:latest
     restart: unless-stopped
-    hostname: adguard
-    # Volumes store your data between container upgrades
+    hostname: pihole
+    dns:
+      - 10.2.0.200 # Points to unbound
+    environment:
+      TZ: "${PI_HOLE_TZ}"
+      WEBPASSWORD: "${PI_HOLE_PASS}"
+      ServerIP: 10.2.0.100 # Internal IP of pihole
+      DNS1: 10.2.0.200 # Unbound IP
+      DNS2: 10.2.0.200 # If we don't specify two, it will auto pick google.
     volumes:
-      - "./configs/adguard/Data:/opt/adguardhome/work"
-      - "./configs/adguard:/opt/adguardhome/conf"
+      - "./configs/pihole/etc-pihole/:/etc/pihole/"
+      - "./configs/pihole/etc-pihole/etc-dnsmasq.d/:/etc/dnsmasq.d/"
+    cap_add:
+      - NET_ADMIN
     networks:
       private_network:
-        ipv4_address: 10.2.0.100 
-        
-  darkwire:
-      image: noxcis/darkwire:terra-firma
-      cap_add:
-        - NET_ADMIN
-      sysctls:
-        - net.ipv4.ip_forward=1
-        - net.ipv4.conf.all.src_valid_mark=1
-      networks:
-        private_network:
-          ipv4_address: 10.2.0.4
+        ipv4_address: 10.2.0.100
 
+        
   wiregate:
     image: noxcis/${STATE}:${TAG}
     container_name: wiregate
@@ -98,7 +97,7 @@ services:
         - WGD_TOR_EXIT_NODES=${WGD_TOR_EXIT_NODES}  #Ex. {gb},{fr}
         - WGD_TOR_DNS_EXIT_NODES=${WGD_TOR_DNS_EXIT_NODES}               #Ex. {gb},{fr}
         - WGD_TOR_BRIDGES=${WGD_TOR_BRIDGES}        #Enable Tor Bridges
-        - WGD_TOR_PLUGIN=${WGD_TOR_PLUGIN}          #OPTIONS webtunnel, obfs4, snowflake
+        - WGD_TOR_PLUGIN=${WGD_TOR_PLUGIN}  
       #WGDashboard Global Settings
       ##########################################################
         - WGD_WELCOME_SESSION=false
@@ -133,4 +132,5 @@ volumes:
     db:
     conf:
     pf_conf:
-    
+  
+  

@@ -1,21 +1,17 @@
 #!/bin/bash
+# Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
+# Under MIT License
 
-red="$(tput setaf 1)"
-green="$(tput setaf 2)"
-yellow="$(tput setaf 3)"
-blue="$(tput setaf 6)"
-reset="$(tput sgr0)"
-dashes='----------------------------------------------------------------------------------------------------------------------------------------'
-equals='========================================================================================================================================'
-short_stars='***************'
-stars='**********************************************************************************'
-htag='##################################################################################'
 
 menu() {
     title
     echo -e "\033[33m"
     printf "%s\n" "$equals"
-    echo "|[$blue Toggle         $yellow]|$reset Tor Transport Proxy  $red ($blue A $red) $yellow|$reset Tor Plugin $red($blue B $red) $yellow|$reset Tor Bridges $red($blue C $red) $yellow"
+    echo "|[$blue Toggle         $yellow]|$reset Tor Transport Proxy  $red ($blue A $red) $yellow|$reset Tor Plugin $red($blue B $red) $yellow|$reset Tor Bridges $red($blue C $red) $yellow|$reset Use Podman $red($blue D $red) $yellow"
+    printf "%s\n" "$dashes"
+    echo "|[$blue Toggle         $yellow]|$reset DEPLOY STATE  $red ($blue S $red) $yellow|$yellow "
+    printf "%s\n" "$dashes"
+    echo "|[$blue Toggle         $yellow]|$reset PROTOCOL TYPE  $red ($blue W $red) $yellow|$yellow "
     printf "%s\n" "$dashes"
     echo "|[$blue Set Exit Nodes $yellow]|$reset Ex. <{US},{GB},{AU}> $red ($blue N $red) $yellow|"
 
@@ -34,17 +30,63 @@ menu() {
         A) toggle_tor_proxy ;;
         B) toggle_tor_plugin ;;
         C) toggle_tor_bridge ;;
+        D) toggle_container_orchestrator ;;
         N) set_tor_exit_nodes ;;
         Dev) dev_build ;;
         R) fresh_install ;;
         H) help ;;
         E) clear; exit ;;
+        S) toggle_dstate_type ;;
+        W) toggle_proto_type ;;
         *) 
                 clear
                 echo "Invalid choice. Please try again."
                 menu;;
     esac
 }
+
+toggle_dstate_type() {
+    if [ "$DEPLOY_STATE" == "STATIC" ]; then
+        DEPLOY_STATE="DYNAMIC"
+        STATE="wg-dashboard"
+    else
+        DEPLOY_STATE="STATIC"
+        STATE="wiregate"
+    fi
+
+    export DEPLOY_STATE
+    export STATE
+    clear
+    menu
+}
+
+toggle_proto_type() {
+    if [ "$PROTOCOL_TYPE" == "WireGuard" ]; then
+        PROTOCOL_TYPE="AmneziaWG"
+        AMNEZIA_WG="true"
+        generate_awgd_values
+    else
+        PROTOCOL_TYPE="WireGuard"
+        AMNEZIA_WG="false"
+    fi
+
+    export PROTOCOL_TYPE
+    export AMNEZIA_WG
+    clear
+    menu
+}
+
+toggle_container_orchestrator () {
+    if [ "$DEPLOY_SYSTEM" == "podman" ]; then
+        DEPLOY_SYSTEM="docker"
+    elif [ "$DEPLOY_SYSTEM" == "docker" ]; then
+        DEPLOY_SYSTEM="podman"
+    fi
+    export DEPLOY_SYSTEM
+    clear
+    menu
+}
+
 
 toggle_tor_proxy() {
     if [ "$WGD_TOR_PROXY" == "true" ]; then
@@ -97,9 +139,12 @@ toggle_tor_plugin() {
 
 set_tor_exit_nodes() {
     while true; do
-        # Prompt the user for input
-        read -p $red"Enter the TOR Exit Nodes$reset in the format $blue{US},{GB},{AU},{etc} or type 'default'$reset: " WGD_TOR_EXIT_NODES
+        # Prompt the user for input, with 'default' as the default value
+        read -p $red"Enter the TOR Exit Nodes$reset in the format $blue{US},{GB},{AU},{etc} or press Enter for 'default'$reset: " WGD_TOR_EXIT_NODES
 
+        # If no input is given, set it to 'default'
+        WGD_TOR_EXIT_NODES=${WGD_TOR_EXIT_NODES:-default}
+        clear
         # Check if the input matches the expected format or is "default"
         if [[ "$WGD_TOR_EXIT_NODES" =~ ^\{[A-Z][A-Z]\}(,\{[A-Z][A-Z]\})*$ || "$WGD_TOR_EXIT_NODES" == "default" ]]; then
             # Valid format or default, export the variable
@@ -108,7 +153,7 @@ set_tor_exit_nodes() {
             break
         else
             echo ""
-            echo "Invalid input. Please use the correct format: {US},{GB},{AU}, etc., or type 'default'."
+            echo "Invalid input. Please use the correct format: {US},{GB},{AU}, etc., or press Enter for 'default'."
         fi
     done
 }

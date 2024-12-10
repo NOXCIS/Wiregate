@@ -55,17 +55,6 @@ services:
       private_network:
         ipv4_address: 10.2.0.100 
         
-  darkwire:
-      image: noxcis/darkwire:terra-firma
-      cap_add:
-        - NET_ADMIN
-      sysctls:
-        - net.ipv4.ip_forward=1
-        - net.ipv4.conf.all.src_valid_mark=1
-      networks:
-        private_network:
-          ipv4_address: 10.2.0.4
-
   wiregate:
     image: noxcis/${STATE}:${TAG}
     container_name: wiregate
@@ -98,7 +87,7 @@ services:
         - WGD_TOR_EXIT_NODES=${WGD_TOR_EXIT_NODES}  #Ex. {gb},{fr}
         - WGD_TOR_DNS_EXIT_NODES=${WGD_TOR_DNS_EXIT_NODES}               #Ex. {gb},{fr}
         - WGD_TOR_BRIDGES=${WGD_TOR_BRIDGES}        #Enable Tor Bridges
-        - WGD_TOR_PLUGIN=${WGD_TOR_PLUGIN}          #OPTIONS webtunnel, obfs4, snowflake
+        - WGD_TOR_PLUGIN=${WGD_TOR_PLUGIN}  
       #WGDashboard Global Settings
       ##########################################################
         - WGD_WELCOME_SESSION=false
@@ -133,4 +122,3 @@ volumes:
     db:
     conf:
     pf_conf:
-    
