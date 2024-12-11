@@ -286,7 +286,7 @@ services:
       #WGDashboard Global Settings
       ##########################################################
         - WGD_WELCOME_SESSION=false	  ##Promts user accont creation after fist sign in. 
-        - WGD_AUTH_REQ=false
+        - WGD_AUTH_REQ=true
         - WGD_USER=admin
         - WGD_PASS=admin
         - WGD_REMOTE_ENDPOINT=0.0.0.0 #your domain or ip
