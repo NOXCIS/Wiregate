@@ -133,13 +133,13 @@ Example Usage:
 The available options are:
 
  |Flag | Usage| Example | 
-|--|--|--|--|--|
+|--|--|--|
 |`-b` |for specifying a branch. 	| `main` or `<branch-name-here>` |
 |`-e` |for specifying Enviorment 	| `E-A-D` |
 |`-t` |for specifying Tor.			| `-t Tor-br-webtun`
 |`-n` |Tor Proxy Exit Nodes 		| `-n {us},{ch},{gb}`
 |`-l` |Tor DNS Exit Nodess 			| `-l {us},{ch},{gb}` 
-|`-p` |Wireguard Protocol Type			| `-p awg` or `-p wg`
+|`-p` |Wireguard Protocol Type			| `-p awg` for **Amnezia Wireguard** or `-p wg` for **Vannilla WireGuard**|
 |`-s` |Deploy State				| `-s static` or `-s dynamic` 
 |`-d` |Docker In Docker			| `Dont Use In Prod, Dev Only.` 
   For more exit node options go to [Tor Country codes list](https://sccmrookie.blogspot.com/2016/03/tor-country-codes-list.html).
