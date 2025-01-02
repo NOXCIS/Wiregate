@@ -1,9 +1,14 @@
 
 > [!NOTE]
->  Everypone use the [noxcis/wiregate:vidar](https://hub.docker.com/layers/noxcis/wiregate/vidar/images/sha256-427d75bfa850dfd7ebd185b6f1de7f8ffe667ef6a8fe247db8fe59be72a39055?context=explore) docker image. 
+>  Everypone use the
+>
+> **EDGE**: [noxcis/wiregate:jiaotu-beta-v0.3](https://hub.docker.com/layers/noxcis/wiregate/jiaotu-beta-v0.3/images/sha256-93941fc4f2e317b477ed731b15186224017bbd85eec727feb76dc9e3c37e1da9) docker image.
+> 
+> **STABLE**: [noxcis/wiregate:vidar](https://hub.docker.com/layers/noxcis/wiregate/vidar/images/sha256-427d75bfa850dfd7ebd185b6f1de7f8ffe667ef6a8fe247db8fe59be72a39055?context=explore) docker image. 
 >
 > Dont Expose your Dashboard.
 >
+> 
 > Use Static State until Further Notice
 <hr>
 
