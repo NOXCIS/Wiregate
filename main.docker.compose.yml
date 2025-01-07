@@ -61,7 +61,7 @@ services:
         ipv4_address: 10.2.0.100   
 
   wiregate:
-      image: noxcis/wiregate:jiaotu-beta-dev-v0.2.2
+      image: noxcis/wiregate:jiaotu-beta-dev-v0.2.3
       container_name: wiregate
       hostname: wiregate
       cap_add:
