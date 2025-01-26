@@ -1,20 +1,22 @@
 
 > [!NOTE]
->  Everypone use the
+>  
 >
-> **DEV** 	(May have Bugs): 	[noxcis/wiregate:jiaotu-dev-refractor](https://hub.docker.com/layers/noxcis/wiregate/jiaotu-dev-refractor/images/sha256-bc1f6c8e85696f0f5b5bccd0a5b9104f728708d53ff8c779d5441b30abe96ce1) docker image.	
+> **DEV** 	(May have Bugs): 	[noxcis/wiregate:nyx-beta-v0.1](https://hub.docker.com/layers/noxcis/wiregate/nyx-beta-v0.1/images/sha256:be4724234af6ed225f3de20904b87467c3e635eadb6f58848f033598b96388ec?uuid=bf83a523-8985-4e64-98aa-21523fa92fed%0A) docker image.	
 >
 > **EDGE**	(Pre Release Images): 	[noxcis/wiregate:jiaotu-beta-v0.3](https://hub.docker.com/layers/noxcis/wiregate/jiaotu-beta-v0.3/images/sha256-93941fc4f2e317b477ed731b15186224017bbd85eec727feb76dc9e3c37e1da9) docker image.
 > 
 > **STABLE**	(Stable Tested Images) :	[noxcis/wiregate:vidar](https://hub.docker.com/layers/noxcis/wiregate/vidar/images/sha256-427d75bfa850dfd7ebd185b6f1de7f8ffe667ef6a8fe247db8fe59be72a39055?context=explore) docker image. 
 >
-> Dont Expose your Dashboard.
+>
 >
 > 
-> Use Static State until Further Notice
+>
 <hr>
 
-  
+> [!IMPORTANT]
+> Peer Weekly Scheduling and Bandwidth Restriction features now available in latest beta image.
+> <hr>  
 
 # WireGate 
 ![enter image description here](https://github.com/NOXCIS/Wiregate/blob/main/Docs/logo.png?raw=true)
