@@ -1,22 +1,19 @@
 
 > [!NOTE]
->  
 >
-> **DEV** 	(May have Bugs): 	[noxcis/wiregate:nyx-beta-v0.1](https://hub.docker.com/layers/noxcis/wiregate/nyx-beta-v0.1/images/sha256:be4724234af6ed225f3de20904b87467c3e635eadb6f58848f033598b96388ec?uuid=bf83a523-8985-4e64-98aa-21523fa92fed%0A) docker image.	
+> **DEV** 	(May have Bugs): 	[noxcis/wiregate:jiaotu-dev-refractor](https://hub.docker.com/layers/noxcis/wiregate/jiaotu-dev-refractor/images/sha256-bc1f6c8e85696f0f5b5bccd0a5b9104f728708d53ff8c779d5441b30abe96ce1) docker image.	
 >
 > **EDGE**	(Pre Release Images): 	[noxcis/wiregate:jiaotu-beta-v0.3](https://hub.docker.com/layers/noxcis/wiregate/jiaotu-beta-v0.3/images/sha256-93941fc4f2e317b477ed731b15186224017bbd85eec727feb76dc9e3c37e1da9) docker image.
 > 
 > **STABLE**	(Stable Tested Images) :	[noxcis/wiregate:vidar](https://hub.docker.com/layers/noxcis/wiregate/vidar/images/sha256-427d75bfa850dfd7ebd185b6f1de7f8ffe667ef6a8fe247db8fe59be72a39055?context=explore) docker image. 
 >
->
+> Dont Expose your Dashboard.
 >
 > 
->
+> Use Static State until Further Notice
 <hr>
 
-> [!IMPORTANT]
-> Peer Weekly Scheduling and Bandwidth Restriction features now available in latest beta image.
-> <hr>  
+  
 
 # WireGate 
 ![enter image description here](https://github.com/NOXCIS/Wiregate/blob/main/Docs/logo.png?raw=true)
@@ -30,12 +27,11 @@
 >  **Test Device:** Raspberry Pi 5 | Apple M2 | x86 CPUs
 >  **Build:** Daily UTC
 
-**Show your support**
+**Show your support**  
 Give a ⭐ if this project helped you!
 
-  [![Buy Me A Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-orange.png)](https://paypal.me/noxcisthedev)
-  
-  
+[<img src="https://cdn.buymeacoffee.com/buttons/v2/default-orange.png" style="width: auto; height: 50px;" alt="Buy Me A Coffee">](https://paypal.me/noxcisthedev)
+
 
 ## Table of Contents
 
@@ -517,11 +513,17 @@ However, the upstream projects and their authors most certainly also deserve cre
 ![enter image description here](https://github.com/NOXCIS/Wiregate/blob/main/Docs/screenshots/Screenshot-New-Config.png?raw=true)
 
 ![enter image description here](https://github.com/NOXCIS/Wiregate/blob/main/Docs/screenshots/Screenshot-Config-List.png?raw=true)
+
+![enter image description here](https://github.com/NOXCIS/Wiregate/blob/main/Docs/screenshots/Screenshot%202025-01-26%20at%205.45.52%E2%80%AFAM.png?raw=true)
+
+![enter image description here](https://github.com/NOXCIS/Wiregate/blob/main/Docs/screenshots/Screenshot%202025-01-26%20at%205.46.17%E2%80%AFAM.png?raw=true)
+![enter image description here](https://github.com/NOXCIS/Wiregate/blob/main/Docs/screenshots/Screenshot%202025-01-26%20at%205.47.51%E2%80%AFAM.png?raw=true)
+![enter image description here](https://github.com/NOXCIS/Wiregate/blob/main/Docs/screenshots/Screenshot%202025-01-26%20at%205.48.30%E2%80%AFAM.png?raw=true)
 ![enter image description here](https://github.com/NOXCIS/Wiregate/blob/main/Docs/screenshots/Screenshot-Config-Settings.png?raw=true)
 
 ![enter image description here](https://github.com/NOXCIS/Wiregate/blob/main/Docs/screenshots/Screenshot-Backup-Restore.png?raw=true)
 
-
+![enter image description here](https://github.com/NOXCIS/Wiregate/blob/main/Docs/screenshots/Screenshot%202025-01-26%20at%205.49.04%E2%80%AFAM.png?raw=true)
 ## Contributing
 
   
