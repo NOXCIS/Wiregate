@@ -17,9 +17,10 @@ networks:
 services:
   dnscrypt:
     depends_on: [wiregate]
-    image: "noxcis/dnscrypt:latest"
-    restart: unless-stopped
+    image: "klutchell/dnscrypt-proxy"
     container_name: dnscrypt
+    restart: unless-stopped
+    hostname: "dnscrypt"
     volumes:
       - ./configs/dnscrypt:/config
     networks:
