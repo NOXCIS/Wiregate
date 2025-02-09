@@ -71,11 +71,14 @@ export default {
 			<div class="row">
 				<div class="col-sm-4 d-flex gap-2 flex-column">
 					<div>
-						<label class="mb-1 text-muted" for="configuration">
+						<label class="mb-1 text-muted" for="configuration_select">
 							<small>
 								<LocaleText t="Configuration"></LocaleText>
 							</small></label>
-						<select class="form-select" v-model="this.selectedConfiguration" :disabled="this.pinging">
+						<select class="form-select" 
+								id="configuration_select"
+								v-model="this.selectedConfiguration" 
+								:disabled="this.pinging">
 							<option disabled selected :value="undefined"></option>
 							<option :value="key" v-for="(val, key) in this.cips">
 								{{key}}
@@ -128,19 +131,29 @@ export default {
 					</div>
 					<div class="w-100 border-top my-2"></div>
 					<div>
-						<label class="mb-1 text-muted" for="count">
+						<label class="mb-1 text-muted" for="count_input">
 							<small>
 								<LocaleText t="Count"></LocaleText>
-							</small></label>
+							</small>
+						</label>
 						
 						<div class="d-flex gap-3 align-items-center">
-							<button  @click="this.count--" 
-							         :disabled="this.count === 1"
-							         class="btn btn-sm bg-secondary-subtle text-secondary-emphasis">
+							<button @click="this.count--" 
+									:disabled="this.count === 1"
+									class="btn btn-sm bg-secondary-subtle text-secondary-emphasis">
 								<i class="bi bi-dash-lg"></i>
 							</button>
-							<strong>{{this.count}}</strong>
-							<button role="button" @click="this.count++" class="btn btn-sm bg-secondary-subtle text-secondary-emphasis">
+							<input 
+								type="number" 
+								id="count_input"
+								class="form-control form-control-sm text-center" 
+								v-model="count"
+								:disabled="pinging"
+								style="width: 70px"
+							/>
+							<button role="button" 
+									@click="this.count++" 
+									class="btn btn-sm bg-secondary-subtle text-secondary-emphasis">
 								<i class="bi bi-plus-lg"></i>
 							</button>
 						</div>

@@ -17,7 +17,7 @@ onMounted(() => {
 
 const loadBackup = () => {
 	loading.value = true
-	fetchGet("/api/getWireguardConfigurationBackup", {
+	fetchGet("/api/getConfigurationBackup", {
 		configurationName: route.params.id
 	}, (res) => {
 		backups.value = res.data;
@@ -26,7 +26,7 @@ const loadBackup = () => {
 }
 
 const createBackup = () => {
-	fetchGet("/api/createWireguardConfigurationBackup", {
+	fetchGet("/api/createConfigurationBackup", {
 		configurationName: route.params.id
 	}, (res) => {
 		backups.value = res.data;

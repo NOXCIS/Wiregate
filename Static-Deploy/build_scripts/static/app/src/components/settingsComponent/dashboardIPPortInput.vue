@@ -62,14 +62,14 @@ export default {
 	<div class="row g-2">
 		<div class="col-sm">
 			<div class="form-group">
-				<label for="input_dashboard_ip" class="text-muted mb-1">
+				<label for="dashboard_ip_address" class="text-muted mb-1">
 					<strong><small>
 						<LocaleText t="IP Address / Hostname"></LocaleText>
 					</small></strong>
 				</label>
 				<input type="text" class="form-control"
 				       :class="{'is-invalid': showInvalidFeedback, 'is-valid': isValid}"
-				       id="input_dashboard_ip"
+				       id="dashboard_ip_address"
 				       v-model="this.ipAddress"
 				       @keydown="this.changed = true"
 				       @blur="useValidation($event, 'app_ip', this.ipAddress)"
@@ -80,14 +80,14 @@ export default {
 		</div>
 		<div class="col-sm">
 			<div class="form-group">
-				<label for="input_dashboard_ip" class="text-muted mb-1">
+				<label for="dashboard_listen_port" class="text-muted mb-1">
 					<strong><small>
 						<LocaleText t="Listen Port"></LocaleText>
 					</small></strong>
 				</label>
 				<input type="number" class="form-control"
 				       :class="{'is-invalid': showInvalidFeedback, 'is-valid': isValid}"
-				       id="input_dashboard_ip"
+				       id="dashboard_listen_port"
 				       v-model="this.port"
 				       @keydown="this.changed = true"
 				       @blur="useValidation($event, 'app_port', this.port)"

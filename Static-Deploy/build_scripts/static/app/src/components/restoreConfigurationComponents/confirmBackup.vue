@@ -60,13 +60,53 @@ const validateListenPort = computed(() => {
 })
 
 const validateAddress = computed(() => {
-	try{
-		parse(newConfiguration.Address)
-		return true
-	}catch (e){
-		return false
-	}
-})
+    // Handle empty case
+    if (!newConfiguration.Address) return false;
+
+    // Split multiple addresses
+    const addresses = newConfiguration.Address.split(',').map(addr => addr.trim());
+    
+    for (const addr of addresses) {
+        try {
+            // Skip empty parts
+            if (!addr) continue;
+
+            // Try to parse the CIDR notation
+            const [ip, cidr] = addr.split('/');
+            
+            // Validate CIDR part
+            const cidrNum = parseInt(cidr);
+            if (isNaN(cidrNum)) return false;
+            
+            // Validate IPv4 CIDR range
+            if (ip.includes('.') && (cidrNum < 0 || cidrNum > 32)) return false;
+            
+            // Validate IPv6 CIDR range
+            if (ip.includes(':') && (cidrNum < 0 || cidrNum > 128)) return false;
+
+            // Try to parse the IP address part
+            let ipAddr;
+            if (ip.includes(':')) {
+                // IPv6
+                ipAddr = ip.split(':').filter(x => x).length > 0;
+            } else {
+                // IPv4
+                ipAddr = ip.split('.').every(num => {
+                    const n = parseInt(num);
+                    return !isNaN(n) && n >= 0 && n <= 255;
+                });
+            }
+            
+            if (!ipAddr) return false;
+
+        } catch (e) {
+            return false;
+        }
+    }
+    return true;
+});
+
+
 
 const validateForm = computed(() => {
 	return validateAddress.value 
@@ -87,15 +127,35 @@ onMounted(() => {
 		immediate: true
 	})
 })
+// Also update the availableIPAddress computed property
 const availableIPAddress = computed(() => {
-	let p;
-	try{
-		p = parse(newConfiguration.Address);
-	}catch (e){
-		return 0;
-	}
-	return p.end - p.start
-})
+    if (!newConfiguration.Address) return 0;
+    
+    try {
+        const addresses = newConfiguration.Address.split(',').map(addr => addr.trim());
+        let total = 0;
+        
+        for (const addr of addresses) {
+            if (!addr) continue;
+            
+            const [ip, cidr] = addr.split('/');
+            const cidrNum = parseInt(cidr);
+            
+            if (ip.includes('.')) {
+                // IPv4
+                total += Math.pow(2, 32 - cidrNum);
+            } else {
+                // IPv6 
+                total += Math.pow(2, 128 - cidrNum);
+            }
+        }
+        
+        return total - addresses.length; // Subtract network addresses
+        
+    } catch (e) {
+        return 0;
+    }
+});
 const peersCount = computed(() => {
 	if (props.selectedConfigurationBackup.database){
 		let l = props.selectedConfigurationBackup.databaseContent.split("\n")
@@ -112,20 +172,41 @@ const restrictedPeersCount = computed(() => {
 })
 const dashboardStore = DashboardConfigurationStore()
 const router = useRouter();
-const submitRestore = async () => {
-	if (validateForm.value){
-		loading.value = true;
-		await fetchPost("/api/addWireguardConfiguration", newConfiguration, async (res) => {
-			if (res.status){
-				dashboardStore.newMessage("Server", "Configuration restored", "success")
-				await store.getConfigurations()
-				await router.push(`/configuration/${newConfiguration.ConfigurationName}/peers`)
-			}else{
-				loading.value = false;
-			}
-		})
-	}
+const submitRestore = async (event) => {
+    // Prevent default form submission
+    if (event) {
+        event.preventDefault();
+    }
+    
+    if (validateForm.value) {
+        loading.value = true;
+        console.log("Submitting restore with data:", newConfiguration); // Debug log
+        
+        await fetchPost("/api/addConfiguration", newConfiguration, async (res) => {
+            if (res.status) {
+                console.log("Restore successful", res); // Debug log
+                dashboardStore.newMessage("Server", "Configuration restored", "success");
+                await store.getConfigurations();
+                await router.push(`/configuration/${newConfiguration.ConfigurationName}/peers`);
+            } else {
+                console.log("Restore failed:", res); // Debug log
+                error.value = true;
+                errorMessage.value = res.message || "Failed to restore configuration";
+                loading.value = false;
+            }
+        });
+    } else {
+        console.log("Form validation failed", {
+            configName: validateConfigurationName.value,
+            privateKey: validatePrivateKey.value,
+            listenPort: validateListenPort.value,
+            address: validateAddress.value
+        }); // Debug validation
+    }
 }
+
+// Add cancel to emits
+const emit = defineEmits(['cancel'])
 </script>
 
 <template>
@@ -313,13 +394,21 @@ const submitRestore = async () => {
 		</div>
 	</div>
 <!--	TODO: Fix loading state, same with bulk delete-->
-	<div class="d-flex">
+	<div class="d-flex gap-3">
 		<button class="btn btn-dark btn-brand rounded-3 px-3 py-2 shadow ms-auto"
 			:disabled="!validateForm || loading"
 		        @click="submitRestore()"
 		>
 			<i class="bi bi-clock-history me-2"></i>
 			<LocaleText :t="!loading ? 'Restore':'Restoring...'"></LocaleText>
+		</button>
+		
+		<button class="btn btn-danger rounded-3 px-3 py-2"
+			@click="emit('cancel')"
+			:disabled="loading"
+		>
+			<i class="bi bi-x-lg me-2"></i>
+			<LocaleText t="Cancel"></LocaleText>
 		</button>
 	</div>
 </div>

@@ -36,7 +36,8 @@ export default {
 				keepalive: parseInt(this.dashboardStore.Configuration.Peers.peer_keep_alive),
 				mtu: parseInt(this.dashboardStore.Configuration.Peers.peer_mtu),
 				preshared_key: "",
-				preshared_key_bulkAdd: false
+				preshared_key_bulkAdd: false,
+				advanced_security: "off",
 			},
 			availableIp: undefined,
 			availableIpSearchString: "",
@@ -85,6 +86,9 @@ export default {
 				});
 			}
 			return status;
+		},
+		getProtocol(){
+			return this.store.Configurations.find(x => x.Name === this.$route.params.id).Protocol;
 		}
 	},
 	watch: {
@@ -103,11 +107,18 @@ export default {
 </script>
 
 <template>
-	<div class="container">
-		<div class="mb-4">
-			<div class="mb-5 d-flex align-items-center gap-4">
+	<div class="modal-overlay position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center">
+		<div class="modal-backdrop position-fixed top-0 start-0 w-100 h-100" 
+			 style="background: rgba(0,0,0,0.3); backdrop-filter: blur(2px);"
+			 @click="$router.push('/peers')">
+		</div>
+		
+		<div class="modal-content bg-dark bg-opacity-50 rounded-3 shadow p-4" 
+			 style="width: 100%; max-width: 800px; z-index: 1050;">
+			<div class="mb-4 d-flex align-items-center gap-4">
 				<RouterLink to="peers"
-				            class="btn btn-dark btn-brand p-2 shadow" style="border-radius: 100%">
+						  class="btn btn-dark btn-brand p-2 shadow" 
+						  style="border-radius: 100%">
 					<h2 class="mb-0" style="line-height: 0">
 						<i class="bi bi-arrow-left-circle"></i>
 					</h2>
@@ -116,73 +127,65 @@ export default {
 					<LocaleText t="Add Peers"></LocaleText>
 				</h2>
 			</div>
-			
-		</div>
-		<div class="d-flex flex-column gap-2">
-			<BulkAdd :saving="saving" :data="this.data" :availableIp="this.availableIp"></BulkAdd>
-			<hr class="mb-0 mt-2">
-			<NameInput :saving="saving" :data="this.data" v-if="!this.data.bulkAdd"></NameInput>
-			<PrivatePublicKeyInput :saving="saving" :data="data" v-if="!this.data.bulkAdd"></PrivatePublicKeyInput>
-			<AllowedIPsInput :availableIp="this.availableIp" :saving="saving" :data="data" v-if="!this.data.bulkAdd"></AllowedIPsInput>
-			<EndpointAllowedIps :saving="saving" :data="data"></EndpointAllowedIps>
-			<DnsInput :saving="saving" :data="data"></DnsInput>
 
-			<hr class="mb-0 mt-2">
-			<div class="row gy-3">
-				<div class="col-sm" v-if="!this.data.bulkAdd">
-					<PresharedKeyInput :saving="saving" :data="data" :bulk="this.data.bulkAdd"></PresharedKeyInput>
-				</div>
-				
-				<div class="col-sm">
-					<MtuInput :saving="saving" :data="data"></MtuInput>
-				</div>
-				<div class="col-sm">
-					<PersistentKeepAliveInput :saving="saving" :data="data"></PersistentKeepAliveInput>
-				</div>
-				<div class="col-12" v-if="this.data.bulkAdd">
-					<div class="form-check form-switch">
-						<input class="form-check-input" type="checkbox" role="switch"
-						       v-model="this.data.preshared_key_bulkAdd"
-						       id="bullAdd_PresharedKey_Switch" checked>
-						<label class="form-check-label" for="bullAdd_PresharedKey_Switch">
-							<small class="fw-bold">
-								<LocaleText t="Pre-Shared Key"></LocaleText>
-								<LocaleText t="Enabled" v-if="this.data.preshared_key_bulkAdd"></LocaleText>
-								<LocaleText t="Disabled" v-else></LocaleText>
-							</small>
-						</label>
+			<div class="d-flex flex-column gap-2">
+				<BulkAdd :saving="saving" :data="data" :availableIp="availableIp"></BulkAdd>
+				<hr class="mb-0 mt-2">
+				<NameInput :saving="saving" :data="data" v-if="!data.bulkAdd"></NameInput>
+				<PrivatePublicKeyInput :saving="saving" :data="data" v-if="!data.bulkAdd"></PrivatePublicKeyInput>
+				<AllowedIPsInput :availableIp="availableIp" :saving="saving" :data="data" v-if="!data.bulkAdd"></AllowedIPsInput>
+				<EndpointAllowedIps :saving="saving" :data="data"></EndpointAllowedIps>
+				<DnsInput :saving="saving" :data="data"></DnsInput>
+
+				<hr class="mb-0 mt-2">
+				<div class="row gy-3">
+					<div class="col-sm" v-if="!data.bulkAdd">
+						<PresharedKeyInput :saving="saving" :data="data"></PresharedKeyInput>
+					</div>
+					
+					<div class="col-sm">
+						<MtuInput :saving="saving" :data="data"></MtuInput>
+					</div>
+					<div class="col-sm">
+						<PersistentKeepAliveInput :saving="saving" :data="data"></PersistentKeepAliveInput>
 					</div>
 				</div>
-			</div>
-			<div class="d-flex mt-2">
-				<button class="ms-auto btn btn-dark btn-brand rounded-3 px-3 py-2 shadow"
-				        :disabled="!this.allRequireFieldsFilled || this.saving"
-				        @click="this.peerCreate()"
-				>
-					<i class="bi bi-plus-circle-fill me-2" v-if="!this.saving"></i>
-					<LocaleText t="Adding..." v-if="this.saving"></LocaleText>
-					<LocaleText t="Add" v-else></LocaleText>
-				</button>
+				<hr>
+				
+				<div class="d-flex mt-2">
+					<button class="ms-auto btn btn-dark btn-brand rounded-3 px-3 py-2 shadow"
+							:disabled="!allRequireFieldsFilled || saving"
+							@click="peerCreate()">
+						<span v-if="!saving">
+							<i class="bi bi-plus-circle-fill me-2"></i>
+							<LocaleText t="Add"></LocaleText>
+						</span>
+						<span v-else>
+							<span class="spinner-border spinner-border-sm me-2"></span>
+							<LocaleText t="Adding..."></LocaleText>
+						</span>
+					</button>
+				</div>
 			</div>
 		</div>
 	</div>
 </template>
 
 <style scoped>
-.peerSettingContainer {
-	background-color: #00000060;
-	z-index: 9998;
+.modal-overlay {
+	z-index: 1040;
 }
 
-div{
+.modal-content {
+	border: 1px solid rgba(255, 255, 255, 0.1);
+	backdrop-filter: blur(2px);
+}
+
+div {
 	transition: 0.2s ease-in-out;
 }
 
-.inactiveField{
+.inactiveField {
 	opacity: 0.4;
-}
-
-.card{
-	max-height: 100%;
 }
 </style>

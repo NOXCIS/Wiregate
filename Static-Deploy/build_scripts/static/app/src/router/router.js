@@ -1,22 +1,8 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import {cookie} from "../utilities/cookie.js";
-// import Index from "@/views/index.vue"
-// import Signin from "@/views/signin.vue";
-// import ConfigurationList from "@/components/configurationList.vue";
 import {fetchGet} from "@/utilities/fetch.js";
-// import Settings from "@/views/settings.vue";
 import {WireguardConfigurationsStore} from "@/stores/WireguardConfigurationsStore.js";
 import {DashboardConfigurationStore} from "@/stores/DashboardConfigurationStore.js";
-// import Setup from "@/views/setup.vue";
-// import NewConfiguration from "@/views/newConfiguration.vue";
-// import Configuration from "@/views/configuration.vue";
-// import PeerList from "@/components/configurationComponents/peerList.vue";
-// import PeerCreate from "@/components/configurationComponents/peerCreate.vue";
-// import Ping from "@/views/ping.vue";
-// import Traceroute from "@/views/traceroute.vue";
-// import Totp from "@/components/setupComponent/totp.vue";
-// import Share from "@/views/share.vue";
-// import RestoreConfiguration from "@/views/restoreConfiguration.vue";
 
 const checkAuth = async () => {
 	let result = false
@@ -61,6 +47,14 @@ const router = createRouter({
 					}
 				},
 				{
+					name: "Tor Configuration",
+					path: '/tor-configuration',
+					component: () => import('@/views/TorConfiguration.vue'),
+					meta: {
+						title: "Tor Configuration"
+					}
+				},
+				{
 					path: '/ping',
 					name: "Ping",
 					component: () => import('@/views/ping.vue'),
@@ -87,6 +81,14 @@ const router = createRouter({
 					}
 				},
 				{
+					name: "System Status",
+					path: '/system_status',
+					component: () => import("@/views/systemStatus.vue"),
+					meta: {
+						title: "System Status"
+					}
+				},
+				{
 					name: "Configuration",
 					path: '/configuration/:id',
 					component: () => import('@/views/configuration.vue'),
@@ -97,7 +99,7 @@ const router = createRouter({
 						{
 							name: "Peers List",
 							path: 'peers',
-							component: () => import('@/components/configurationComponents/peerList.vue')
+							component: () => import('@/components/configurationComponents/peerListNew.vue')
 						},
 						{
 							name: "Peers Create",
@@ -162,15 +164,17 @@ router.beforeEach(async (to, from, next) => {
 	dashboardConfigurationStore.ShowNavBar = false;
 	document.querySelector(".loadingBar").classList.remove("loadingDone")
 	document.querySelector(".loadingBar").classList.add("loading")
+	console.log(to.path)
 	if (to.meta.requiresAuth){
 		if (!dashboardConfigurationStore.getActiveCrossServer()){
-			if (cookie.getCookie("authToken") && await checkAuth()){
+			if (await checkAuth()){
 				await dashboardConfigurationStore.getConfiguration()
 				if (!wireguardConfigurationsStore.Configurations && to.name !== "Configuration List"){
 					await wireguardConfigurationsStore.getConfigurations();
 				}
 				dashboardConfigurationStore.Redirect = undefined;
 				next()
+				
 			}else{
 				dashboardConfigurationStore.Redirect = to;
 				next("/signin")
@@ -184,7 +188,11 @@ router.beforeEach(async (to, from, next) => {
 			next()
 		}
 	}else {
-		next();
+		if (to.path === "/signin" && await checkAuth()){
+			next("/")
+		}else{
+			next()
+		}
 	}
 });
 

@@ -86,7 +86,9 @@ export default {
 		</div>
 		<div class="d-flex gap-2 align-items-center">
 			<div class="input-group">
-				<input type="text" class="form-control form-control-sm rounded-start-3" 
+				<input type="text" 
+				       id="peer_allowed_ip_textbox"
+				       class="form-control form-control-sm rounded-start-3" 
 				       :placeholder="this.inputGetLocale"
 				       :class="{'is-invalid': this.allowedIpFormatError}"
 				       v-model="customAvailableIp"

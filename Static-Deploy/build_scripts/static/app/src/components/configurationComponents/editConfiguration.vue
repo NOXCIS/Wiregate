@@ -2,13 +2,92 @@
 import LocaleText from "@/components/text/localeText.vue";
 import {onMounted, reactive, ref, useTemplateRef, watch} from "vue";
 import {WireguardConfigurationsStore} from "@/stores/WireguardConfigurationsStore.js";
-import {fetchPost} from "@/utilities/fetch.js";
+import {fetchPost, fetchGet} from "@/utilities/fetch.js";
 import {DashboardConfigurationStore} from "@/stores/DashboardConfigurationStore.js";
 import UpdateConfigurationName
 	from "@/components/configurationComponents/editConfigurationComponents/updateConfigurationName.vue";
 const props = defineProps({
 	configurationInfo: Object
 })
+
+// Add these reactive refs for script contents
+const scriptContents = reactive({
+    PreUp: null,
+    PostUp: null,
+    PreDown: null,
+    PostDown: null
+})
+
+const loadScriptContents = (type) => {
+
+    fetchPost(`/api/getConfigTables${type}`, {
+        configurationName: props.configurationInfo.Name
+    }, (res) => {
+        if (res.status) {
+            scriptContents[type] = res.data
+        } else {
+            store.newMessage("Server", res.message || "Failed to load script", "warning")
+            console.error(`Failed to load ${type} scripts:`, res.message)
+        }
+    })
+}
+const updateScript = (type, content) => {
+    fetchPost(`/api/updateConfigTables${type}`, {
+        configurationName: props.configurationInfo.Name,
+        content: content
+    }, (res) => {
+        if (res.status) {
+            store.newMessage("Server", `${type} script updated successfully`, "success")
+            // Reload script contents
+            loadScriptContents(type)
+        } else {
+            store.newMessage("Server", res.message || `Failed to update ${type} script`, "danger")
+        }
+    })
+}
+
+const editMode = reactive({})
+const editedContent = reactive({})
+
+
+const enableEditMode = (path, content) => {
+    // Initialize edited content with current content when entering edit mode
+    editedContent[path] = content
+    editMode[path] = true
+}
+
+const saveScript = (type, path, content) => {
+    fetchPost(`/api/updateConfigTables${type}`, {
+        configurationName: props.configurationInfo.Name,
+        content: content
+    }, (res) => {
+        if (res.status) {
+            store.newMessage("Server", `${type} script updated successfully`, "success")
+            // Reload script contents
+            loadScriptContents(type)
+            // Exit edit mode
+            editMode[path] = false
+            delete editedContent[path]
+        } else {
+            store.newMessage("Server", res.message || `Failed to update ${type} script`, "danger")
+        }
+    })
+}
+
+const cancelEdit = (path) => {
+    editMode[path] = false
+    delete editedContent[path]
+}
+
+// Add click handler for script viewing
+const viewScript = (type) => {
+    if (!scriptContents[type]) {
+        loadScriptContents(type)
+    }
+    // Toggle visibility of script content
+    scriptContents[type] = scriptContents[type] ? null : {}
+}
+
 const wgStore = WireguardConfigurationsStore()
 const store = DashboardConfigurationStore()
 const saving = ref(false)
@@ -34,10 +113,10 @@ const resetForm = () => {
 	dataChanged.value = false;
 	Object.assign(data, JSON.parse(JSON.stringify(props.configurationInfo)))
 }
-const emit = defineEmits(["changed", "close"])
+const emit = defineEmits(["changed", "close", "backupRestore", "deleteConfiguration", "editRaw"])
 const saveForm = ()  => {
 	saving.value = true
-	fetchPost("/api/updateWireguardConfiguration", data, (res) => {
+	fetchPost("/api/updateConfiguration", data, (res) => {
 		saving.value = false
 		if (res.status){
 			store.newMessage("Server", "Configuration saved", "success")
@@ -145,62 +224,110 @@ watch(data, () => {
 									       id="configuration_listen_port">
 
 								</div>
-								<div>
-									<label for="configuration_preup" class="form-label">
-										<small class="text-muted">
-											<LocaleText t="PreUp"></LocaleText>
-										</small>
+								<div v-for="key in ['PreUp', 'PreDown', 'PostUp', 'PostDown']" :key="key">
+									<label :for="'configuration_' + key" class="form-label">
+									<small class="text-muted">
+										<LocaleText :t="key"></LocaleText>
+									</small>
 									</label>
-									<input type="text" class="form-control form-control-sm rounded-3"
-									       :disabled="saving"
-									       v-model="data.PreUp"
-									       id="configuration_preup">
+									<div class="d-flex gap-2 align-items-center">
+									<input 
+										type="text" 
+										class="form-control form-control-sm rounded-3"
+										:disabled="saving"
+										v-model="data[key]"
+										:id="'configuration_' + key"
+									>
+									<button
+										:class="scriptContents[key] ? 'btn-warning' : 'bg-primary-subtle border-primary-subtle btn-outline-secondary'"
+										class="btn btn-sm text-primary-subtle"
+										@click="viewScript(key)"
+										v-if="data[key]"
+									>
+										<i class="bi" :class="scriptContents[key] ? 'bi-x-lg' : 'bi-file-text'"></i>
+									</button>
+									</div>
+									<!-- Script content viewer/editor -->
+									<div v-if="scriptContents[key]" class="mt-2 border rounded p-2">
+									<div v-for="(content, path) in scriptContents[key].contents" :key="path">
+										<div class="d-flex justify-content-between align-items-center">
+										<small class="text-muted">{{ path }}</small>
+										<div class="btn-group">
+											<button
+											v-if="!editMode[path]"
+											class="bg-primary-subtle border-primary-subtle btn btn-sm btn-outline-secondary text-primary-subtle"
+											@click="enableEditMode(path, content)"
+											>
+											<i class="bi bi-pencil"></i>
+											</button>
+											<button
+											v-else
+											class="btn btn-sm btn-outline-primary"
+											@click="saveScript(key, path, editedContent[path])"
+											>
+											<i class="bi bi-save"></i>
+											</button>
+											<button
+											v-if="editMode[path]"
+											class="btn btn-sm btn-outline-secondary"
+											@click="cancelEdit(path)"
+											>
+											<i class="bi bi-x-lg"></i>
+											</button>
+										</div>
+										</div>
+										<div class="script-box mt-1">
+										<textarea
+											v-if="editMode[path]"
+											class="script-box-active form-control form-control-sm font-monospace resizable-textarea"
+											v-model="editedContent[path]"
+											rows="10"
+										></textarea>
+										<pre v-else class="mb-0 resizable-preview"><code>{{ content }}</code></pre>
+										</div>
+									</div>
+									</div>
 								</div>
-								<div>
-									<label for="configuration_predown" class="form-label">
-										<small class="text-muted">
-											<LocaleText t="PreDown"></LocaleText>
-										</small>
-									</label>
-									<input type="text" class="form-control form-control-sm rounded-3"
-									       :disabled="saving"
-									       v-model="data.PreDown"
-									       id="configuration_predown">
-								</div>
-								<div>
-									<label for="configuration_postup" class="form-label">
-										<small class="text-muted">
-											<LocaleText t="PostUp"></LocaleText>
-										</small>
-									</label>
-									<input type="text" class="form-control form-control-sm rounded-3"
-									       :disabled="saving"
-									       v-model="data.PostUp"
-									       id="configuration_postup">
-								</div>
-								<div>
-									<label for="configuration_postdown" class="form-label">
-										<small class="text-muted">
-											<LocaleText t="PostDown"></LocaleText>
-										</small>
-									</label>
-									<input type="text" class="form-control form-control-sm rounded-3"
-									       :disabled="saving"
-									       v-model="data.PostDown"
-									       id="configuration_postdown">
-								</div>
+
 								<div class="d-flex align-items-center gap-2 mt-4">
 									<button class="btn bg-secondary-subtle border-secondary-subtle text-secondary-emphasis rounded-3 shadow ms-auto"
 									        @click="resetForm()"
 									        :disabled="!dataChanged || saving">
-										<i class="bi bi-arrow-clockwise"></i>
+										<i class="bi bi-arrow-clockwise me-2"></i>
+										<LocaleText t="Reset"></LocaleText>
 									</button>
 									<button class="btn bg-primary-subtle border-primary-subtle text-primary-emphasis rounded-3 shadow"
 									        :disabled="!dataChanged || saving"
 									        @click="saveForm()"
 									>
-										<i class="bi bi-save-fill"></i></button>
+										<i class="bi bi-save-fill me-2"></i>
+										<LocaleText t="Save"></LocaleText>
+									</button>
 								</div>
+								<hr>
+								<h5 class="mb-3">Danger Zone</h5>
+								<div class="d-flex gap-2 flex-column">
+									<button
+										@click="emit('backupRestore')"
+										class="btn bg-warning-subtle border-warning-subtle text-warning-emphasis rounded-3 text-start d-flex">
+										<i class="bi bi-copy me-auto"></i>
+										<LocaleText t="Backup & Restore"></LocaleText>
+									</button>
+									<button
+										@click="emit('editRaw')"
+										class="btn bg-warning-subtle border-warning-subtle text-warning-emphasis rounded-3 d-flex">
+										<i class="bi bi-pen me-auto"></i>
+										<LocaleText t="Edit Raw Configuration File"></LocaleText>
+									</button>
+									
+									<button
+										@click="emit('deleteConfiguration')"
+										class="btn bg-danger-subtle border-danger-subtle text-danger-emphasis rounded-3 d-flex mt-4">
+										<i class="bi bi-trash-fill me-auto"></i>
+										<LocaleText t="Delete Configuration"></LocaleText>
+									</button>
+								</div>
+								
 							</template>
 						</div>
 					</div>
@@ -211,5 +338,59 @@ watch(data, () => {
 </template>
 
 <style scoped>
+.script-box {
+  position: relative;
+  min-height: 100px;
+}
 
+.resizable-textarea {
+  resize: vertical;
+  overflow: scroll;
+  min-height: 500px;
+  max-height: 1000px;
+  width: 100%;
+}
+
+.resizable-preview {
+  resize: vertical;
+  overflow: scroll;
+  min-height: 150px;
+  max-height: 200px;
+  width: 100%;
+  background-color: #212529;
+  padding: 0.5rem;
+  border: 1px solid #dee2e646;
+  border-radius: 0.25rem;
+}
+
+/* Ensures the resize handle is visible */
+.resizable-textarea::-webkit-resizer,
+.resizable-preview::-webkit-resizer {
+  border-width: 8px;
+  border-style: solid;
+  border-color: transparent #6c757d #6c757d transparent;
+}
+
+/* Scrollbar styling for better visibility */
+.resizable-textarea::-webkit-scrollbar,
+.resizable-preview::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.resizable-textarea::-webkit-scrollbar-track,
+.resizable-preview::-webkit-scrollbar-track {
+  background: #5c5c5c;
+}
+
+.resizable-textarea::-webkit-scrollbar-thumb,
+.resizable-preview::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.resizable-textarea::-webkit-scrollbar-thumb:hover,
+.resizable-preview::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
 </style>

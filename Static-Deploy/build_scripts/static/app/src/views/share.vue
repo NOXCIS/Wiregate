@@ -87,7 +87,7 @@ export default {
 			</div>
 			<div v-else class="d-flex align-items-center flex-column gap-3">
 				<div class="h1 dashboardLogo text-center animate__animated animate__fadeInUp">
-					<h6>WGDashboard</h6>
+					<h6>WireGate</h6>
 					<LocaleText t="Scan QR Code with the WireGuard App to add peer"></LocaleText>
 				</div>
 				<canvas id="qrcode" class="rounded-3 shadow animate__animated animate__fadeInUp mb-3" ref="qrcode"></canvas>

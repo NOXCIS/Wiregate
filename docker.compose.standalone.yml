@@ -28,6 +28,8 @@ services:
       hostname: wiregate
       cap_add:
         - NET_ADMIN
+      devices:
+        - /dev/net/tun:/dev/net/tun
       restart: unless-stopped
       volumes:
         - pf_conf:/WireGate/iptable-rules
@@ -70,19 +72,6 @@ services:
         - WGD_DNS=1.1.1.1
         - WGD_IPTABLES_DNS=1.1.1.1
 
-        
-      #Obfuscated Wireguard via AmneziaWG Junk Headder Settings
-      #All parameters should be the same between Client and Server, except Jc - it can vary.
-      #########################################################
-        - WGD_JC=5 #Jc — 1 ≤ Jc ≤ 128; recommended range is from 3 to 10 inclusive
-        - WGD_JMIN=500 #Jmin — Jmin < Jmax; recommended value is 50
-        - WGD_JMAX=550 #Jmax — Jmin < Jmax ≤ 1280; recommended value is 1000
-        - WGD_S1=30 #S1 — S1 < 1280; S1 + 56 ≠ S2; recommended range is from 15 to 150 inclusive
-        - WGD_S2=40 #S2 — S2 < 1280; recommended range is from 15 to 150 inclusive
-        - WGD_H1=123456 #H1/H2/H3/H4 — must be unique among each other; recommended range is from 5 to 2147483647 inclusive
-        - WGD_H2=67543 #H2
-        - WGD_H3=32345 #H3
-        - WGD_H4=123123 #H4
       ports:
         - "4430-4433:4430-4433/udp" #UDP Interface Listen Ports
         - 8000:80/tcp #Comment Out for full network lockdown, I.E only Accessible via VPN conttenction at http://wire.gate using config in generated master-key folder

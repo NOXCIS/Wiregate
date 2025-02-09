@@ -1,7 +1,7 @@
 #!/bin/bash
 # Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
 # Under MIT License
-
+export STATE="wiregate"
 export HISTFILE=/dev/null
 export DEBIAN_FRONTEND=noninteractive
 export DOCKER_CONTENT_TRUST=1
@@ -12,6 +12,10 @@ export WGD_TOR_PROXY="false"
 export WGD_TOR_PLUGIN="obfs4"
 export WGD_TOR_BRIDGES="false"
 export WGD_TOR_EXIT_NODES="default"
+export WGD_TOR_DNS_EXIT_NODES="default"
+export AMNEZIA_WG="false"
+export PROTOCOL_TYPE="WireGuard"
+export DEPLOY_STATE="STATIC"
 
 #CORE_IMPORTS
 source ./AutoInstaller-Functions/OS-Reqs.sh
@@ -129,10 +133,6 @@ setup_environment() {
             ;;
     esac
 }
-
-
-
-
 run_Pihole_setup() {
         if [ "$mode" = "Express" ]; then
             TIMER_VALUE=0
@@ -142,7 +142,7 @@ run_Pihole_setup() {
     set_pihole_config &&
     set_wg-dash_config &&
     set_wg-dash_account &&
-    rm_exst_configs >/dev/null 2>&1 &&
+    #rm_exst_configs >/dev/null 2>&1 &&
     clear &&
     compose_up &&
     clear &&
@@ -158,21 +158,18 @@ run_AdGuard_setup() {
         set_adguard_config &&
         set_wg-dash_config && 
         set_wg-dash_account &&
-        rm_exst_configs >/dev/null 2>&1 &&  
+        #rm_exst_configs >/dev/null 2>&1 &&  
         clear &&
         compose_up &&
         clear &&
         mkey_output
 }
 
-
-
 mkey_output() {
     #FINAL_OUTPUT
             title
             generate_wireguard_qr  &&
             readme_title &&
-            encrypt_file >/dev/null 2>&1 &&
             if [ "$system" = "AdGuard" ]; then
                 env_var_adguard_title
                 adguard_compose_swap >/dev/null 2>&1
@@ -238,69 +235,67 @@ compose_down() {
     fi
 }
 #MISC
-set_tag() {
-    # Docker Hub repository
-    REPO="noxcis/wg-dashboard"
+    set_tag() {
+        # Docker Hub repository
 
-    # Fetch the tags from Docker Hub API
-    response=$(curl -s -f "https://hub.docker.com/v2/repositories/${REPO}/tags/?page_size=100")
+        REPO="noxcis/${STATE}"
 
-    # Initialize the search pattern
-    pattern=""
+        # Fetch the tags from Docker Hub API
+        response=$(curl -s -f "https://hub.docker.com/v2/repositories/${REPO}/tags/?page_size=100")
 
-    # Check input arguments
-    while [[ $# -gt 0 ]]; do
-        case $1 in
-            --allow-dev)
-                pattern="dev"
-                shift
-                ;;
-            --allow-beta)
-                pattern="beta"
-                shift
-                ;;
-            --stable)
-                pattern="exclude" # Indicate exclusion for beta and dev
-                shift
-                ;;
-            *)
-                echo "Invalid option: $1"
-                exit 1
-                ;;
-        esac
-    done
+        # Initialize the search pattern
+        pattern=""
 
-    # Construct jq filter based on the pattern
-    if [[ $pattern == "exclude" ]]; then
-        # Default behavior to exclude tags with 'beta' or 'dev'
-        filter="select(.name | test(\"beta|dev\"; \"i\") | not)"
-    elif [[ -n "$pattern" ]]; then
-        # Only include tags that contain the specified pattern
-        filter="select(.name | test(\"$pattern\"; \"i\"))"
-    else
-        # No pattern provided, which could be an error state.
-        echo "No valid pattern provided."
-        exit 1
-    fi
+        # Check input arguments
+        while [[ $# -gt 0 ]]; do
+            case $1 in
+                --allow-dev)
+                    pattern="dev"
+                    shift
+                    ;;
+                --allow-beta)
+                    pattern="beta"
+                    shift
+                    ;;
+                --stable)
+                    pattern="exclude" # Indicate exclusion for beta and dev
+                    shift
+                    ;;
+                *)
+                    echo "Invalid option: $1"
+                    exit 1
+                    ;;
+            esac
+        done
 
-    # Extract the latest updated tag based on the filter using jq
-    latest_tag=$(echo "$response" | jq -r "[.results[] | $filter] | sort_by(.last_updated) | last(.[]).name")
+        # Construct jq filter based on the pattern
+        if [[ $pattern == "exclude" ]]; then
+            # Default behavior to exclude tags with 'beta' or 'dev'
+            filter="select(.name | test(\"beta|dev\"; \"i\") | not)"
+        elif [[ -n "$pattern" ]]; then
+            # Only include tags that contain the specified pattern
+            filter="select(.name | test(\"$pattern\"; \"i\"))"
+        else
+            # No pattern provided, which could be an error state.
+            echo "No valid pattern provided."
+            exit 1
+        fi
 
-    # Check if the tag is extracted
-    if [ -z "$latest_tag" ]; then
-        echo "Failed to fetch a suitable latest updated tag."
-        exit 1
-    else
-        echo "Latest suitable updated tag: $latest_tag"
-    fi
+        # Extract the latest updated tag based on the filter using jq
+        latest_tag=$(echo "$response" | jq -r "[.results[] | $filter] | sort_by(.last_updated) | last(.[]).name")
 
-    export TAG="$latest_tag"
-}
+        # Check if the tag is extracted
+        if [ -z "$latest_tag" ]; then
+            echo "Failed to fetch a suitable latest updated tag."
+            exit 1
+        else
+            echo "Latest suitable updated tag: $latest_tag"
+        fi
 
-
-
+        export TAG="$latest_tag"
+    }
     dev_build() {
-        local adguard_yaml_file="./Global-Configs/AdGuard/Config/AdGuardHome.yaml"
+        local adguard_yaml_file="./configs/adguard/AdGuardHome.yaml"
         local adguard_password='$2a$12$t6CGhUcXtY6lGF2/A9Jd..Wn315A0RIiuhLlHbNHG2EmDbsN7miwO'
         local adguard_user="admin"
 
@@ -315,33 +310,13 @@ set_tag() {
 
 
     }
-
-    
     rm_exst_configs() {
-        local masterkey_file="/Global-Configs/Master-Key/master.conf"
+        local masterkey_file="./configs/master-key/master.conf"
         if [ -f "$masterkey_file" ]; then
             echo "Removing existing '$masterkey_file'..."
             sudo rm "$masterkey_file"
             echo "Existing '$masterkey_file' removed."
         fi
-    }
-    encrypt_file() {
-        local characters="A-Za-z0-9!@#$%^&*()"
-        local file_path="./WG-Dash/master-key/master.conf"
-        local password=$(head /dev/urandom | tr -dc "$characters" | head -c 16)
-        # Generate a salt
-        salt=$(openssl rand -base64 8 | tr -d '=')
-        # Derive the encryption key from the password and salt using PBKDF2
-        encryption_key=$(echo -n "$password$salt" | openssl dgst -sha256 -binary | xxd -p -c 256)
-        # Encrypt the file using aes-256-cbc algorithm with the derived key
-        openssl enc -aes-256-cbc -in "$file_path" -out "${file_path}.enc" -K "$encryption_key" -iv 0
-        if [ $? -eq 0 ]; then
-            echo "Worm-Hole Master Key encrypted successfully."
-            rm "$file_path"
-        else
-            echo "Worm-Hole Master Key encryption failed."
-        fi
-        export MASTER_KEY_PASSWORD="$password"
     }
     nuke_bash_hist() {
         # Overwrite ~/.bash_history with "noxcis" 42 times
@@ -355,57 +330,66 @@ set_tag() {
         history -c
         clear
     }
-    
-
     switch_tor() {
-    # Accept the input argument as a string
-    input_string="$1"
+        # Accept the input argument as a string
+        input_string="$1"
+        
+        # Split the input string by '-' into components
+        IFS='-' read -r transport_type bridge_type plugin_type <<< "$input_string"
+        
+        # Default bridge_type to an empty string if omitted
+        if [[ -z "$bridge_type" ]]; then
+            bridge_type=""
+        fi
+
+        # Check if the first component is 'Tor'
+        if [[ "$transport_type" == "Tor" ]]; then
+            export WGD_TOR_PROXY="true"
+            export DEPLOY_TYPE="true "
+        else
+            export WGD_TOR_PROXY="false"
+            export DEPLOY_TYPE="false"
+        fi
+
+        # Set bridge options
+        if [[ "$bridge_type" == "br" ]]; then
+            export WGD_TOR_BRIDGES="true"
+        elif [[ "$bridge_type" == "nobrg" ]]; then
+            export WGD_TOR_BRIDGES="false"
+        else
+            echo "Invalid bridge."
+            sleep 5
+        fi
+
+        # Set plugin type
+        if [[ "$plugin_type" == "snow" ]]; then
+            export WGD_TOR_PLUGIN="snowflake"
+        elif [[ "$plugin_type" == "obfs4" ]]; then
+            export WGD_TOR_PLUGIN="obfs4"
+        elif [[ "$plugin_type" == "webtun" ]]; then
+            export WGD_TOR_PLUGIN="webtunnel"
+        else 
+            echo "Invalid plugin choice. Please choose 'snow', 'obfs4', or 'webtun'."
+            return 1  # Exit with error
+        fi
+    }
     
-    # Split the input string by '-' into components
-    IFS='-' read -r transport_type bridge_type plugin_type <<< "$input_string"
-    
-    # Default bridge_type to an empty string if omitted
-    if [[ -z "$bridge_type" ]]; then
-        bridge_type=""
-    fi
-
-    # Check if the first component is 'Tor'
-    if [[ "$transport_type" == "Tor" ]]; then
-        export WGD_TOR_PROXY="true"
-        export DEPLOY_TYPE="true "
-    else
-        export WGD_TOR_PROXY="false"
-        export DEPLOY_TYPE="false"
-    fi
-
-    # Set bridge options
-    if [[ "$bridge_type" == "br" ]]; then
-        export WGD_TOR_BRIDGES="true"
-    elif [[ "$bridge_type" == "nobrg" ]]; then
-        export WGD_TOR_BRIDGES="false"
-    else
-        echo "Invalid bridge."
-        sleep 5
-    fi
-
-    # Set plugin type
-    if [[ "$plugin_type" == "snow" ]]; then
-        export WGD_TOR_PLUGIN="snowflake"
-    elif [[ "$plugin_type" == "obfs4" ]]; then
-        export WGD_TOR_PLUGIN="obfs4"
-    elif [[ "$plugin_type" == "webtun" ]]; then
-        export WGD_TOR_PLUGIN="webtunnel"
-    else 
-        echo "Invalid plugin choice. Please choose 'snow', 'obfs4', or 'webtun'."
-        return 1  # Exit with error
-    fi
-}
 
 
 
 # Parse options with getopts
-while getopts ":c:n:t:" opt; do
+while getopts ":c:n:t:p:s:l:" opt; do
   case $opt in
+    l)  
+     if [[ "${OPTARG}" =~ \{[A-Za-z][A-Za-z]\}(,\{[A-Za-z][A-Za-z]\})* ]]; then
+        WGD_TOR_DNS_EXIT_NODES="${OPTARG}"
+        export WGD_TOR_DNS_EXIT_NODES
+      else
+        
+        echo "Invalid input for -e. Expected format: {US},{GB},{AU}, etc."
+        exit 1
+      fi
+      ;;
     c)  # Deployment system (Docker or Podman)
       case "${OPTARG}" in
         Docker)
@@ -420,11 +404,44 @@ while getopts ":c:n:t:" opt; do
           ;;
       esac
       ;;
+    p)  # Deployment system (Docker or Podman)
+      case "${OPTARG}" in
+        awg)
+          export AMNEZIA_WG="true"
+          export PROTOCOL_TYPE="AmneziaWG"
+          ;;
+        wg)
+          export AMNEZIA_WG="false"
+          export PROTOCOL_TYPE="WireGuard"
+          ;;
+        *)
+          echo "Invalid input for -p [PROTOCOL]. Expected 'wg' or 'awg'."
+          exit 1
+          ;;
+      esac
+      ;;
+    s)  # Deployment system (Docker or Podman)
+      case "${OPTARG}" in
+        static)
+          export STATE="wiregate"
+          export DEPLOY_STATE="STATIC"
+          ;;
+        dynamic)
+          export STATE="wg-dashboard"
+          export DEPLOY_STATE="DYNAMIC"
+          ;;
+        *)
+          echo "Invalid input for -s [STATE]. Expected 'dynamic' or 'static'."
+          exit 1
+          ;;
+      esac
+      ;;
     n)  
-      if [[ "${OPTARG}" =~ \{[A-Z][A-Z]\}(,\{[A-Z][A-Z]\})* ]]; then
+     if [[ "${OPTARG}" =~ \{[A-Za-z][A-Za-z]\}(,\{[A-Za-z][A-Za-z]\})* ]]; then
         WGD_TOR_EXIT_NODES="${OPTARG}"
         export WGD_TOR_EXIT_NODES
       else
+        
         echo "Invalid input for -e. Expected format: {US},{GB},{AU}, etc."
         exit 1
       fi
@@ -509,4 +526,3 @@ else
       ;;
   esac
 fi
-

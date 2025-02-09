@@ -58,6 +58,7 @@ install_prerequisites() {
         gnupg
         openssl
         apache2-utils
+        pwgen
         jq
     )
 
@@ -200,37 +201,60 @@ install_requirements() {
     local attempts=1
     local install_check="preqsinstalled.txt"
 
+    # Function to check if a command exists
+    check_command() {
+        if ! command -v "$1" &>/dev/null; then
+            echo "Error: $1 is not installed. Please install it to proceed."
+            return 1
+        fi
+        return 0
+    }
+
     while [ $attempts -le $MAX_ATTEMPTS ]; do
         echo "Attempt $attempts of $MAX_ATTEMPTS"
 
         # Attempt the installation
-        run_os_update &&
-        install_prerequisites 
+        if run_os_update && install_prerequisites; then
+            if [[ "$DEPLOY_SYSTEM" == "docker" ]]; then
+                install_docker || { echo "Docker installation failed."; exit 1; }
+            elif [[ "$DEPLOY_SYSTEM" == "podman" ]]; then
+                clear
+                echo "Checking for required tools for Podman deployment..."
 
-        if [[ "$DEPLOY_SYSTEM" == "docker" ]]; then
-            install_docker
-        fi
+                # Check for Podman
+                if ! check_command "podman"; then
+                    podman_install_title
+                    exit 1
+                fi
 
-        if [[ "$DEPLOY_SYSTEM" == "podman" ]]; then
-            clear 
-            podman_install_title
-            exit 1
-        fi
+                # Check for Podman Compose
+                if ! (command -v "podman-compose" &>/dev/null || podman compose version &>/dev/null); then
+                    echo "Error: podman-compose or 'podman compose' is not installed. Please install it to proceed."
+                    exit 1
+                fi
+            fi
 
-        create_swap &&
-        install_confirm &&
-
-        # Check if the installation was successful
-        if [ -f "$install_check" ]; then
-            echo "Installation successful."
-            break  # Exit the loop if successful
+            # Create swap space and confirm installation
+            if create_swap && install_confirm; then
+                # Verify successful installation
+                if [ -f "$install_check" ]; then
+                    echo "Installation successful."
+                    break
+                else
+                    echo "Installation verification failed. Retrying..."
+                fi
+            else
+                echo "Installation steps failed. Retrying..."
+            fi
         else
-            echo "Installation failed. Retrying..."
-            ((attempts++))
+            echo "OS update or prerequisites installation failed. Retrying..."
         fi
+
+        ((attempts++))
     done
 
     if [ $attempts -gt $MAX_ATTEMPTS ]; then
         echo "Max attempts reached. Installation failed."
+        exit 1
     fi
 }

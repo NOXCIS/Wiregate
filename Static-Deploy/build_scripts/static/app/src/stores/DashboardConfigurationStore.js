@@ -16,6 +16,7 @@ export const DashboardConfigurationStore = defineStore('DashboardConfigurationSt
 			Enable: false,
 			ServerList: {}
 		},
+		SystemStatus: undefined,
 		ActiveServerConfiguration: undefined,
 		IsElectronApp: false,
 		ShowNavBar: false,
@@ -63,8 +64,9 @@ export const DashboardConfigurationStore = defineStore('DashboardConfigurationSt
 			});
 		},
 		async signOut(){
-			await fetchGet("/api/signout", {}, (res) => {
+			await fetchGet("/api/signout", {}, () => {
 				this.removeActiveCrossServer();
+				document.cookie = '';
 				this.$router.go('/signin')
 			});
 		},

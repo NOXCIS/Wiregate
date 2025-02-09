@@ -1,6 +1,19 @@
 .vscode
 .DS_Store
 .idea
+.env
+
+__pycache__/
+*/__pycache__/
+*/*/__pycache__/
+*/*/*/__pycache__/
+*.py[cod]
+
+
+/UI_DEV_KIT/*
+/UI_DEV_KIT
+/UI_DEV_KIT copy/*
+/UI_DEV_KIT copy
 
 /configs/logs
 /configs/tor
@@ -30,6 +43,7 @@
 /Dynamic-Deploy/src/*
 !/Dynamic-Deploy/src/certbot.ini
 !/Dynamic-Deploy/src/dashboard.py
+!/Dynamic-Deploy/src/Utilities.py
 !/Dynamic-Deploy/src/entrypoint.sh
 !/Dynamic-Deploy/src/gunicorn.conf.py
 !/Dynamic-Deploy/src/requirements.txt
@@ -68,3 +82,5 @@
 !/Static-Deploy/Dockerfile
 .env.anim.run.txt
 .env
+.DS_Store
+preqsinstalled.txt

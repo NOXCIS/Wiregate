@@ -8,6 +8,7 @@ env_file=".env"
 # Create environment file if it doesn't exist
 if [ ! -f "$env_file" ]; then
         touch "$env_file"
+
 fi
 
     # Function to check if .env file is empty
@@ -16,21 +17,63 @@ is_env_file_empty() {
 }
 
 
-set_wiregate_env() {
-    if is_env_file_empty; then 
-        update_server_ip
-        set_port_range
-        echo "WGD_PORT_RANGE_STARTPORT=\"$HOST_PORT_START\"" >> "$env_file"
-        echo "WGD_PORT_MAPPINGS=\"$port_mappings\"" >> "$env_file"
-        echo "WGD_REMOTE_ENDPOINT=\"$ip\"" >> "$env_file"
-        
 
-    # Export the values from the .env file
-    export $(grep -v '^#' "$env_file" | xargs)
-    else
-    export $(grep -v '^#' "$env_file" | xargs)
+
+
+set_wiregate_env() {
+    local awg_vars=("WGD_JC" "WGD_JMIN" "WGD_JMAX" "WGD_S1" "WGD_S2" "WGD_H1" "WGD_H2" "WGD_H3" "WGD_H4")
+    local missing_vars=()
+
+    # Ensure the .env file exists
+    if [[ ! -f "$env_file" ]]; then
+        echo "Error: $env_file not found. Creating it." >&2
+        touch "$env_file"
     fi
-}   
+
+    # Check if .env file is empty
+    if is_env_file_empty; then
+        # Update server IP and port range
+        if ! update_server_ip; then
+            echo "Error: Failed to update server IP." >&2
+            return 1
+        fi
+
+        if ! set_port_range; then
+            echo "Error: Failed to set port range." >&2
+            return 1
+        fi
+
+        # Write base configuration to .env file
+        {
+            echo "WGD_PORT_RANGE_STARTPORT=\"$HOST_PORT_START\""
+            echo "WGD_PORT_MAPPINGS=\"$port_mappings\""
+            echo "WGD_REMOTE_ENDPOINT=\"$ip\""
+        } >> "$env_file"
+    fi
+
+    # Check if any awg_vars are missing in the .env file
+    for var in "${awg_vars[@]}"; do
+        if ! grep -q "^$var=" "$env_file"; then
+            missing_vars+=("$var")
+        fi
+    done
+
+    # Update .env with missing awg_vars based on AMNEZIA_WG flag
+    if [[ "${#missing_vars[@]}" -gt 0 ]]; then
+        echo "Updating missing AWG parameters in $env_file."
+        for var in "${missing_vars[@]}"; do
+            if [[ "$AMNEZIA_WG" == "true" ]]; then
+                echo "$var=\"${!var}\"" >> "$env_file"
+            else
+                echo "$var=" >> "$env_file"
+            fi
+        done
+    fi
+
+    # Reload environment variables
+    export $(grep -v '^#' "$env_file" | xargs)
+}
+
 
 update_server_ip() {
     local timer=$TIMER_VALUE
@@ -53,9 +96,29 @@ update_server_ip() {
     done
     
     if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
-        ip=$(curl -s ifconfig.me)
-        #export WGD_REMOTE_ENDPOINT="$ip"
+    # Array of websites to query for the public IP
+    websites=("ifconfig.me" "ipinfo.io/ip" "icanhazip.com" "checkip.amazonaws.com")
+    
+    ip=""
+    for site in "${websites[@]}"; do
+        ip=$(curl -s "$site")
+        if [[ $ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            break # Exit loop once a valid IP is found
+        fi
+    done
+    
+    # If no IP was retrieved, handle the error
+    if [ -z "$ip" ]; then
+        echo "Failed to retrieve public IP address."
+        sleep 3
+        exit 1
     fi
+
+    echo "Public IP: $ip"
+    # Uncomment the next line to set WGD_REMOTE_ENDPOINT
+    export WGD_REMOTE_ENDPOINT="$ip"
+    fi
+
 
 
     if [[ "$user_activity" == true ]]; then
@@ -77,7 +140,7 @@ update_server_ip() {
             echo -e "\033[31mInvalid IPv4 address format. Please enter a valid IPv4 address.\033[0m"
             continue
         fi
-                #export WGD_REMOTE_ENDPOINT="$ip"
+                export WGD_REMOTE_ENDPOINT="$ip"
                 break
             
         done
@@ -177,7 +240,7 @@ set_port_range() {
 }
 
 generate_wireguard_qr() {
-    local config_file="./Global-Configs/Master-Key/master.conf"
+    local config_file="./configs/master-key/master.conf"
     echo -n "Generating Master Key"
 
     while ! [ -f "$config_file" ]; do
@@ -193,7 +256,7 @@ generate_wireguard_qr() {
     master_key_title
     printf "%s\n" "$stars"
     printf "%s\n" "$dashes" $yellow
-    cat ./Global-Configs/Master-Key/master.conf 
+    cat ./configs/master-key/master.conf 
     printf $green"%s\n" "$equals"
     printf "%s\n"
     qrencode -t ANSIUTF8 < "$config_file"
@@ -206,7 +269,6 @@ generate_wireguard_qr() {
     fi
 }
 set_wg-dash_pass() {
-    #local adguard_yaml_file="./adguard/opt-adguard-conf/AdGuardHome.yaml"
     local timer=$TIMER_VALUE
     local user_activity=false
     local username="USER"
@@ -216,7 +278,7 @@ set_wg-dash_pass() {
 
         # Print the updated timer value
         set_pass_wgdash_title
-        echo "Press Enter to set Wireguard Dashboard Password  $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for random$blue password$reset: $(tput sgr0)"
+        echo "Press Enter to set WireGuard Dashboard Password $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for a random$(tput sgr0)$(tput setaf 4) password$(tput sgr0):"
         
         # Decrement the timer value by 1
         timer=$((timer - 1))
@@ -229,50 +291,38 @@ set_wg-dash_pass() {
     done
     
     if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
-    
-        characters="A-Za-z0-9!@#$%^&*()"
-
-        plaintext_wgdash_pass=$(head /dev/urandom | tr -dc "$characters" | head -c 16)
-        
-    
+        # Generate a random password using pwgen
+        plaintext_wgdash_pass=$(pwgen -s 16 1)  # Generate a secure 16-character password
         export WGD_PASS="$plaintext_wgdash_pass"
+        echo -e "$(tput setaf 2)Random password for WireGuard Dashboard set to: $plaintext_wgdash_pass$(tput sgr0)"
     fi
 
     if [[ "$user_activity" == true ]]; then
         # Prompt user to enter and confirm their password
         while true; do
-            read -sp "$(tput setaf 3)Enter password for Wireguard Dashboard:$(tput sgr0)" wgdash_pass 
-            printf "%s\n" "$short_stars"
+            read -sp "$(tput setaf 3)Enter password for WireGuard Dashboard:$(tput sgr0) " wgdash_pass
+            printf "\n%s\n" "$short_stars"
             
-
             if [[ -z "$wgdash_pass" ]]; then
                 echo -e "\033[31mPassword cannot be empty. Please try again.\033[0m"
                 continue
             fi
             
-            read -sp "$(tput setaf 3)Confirm password for Wireguard Dashboard:$(tput sgr0) " confirm_wgdash_pass
-            printf "%s\n" "$short_stars"
+            read -sp "$(tput setaf 3)Confirm password for WireGuard Dashboard:$(tput sgr0) " confirm_wgdash_pass
+            printf "\n%s\n" "$short_stars"
             
-
             if [[ "$wgdash_pass" != "$confirm_wgdash_pass" ]]; then
                 echo -e "\033[31mPasswords do not match. Please try again.\033[0m"
             else
-                # Passwords match, set the Database Password
-                
-
-
-
-
+                # Passwords match, set the WireGuard Dashboard Password
                 export WGD_PASS="$wgdash_pass"
-                
-
-
+                echo -e "$(tput setaf 2)Password for WireGuard Dashboard has been successfully set.$(tput sgr0)"
                 break
             fi
         done
     fi
-
 }
+
 set_wg-dash_user() {
     #local adguard_yaml_file="./adguard/opt-adguard-conf/AdGuardHome.yaml"
     local timer=$TIMER_VALUE
@@ -350,6 +400,7 @@ set_wg-dash_user() {
 
 set_wg-dash_config() {
     set_wiregate_env
+
 
 }
 set_wg-dash_account() {

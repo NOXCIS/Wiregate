@@ -85,6 +85,8 @@ make_torrc() {
 
     echo -e "AutomapHostsOnResolve 1 \n" >> "$TORRC_PATH"
     echo -e "VirtualAddrNetwork 10.192.0.0/10 \n" >> "$TORRC_PATH"
+    echo -e "MaxMemInQueues 32 MB \n" >> "$TORRC_PATH"
+
     echo -e "ControlPort 9051 \n" >> "$TORRC_PATH"
     echo -e "HashedControlPassword $CTRL_P_PASS\n" >> "$TORRC_PATH"
     echo -e "User tor \n" >> "$TORRC_PATH"
@@ -133,6 +135,7 @@ make_dns_torrc() {
 
     echo -e "AutomapHostsOnResolve 1 \n" >> "$DNS_TORRC_PATH"
     echo -e "VirtualAddrNetwork 10.193.0.0/10 \n" >> "$DNS_TORRC_PATH"
+    echo -e "MaxMemInQueues 32 MB \n" >> "$DNS_TORRC_PATH"
     echo -e "ControlPort 9054 \n" >> "$DNS_TORRC_PATH"
     echo -e "HashedControlPassword $CTRL_P_PASS\n" >> "$DNS_TORRC_PATH"
     echo -e "User tor \n" >> "$DNS_TORRC_PATH"
@@ -211,15 +214,17 @@ run_tor_flux() {
 
     # Main loop for periodic circuit renewal
     while true; do
+        #sleep_time=$(( RANDOM % 30 + 12 ))
         sleep_time=$(( RANDOM % 600 + 142 ))
         printf "%s\n" "$dashes"
-        echo "[TOR] New circuit in $sleep_time seconds..."
+        #echo "[TOR] New circuit in $sleep_time seconds..."
         printf "%s\n" "$dashes"
         sleep "$sleep_time"
         printf "%s\n" "$dashes"
         echo "[TOR] Sending Signal for New Circuits..."
         ./torflux &
         printf "%s\n" "$dashes"
+        echo "[TOR] New circuit in $sleep_time seconds..."
     done
 }
 ensure_blocking() {
@@ -239,25 +244,26 @@ ensure_blocking() {
 
 chmod u+x wiregate.sh
 
-# create /dev/net/tun if it does not exist
-if [[ ! -c /dev/net/tun ]]; then
-    mkdir -p /dev/net && mknod /dev/net/tun c 10 200
-fi
 
-if [[ "$AMNEZIA_WG" == "true" ]]; then
-    mkdir -p /etc/amnezia/amneziawg/
-    mkdir -p /usr/local/bin
-    ln -sf /usr/bin/awg /usr/local/bin/wg
-    ln -sf /usr/bin/awg-quick /usr/local/bin/wg-quick
-fi
+# Loop over each .sh file in the directory and its subdirectories
+    find /WireGate/iptable-rules/ -type f -name "*.sh" | while read -r file; do
+        # Check if the file contains the line with DNS_SERVER=${WGD_IPTABLES_DNS}
+        if grep -q "DNS_SERVER=\${WGD_IPTABLES_DNS}" "$file"; then
+            # Replace the line with the current value of WGD_IPTABLES_DNS
+            sed -i "s|DNS_SERVER=\${WGD_IPTABLES_DNS}|DNS_SERVER=${WGD_IPTABLES_DNS}|" "$file"
+        fi
+    done
 
-if [[ "$WGD_TOR_PROXY" == "true" ]]; then
+
+
     sudo apk add --no-cache tor curl > /dev/null 2>&1
-    sed -i "s/^#\(proxy = 'socks5:\/\/wiregate:9053'\)/\1/" "$dnscrypt_conf"
     generate_vanguard_tor_ctrl_pass
     make_torrc
     make_dns_torrc
     run_tor_flux &
+
+if [[ "$WGD_TOR_PROXY" == "true" ]]; then
+    sed -i "s/^#\(proxy = 'socks5:\/\/wiregate:9053'\)/\1/" "$dnscrypt_conf"
     else
         sed -i "s/^\(proxy = 'socks5:\/\/wiregate:9053'\)/#\1/" "$dnscrypt_conf"
 fi

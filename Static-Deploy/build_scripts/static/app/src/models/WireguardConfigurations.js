@@ -11,7 +11,7 @@ export class WireguardConfigurations{
 	
 
 	async getConfigurations(){
-		await fetchGet("/api/getWireguardConfigurations", {}, (res) => {
+		await fetchGet("/api/getConfigurations", {}, (res) => {
 			if (res.status)  this.Configurations = res.data
 		});
 	}
