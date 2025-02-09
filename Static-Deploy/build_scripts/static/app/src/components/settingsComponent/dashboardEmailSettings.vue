@@ -1,74 +1,15 @@
 <script setup>
 import LocaleText from "@/components/text/localeText.vue";
 import {DashboardConfigurationStore} from "@/stores/DashboardConfigurationStore.js";
-import {onMounted, ref, computed} from "vue";
+import {onMounted, ref} from "vue";
 import {fetchGet, fetchPost} from "@/utilities/fetch.js";
-
 const store = DashboardConfigurationStore()
-
-// Initialize Email configuration if it doesn't exist
-if (!store.Configuration?.Email) {
-	store.Configuration = {
-		...store.Configuration,
-		Email: {
-			provider: 'smtp',
-			server: '',
-			port: '',
-			encryption: 'STARTTLS',
-			username: '',
-			email_password: '',
-			send_from: '',
-			email_template: '',
-			// New OAuth fields
-			ms_client_id: '',
-			ms_client_secret: '',
-			ms_tenant_id: '',
-			cf_api_token: '',
-			cf_account_id: ''
-		}
-	}
-}
-
-const showAdvancedSettings = computed(() => store.Configuration.Email.provider === 'smtp')
-const showOAuthSettings = computed(() => ['gmail', 'outlook'].includes(store.Configuration.Email.provider))
-const showCloudflareSettings = computed(() => store.Configuration.Email.provider === 'cloudflare')
-
-// Watch for provider changes to set default values
-const handleProviderChange = () => {
-	const provider = store.Configuration.Email.provider;
-	if (provider === 'gmail') {
-		store.Configuration.Email.server = 'smtp.gmail.com';
-		store.Configuration.Email.port = '587';
-		store.Configuration.Email.encryption = 'STARTTLS';
-	} else if (provider === 'outlook') {
-		store.Configuration.Email.server = 'smtp.office365.com';
-		store.Configuration.Email.port = '587';
-		store.Configuration.Email.encryption = 'STARTTLS';
-	} else if (provider === 'cloudflare') {
-		store.Configuration.Email.server = 'smtp.cloudflare.email';
-		store.Configuration.Email.port = '587';
-		store.Configuration.Email.encryption = 'STARTTLS';
-	}
-}
-
-const startOAuthFlow = async (provider) => {
-	await fetchGet(`/api/email/oauth/${provider}/start`, {}, (res) => {
-		if (res.status && res.data?.authUrl) {
-			window.location.href = res.data.authUrl;
-		} else {
-			store.newMessage("Server", res.message || "Failed to start OAuth flow", "danger");
-		}
-	});
-}
 
 onMounted(() => {
 	checkEmailReady()
 	document.querySelectorAll("#emailAccount input, #emailAccount select, #email_template").forEach(x => {
-		if (x.id === 'provider') {
-			handleProviderChange();
-		}
-		let id = x.attributes.getNamedItem('id').value;
 		x.addEventListener("change", async () => {
+			let id = x.attributes.getNamedItem('id').value;
 			await fetchPost("/api/updateDashboardConfigurationItem", {
 				section: "Email",
 				key: id,
@@ -112,6 +53,7 @@ const sendTestEmail = async () => {
 		testing.value = false
 	})
 }
+
 </script>
 
 <template>
@@ -128,70 +70,49 @@ const sendTestEmail = async () => {
 		<div class="card-body d-flex flex-column gap-3">
 			<form @submit="(e) => e.preventDefault(e)" id="emailAccount">
 				<div class="row gx-2 gy-2">
-					<div class="col-12">
+					<div class="col-12 col-lg-4">
 						<div class="form-group">
-							<label for="provider" class="text-muted mb-1">
+							<label for="server" class="text-muted mb-1">
 								<strong><small>
-									<LocaleText t="Email Provider"></LocaleText>
+									<LocaleText t="Server"></LocaleText>
+								</small></strong>
+							</label>
+							<input id="server" 
+							       v-model="store.Configuration.Email.server"
+							       type="text" class="form-control">
+						</div>
+					</div>
+					<div class="col-12 col-lg-4">
+						<div class="form-group">
+							<label for="port" class="text-muted mb-1">
+								<strong><small>
+									<LocaleText t="Port"></LocaleText>
+								</small></strong>
+							</label>
+							<input id="port"
+							       v-model="store.Configuration.Email.port"
+							       type="text" class="form-control">
+						</div>
+					</div>
+					<div class="col-12 col-lg-4">
+						<div class="form-group">
+							<label for="encryption" class="text-muted mb-1">
+								<strong><small>
+									<LocaleText t="Encryption"></LocaleText>
 								</small></strong>
 							</label>
 							<select class="form-select"
-									v-model="store.Configuration.Email.provider"
-									id="provider">
-								<option value="smtp">SMTP</option>
-								<option value="gmail">Gmail (OAuth)</option>
-								<option value="outlook">Microsoft Outlook (OAuth)</option>
-								<option value="cloudflare">Cloudflare Email</option>
+							        v-model="store.Configuration.Email.encryption"
+							        id="encryption">
+								<option value="STARTTLS">
+									STARTTLS
+								</option>
+								<option value="NOTLS">
+									<LocaleText t="No Encryption"></LocaleText>
+								</option>
 							</select>
 						</div>
 					</div>
-					<template v-if="showAdvancedSettings">
-						<div class="col-12 col-lg-4">
-							<div class="form-group">
-								<label for="server" class="text-muted mb-1">
-									<strong><small>
-										<LocaleText t="Server"></LocaleText>
-									</small></strong>
-								</label>
-								<input id="server" 
-									   v-model="store.Configuration.Email.server"
-									   :readonly="store.Configuration.Email.provider !== 'smtp'"
-									   type="text" class="form-control">
-							</div>
-						</div>
-						<div class="col-12 col-lg-4">
-							<div class="form-group">
-								<label for="port" class="text-muted mb-1">
-									<strong><small>
-										<LocaleText t="Port"></LocaleText>
-									</small></strong>
-								</label>
-								<input id="port"
-									   v-model="store.Configuration.Email.port"
-									   :readonly="store.Configuration.Email.provider !== 'smtp'"
-									   type="text" class="form-control">
-							</div>
-						</div>
-						<div class="col-12 col-lg-4">
-							<div class="form-group">
-								<label for="encryption" class="text-muted mb-1">
-									<strong><small>
-										<LocaleText t="Encryption"></LocaleText>
-									</small></strong>
-								</label>
-								<select class="form-select"
-										v-model="store.Configuration.Email.encryption"
-										:disabled="store.Configuration.Email.provider !== 'smtp'"
-										id="encryption">
-									<option value="STARTTLS">STARTTLS</option>
-									<option value="SSL/TLS">SSL/TLS</option>
-									<option value="NOTLS">
-										<LocaleText t="No Encryption"></LocaleText>
-									</option>
-								</select>
-							</div>
-						</div>
-					</template>
 					<div class="col-12 col-lg-4">
 						<div class="form-group">
 							<label for="username" class="text-muted mb-1">
@@ -200,58 +121,23 @@ const sendTestEmail = async () => {
 								</small></strong>
 							</label>
 							<input id="username"
-								   v-model="store.Configuration.Email.username"
-								   type="text" class="form-control">
+							       v-model="store.Configuration.Email.username"
+							       type="text" class="form-control">
 						</div>
 					</div>
 					<div class="col-12 col-lg-4">
 						<div class="form-group">
 							<label for="email_password" class="text-muted mb-1">
 								<strong><small>
-									<LocaleText t="Password/API Key"></LocaleText>
+									<LocaleText t="Password"></LocaleText>
 								</small></strong>
 							</label>
 							<input id="email_password"
-								   v-model="store.Configuration.Email.email_password"
-								   type="password" class="form-control">
+							       v-model="store.Configuration.Email.email_password"
+							       type="password" class="form-control">
 						</div>
 					</div>
-					<template v-if="showOAuthSettings">
-						<div class="col-12">
-							<div class="alert alert-info">
-								<i class="bi bi-info-circle me-2"></i>
-								<LocaleText t="Configure OAuth authentication for secure email access"></LocaleText>
-							</div>
-							<button @click="startOAuthFlow(store.Configuration.Email.provider)"
-									class="btn btn-primary">
-								<i class="bi bi-shield-lock me-2"></i>
-								<LocaleText t="Configure OAuth"></LocaleText>
-							</button>
-						</div>
-					</template>
-					<template v-if="showCloudflareSettings">
-						<div class="col-12 col-lg-6">
-							<div class="form-group">
-								<label for="cf_api_token" class="text-muted mb-1">
-									<strong><small><LocaleText t="API Token"></LocaleText></small></strong>
-								</label>
-								<input id="cf_api_token"
-									   v-model="store.Configuration.Email.cf_api_token"
-									   type="password" class="form-control">
-							</div>
-						</div>
-						<div class="col-12 col-lg-6">
-							<div class="form-group">
-								<label for="cf_account_id" class="text-muted mb-1">
-									<strong><small><LocaleText t="Account ID"></LocaleText></small></strong>
-								</label>
-								<input id="cf_account_id"
-									   v-model="store.Configuration.Email.cf_account_id"
-									   type="text" class="form-control">
-							</div>
-						</div>
-					</template>
-					<div class="col-12">
+					<div class="col-12 col-lg-4">
 						<div class="form-group">
 							<label for="send_from" class="text-muted mb-1">
 								<strong><small>
@@ -259,8 +145,8 @@ const sendTestEmail = async () => {
 								</small></strong>
 							</label>
 							<input id="send_from"
-								   v-model="store.Configuration.Email.send_from"
-								   type="text" class="form-control">
+							       v-model="store.Configuration.Email.send_from"
+							       type="text" class="form-control">
 						</div>
 					</div>
 				</div>
@@ -272,21 +158,24 @@ const sendTestEmail = async () => {
 						<LocaleText t="Send Test Email"></LocaleText>
 					</small>
 				</label>
-				<form @submit="(e) => {e.preventDefault(); sendTestEmail()}"
-					  class="input-group">
+				<form
+					
+					@submit="(e) => {e.preventDefault(); sendTestEmail()}"
+					class="input-group">
+
 					<input type="email" class="form-control rounded-start-3"
-						   id="test_email"
-						   placeholder="john@example.com"
-						   v-model="testEmailReceiver"
-						   :disabled="testing">
+					       id="test_email"
+					       placeholder="john@example.com"
+					       v-model="testEmailReceiver"
+					       :disabled="testing">
 					<button class="btn bg-primary-subtle text-primary-emphasis border-primary-subtle rounded-end-3"
-							type="submit"
-							:disabled="testEmailReceiver.length === 0 || testing"
-							id="button-addon2">
+					        type="submit" value="Submit"
+					        :disabled="testEmailReceiver.length === 0 || testing"
+					        id="button-addon2">
 						<i class="bi bi-send me-2" v-if="!testing"></i>
 						<span class="spinner-border spinner-border-sm me-2" v-else>
-							<span class="visually-hidden">Loading...</span>
-						</span>
+						<span class="visually-hidden">Loading...</span>
+					</span>
 						<LocaleText :t="!testing ? 'Send':'Sending...'"></LocaleText>
 					</button>
 				</form>
@@ -299,9 +188,9 @@ const sendTestEmail = async () => {
 					</small>
 				</label>
 				<textarea class="form-control rounded-3 font-monospace"
-						  v-model="store.Configuration.Email.email_template"
-						  id="email_template"
-						  style="min-height: 400px"></textarea>
+				          v-model="store.Configuration.Email.email_template"
+				          id="email_template"
+				          style="min-height: 400px"></textarea>
 			</div>
 		</div>
 	</div>

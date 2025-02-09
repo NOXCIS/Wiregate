@@ -7,10 +7,11 @@ import VueDatePicker from "@vuepic/vue-datepicker";
 import dayjs from "dayjs";
 import LocaleText from "@/components/text/localeText.vue";
 import WeeklySchedule from "@/components/configurationComponents/peerScheduleJobsComponents/weeklySchedule.vue";
+import PeerRateLimitSettings from '@/components/configurationComponents/peerRateLimitSettings.vue'
 
 export default {
 	name: "schedulePeerJob",
-	components: {LocaleText, VueDatePicker, ScheduleDropdown, WeeklySchedule},
+	components: {LocaleText, VueDatePicker, ScheduleDropdown, WeeklySchedule, PeerRateLimitSettings},
 	props: {
 		dropdowns: Array[Object],
 		pjob: Object,
@@ -32,7 +33,8 @@ export default {
 		return {
 			inputType: undefined,
 			selectedDays: [],
-			timeIntervals: {}
+			timeIntervals: {},
+			thresholdValue: 0
 		}
 	},
 	watch:{
@@ -44,7 +46,42 @@ export default {
 					this.job = JSON.parse(JSON.stringify(newValue))
 				}
 			}
-		}	
+		},
+		'job.Value': {
+			immediate: true,
+			handler(newValue) {
+				if (this.isDataField) {
+					try {
+						const value = JSON.parse(newValue)
+						if (value.threshold) {
+							this.thresholdValue = value.threshold
+						}
+					} catch (e) {
+						this.thresholdValue = parseFloat(newValue) || 0
+					}
+				}
+			}
+		},
+		thresholdValue(newValue) {
+			if (this.isDataField) {
+				if (this.job.Action === 'rate_limit') {
+					// Preserve rate limits when updating threshold
+					try {
+						const currentValue = JSON.parse(this.job.Value || '{}')
+						this.job.Value = JSON.stringify({
+							...currentValue,
+							threshold: Number(newValue)
+						})
+					} catch (e) {
+						this.job.Value = JSON.stringify({
+							threshold: Number(newValue)
+						})
+					}
+				} else {
+					this.job.Value = String(newValue)
+				}
+			}
+		}
 	},
 	methods: {
 		save(){
@@ -195,6 +232,51 @@ export default {
 		updateTimeFromSlider(day, type, value) {
 			const timeString = this.minutesToTime(value);
 			this.updateTimeInterval(day, type, timeString);
+		},
+		getPeerObject() {
+			return {
+				id: this.job.Peer
+			}
+		},
+		getConfigInfo() {
+			return {
+				Name: this.job.Configuration
+			}
+		},
+		updateRateLimits(rates) {
+			try {
+				const currentValue = JSON.parse(this.job.Value || '{}')
+				this.job.Value = JSON.stringify({
+					threshold: Number(this.thresholdValue),
+					upload_rate: Number(rates.upload) || 0,
+					download_rate: Number(rates.download) || 0
+				})
+			} catch (e) {
+				console.error('Error updating rate limits:', e)
+			}
+		},
+		updateField(value) {
+			this.job.Field = value
+			if (this.isDataField && !this.job.Value) {
+				this.job.Value = '0'
+			}
+		},
+		updateAction(value) {
+			this.job.Action = value
+			if (value === 'rate_limit') {
+				// Initialize rate limit value structure
+				this.job.Value = JSON.stringify({
+					threshold: Number(this.thresholdValue),
+					upload_rate: 0,
+					download_rate: 0
+				})
+			} else if (this.isDataField) {
+				// Reset to simple threshold value for non-rate-limit actions
+				this.job.Value = String(this.thresholdValue)
+			}
+		},
+		isDataField() {
+			return ['total_receive', 'total_sent', 'total_data'].includes(this.job.Field)
 		}
 	},
 	computed: {
@@ -233,19 +315,42 @@ export default {
 						:edit="edit"
 						:options="this.dropdowns.Field"
 						:data="this.job.Field"
-						@update="(value) => {this.job.Field = value}"
+						@update="updateField"
 					></ScheduleDropdown>
 					<samp><LocaleText t="is"></LocaleText></samp>
 					
 					<!-- Hide operator for weekly schedule -->
 					<template v-if="this.job.Field !== 'weekly'">
 						<ScheduleDropdown
+							v-if="this.job.Field !== 'weekly' && this.isDataField"
 							:edit="edit"
 							:options="this.dropdowns.Operator"
 							:data="this.job.Operator"
-							@update="(value) => this.job.Operator = value"
+							@update="job.Operator = $event"
 						></ScheduleDropdown>
 					</template>
+
+					<!-- Threshold input for data usage -->
+					<div v-if="this.isDataField" class="input-group" style="width: auto">
+						<input
+							type="number"
+							class="form-control"
+							:disabled="!edit"
+							v-model="thresholdValue"
+							placeholder="Enter threshold"
+						/>
+						<span class="input-group-text">GB</span>
+					</div>
+
+					<!-- Add rate limit settings component -->
+					<div v-if="this.job.Action === 'rate_limit' && this.isDataField" class="flex-grow-1">
+						<PeerRateLimitSettings
+							:selectedPeer="getPeerObject()"
+							:configurationInfo="getConfigInfo()"
+							:embedded="true"
+							@update:rates="updateRateLimits"
+						/>
+					</div>
 
 					<!-- Date Picker -->
 					<VueDatePicker v-if="this.job.Field === 'date'"
@@ -290,7 +395,7 @@ export default {
 						:edit="edit"
 						:options="this.dropdowns.Action"
 						:data="this.job.Action"
-						@update="(value) => this.job.Action = value"
+						@update="updateAction"
 					></ScheduleDropdown>
 				</div>
 				

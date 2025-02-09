@@ -9,7 +9,8 @@ class Log:
         self.Status = Status
         self.Message = Message
 
-    def toJson(self):
+    def to_dict(self):
+        """Return a dictionary representation of the log entry."""
         return {
             "LogID": self.LogID,
             "JobID": self.JobID,
@@ -18,5 +19,5 @@ class Log:
             "Message": self.Message
         }
 
-    def __dict__(self):
-        return self.toJson()
+    def __repr__(self):
+        return str(self.to_dict())

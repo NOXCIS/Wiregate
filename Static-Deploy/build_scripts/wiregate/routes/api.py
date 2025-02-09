@@ -1476,6 +1476,22 @@ def API_savePeerScheduleJob():
         return ResponseObject(False, "Please specify job")
     job: dict = data['Job']
     
+    # Validate rate limit action
+    if job['Action'] == 'rate_limit':
+        try:
+            rates = json.loads(job.get('Value', '{}'))
+            if not isinstance(rates, dict) or 'upload_rate' not in rates or 'download_rate' not in rates:
+                return ResponseObject(False, "Invalid rate limit format. Must specify upload_rate and download_rate")
+            
+            # Validate rate values are positive numbers
+            if not isinstance(rates['upload_rate'], (int, float)) or rates['upload_rate'] < 0:
+                return ResponseObject(False, "Upload rate must be a positive number")
+            if not isinstance(rates['download_rate'], (int, float)) or rates['download_rate'] < 0:
+                return ResponseObject(False, "Download rate must be a positive number")
+                
+        except json.JSONDecodeError:
+            return ResponseObject(False, "Invalid rate limit format")
+    
     # Validate weekly schedule format
     if job['Field'] == 'weekly':
         print(f"\n[DEBUG] Processing weekly schedule. Value: {job['Value']}")

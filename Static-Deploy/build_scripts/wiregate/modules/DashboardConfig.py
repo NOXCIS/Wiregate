@@ -15,7 +15,7 @@ from ..Utilities import ValidateDNSAddress
 #from . DashboardAPIkey import DashboardAPIKey
 
 from . config import (
-    DASHBOARD_VERSION, CONFIGURATION_PATH, DASHBOARD_CONF,
+    DASHBOARD_VERSION, DASHBOARD_CONF,
     wgd_config_path,
     wgd_welcome,
     wgd_app_port,
@@ -82,6 +82,15 @@ class DashboardConfig:
             },
             "Database": {
                 "type": "sqlite"
+            },
+            "Email":{
+                "server": "",
+                "port": "",
+                "encryption": "",
+                "username": "",
+                "email_password": "",
+                "send_from": "",
+                "email_template": ""
             },
             "WireGuardConfiguration": {
                 "autostart": ""

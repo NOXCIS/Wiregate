@@ -13,59 +13,46 @@
 # limitations under the License.
 
 from wiregate.modules.shared import get_timestamped_filename
-from wiregate.dashboard import waitressInit, startThreads
-from wiregate.modules.Core import InitWireguardConfigurationsList
 from wiregate.dashboard import app, app_ip, app_port
+from wiregate.modules.Core import InitWireguardConfigurationsList
+from wiregate.dashboard import startThreads
+import logging
+import os
 from logging.handlers import RotatingFileHandler
-from flask import request, g
-from time import strftime
-import time, logging
+from waitress import serve
 
-
-@app.before_request
-def before_request():
-    """Store the start time of the request."""
-    g.start_time = time.time()
-
-@app.after_request
-def after_request(response):
-    """Log access details after the request is processed."""
-    # Safeguard in case g.start_time is not set
-    start_time = getattr(g, 'start_time', time.time())
-    response_time = round((time.time() - start_time) * 1000, 2)  # in milliseconds
-    
-    # Format log entry
-    timestamp = strftime('[%Y-%b-%d %H:%M]')
-    log_entry = (
-        f"{timestamp} "
-        f"User-Agent: {request.user_agent.string} "
-        f"IP: {request.remote_addr} "
-        f"Referrer: {request.referrer or 'No Referrer'} "
-        f"Method: {request.method} "
-        f"Scheme: {request.scheme} "
-        f"Path: {request.full_path} "
-        f"Status: {response.status_code} "
-        f"Response Time: {response_time} ms"
-    )
-    logger.info(log_entry)
-    
-    return response
-
-if __name__ == "__main__":
-    print("Starting Wiregate Dashboard...", flush=True)
-    InitWireguardConfigurationsList(startup=True)
-    
-    waitressInit()
-    # Start background threads
-    startThreads()
-    log_filename = get_timestamped_filename()
-    handler = RotatingFileHandler(log_filename, maxBytes=1000000, backupCount=3)
-
+def configure_logger():
     logger = logging.getLogger('wiregate')
     logger.setLevel(logging.INFO)
-    logger.addHandler(handler)
+    
+    # File handler configuration
+    log_filename = get_timestamped_filename()
+    os.makedirs(os.path.dirname(log_filename), exist_ok=True)
+    file_handler = RotatingFileHandler(log_filename, maxBytes=1000000, backupCount=3)
+    file_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    file_handler.setFormatter(file_formatter)
+    logger.addHandler(file_handler)
+    
+    # Stream handler configuration for console logging
+    stream_handler = logging.StreamHandler()
+    stream_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    stream_handler.setFormatter(stream_formatter)
+    logger.addHandler(stream_handler)
+    
+    return logger
 
-    app.run(host=app_ip, debug=True, port=app_port)
+logger = configure_logger()
+
+if __name__ == "__main__":
+    logger.info("Starting Wiregate Dashboard...")
+    InitWireguardConfigurationsList(startup=True)
+    startThreads()  # Start any background threads
+
+    # Use waitress for production (non-debug mode) to leverage its integrated logging
+    #if app.debug:
+    app.run(host=app_ip, port=app_port, debug=True)
+    #else:
+    #serve(app, host=app_ip, port=app_port, threads=8)
 
     
 

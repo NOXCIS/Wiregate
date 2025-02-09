@@ -97,7 +97,20 @@ const historicalNetworkSpeed = ref({
 
 const getData = () => {
 	fetchGet("/api/systemStatus", {}, (res) => {
-		const transformedData = transformApiData(res.data);
+		if (res.status === false) {
+			if (interval) {
+				clearInterval(interval)
+				setTimeout(() => {
+					getData()
+					interval = setInterval(() => {
+						getData()
+					}, 5000)
+				}, 5000)
+			}
+			return
+		}
+		
+		const transformedData = transformApiData(res.data)
 		historicalChartTimestamp.value.push(dayjs().format("HH:mm:ss A"))
 		dashboardStore.SystemStatus = transformedData
 		historicalCpuUsage.value.push(transformedData.CPU.cpu_percent)

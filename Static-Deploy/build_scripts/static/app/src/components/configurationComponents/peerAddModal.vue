@@ -18,6 +18,20 @@ import {WireguardConfigurationsStore} from "@/stores/WireguardConfigurationsStor
 
 const dashboardStore = DashboardConfigurationStore()
 const wireguardStore = WireguardConfigurationsStore()
+
+const autoSelectFirstAvailableIPs = (ips) => {
+	const ipv4Address = ips.find(ip => ip.includes('.')) // Find first IPv4
+	const ipv6Address = ips.find(ip => ip.includes(':')) // Find first IPv6
+	
+	if (ipv4Address) {
+		peerData.value.allowed_ips.push(`${ipv4Address}/32`)
+	}
+	
+	if (ipv6Address) {
+		peerData.value.allowed_ips.push(`${ipv6Address}/128`)
+	}
+}
+
 const peerData = ref({
 	bulkAdd: false,
 	bulkAddAmount: 0,
@@ -34,13 +48,17 @@ const peerData = ref({
 	advanced_security: "off",
 	override_allowed_ips: false,
 })
+
 const availableIp = ref([])
 const saving = ref(false)
 
 const route = useRoute()
 await fetchGet("/api/getAvailableIPs/" + route.params.id, {}, (res) => {
-	if (res.status){
-		availableIp.value = res.data;
+	if (res.status) {
+		availableIp.value = res.data
+		if (!peerData.value.bulkAdd) {
+			autoSelectFirstAvailableIPs(availableIp.value)
+		}
 	}
 })
 
@@ -84,6 +102,13 @@ watch(() => {
 }, () => {
 	if (peerData.value.bulkAddAmount > availableIp.value.length){
 		peerData.value.bulkAddAmount = availableIp.value.length
+	}
+})
+
+watch(() => peerData.value.bulkAdd, (newVal) => {
+	peerData.value.allowed_ips = []
+	if (!newVal) {
+		autoSelectFirstAvailableIPs(availableIp.value)
 	}
 })
 </script>
@@ -135,35 +160,6 @@ watch(() => {
 							</div>
 						</div>
 						<hr>
-						<div v-if="getProtocol === 'awg'">
-							<h5>
-								<LocaleText t="AmneziaWG Peer Setting"></LocaleText>
-							</h5>
-							<div >
-								<label class="form-label d-block"><small class="text-muted">
-									<LocaleText t="Advanced Security"></LocaleText>
-								</small></label>
-
-								<div class="btn-group" role="group">
-									<input type="radio" class="btn-check"
-									       v-model="peerData.advanced_security"
-									       value="on"
-									       name="advanced_security_radio" id="advanced_security_on" autocomplete="off">
-									<label class="btn btn-outline-primary  btn-sm" for="advanced_security_on">
-										<LocaleText t="On"></LocaleText>
-									</label>
-
-									<input type="radio"
-									       v-model="peerData.advanced_security"
-									       value="off"
-									       class="btn-check" name="advanced_security_radio" id="advanced_security_off" autocomplete="off">
-									<label class="btn btn-outline-primary btn-sm" for="advanced_security_off">
-										<LocaleText t="Off"></LocaleText>
-									</label>
-								</div>
-							</div>
-						</div>
-						
 						<div class="d-flex mt-2">
 							<button class="ms-auto btn btn-dark btn-brand rounded-3 px-3 py-2 shadow"
 							        :disabled="!allRequireFieldsFilled || saving"

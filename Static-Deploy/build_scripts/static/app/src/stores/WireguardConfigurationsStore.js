@@ -79,6 +79,14 @@ export const WireguardConfigurationsStore = defineStore('WireguardConfigurations
 					{
 						display: GetLocale("Delete Peer"),
 						value: "delete"
+					},
+					{
+						display: GetLocale("Set Rate Limit"),
+						value: "rate_limit",
+						defaultRates: {
+							upload_rate: 1000,
+							download_rate: 1000
+						}
 					}
 				]
 			}

@@ -1,14 +1,16 @@
 <template>
-  <div class="modal fade show" style="display: block">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
+  <div :class="{'modal fade show': !embedded}" :style="!embedded ? 'display: block' : ''">
+    <div :class="{'modal-dialog': !embedded}">
+      <div :class="{'modal-content': !embedded}">
+        <!-- Only show header and close button if not embedded -->
+        <div v-if="!embedded" class="modal-header">
           <h5 class="modal-title">
             <LocaleText t="Rate Limit Settings"></LocaleText>
           </h5>
           <button type="button" class="btn-close" @click="$emit('close')"></button>
         </div>
-        <div class="modal-body">
+
+        <div :class="{'modal-body': !embedded}">
           <div v-if="error" class="alert alert-danger mb-3 error-message">
             <span class="message-text">{{ error }}</span>
           </div>
@@ -75,7 +77,9 @@
             <LocaleText t="Enter 0 to remove rate limit"></LocaleText>
           </small>
         </div>
-        <div class="modal-footer">
+
+        <!-- Only show footer buttons if not embedded -->
+        <div v-if="!embedded" class="modal-footer">
           <button 
             class="btn btn-secondary"
             @click="removeRateLimit"
@@ -116,6 +120,10 @@ export default {
     configurationInfo: {
       type: Object,
       required: true
+    },
+    embedded: {
+      type: Boolean,
+      default: false
     }
   },
   setup() {
@@ -143,6 +151,20 @@ export default {
       const uploadRate = parseFloat(this.uploadRateValue);
       const downloadRate = parseFloat(this.downloadRateValue);
       return !isNaN(uploadRate) && !isNaN(downloadRate) && uploadRate >= 0 && downloadRate >= 0;
+    }
+  },
+  watch: {
+    uploadRateValue(val) {
+      this.emitRateUpdate();
+    },
+    downloadRateValue(val) {
+      this.emitRateUpdate();
+    },
+    uploadRateUnit() {
+      this.emitRateUpdate();
+    },
+    downloadRateUnit() {
+      this.emitRateUpdate(); 
     }
   },
   methods: {
@@ -274,7 +296,15 @@ export default {
         this.downloadRateUnit = newUnit;
         this.downloadRateValue = newValue;
       }
-    }
+    },
+    emitRateUpdate() {
+      if (this.embedded) {
+        this.$emit('update:rates', {
+          upload: this.convertToKb(this.uploadRateValue, this.uploadRateUnit),
+          download: this.convertToKb(this.downloadRateValue, this.downloadRateUnit)
+        });
+      }
+    },
   }
 }
 </script>
@@ -304,5 +334,10 @@ export default {
   word-break: break-all;
   white-space: normal;
   width: 100%;
+}
+/* Add embedded specific styles */
+.embedded-rate-limit {
+  padding: 0;
+  margin: 0;
 }
 </style> 
