@@ -8,10 +8,11 @@ import dayjs from "dayjs";
 import LocaleText from "@/components/text/localeText.vue";
 import WeeklySchedule from "@/components/configurationComponents/peerScheduleJobsComponents/weeklySchedule.vue";
 import PeerRateLimitSettings from '@/components/configurationComponents/peerRateLimitSettings.vue'
+import DataUsageSchedule from "@/components/configurationComponents/peerScheduleJobsComponents/dataUsageSchedule.vue";
 
 export default {
 	name: "schedulePeerJob",
-	components: {LocaleText, VueDatePicker, ScheduleDropdown, WeeklySchedule, PeerRateLimitSettings},
+	components: {LocaleText, VueDatePicker, ScheduleDropdown, WeeklySchedule, PeerRateLimitSettings, DataUsageSchedule},
 	props: {
 		dropdowns: Array[Object],
 		pjob: Object,
@@ -285,6 +286,34 @@ export default {
 		},
 		weeklyOptions() {
 			return this.dropdowns.Field.find(x => x.value === 'weekly')?.options || [];
+		},
+		formattedValue: {
+			get() {
+				if (this.isDataField && this.job.Value) {
+					try {
+						const obj = JSON.parse(this.job.Value);
+						return JSON.stringify(obj, null, 2);
+					} catch (e) {
+						return this.job.Value;
+					}
+				}
+				return this.job.Value;
+			},
+			set(value) {
+				try {
+					// Try to parse and re-stringify to remove formatting
+					const parsed = JSON.parse(value);
+					this.job.Value = JSON.stringify(parsed);
+				} catch (e) {
+					// If parsing fails, store the raw value
+					this.job.Value = value;
+				}
+			}
+		},
+		shouldShowJsonInput() {
+			return this.job.Field !== 'weekly' && 
+				   this.job.Field !== 'date' && 
+				   !(this.isDataField && ['restrict', 'allow'].includes(this.job.Action));
 		}
 	},
 	mounted() {
@@ -309,6 +338,7 @@ export default {
 				</span></small>
 			</div>
 			<div class="card-body pt-1" style="font-family: var(--bs-font-monospace)">
+				<!-- Top row with job type and comparator -->
 				<div class="d-flex gap-2 align-items-center mb-2">
 					<samp><LocaleText t="if"></LocaleText></samp>
 					<ScheduleDropdown
@@ -317,12 +347,11 @@ export default {
 						:data="this.job.Field"
 						@update="updateField"
 					></ScheduleDropdown>
-					<samp><LocaleText t="is"></LocaleText></samp>
-					
-					<!-- Hide operator for weekly schedule -->
+
+					<!-- Show operator for non-weekly fields -->
 					<template v-if="this.job.Field !== 'weekly'">
+						<samp><LocaleText t="is"></LocaleText></samp>
 						<ScheduleDropdown
-							v-if="this.job.Field !== 'weekly' && this.isDataField"
 							:edit="edit"
 							:options="this.dropdowns.Operator"
 							:data="this.job.Operator"
@@ -330,29 +359,20 @@ export default {
 						></ScheduleDropdown>
 					</template>
 
-					<!-- Threshold input for data usage -->
-					<div v-if="this.isDataField" class="input-group" style="width: auto">
+					<!-- Data unit input - only show for data fields -->
+					<div v-if="this.isDataField && this.job.Field !== 'weekly' && this.job.Field !== 'date'" class="input-group" style="width: auto">
 						<input
 							type="number"
-							class="form-control"
+							class="form-control form-control-sm"
 							:disabled="!edit"
 							v-model="thresholdValue"
 							placeholder="Enter threshold"
+							style="max-width: 120px"
 						/>
 						<span class="input-group-text">GB</span>
 					</div>
 
-					<!-- Add rate limit settings component -->
-					<div v-if="this.job.Action === 'rate_limit' && this.isDataField" class="flex-grow-1">
-						<PeerRateLimitSettings
-							:selectedPeer="getPeerObject()"
-							:configurationInfo="getConfigInfo()"
-							:embedded="true"
-							@update:rates="updateRateLimits"
-						/>
-					</div>
-
-					<!-- Date Picker -->
+					<!-- Date Picker - show for date fields -->
 					<VueDatePicker v-if="this.job.Field === 'date'"
 						:is24="true"
 						:min-date="new Date()"
@@ -365,31 +385,10 @@ export default {
 						:disabled="!edit"
 						:dark="this.store.Configuration.Server.dashboard_theme === 'dark'"
 					/>
-					
-					<!-- Regular input for non-weekly/date fields -->
-					<input v-if="this.job.Field !== 'weekly' && this.job.Field !== 'date'"
-						class="form-control form-control-sm form-control-dark rounded-3 flex-grow-1" 
-						:disabled="!edit"
-						v-model="this.job.Value"
-						style="width: auto">
-						
-					<samp>{{this.dropdowns.Field.find(x => x.value === this.job.Field)?.unit}} {</samp>
 				</div>
-				<div class="card card-body shadow-sm rounded-3 mb-2">
-		<!-- Weekly Schedule Component (outside main card) -->
-		<WeeklySchedule
-			v-if="this.job.Field === 'weekly'"
-			:edit="edit"
-			:weekly-options="weeklyOptions"
-			:selected-days="selectedDays"
-			:time-intervals="timeIntervals"
-			@update:time-interval="updateTimeInterval"
-				@update:toggle-day="toggleDay"
-			/>
-		</div>
-	</div>
-				<!-- Action section -->
-				<div class="px-5 d-flex gap-2 align-items-center">
+
+				<!-- Action section moved up -->
+				<div class="px-5 d-flex gap-2 align-items-center mb-2">
 					<samp><LocaleText t="then"></LocaleText></samp>
 					<ScheduleDropdown
 						:edit="edit"
@@ -398,7 +397,31 @@ export default {
 						@update="updateAction"
 					></ScheduleDropdown>
 				</div>
-				
+
+				<!-- Value input row -->
+				<div class="d-flex gap-2 align-items-center mb-2">
+					<!-- Data usage schedule -->
+					<DataUsageSchedule
+						v-if="isDataField"
+						:edit="edit"
+						:job="job"
+						:dropdowns="dropdowns"
+						@update:value="job.Value = $event"
+					/>
+				</div>
+
+				<!-- Weekly Schedule Component -->
+				<div v-if="this.job.Field === 'weekly'" class="card card-body shadow-sm rounded-3 mb-2">
+					<WeeklySchedule
+						:edit="edit"
+						:weekly-options="weeklyOptions"
+						:selected-days="selectedDays"
+						:time-intervals="timeIntervals"
+						@update:time-interval="updateTimeInterval"
+						@update:toggle-day="toggleDay"
+					/>
+				</div>
+
 				<!-- Footer section -->
 				<div class="d-flex gap-3">
 					<samp>}</samp>
@@ -421,8 +444,7 @@ export default {
 				</div>
 			</div>
 		</div>
-
-		
+	</div>
 </template>
 
 <style scoped>
@@ -492,5 +514,29 @@ select:disabled {
 	.card-body {
 		padding: 0.5rem;
 	}
+}
+
+/* Add these styles to match the input field appearance */
+.input-group .form-control-sm {
+	padding: 0.1rem 0.4rem;
+}
+
+.input-group .input-group-text {
+	padding: 0.1rem 0.4rem;
+	font-size: 0.875rem;
+}
+
+.input-group {
+	flex-wrap: nowrap;
+}
+
+.multi-line-input {
+	resize: none;
+	line-height: 1.2;
+	overflow-y: auto;
+	white-space: pre;
+	word-wrap: break-word;
+	word-break: break-all;
+	font-family: var(--bs-font-monospace);
 }
 </style>

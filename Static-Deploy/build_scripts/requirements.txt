@@ -11,10 +11,8 @@ configparser
 stem
 pyinstaller
 waitress
-google-auth
-google-auth-oauthlib
-google-api-python-client
 msal
+python-ldap
 
 
 

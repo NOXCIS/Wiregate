@@ -62,8 +62,9 @@ from .routes.tor_api import tor_blueprint
 from .routes.api import backGroundThread, peerJobScheduleBackgroundThread
 from .routes.traffic_weir_api import traffic_weir_blueprint
 from .routes.email_api import email_blueprint
-
-
+from .routes.peer_jobs_api import peer_jobs_blueprint
+from .routes.ldap_auth_api import ldap_auth_blueprint
+from .routes.data_charts_api import data_chart_blueprint
 
 
 
@@ -91,6 +92,11 @@ app.register_blueprint(api_blueprint, url_prefix=f'{APP_PREFIX}/api')
 app.register_blueprint(tor_blueprint, url_prefix=f'{APP_PREFIX}/api')
 app.register_blueprint(email_blueprint, url_prefix=f'{APP_PREFIX}/api')
 app.register_blueprint(traffic_weir_blueprint, url_prefix=f'{APP_PREFIX}/api')
+app.register_blueprint(peer_jobs_blueprint, url_prefix=f'{APP_PREFIX}/api')
+app.register_blueprint(ldap_auth_blueprint, url_prefix=f'{APP_PREFIX}/api')
+app.register_blueprint(data_chart_blueprint, url_prefix=f'{APP_PREFIX}/api')
+
+
 
 
 '''

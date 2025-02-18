@@ -36,6 +36,8 @@ const props = defineProps({
 	configurationInfo: Object
 })
 
+const MAX_DATA_POINTS = 42 // Limit number of data points to display
+
 const historySentData = ref({
 	timestamp: [],
 	data: []
@@ -49,35 +51,68 @@ const historyReceivedData = ref({
 const dashboardStore = DashboardConfigurationStore()
 const fetchRealtimeTrafficInterval = ref(undefined)
 const fetchRealtimeTraffic = async () => {
+	console.log('Fetching traffic for:', props.configurationInfo.Name) // Debug log
 	await fetchGet("/api/getWireguardConfigurationRealtimeTraffic", {
-		configurationName: "wg1"
+		configurationName: props.configurationInfo.Name
 	}, (res) => {
+		console.log('Received traffic data:', res.data) // Debug log
 		let timestamp = dayjs().format("hh:mm:ss A")
 		
-		if (res.data.sent !== 0 && res.data.recv !== 0){
+		if (res.data.sent !== 0 || res.data.recv !== 0) {
+			// Add new data points
 			historySentData.value.timestamp.push(timestamp)
 			historySentData.value.data.push(res.data.sent)
-
 			historyReceivedData.value.timestamp.push(timestamp)
 			historyReceivedData.value.data.push(res.data.recv)
-		}else{
-			if (historySentData.value.data.length > 0 && historyReceivedData.value.data.length > 0){
-				historySentData.value.timestamp.push(timestamp)
-				historySentData.value.data.push(res.data.sent)
 
-				historyReceivedData.value.timestamp.push(timestamp)
-				historyReceivedData.value.data.push(res.data.recv)
+			console.log('Updated chart data:', { // Debug log
+				sent: historySentData.value,
+				received: historyReceivedData.value
+			})
+
+			// Limit array size
+			if (historySentData.value.timestamp.length > MAX_DATA_POINTS) {
+				historySentData.value.timestamp.shift()
+				historySentData.value.data.shift()
+				historyReceivedData.value.timestamp.shift()
+				historyReceivedData.value.data.shift()
+			}
+		} else if (historySentData.value.data.length > 0) {
+			// Add zero values to show the drop in traffic
+			historySentData.value.timestamp.push(timestamp)
+			historySentData.value.data.push(0)
+			historyReceivedData.value.timestamp.push(timestamp)
+			historyReceivedData.value.data.push(0)
+
+			// Maintain array size limit
+			if (historySentData.value.timestamp.length > MAX_DATA_POINTS) {
+				historySentData.value.timestamp.shift()
+				historySentData.value.data.shift()
+				historyReceivedData.value.timestamp.shift()
+				historyReceivedData.value.data.shift()
 			}
 		}
 	})
 }
 const toggleFetchRealtimeTraffic = () => {
-	clearInterval(fetchRealtimeTrafficInterval.value)
-	fetchRealtimeTrafficInterval.value = undefined;
-	if (props.configurationInfo.Status){
+	console.log('Toggling realtime traffic for:', props.configurationInfo.Name) // Debug log
+	
+	// Clear existing interval
+	if (fetchRealtimeTrafficInterval.value) {
+		console.log('Clearing existing interval') // Debug log
+		clearInterval(fetchRealtimeTrafficInterval.value)
+		fetchRealtimeTrafficInterval.value = undefined
+	}
+	
+	// Set new interval if configuration is active
+	if (props.configurationInfo.Status) {
+		console.log('Setting new interval with refresh rate:', dashboardStore.Configuration.Server.dashboard_refresh_interval) // Debug log
 		fetchRealtimeTrafficInterval.value = setInterval(() => {
 			fetchRealtimeTraffic()
 		}, parseInt(dashboardStore.Configuration.Server.dashboard_refresh_interval))
+		
+		// Fetch initial data
+		fetchRealtimeTraffic()
 	}
 }
 
@@ -97,26 +132,81 @@ onBeforeUnmount(() => {
 	clearInterval(fetchRealtimeTrafficInterval.value)
 	fetchRealtimeTrafficInterval.value = undefined;
 })
+
+// Add this at the top level of the component to maintain color mappings
+const peerColorMap = new Map()
+
+// Modified color generation function
+const getColorForPeer = (peerId) => {
+	if (peerColorMap.has(peerId)) {
+		return peerColorMap.get(peerId)
+	}
+
+	const goldenRatio = 0.618033988749895
+	let hue = Math.random()
+	
+	// Make sure we generate a color that's not too close to existing ones
+	if (peerColorMap.size > 0) {
+		hue = (peerColorMap.size * goldenRatio) % 1
+	}
+	
+	const h = hue * 360
+	const s = 0.7
+	const l = 0.6
+	
+	const rgb = hslToRgb(h, s, l)
+	const color = rgbToHex(rgb[0], rgb[1], rgb[2])
+	
+	peerColorMap.set(peerId, color)
+	return color
+}
+
+const hslToRgb = (h, s, l) => {
+	let r, g, b;
+
+	if (s === 0) {
+		r = g = b = l;
+	} else {
+		const hue2rgb = (p, q, t) => {
+			if (t < 0) t += 1;
+			if (t > 1) t -= 1;
+			if (t < 1/6) return p + (q - p) * 6 * t;
+			if (t < 1/2) return q;
+			if (t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+			return p;
+		}
+
+		const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+		const p = 2 * l - q;
+		r = hue2rgb(p, q, h / 360 + 1/3);
+		g = hue2rgb(p, q, h / 360);
+		b = hue2rgb(p, q, h / 360 - 1/3);
+	}
+
+	return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
+const rgbToHex = (r, g, b) => {
+	return '#' + [r, g, b].map(x => {
+		const hex = x.toString(16);
+		return hex.length === 1 ? '0' + hex : hex;
+	}).join('');
+}
+
 const peersDataUsageChartData = computed(() => {
 	let data = props.configurationPeers.filter(x => (x.cumu_data + x.total_data) > 0)
 	
 	return {
-		labels: data.map(x => {
-			if (x.name) return x.name
-			return `Untitled Peer - ${x.id}`
-		}),
-		datasets: [{
-			label: 'Total Data Usage',
-			data: data.map(x => x.cumu_data + x.total_data),
-			backgroundColor: data.map(x => `#ffc107`),
-			tooltip: {
-				callbacks: {
-					label: (tooltipItem) => {
-						return `${tooltipItem.formattedValue} GB`
-					}
-				}
-			}
-		}]
+		labels: data.map(x => dayjs().format("hh:mm:ss A")),
+		datasets: data.map(peer => ({
+			label: peer.name || `Untitled Peer - ${peer.id}`,
+			data: [peer.cumu_data + peer.total_data],
+			fill: false,
+			borderColor: getColorForPeer(peer.id),
+			backgroundColor: getColorForPeer(peer.id),
+			tension: 0.4,
+			pointRadius: 2
+		}))
 	}
 })
 const peersRealtimeSentData = computed(() => {
@@ -156,34 +246,51 @@ const peersDataUsageChartOption = computed(() => {
 		responsive: true,
 		plugins: {
 			legend: {
-				display: false
+				display: true,
+				position: 'top'
+			},
+			tooltip: {
+				callbacks: {
+					label: (tooltipItem) => {
+						return `${tooltipItem.formattedValue} GB`
+					}
+				}
 			}
 		},
 		scales: {
 			x: {
 				ticks: {
-					display: false,
+					display: true,
+					maxRotation: 45,
+					minRotation: 45
 				},
 				grid: {
-					display: false
+					display: true,
+					color: 'rgba(255, 255, 255, 0.1)'
 				},
 			},
-			y:{
+			y: {
+				beginAtZero: true,
 				ticks: {
 					callback: (val, index) => {
 						return `${Math.round((val + Number.EPSILON) * 1000) / 1000} GB`
 					}
 				},
 				grid: {
-					display: false
+					display: true,
+					color: 'rgba(255, 255, 255, 0.1)'
 				},
 			}
+		},
+		animation: {
+			duration: 750
 		}
 	}
 })
 const realtimePeersChartOption = computed(() => {
 	return {
 		responsive: true,
+		maintainAspectRatio: false,
 		plugins: {
 			legend: {
 				display: false
@@ -191,7 +298,7 @@ const realtimePeersChartOption = computed(() => {
 			tooltip: {
 				callbacks: {
 					label: (tooltipItem) => {
-						return `${tooltipItem.formattedValue} MB/s`
+						return `${tooltipItem.formattedValue} Mb/s`
 					}
 				}
 			}
@@ -205,18 +312,27 @@ const realtimePeersChartOption = computed(() => {
 					display: true
 				},
 			},
-			y:{
+			y: {
+				beginAtZero: true,
 				ticks: {
 					callback: (val, index) => {
-						return `${Math.round((val + Number.EPSILON) * 1000) / 1000} MB/s`
+						return `${Math.round((val + Number.EPSILON) * 1000) / 1000} Mb/s`
 					}
 				},
 				grid: {
 					display: true
 				},
 			}
+		},
+		animation: {
+			duration: 0
 		}
 	}
+})
+
+// Clean up the color map when the component is unmounted
+onBeforeUnmount(() => {
+	peerColorMap.clear()
 })
 </script>
 
@@ -229,10 +345,10 @@ const realtimePeersChartOption = computed(() => {
 						<LocaleText t="Peers Data Usage"></LocaleText>
 					</small></div>
 				<div class="card-body pt-1">
-					<Bar
+					<Line
 						:data="peersDataUsageChartData"
 						:options="peersDataUsageChartOption"
-						style="width: 100%; height: 200px;  max-height: 200px"></Bar>
+						style="width: 100%; height: 200px;  max-height: 200px"></Line>
 				</div>
 			</div>
 		</div>
@@ -243,7 +359,7 @@ const realtimePeersChartOption = computed(() => {
 						<LocaleText t="Real Time Received Data Usage"></LocaleText>
 					</small>
 					<small class="text-primary fw-bold ms-auto" v-if="historyReceivedData.data.length > 0">
-						{{historyReceivedData.data[historyReceivedData.data.length - 1]}} MB/s
+						{{historyReceivedData.data[historyReceivedData.data.length - 1]}} Mb/s
 					</small>
 				</div>
 				<div class="card-body pt-1">
@@ -262,7 +378,7 @@ const realtimePeersChartOption = computed(() => {
 						<LocaleText t="Real Time Sent Data Usage"></LocaleText>
 					</small>
 					<small class="text-success fw-bold ms-auto"  v-if="historySentData.data.length > 0">
-						{{historySentData.data[historySentData.data.length - 1]}} MB/s
+						{{historySentData.data[historySentData.data.length - 1]}} Mb/s
 					</small>
 				</div>
 				<div class="card-body  pt-1">

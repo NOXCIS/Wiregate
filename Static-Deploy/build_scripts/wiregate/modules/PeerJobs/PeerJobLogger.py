@@ -3,8 +3,8 @@ Peer Job Logger
 """
 import sqlite3, os, uuid
 from typing import List
-from .Log import Log
-from .config import (
+from ..Log import Log
+from ..config import (
     CONFIGURATION_PATH
 )
 
@@ -45,6 +45,7 @@ class PeerJobLogger:
     def getLogs(self, all: bool = False, configName=None) -> list[Log]:
         logs: list[Log] = []
         try:
+            from ..Core import AllPeerJobs
             allJobs = AllPeerJobs.getAllJobs(configName)
             allJobsID = ", ".join([f"'{x.JobID}'" for x in allJobs])
             with self.loggerdb:

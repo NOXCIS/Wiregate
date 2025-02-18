@@ -17,6 +17,8 @@ import DashboardIPPortInput from "@/components/settingsComponent/dashboardIPPort
 import DashboardSettingsWireguardConfigurationAutostart
 	from "@/components/settingsComponent/dashboardSettingsWireguardConfigurationAutostart.vue";
 import DashboardEmailSettings from "@/components/settingsComponent/dashboardEmailSettings.vue";
+import LDAPSettings from "@/components/settingsComponent/LDAPSettings.vue";
+
 export default {
 	name: "settings",
 	methods: {ipV46RegexCheck},
@@ -31,7 +33,9 @@ export default {
 		DashboardSettingsInputIPAddressAndPort,
 		DashboardTheme,
 		DashboardSettingsInputWireguardConfigurationPath,
-		AccountSettingsInputPassword, AccountSettingsInputUsername, PeersDefaultSettingsInput},
+		AccountSettingsInputPassword, AccountSettingsInputUsername, PeersDefaultSettingsInput,
+		LDAPSettings
+	},
 	setup(){
 		const dashboardConfigurationStore = DashboardConfigurationStore()
 		return {dashboardConfigurationStore}
@@ -170,8 +174,39 @@ export default {
 									<AccountSettingsMFA v-if="!this.dashboardConfigurationStore.getActiveCrossServer()"></AccountSettingsMFA>
 								</div>
 							</div>
+							<div class="card">
+								<div class="card-header">
+									<h6 class="my-2">
+										<LocaleText t="LDAP Settings"></LocaleText>
+									</h6>
+								</div>
+								<div class="card-body">
+									<LDAPSettings v-if="!this.dashboardConfigurationStore.getActiveCrossServer()"></LDAPSettings>
+								</div>
+							</div>
 							<DashboardAPIKeys></DashboardAPIKeys>
-							<DashboardEmailSettings v-if="!this.dashboardConfigurationStore.getActiveCrossServer()"></DashboardEmailSettings>
+							<div class="card">
+								<div class="card-header">
+									<div class="d-flex justify-content-between align-items-center">
+										<h6 class="my-2">
+											<LocaleText t="Email Settings"></LocaleText>
+										</h6>
+										<button class="btn btn-link p-0" type="button" 
+												data-bs-toggle="collapse" 
+												data-bs-target="#emailSettingsCollapse" 
+												aria-expanded="true" 
+												aria-controls="emailSettingsCollapse">
+											<i class="bi bi-chevron-down"></i>
+										</button>
+									</div>
+								</div>
+								<div class="collapse show" id="emailSettingsCollapse">
+									<div class="card-body">
+										<DashboardEmailSettings v-if="!this.dashboardConfigurationStore.getActiveCrossServer()"></DashboardEmailSettings>
+									</div>
+								</div>
+							</div>
+							
 						</div>
 					</Transition>
 					

@@ -7,27 +7,13 @@ RUN npm ci && npm run build
 
 
 # builder: WGDashboard & Vanguards Python Binary Build stage
-FROM python:alpine AS builder
-# Receive the target platform. Buildx passes this automatically.
-ARG TARGETPLATFORM
-# Specify the desired Go version.
-ARG GO_VERSION=1.23.6
+FROM alpine:latest AS builder
 
-# Install required packages.
-# Note: Removed "go" from the list so we can install a newer version manually.
+ARG TARGETPLATFORM
+ARG GO_VERSION=1.24.0
 RUN apk add --no-cache \
-    py3-virtualenv \
-    py3-pip \
-    musl-dev \
-    build-base \
-    zlib-dev \
-    libffi-dev \
-    openssl-dev \
-    linux-headers \
-    rust \
-    cargo \
-    upx \
-    wget
+    wget 
+
 
 # Set GO_ARCH based on TARGETPLATFORM so we download the correct binary.
 RUN set -eux; \
@@ -55,11 +41,51 @@ COPY ./build_scripts/torflux/torflux.go /build/torflux-build/
 COPY ./build_scripts/torflux/go.mod /build/torflux-build/
 COPY ./build_scripts/traffic_weir/traffic-weir.go /build/traffic_weir/
 COPY ./build_scripts/traffic_weir/go.mod /build/traffic_weir/
+
+
+# Build each program from its directory
+RUN cd /build/torflux-build && \
+    GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
+    -buildmode=pie \
+    -ldflags="-X main.version=v1.0.0 -s -w" \
+    -o /build/torflux
+
+RUN cd /build/traffic_weir && \
+    GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
+    -buildmode=pie \
+    -ldflags="-X main.version=v1.0.0 -s -w" \
+    -o /build/traffic-weir
+
+
+
+
+
+
+
+FROM python:alpine AS pybuilder
+WORKDIR /build
+
 COPY ./build_scripts/wiregate /build/wiregate/
 COPY ./build_scripts/wiregate.py .
 COPY ./build_scripts/requirements.txt .
 COPY ./build_scripts/vanguards /build/vanguards/
 COPY ./build_scripts/vanguards.py .
+
+RUN apk add --no-cache \
+    py3-virtualenv \
+    py3-pip \
+    musl-dev \
+    build-base \
+    zlib-dev \
+    libffi-dev \
+    openssl-dev \
+    linux-headers \
+    rust \
+    cargo \
+    upx \
+    wget \
+    openldap-dev
+
 
 # Set up a virtual environment and install dependencies
 RUN     python3 -m venv venv \
@@ -71,12 +97,7 @@ RUN     venv/bin/pip install pyinstaller && \
         venv/bin/pyinstaller --clean --onefile --upx-dir=/usr/bin --name wiregate wiregate.py && \
         venv/bin/pyinstaller --clean --onefile --strip --upx-dir=/usr/bin --name vanguards vanguards.py 
 
-# Build each program from its directory
-RUN cd /build/torflux-build && \
-    go build -buildmode=pie -ldflags="-X main.version=v1.0.0 -s -w" -o /build/torflux
 
-RUN cd /build/traffic_weir && \
-    go build -buildmode=pie -ldflags="-X main.version=v1.0.0 -s -w" -o /build/traffic-weir
 
 
 # Stage 3: Final image
@@ -125,8 +146,8 @@ COPY --from=noxcis/awg-bins:latest /awg /usr/bin/awg
 COPY --from=noxcis/awg-bins:latest /awg-quick /usr/bin/awg-quick
 
 # Copy WG-Dash & Tor Vanguards binaries
-COPY --from=builder /build/dist/wiregate /WireGate/wiregate
-COPY --from=builder /build/dist/vanguards /WireGate/vanguards
+COPY --from=pybuilder /build/dist/wiregate /WireGate/wiregate
+COPY --from=pybuilder /build/dist/vanguards /WireGate/vanguards
 COPY --from=builder /build/torflux /WireGate/torflux
 COPY --from=builder /build/traffic-weir /WireGate/traffic-weir
 

@@ -5,6 +5,7 @@ import bcrypt
 import secrets
 import ipaddress
 from typing import Any
+import ldap  # You'll need to install python-ldap
 
 from . shared import (
     sqlSelect, sqlUpdate
@@ -94,6 +95,23 @@ class DashboardConfig:
             },
             "WireGuardConfiguration": {
                 "autostart": ""
+            },
+            "LDAP": {
+                "enabled": "false",
+                "server": "",
+                "port": "389",
+                "use_ssl": "false",
+                "bind_dn": "",
+                "bind_password": "",
+                "search_base": "",
+                "search_filter": "(sAMAccountName=%%s)",
+                "require_group": "false",
+                "group_dn": "",
+                "attr_username": "sAMAccountName",
+                "attr_email": "mail",
+                "attr_firstname": "givenName",
+                "attr_lastname": "sn",
+                "domain": ""
             }
         }
 

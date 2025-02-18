@@ -1,7 +1,7 @@
 import os, hashlib, bcrypt, pyotp
 import psutil, logging, json, ipaddress
 import re, shutil, requests
-
+import ldap
 
 from datetime import datetime
 from icmplib import ping, traceroute
@@ -176,19 +176,114 @@ def API_RequireAuthentication():
     return ResponseObject(data=DashboardConfig.GetConfig("Server", "auth_req")[1])
 
 
+def authenticate_ldap(username, password):
+    """
+    Authenticate user against LDAP server
+    Returns (success, user_data, error_message)
+    """
+    if not DashboardConfig.GetConfig("LDAP", "enabled")[1]:
+        return False, None, "LDAP authentication not enabled"
+
+    try:
+        # Initialize LDAP connection
+        ldap_server = DashboardConfig.GetConfig("LDAP", "server")[1]
+        ldap_port = DashboardConfig.GetConfig("LDAP", "port")[1]
+        use_ssl = DashboardConfig.GetConfig("LDAP", "use_ssl")[1]
+        
+        uri = f"{'ldaps' if use_ssl else 'ldap'}://{ldap_server}:{ldap_port}"
+        conn = ldap.initialize(uri)
+        conn.set_option(ldap.OPT_REFERRALS, 0)
+        
+        # Bind with service account if provided
+        bind_dn = DashboardConfig.GetConfig("LDAP", "bind_dn")[1]
+        bind_password = DashboardConfig.GetConfig("LDAP", "bind_password")[1]
+        
+        if bind_dn and bind_password:
+            conn.simple_bind_s(bind_dn, bind_password)
+        
+        # Search for user
+        search_base = DashboardConfig.GetConfig("LDAP", "search_base")[1]
+        search_filter = DashboardConfig.GetConfig("LDAP", "search_filter")[1]
+        
+        # Replace %s with actual username
+        search_filter = search_filter % username
+        
+        # Search for user
+        results = conn.search_s(
+            search_base,
+            ldap.SCOPE_SUBTREE,
+            search_filter,
+            ['dn', 'mail', 'givenName', 'sn']
+        )
+        
+        if not results:
+            return False, None, "User not found"
+            
+        user_dn = results[0][0]
+        user_attrs = results[0][1]
+        
+        # Verify group membership if required
+        if DashboardConfig.GetConfig("LDAP", "require_group")[1]:
+            group_dn = DashboardConfig.GetConfig("LDAP", "group_dn")[1]
+            group_filter = f"(&(objectClass=group)(member={user_dn}))"
+            group_results = conn.search_s(
+                group_dn,
+                ldap.SCOPE_SUBTREE,
+                group_filter
+            )
+            if not group_results:
+                return False, None, "User not in required group"
+        
+        # Authenticate user
+        try:
+            conn.simple_bind_s(user_dn, password)
+        except ldap.INVALID_CREDENTIALS:
+            return False, None, "Invalid credentials"
+            
+        # Get user attributes
+        user_data = {
+            "username": username,
+            "email": user_attrs.get('mail', [b''])[0].decode('utf-8'),
+            "firstname": user_attrs.get('givenName', [b''])[0].decode('utf-8'),
+            "lastname": user_attrs.get('sn', [b''])[0].decode('utf-8')
+        }
+        
+        return True, user_data, None
+        
+    except ldap.LDAPError as e:
+        return False, None, f"LDAP Error: {str(e)}"
+    finally:
+        if 'conn' in locals():
+            conn.unbind_s()
+
 @api_blueprint.post('/authenticate')
 def API_AuthenticateLogin():
     data = request.get_json()
     if not DashboardConfig.GetConfig("Server", "auth_req")[1]:
         return ResponseObject(True, DashboardConfig.GetConfig("Other", "welcome_session")[1])
 
-    if DashboardConfig.APIAccessed:
-        authToken = hashlib.sha256(f"{request.headers.get('wg-dashboard-apikey')}{datetime.now()}".encode()).hexdigest()
+    # Check if LDAP is enabled
+    ldap_enabled = DashboardConfig.GetConfig("LDAP", "enabled")[1]
+    
+    if ldap_enabled:
+        success, user_data, error = authenticate_ldap(data['username'], data['password'])
+        if not success:
+            AllDashboardLogger.log(str(request.url), str(request.remote_addr), 
+                                 Message=f"LDAP Login failed: {data['username']} - {error}")
+            return ResponseObject(False, error)
+            
+        # LDAP authentication successful
+        authToken = hashlib.sha256(f"{data['username']}{datetime.now()}".encode()).hexdigest()
         session['username'] = authToken
+        session['user_data'] = user_data  # Store user data in session
         resp = ResponseObject(True, DashboardConfig.GetConfig("Other", "welcome_session")[1])
         resp.set_cookie("authToken", authToken)
         session.permanent = True
+        AllDashboardLogger.log(str(request.url), str(request.remote_addr), 
+                             Message=f"LDAP Login success: {data['username']}")
         return resp
+        
+    # Continue with existing local authentication if LDAP is not enabled
     valid = bcrypt.checkpw(data['password'].encode("utf-8"),
                            DashboardConfig.GetConfig("Account", "password")[1].encode("utf-8"))
     totpEnabled = DashboardConfig.GetConfig("Account", "enable_totp")[1]
@@ -1467,154 +1562,7 @@ def API_getDashboardVersion():
 def API_getDashboardProto():
     return ResponseObject(data=DashboardConfig.GetConfig("Server", "protocol")[1])
 
-@api_blueprint.post('/savePeerScheduleJob/')
-def API_savePeerScheduleJob():
-    data = request.json
-    print(f"\n[DEBUG] Received job data: {json.dumps(data, indent=2)}")
-    
-    if "Job" not in data.keys():
-        return ResponseObject(False, "Please specify job")
-    job: dict = data['Job']
-    
-    # Validate rate limit action
-    if job['Action'] == 'rate_limit':
-        try:
-            rates = json.loads(job.get('Value', '{}'))
-            if not isinstance(rates, dict) or 'upload_rate' not in rates or 'download_rate' not in rates:
-                return ResponseObject(False, "Invalid rate limit format. Must specify upload_rate and download_rate")
-            
-            # Validate rate values are positive numbers
-            if not isinstance(rates['upload_rate'], (int, float)) or rates['upload_rate'] < 0:
-                return ResponseObject(False, "Upload rate must be a positive number")
-            if not isinstance(rates['download_rate'], (int, float)) or rates['download_rate'] < 0:
-                return ResponseObject(False, "Download rate must be a positive number")
-                
-        except json.JSONDecodeError:
-            return ResponseObject(False, "Invalid rate limit format")
-    
-    # Validate weekly schedule format
-    if job['Field'] == 'weekly':
-        print(f"\n[DEBUG] Processing weekly schedule. Value: {job['Value']}")
-        try:
-            if not job['Value']:
-                return ResponseObject(False, "Weekly schedule cannot be empty")
-                
-            schedules = job['Value'].split(',')
-            print(f"[DEBUG] Split schedules: {schedules}")
-            
-            for schedule in schedules:
-                try:
-                    print(f"\n[DEBUG] Processing schedule: {schedule}")
-                    
-                    # First, split on the hyphen to separate the time range
-                    time_range_parts = schedule.strip().split('-')
-                    print(f"[DEBUG] Time range parts: {time_range_parts}")
-                    
-                    if len(time_range_parts) != 2:
-                        print(f"[DEBUG] Invalid time range format")
-                        return ResponseObject(False, f"Invalid time range format: {schedule}")
-                    
-                    # Get the day from the first part (before the first colon)
-                    start_parts = time_range_parts[0].split(':', 1)
-                    print(f"[DEBUG] Start parts: {start_parts}")
-                    
-                    if len(start_parts) != 2:
-                        print(f"[DEBUG] Invalid start time format")
-                        return ResponseObject(False, f"Invalid start time format: {time_range_parts[0]}")
-                    
-                    day = start_parts[0]
-                    start_time = ':'.join(start_parts[1].split(':')[:2])  # Take only HH:MM
-                    end_time = ':'.join(time_range_parts[1].split(':')[:2])  # Take only HH:MM
-                    
-                    print(f"[DEBUG] Parsed values - Day: {day}, Start: {start_time}, End: {end_time}")
-                    
-                    # Validate day
-                    try:
-                        day_num = int(day)
-                        print(f"[DEBUG] Day number: {day_num}")
-                        if not (0 <= day_num <= 6):
-                            print(f"[DEBUG] Invalid day number: {day_num}")
-                            return ResponseObject(False, "Weekly schedule day must be between 0 (Monday) and 6 (Sunday)")
-                    except ValueError as e:
-                        print(f"[DEBUG] Day number conversion error: {e}")
-                        return ResponseObject(False, f"Invalid day number: {day}")
-                    
-                    # Validate time format (HH:MM)
-                    try:
-                        print(f"[DEBUG] Attempting to parse times - Start: {start_time}, End: {end_time}")
-                        start_dt = datetime.strptime(start_time, '%H:%M')
-                        end_dt = datetime.strptime(end_time, '%H:%M')
-                        print(f"[DEBUG] Parsed times successfully - Start: {start_dt}, End: {end_dt}")
-                        
-                        # Validate time range
-                        if start_dt >= end_dt:
-                            day_names = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-                            print(f"[DEBUG] Invalid time range: {start_dt} >= {end_dt}")
-                            return ResponseObject(False, f"Invalid time range for {day_names[day_num]}: end time must be after start time")
-                            
-                    except ValueError as e:
-                        print(f"[DEBUG] Time parsing error: {e}")
-                        return ResponseObject(False, f"Time must be in HH:MM format: {start_time} or {end_time}")
-                    
-                except Exception as e:
-                    print(f"[DEBUG] Schedule processing error: {str(e)}")
-                    return ResponseObject(False, f"Invalid schedule format: {str(e)}")
-                
-            # Validate no duplicate days
-            days = [s.split('-')[0].split(':', 1)[0].strip() for s in schedules]
-            print(f"[DEBUG] Checking for duplicate days: {days}")
-            if len(days) != len(set(days)):
-                print(f"[DEBUG] Found duplicate days")
-                return ResponseObject(False, "Duplicate days are not allowed")
-                
-        except Exception as e:
-            print(f"[DEBUG] Top-level error: {str(e)}")
-            return ResponseObject(False, f"Invalid weekly schedule format: {str(e)}")
 
-    print("[DEBUG] Validation completed successfully")
-    if "Peer" not in job.keys() or "Configuration" not in job.keys():
-        return ResponseObject(False, "Please specify peer and configuration")
-    configuration = Configurations.get(job['Configuration'])
-    f, fp = configuration.searchPeer(job['Peer'])
-    if not f:
-        return ResponseObject(False, "Peer does not exist")
-
-    s, p = AllPeerJobs.saveJob(PeerJob(
-        job['JobID'], job['Configuration'], job['Peer'], job['Field'], job['Operator'], job['Value'],
-        job['CreationDate'], job['ExpireDate'], job['Action']))
-    if s:
-        return ResponseObject(s, data=p)
-    return ResponseObject(s, message=p)
-
-@api_blueprint.post('/deletePeerScheduleJob/')
-def API_deletePeerScheduleJob():
-    data = request.json
-    if "Job" not in data.keys():
-        return ResponseObject(False, "Please specify job")
-    job: dict = data['Job']
-    if "Peer" not in job.keys() or "Configuration" not in job.keys():
-        return ResponseObject(False, "Please specify peer and configuration")
-    configuration = Configurations.get(job['Configuration'])
-    f, fp = configuration.searchPeer(job['Peer'])
-    if not f:
-        return ResponseObject(False, "Peer does not exist")
-
-    s, p = AllPeerJobs.deleteJob(PeerJob(
-        job['JobID'], job['Configuration'], job['Peer'], job['Field'], job['Operator'], job['Value'],
-        job['CreationDate'], job['ExpireDate'], job['Action']))
-    if s:
-        return ResponseObject(s, data=p)
-    return ResponseObject(s, message=p)
-
-@api_blueprint.get('/getPeerScheduleJobLogs/<configName>')
-def API_getPeerScheduleJobLogs(configName):
-    if configName not in Configurations.keys():
-        return ResponseObject(False, "Configuration does not exist")
-    data = request.args.get("requestAll")
-    requestAll = False
-    if data is not None and data == "true":
-        requestAll = True
-    return ResponseObject(data=JobLogger.getLogs(requestAll, configName))
 
 
 '''
@@ -2072,3 +2020,4 @@ def peerJobScheduleBackgroundThread():
         while True:
             AllPeerJobs.runJob()
             time.sleep(15)
+

@@ -24,11 +24,11 @@ const autoSelectFirstAvailableIPs = (ips) => {
 	const ipv6Address = ips.find(ip => ip.includes(':')) // Find first IPv6
 	
 	if (ipv4Address) {
-		peerData.value.allowed_ips.push(`${ipv4Address}/32`)
+		peerData.value.allowed_ips.push(`${ipv4Address}`)
 	}
 	
 	if (ipv6Address) {
-		peerData.value.allowed_ips.push(`${ipv6Address}/128`)
+		peerData.value.allowed_ips.push(`${ipv6Address}`)
 	}
 }
 
