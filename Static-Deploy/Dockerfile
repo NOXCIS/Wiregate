@@ -12,8 +12,9 @@ FROM alpine:latest AS builder
 ARG TARGETPLATFORM
 ARG GO_VERSION=1.24.0
 RUN apk add --no-cache \
-    wget 
-
+    wget \
+    gcc \
+    musl-dev
 
 # Set GO_ARCH based on TARGETPLATFORM so we download the correct binary.
 RUN set -eux; \
@@ -24,7 +25,7 @@ RUN set -eux; \
         *) echo "unsupported platform: ${TARGETPLATFORM}" && exit 1 ;; \
     esac; \
     echo "Downloading Go ${GO_VERSION} for ${GO_ARCH}"; \
-    wget https://golang.org/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz; \
+    wget -q https://golang.org/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz; \
     tar -C /usr/local -xzf go${GO_VERSION}.linux-${GO_ARCH}.tar.gz; \
     rm go${GO_VERSION}.linux-${GO_ARCH}.tar.gz
 
@@ -46,13 +47,11 @@ COPY ./build_scripts/traffic_weir/go.mod /build/traffic_weir/
 # Build each program from its directory
 RUN cd /build/torflux-build && \
     GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
-    -buildmode=pie \
     -ldflags="-X main.version=v1.0.0 -s -w" \
     -o /build/torflux
 
 RUN cd /build/traffic_weir && \
     GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
-    -buildmode=pie \
     -ldflags="-X main.version=v1.0.0 -s -w" \
     -o /build/traffic-weir
 

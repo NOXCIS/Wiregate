@@ -36,7 +36,8 @@ const props = defineProps({
 	configurationInfo: Object
 })
 
-const MAX_DATA_POINTS = 42 // Limit number of data points to display
+const MAX_DATA_POINTS = 30
+const peerDataHistory = new Map()
 
 const historySentData = ref({
 	timestamp: [],
@@ -193,14 +194,42 @@ const rgbToHex = (r, g, b) => {
 	}).join('');
 }
 
+// Add function to manage peer history
+const updatePeerHistory = (peer) => {
+	const timestamp = dayjs().format("hh:mm:ss A")
+	const totalData = peer.cumu_data + peer.total_data
+	
+	if (!peerDataHistory.has(peer.id)) {
+		peerDataHistory.set(peer.id, {
+			timestamps: [timestamp],
+			values: [totalData]
+		})
+	} else {
+		const history = peerDataHistory.get(peer.id)
+		history.timestamps.push(timestamp)
+		history.values.push(totalData)
+		
+		// Keep only last MAX_DATA_POINTS
+		if (history.timestamps.length > MAX_DATA_POINTS) {
+			history.timestamps.shift()
+			history.values.shift()
+		}
+	}
+}
+
+// Update the peersDataUsageChartData computed property
 const peersDataUsageChartData = computed(() => {
-	let data = props.configurationPeers.filter(x => (x.cumu_data + x.total_data) > 0)
+	const activePeers = props.configurationPeers.filter(x => (x.cumu_data + x.total_data) > 0)
+	
+	// Update history for all active peers
+	activePeers.forEach(updatePeerHistory)
 	
 	return {
-		labels: data.map(x => dayjs().format("hh:mm:ss A")),
-		datasets: data.map(peer => ({
+		labels: [...new Set(Array.from(peerDataHistory.values())
+			.flatMap(history => history.timestamps))].sort(),
+		datasets: activePeers.map(peer => ({
 			label: peer.name || `Untitled Peer - ${peer.id}`,
-			data: [peer.cumu_data + peer.total_data],
+			data: peerDataHistory.get(peer.id)?.values || [],
 			fill: false,
 			borderColor: getColorForPeer(peer.id),
 			backgroundColor: getColorForPeer(peer.id),
@@ -209,6 +238,7 @@ const peersDataUsageChartData = computed(() => {
 		}))
 	}
 })
+
 const peersRealtimeSentData = computed(() => {
 	return {
 		labels: [...historySentData.value.timestamp],
@@ -333,6 +363,15 @@ const realtimePeersChartOption = computed(() => {
 // Clean up the color map when the component is unmounted
 onBeforeUnmount(() => {
 	peerColorMap.clear()
+	peerDataHistory.clear()
+})
+
+// Add watcher for configuration status changes
+watch(() => props.configurationInfo.Status, (newStatus) => {
+	if (!newStatus) {
+		// Clear histories when configuration is stopped
+		peerDataHistory.clear()
+	}
 })
 </script>
 
