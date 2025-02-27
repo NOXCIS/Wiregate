@@ -10,7 +10,7 @@ from email.mime.application import MIMEApplication
 from email.utils import formataddr
 from typing import Optional, Tuple
 import requests
-from . DashboardConfig import DashboardConfig   # Import from the correct module
+from ..DashboardConfig import DashboardConfig   # Import from the correct module
 import base64
 
 

@@ -60,7 +60,6 @@ RUN cd /build/traffic_weir && \
 
 
 
-
 FROM python:alpine AS pybuilder
 WORKDIR /build
 
@@ -83,19 +82,30 @@ RUN apk add --no-cache \
     cargo \
     upx \
     wget \
-    openldap-dev
-
+    openldap-dev \
+    ccache
 
 # Set up a virtual environment and install dependencies
 RUN     python3 -m venv venv \
         && venv/bin/pip install --upgrade pip \
         && venv/bin/pip install -r requirements.txt
 
-# Use PyInstaller to create a standalone binary with UPX compression
-RUN     venv/bin/pip install pyinstaller && \
-        venv/bin/pyinstaller --clean --onefile --upx-dir=/usr/bin --name wiregate wiregate.py && \
-        venv/bin/pyinstaller --clean --onefile --strip --upx-dir=/usr/bin --name vanguards vanguards.py 
-
+# Use PyInstaller to create standalone binaries with UPX compression
+RUN    venv/bin/pyinstaller \
+            --onefile \
+            --clean \
+            --hidden-import=gunicorn.glogging \
+            --hidden-import=gunicorn.workers.sync \
+            --hidden-import=gunicorn.workers.gthread \
+            --distpath=/build/dist \
+            --name=wiregate \
+            wiregate.py && \
+        venv/bin/pyinstaller \
+            --onefile \
+            --clean \
+            --distpath=/build/dist \
+            --name=vanguards \
+            vanguards.py
 
 
 
@@ -108,7 +118,7 @@ ENV WGD_CONF_PATH="/etc/wireguard"
 COPY ./src /WireGate/
 
 # Install necessary tools and libraries in the final image
-RUN apk add --no-cache wireguard-tools iptables ip6tables tzdata sudo && \
+RUN apk add --no-cache wireguard-tools iptables ip6tables tzdata sudo openldap && \
     apk upgrade && \
     apk cache clean && \
     chmod +x /WireGate/wiregate.sh && chmod +x /WireGate/entrypoint.sh &&\

@@ -9,11 +9,9 @@ requests
 vanguards
 configparser
 stem
-pyinstaller
-waitress
 msal
 python-ldap
-
-
-
-
+paste
+gunicorn
+pyinstaller
+filelock

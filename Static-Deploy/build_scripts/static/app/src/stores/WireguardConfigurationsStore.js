@@ -93,8 +93,10 @@ export const WireguardConfigurationsStore = defineStore('WireguardConfigurations
 		},
 		eventSource: null,
 		peerRateLimits: {},
+		peerSchedulerTypes: {},
 		fetchingRateLimit: false,
 		rateLimitError: null,
+		interfaceSchedulers: {},
 	}),
 	actions: {
 		async getConfigurations(){
@@ -126,51 +128,95 @@ export const WireguardConfigurationsStore = defineStore('WireguardConfigurations
 				this.eventSource.close()
 			}
 		},
+		async getPeerSettings(interfaceName, peerKey) {
+			try {
+				const response = await fetchGet("/api/get_peer_settings", {
+					interface: interfaceName,
+					peer_key: peerKey
+				});
+				
+				if (!response?.status) {
+					throw new Error(response?.message || 'Failed to fetch peer settings');
+				}
+				
+				return response.data;
+			} catch (error) {
+				console.error('Fetch error:', error);
+				throw error;
+			}
+		},
 		async fetchPeerRateLimit(interfaceName, peerKey) {
 			this.fetchingRateLimit = true;
 			this.rateLimitError = null;
+			
+			console.log('[DEBUG] Fetching rate limit for:', {
+				interface: interfaceName,
+				peer: peerKey
+			});
 			
 			try {
 				await fetchGet("/api/get_peer_rate_limit", {
 					interface: interfaceName,
 					peer_key: peerKey
 				}, (response) => {
+					console.log('[DEBUG] Rate limit response:', response);
+					
 					if (!response?.status) {
 						throw new Error(response?.message || 'Failed to fetch rate limits');
 					}
 					
 					this.peerRateLimits[peerKey] = {
 						upload_rate: response.data?.upload_rate ?? 0,
-						download_rate: response.data?.download_rate ?? 0
+						download_rate: response.data?.download_rate ?? 0,
+						scheduler_type: response.data?.scheduler_type || 'htb'
 					};
+					
+					console.log('[DEBUG] Updated peerRateLimits:', this.peerRateLimits[peerKey]);
 				});
 			} catch (error) {
-				console.error('Fetch error:', error);
+				console.error('[DEBUG] Fetch error:', error);
 				this.rateLimitError = error.message || 'Failed to fetch rate limits';
-				this.peerRateLimits[peerKey] = { upload_rate: 0, download_rate: 0 };
+				this.peerRateLimits[peerKey] = { 
+					upload_rate: 0, 
+					download_rate: 0,
+					scheduler_type: 'htb' 
+				};
 			} finally {
 				this.fetchingRateLimit = false;
 			}
 		},
-		async setPeerRateLimit(interfaceName, peerKey, uploadRate, downloadRate) {
+		async setPeerRateLimit(interfaceName, peerKey, uploadRate, downloadRate, schedulerType) {
+			console.log('[DEBUG] Setting rate limit:', {
+				interface: interfaceName,
+				peer: peerKey,
+				upload: uploadRate,
+				download: downloadRate,
+				scheduler: schedulerType
+			});
+			
 			try {
 				await fetchPost("/api/set_peer_rate_limit", {
 					interface: interfaceName,
 					peer_key: peerKey,
 					upload_rate: uploadRate,
-					download_rate: downloadRate
+					download_rate: downloadRate,
+					scheduler_type: schedulerType
 				}, (response) => {
+					console.log('[DEBUG] Set rate limit response:', response);
+					
 					if (response?.status) {
 						this.peerRateLimits[peerKey] = {
 							upload_rate: uploadRate,
-							download_rate: downloadRate
+							download_rate: downloadRate,
+							scheduler_type: schedulerType
 						};
+						console.log('[DEBUG] Updated peerRateLimits after set:', this.peerRateLimits[peerKey]);
 						return true;
 					}
 					throw new Error(response?.message || 'Failed to set rate limits');
 				});
 			} catch (error) {
-				console.error('Request error:', error);
+				console.error('[DEBUG] Request error:', error);
 				throw error;
 			}
 		},
@@ -188,6 +234,37 @@ export const WireguardConfigurationsStore = defineStore('WireguardConfigurations
 				});
 			} catch (error) {
 				console.error('Request error:', error);
+				throw error;
+			}
+		},
+		async getInterfaceScheduler(interfaceName) {
+			console.log('[DEBUG] getInterfaceScheduler called with:', interfaceName);
+			
+			try {
+				let schedulerData = null;
+				
+				await fetchGet("/api/get_interface_scheduler", {
+					interface: interfaceName
+				}, (response) => {
+					console.log('[DEBUG] Raw getInterfaceScheduler response:', response);
+					
+					if (!response?.status) {
+						throw new Error(response?.message || 'Failed to fetch interface scheduler');
+					}
+					
+					schedulerData = {
+						scheduler_type: response.data?.scheduler_type || 'htb',
+						locked: response.data?.locked || false
+					};
+					
+					this.interfaceSchedulers[interfaceName] = schedulerData;
+					console.log('[DEBUG] Updated interfaceSchedulers:', this.interfaceSchedulers);
+				});
+				
+				return schedulerData;
+				
+			} catch (error) {
+				console.error('[DEBUG] getInterfaceScheduler error:', error);
 				throw error;
 			}
 		}

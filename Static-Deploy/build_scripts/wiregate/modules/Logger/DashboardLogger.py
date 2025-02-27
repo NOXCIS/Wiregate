@@ -2,7 +2,7 @@
 Dashboard Logger Class
 """
 import sqlite3, os, uuid, threading, logging
-from .config import (
+from ..config import (
     CONFIGURATION_PATH
 )
 

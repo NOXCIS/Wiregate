@@ -11,6 +11,9 @@ import PeerSearch from "@/components/configurationComponents/peerSearch.vue";
 import Peer from "@/components/configurationComponents/peer.vue";
 import PeerListModals from "@/components/configurationComponents/peerListComponents/peerListModals.vue";
 import PeerIntersectionObserver from "@/components/configurationComponents/peerIntersectionObserver.vue";
+import DeleteConfiguration from "@/components/configurationComponents/deleteConfiguration.vue";
+import ConfigurationBackupRestore from "@/components/configurationComponents/configurationBackupRestore.vue";
+import EditRawConfigurationFile from "@/components/configurationComponents/editConfigurationComponents/editRawConfigurationFile.vue";
 
 
 // Async Components
@@ -133,7 +136,7 @@ watch(() => {
 // Toggle Configuration Method =====================================
 const toggleConfiguration = async () => {
 	configurationToggling.value = true;
-	await fetchGet("/api/toggleWireguardConfiguration/", {
+	await fetchGet("/api/toggleConfiguration/", {
 		configurationName: configurationInfo.value.Name
 	}, (res) => {
 		if (res.status){
@@ -430,22 +433,34 @@ watch(() => configurationPeers.value, async (newPeers) => {
 			:configurationInfo="configurationInfo">
 		</PeerJobsLogsModal>
 		<EditConfigurationModal
-			key="EditConfigurationModal"
 			@editRaw="configurationModals.editRawConfigurationFile.modalOpen = true"
-			@close="configurationModals.editConfiguration.modalOpen = false"
-			@dataChanged="(d) => configurationInfo = d"
-			@refresh="fetchPeerList()"
 			@backupRestore="configurationModals.backupRestore.modalOpen = true"
 			@deleteConfiguration="configurationModals.deleteConfiguration.modalOpen = true"
+			@close="configurationModals.editConfiguration.modalOpen = false"
+			@dataChanged="(d) => configurationInfo = d"
 			:configurationInfo="configurationInfo"
-			v-if="configurationModals.editConfiguration.modalOpen">
-		</EditConfigurationModal>
+			v-if="configurationModals.editConfiguration.modalOpen"
+		></EditConfigurationModal>
 		<SelectPeersModal
 			@refresh="fetchPeerList()"
 			v-if="configurationModals.selectPeers.modalOpen"
 			:configurationPeers="configurationPeers"
 			@close="configurationModals.selectPeers.modalOpen = false"
 		></SelectPeersModal>
+		<DeleteConfiguration
+			v-if="configurationModals.deleteConfiguration.modalOpen"
+			@backup="configurationModals.backupRestore.modalOpen = true"
+			@close="configurationModals.deleteConfiguration.modalOpen = false"
+		></DeleteConfiguration>
+		<EditRawConfigurationFile
+			v-if="configurationModals.editRawConfigurationFile.modalOpen"
+			@close="configurationModals.editRawConfigurationFile.modalOpen = false"
+		></EditRawConfigurationFile>
+		<ConfigurationBackupRestore
+			v-if="configurationModals.backupRestore.modalOpen"
+			@close="configurationModals.backupRestore.modalOpen = false"
+			@refreshPeersList="fetchPeerList()"
+		></ConfigurationBackupRestore>
 	</TransitionGroup>
 	<PeerIntersectionObserver
 		:showPeersCount="showPeersCount"

@@ -2,12 +2,13 @@ import random, shutil, configparser, psutil
 import os, subprocess, uuid, datetime
 import py7zr, hashlib, io, sqlite3, time
 import ipaddress, json, tempfile, re
+import logging
 
 from datetime import datetime, timedelta
 from typing import Any, List
  
 from .DashboardConfig import DashboardConfig
-from ..Utilities import (
+from .Utilities import (
     StringToBoolean, ValidateIPAddressesWithRange,
     ValidateDNSAddress, RegexMatch,
     GenerateWireguardPublicKey,
@@ -17,12 +18,17 @@ from . shared import (
     sqlSelect, sqlUpdate,
 )
 
-from .Email import EmailSender
-from .Log import Log
-from .DashboardLogger import DashboardLogger
-from .PeerJobs.PeerJobLogger import PeerJobLogger
-from .PeerJobs.PeerJob import PeerJob
-from .PeerJobs.PeerJobs import PeerJobs
+from .Share.Email import EmailSender
+from .Logger.Log import Log
+from .Logger.DashboardLogger import DashboardLogger
+from .Jobs.PeerJobLogger import PeerJobLogger
+from .Jobs.PeerJob import PeerJob
+from .Jobs.PeerJobs import PeerJobs
+from .Locale.Locale import Locale
+from .Archive.SnapShot import ArchiveUtils
+from .Share.ShareLink import PeerShareLinks
+from .Share.ShareLink import PeerShareLink
+from .DataBase.DataBaseManager import DatabaseManager
 
 def get_backup_paths(config_name: str, backup_timestamp: str = None) -> dict:
     """
@@ -55,6 +61,8 @@ def get_backup_paths(config_name: str, backup_timestamp: str = None) -> dict:
 
 def _strToBool(value: str) -> bool:
         return value.lower() in ("yes", "true", "t", "1", 1)
+
+
 
 
 class Configuration:
@@ -102,15 +110,17 @@ class Configuration:
         if not os.path.exists(backupPath):
             os.mkdir(backupPath)
 
+        self.db = DatabaseManager(self.Name)
+        
         if name is not None:
             if data is not None and "Backup" in data.keys():
-                db = self.__importDatabase(
+                self.db._DatabaseManager__import_database(
                     os.path.join(
                         DashboardConfig.GetConfig("Server", "wg_conf_path")[1],
                         'WGDashboard_Backup',
                         data["Backup"].replace(".conf", ".sql")))
             else:
-                self.__createDatabase()
+                self.db._DatabaseManager__create_database()
 
             self.__parseConfigurationFile()
             self.__initPeersList()
@@ -160,7 +170,7 @@ class Configuration:
             self.__parser["Interface"]["SaveConfig"] = "true"
 
             if "Backup" not in data.keys():
-                self.__createDatabase()
+                self.db._DatabaseManager__create_database()
                 with open(self.configPath, "w+") as configFile:
                     self.__parser.write(configFile)
                 self.__initPeersList()
@@ -169,6 +179,9 @@ class Configuration:
         if self.getAutostartStatus() and not self.getStatus() and startup:
             self.toggleConfiguration()
             print(f"[WGDashboard] Autostart Configuration: {name}")
+
+        #if startup:
+        #    self.reapply_rate_limits()
 
     def __initPeersList(self):
         self.Peers: list[Peer] = []
@@ -352,170 +365,19 @@ class Configuration:
             self.Status = self.getStatus()
 
     def __dropDatabase(self):
-        existingTables = sqlSelect(
-            f"SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '{self.Name}%'").fetchall()
-        for t in existingTables:
-            sqlUpdate("DROP TABLE '%s'" % t['name'])
-
-        existingTables = sqlSelect(
-            f"SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '{self.Name}%'").fetchall()
+        self.db._DatabaseManager__drop_database()
 
     def __createDatabase(self, dbName=None):
-        if dbName is None:
-            dbName = self.Name
-
-        existingTables = sqlSelect("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
-        existingTables = [t['name'] for t in existingTables]
-        if dbName not in existingTables:
-            sqlUpdate(
-                """
-                CREATE TABLE IF NOT EXISTS '%s'(
-                    id VARCHAR NOT NULL, 
-                    private_key VARCHAR NULL, 
-                    DNS VARCHAR NULL, 
-                    endpoint_allowed_ip VARCHAR NULL, 
-                    name VARCHAR NULL, 
-                    total_receive FLOAT NULL, 
-                    total_sent FLOAT NULL, 
-                    total_data FLOAT NULL, 
-                    endpoint VARCHAR NULL, 
-                    status VARCHAR NULL, 
-                    latest_handshake VARCHAR NULL, 
-                    allowed_ip VARCHAR NULL,  
-                    cumu_receive FLOAT NULL, 
-                    cumu_sent FLOAT NULL, 
-                    cumu_data FLOAT NULL, 
-                    mtu INT NULL, 
-                    keepalive INT NULL, 
-                    remote_endpoint VARCHAR NULL, 
-                    preshared_key VARCHAR NULL,
-                    address_v4 VARCHAR NULL,  
-                    address_v6 VARCHAR NULL,
-                    upload_rate_limit INTEGER DEFAULT 0,
-                    download_rate_limit INTEGER DEFAULT 0,
-                    PRIMARY KEY (id)
-                )
-                """ % dbName
-            )
-
-        # Create other tables with similar updates...
-
-        if f'{dbName}_restrict_access' not in existingTables:
-            sqlUpdate(
-                """
-                CREATE TABLE '%s_restrict_access' (
-                    id VARCHAR NOT NULL, private_key VARCHAR NULL, DNS VARCHAR NULL, 
-                    endpoint_allowed_ip VARCHAR NULL, name VARCHAR NULL, total_receive FLOAT NULL, 
-                    total_sent FLOAT NULL, total_data FLOAT NULL, endpoint VARCHAR NULL, 
-                    status VARCHAR NULL, latest_handshake VARCHAR NULL, allowed_ip VARCHAR NULL, 
-                    cumu_receive FLOAT NULL, cumu_sent FLOAT NULL, cumu_data FLOAT NULL, mtu INT NULL, 
-                    keepalive INT NULL, remote_endpoint VARCHAR NULL, preshared_key VARCHAR NULL,
-                    address_v4 VARCHAR NULL,  
-                    address_v6 VARCHAR NULL,
-                    upload_rate_limit INTEGER DEFAULT 0,
-                    download_rate_limit INTEGER DEFAULT 0,
-                    PRIMARY KEY (id)
-                )
-                """ % dbName
-            )
-        if f'{dbName}_transfer' not in existingTables:
-            sqlUpdate(
-                """
-                CREATE TABLE '%s_transfer' (
-                    id VARCHAR NOT NULL, total_receive FLOAT NULL,
-                    total_sent FLOAT NULL, total_data FLOAT NULL,
-                    cumu_receive FLOAT NULL, cumu_sent FLOAT NULL, cumu_data FLOAT NULL, time DATETIME
-                )
-                """ % dbName
-            )
-        if f'{dbName}_deleted' not in existingTables:
-            sqlUpdate(
-                """
-                CREATE TABLE '%s_deleted' (
-                    id VARCHAR NOT NULL, private_key VARCHAR NULL, DNS VARCHAR NULL, 
-                    endpoint_allowed_ip VARCHAR NULL, name VARCHAR NULL, total_receive FLOAT NULL, 
-                    total_sent FLOAT NULL, total_data FLOAT NULL, endpoint VARCHAR NULL, 
-                    status VARCHAR NULL, latest_handshake VARCHAR NULL, allowed_ip VARCHAR NULL, 
-                    cumu_receive FLOAT NULL, cumu_sent FLOAT NULL, cumu_data FLOAT NULL, mtu INT NULL, 
-                    keepalive INT NULL, remote_endpoint VARCHAR NULL, preshared_key VARCHAR NULL,
-                    address_v4 VARCHAR NULL,  
-                    address_v6 VARCHAR NULL,
-                    upload_rate_limit INTEGER DEFAULT 0,
-                    download_rate_limit INTEGER DEFAULT 0,
-                    PRIMARY KEY (id)
-                )
-                """ % dbName
-            )
+        self.db._DatabaseManager__create_database(dbName)
 
     def __migrateDatabase(self):
-        """Add missing columns to existing tables if they don't exist"""
-        tables = [self.Name, f"{self.Name}_restrict_access", f"{self.Name}_deleted"]
-        columns = {
-            'address_v4': 'VARCHAR NULL',
-            'address_v6': 'VARCHAR NULL', 
-            'upload_rate_limit': 'INTEGER DEFAULT 0',
-            'download_rate_limit': 'INTEGER DEFAULT 0'
-        }
-
-        for table in tables:
-            for column, type_def in columns.items():
-                try:
-                    # Check if column exists by attempting to select it
-                    sqlSelect(f"SELECT {column} FROM '{table}' LIMIT 1")
-                except sqlite3.OperationalError:
-                    # Column doesn't exist, add it
-                    try:
-                        sqlUpdate(f"ALTER TABLE '{table}' ADD COLUMN {column} {type_def}")
-                        print(f"Added {column} to {table}")
-                    except sqlite3.OperationalError as e:
-                        print(f"Error adding {column} to {table}: {e}")
+        self.db._DatabaseManager__migrate_database()
 
     def __dumpDatabase(self):
-        for line in sqldb.iterdump():
-            if (line.startswith(f"INSERT INTO \"{self.Name}\"")
-                    or line.startswith(f'INSERT INTO "{self.Name}_restrict_access"')
-                    or line.startswith(f'INSERT INTO "{self.Name}_transfer"')
-                    or line.startswith(f'INSERT INTO "{self.Name}_deleted"')
-            ):
-                yield line
+        return self.db._DatabaseManager__dump_database()
 
-    def __importDatabase(self, sqlFilePath) -> bool:
-        self.__dropDatabase()
-        self.__createDatabase()
-        self.__migrateDatabase()  # Add this line to ensure columns exist
-        if not os.path.exists(sqlFilePath):
-            return False
-
-        with open(sqlFilePath, 'r') as f:
-            for l in f.readlines():
-                l = l.rstrip("\n")
-                if len(l) > 0:
-                    # Split addresses into v4 and v6 parts before insert
-                    if "INSERT INTO" in l:
-                        try:
-                            # Parse out address values
-                            addresses = re.search(r"Address\s*=\s*'([^']*)'", l)
-                            if addresses:
-                                addr_parts = addresses.group(1).split(',')
-                                addr_v4 = []
-                                addr_v6 = []
-                                for addr in addr_parts:
-                                    addr = addr.strip()
-                                    if ':' in addr:  # IPv6
-                                        addr_v6.append(addr)
-                                    else:  # IPv4
-                                        addr_v4.append(addr)
-
-                                # Replace original address with split version
-                                l = l.replace(
-                                    f"Address = '{addresses.group(1)}'",
-                                    f"address_v4 = '{','.join(addr_v4)}', address_v6 = '{','.join(addr_v6)}'"
-                                )
-                        except Exception as e:
-                            print(f"Error parsing addresses: {e}")
-
-                    sqlUpdate(l)
-        return True
+    def __importDatabase(self, sqlFilePath):
+        return self.db._DatabaseManager__import_database(sqlFilePath)
 
     def __getPublicKey(self) -> str:
         return GenerateWireguardPublicKey(self.PrivateKey)[1]
@@ -607,14 +469,16 @@ class Configuration:
                                     "address_v4": ','.join(addr_v4) if addr_v4 else None,
                                     "address_v6": ','.join(addr_v6) if addr_v6 else None,
                                     "upload_rate_limit": 0,
-                                    "download_rate_limit": 0
+                                    "download_rate_limit": 0,
+                                    "scheduler_type": "htb"
                                 }
                                 sqlUpdate(
                                     """
                                     INSERT INTO '%s'
                                         VALUES (:id, :private_key, :DNS, :endpoint_allowed_ip, :name, :total_receive, :total_sent, 
                                         :total_data, :endpoint, :status, :latest_handshake, :allowed_ip, :cumu_receive, :cumu_sent, 
-                                        :cumu_data, :mtu, :keepalive, :remote_endpoint, :preshared_key, :address_v4, :address_v6, :upload_rate_limit, :download_rate_limit);
+                                        :cumu_data, :mtu, :keepalive, :remote_endpoint, :preshared_key, :address_v4, :address_v6, 
+                                        :upload_rate_limit, :download_rate_limit, :scheduler_type);
                                     """ % self.Name, newPeer)
                                 self.Peers.append(Peer(newPeer, self))
                             else:
@@ -671,7 +535,8 @@ class Configuration:
                     "address_v4": ','.join(addr_v4) if addr_v4 else None,
                     "address_v6": ','.join(addr_v6) if addr_v6 else None,
                     "upload_rate_limit": 0,
-                    "download_rate_limit": 0
+                    "download_rate_limit": 0,
+                    "scheduler_type": "htb"  # Add default scheduler type
                 }
 
                 sqlUpdate(
@@ -679,7 +544,8 @@ class Configuration:
                     INSERT INTO '%s'
                     VALUES (:id, :private_key, :DNS, :endpoint_allowed_ip, :name, :total_receive, :total_sent,
                     :total_data, :endpoint, :status, :latest_handshake, :allowed_ip, :cumu_receive, :cumu_sent,
-                    :cumu_data, :mtu, :keepalive, :remote_endpoint, :preshared_key, :address_v4, :address_v6, :upload_rate_limit, :download_rate_limit);
+                    :cumu_data, :mtu, :keepalive, :remote_endpoint, :preshared_key, :address_v4, :address_v6, 
+                    :upload_rate_limit, :download_rate_limit, :scheduler_type);
                     """ % self.Name, newPeer)
 
             # Handle wg commands and config file updates
@@ -1507,7 +1373,6 @@ class Configuration:
         except Exception as e:
             print(f"[ERROR] Failed to get traffic stats: {str(e)}")
             return {"sent": 0, "recv": 0}
-         
 
 class Peer:
     def __init__(self, tableData, configuration: Configuration):
@@ -1531,6 +1396,9 @@ class Peer:
         self.keepalive = tableData["keepalive"]
         self.remote_endpoint = tableData["remote_endpoint"]
         self.preshared_key = tableData["preshared_key"]
+        self.upload_rate_limit = tableData["upload_rate_limit"]
+        self.download_rate_limit = tableData["download_rate_limit"]
+        self.scheduler_type = tableData["scheduler_type"]
         self.jobs: list[PeerJob] = []
         self.ShareLink: list[PeerShareLink] = []
         self.getJobs()
@@ -1679,252 +1547,7 @@ PersistentKeepalive = {str(self.keepalive)}
             return False
         return True
 
-class PeerShareLink:
-    def __init__(self, ShareID: str, Configuration: str, Peer: str, ExpireDate: datetime, ShareDate: datetime):
-        self.ShareID = ShareID
-        self.Peer = Peer
-        self.Configuration = Configuration
-        self.ShareDate = ShareDate
-        self.ExpireDate = ExpireDate
 
-    def toJson(self):
-        return {
-            "ShareID": self.ShareID,
-            "Peer": self.Peer,
-            "Configuration": self.Configuration,
-            "ExpireDate": self.ExpireDate
-        }
-
-class PeerShareLinks:
-    def __init__(self):
-        self.Links: list[PeerShareLink] = []
-        existingTables = sqlSelect(
-            "SELECT name FROM sqlite_master WHERE type='table' and name = 'PeerShareLinks'").fetchall()
-        if len(existingTables) == 0:
-            sqlUpdate(
-                """
-                    CREATE TABLE PeerShareLinks (
-                        ShareID VARCHAR NOT NULL PRIMARY KEY, Configuration VARCHAR NOT NULL, Peer VARCHAR NOT NULL,
-                        ExpireDate DATETIME,
-                        SharedDate DATETIME DEFAULT (datetime('now', 'localtime'))
-                    )
-                """
-            )
-        self.__getSharedLinks()
-
-    def __getSharedLinks(self):
-        self.Links.clear()
-        allLinks = sqlSelect(
-            "SELECT * FROM PeerShareLinks WHERE ExpireDate IS NULL OR ExpireDate > datetime('now', 'localtime')").fetchall()
-        for link in allLinks:
-            self.Links.append(PeerShareLink(*link))
-
-    def getLink(self, Configuration: str, Peer: str) -> list[PeerShareLink]:
-        self.__getSharedLinks()
-        return list(filter(lambda x: x.Configuration == Configuration and x.Peer == Peer, self.Links))
-
-    def getLinkByID(self, ShareID: str) -> list[PeerShareLink]:
-        self.__getSharedLinks()
-        return list(filter(lambda x: x.ShareID == ShareID, self.Links))
-
-    def addLink(self, Configuration: str, Peer: str, ExpireDate: datetime = None) -> tuple[bool, str]:
-        try:
-            newShareID = str(uuid.uuid4())
-            if len(self.getLink(Configuration, Peer)) > 0:
-                sqlUpdate(
-                    "UPDATE PeerShareLinks SET ExpireDate = datetime('now', 'localtime') WHERE Configuration = ? AND Peer = ?",
-                    (Configuration, Peer,))
-            sqlUpdate("INSERT INTO PeerShareLinks (ShareID, Configuration, Peer, ExpireDate) VALUES (?, ?, ?, ?)",
-                      (newShareID, Configuration, Peer, ExpireDate,))
-            self.__getSharedLinks()
-        except Exception as e:
-            return False, str(e)
-        return True, newShareID
-
-    def updateLinkExpireDate(self, ShareID, ExpireDate: datetime = None) -> tuple[bool, str]:
-        sqlUpdate("UPDATE PeerShareLinks SET ExpireDate = ? WHERE ShareID = ?;", (ExpireDate, ShareID,))
-        self.__getSharedLinks()
-        return True, ""
-
-class ArchiveUtils:
-    """Handles 7z archive operations with integrity checking"""
-
-    @staticmethod
-    def calculate_checksums(files_dict: dict) -> tuple[dict, str]:
-        """
-        Calculate SHA256 checksums for all files and a final combined checksum
-        Returns (file_checksums, combined_checksum)
-        """
-        try:
-            # Calculate individual file checksums
-            checksums = {}
-            for filename, content in sorted(files_dict.items()):  # Sort for consistent ordering
-                if isinstance(content, bytes):
-                    checksums[filename] = hashlib.sha256(content).hexdigest()
-                elif isinstance(content, str):
-                    checksums[filename] = hashlib.sha256(content.encode('utf-8')).hexdigest()
-
-            # Calculate combined checksum
-            combined = hashlib.sha256()
-            for filename, checksum in sorted(checksums.items()):  # Sort again for consistency
-                combined.update(f"{filename}:{checksum}".encode('utf-8'))
-
-            return checksums, combined.hexdigest()
-
-        except Exception as e:
-            print(f"Error calculating checksums: {str(e)}")
-            raise
-
-    @staticmethod
-    def create_archive(files_dict: dict) -> tuple[bytes, dict, str]:
-        """
-        Create a 7z archive with manifest and checksums
-        Returns (archive_bytes, file_checksums, combined_checksum)
-        """
-        try:
-            # Calculate checksums
-            print("Calculating checksums...")
-            file_checksums, combined_checksum = ArchiveUtils.calculate_checksums(files_dict)
-
-            # Create manifest
-            manifest = {
-                'file_checksums': file_checksums,
-                'combined_checksum': combined_checksum,
-                'timestamp': datetime.now().isoformat(),
-                'version': DashboardConfig.GetConfig("Server", "version")[1]
-            }
-
-            print(f"Combined checksum: {combined_checksum}")
-
-            # Add manifest to files
-            files_dict['wiregate_manifest.json'] = json.dumps(manifest, indent=2)
-
-            print("Creating 7z archive in memory...")
-            # Create archive in memory
-            with tempfile.TemporaryDirectory() as temp_dir:
-                # Write files
-                for filename, content in files_dict.items():
-                    file_path = os.path.join(temp_dir, filename)
-                    # Create directories for nested paths
-                    os.makedirs(os.path.dirname(file_path), exist_ok=True)
-
-                    if isinstance(content, str):
-                        with open(file_path, 'w', encoding='utf-8') as f:
-                            f.write(content)
-                    else:
-                        with open(file_path, 'wb') as f:
-                            f.write(content)
-
-                # Create 7z archive
-                archive_buffer = io.BytesIO()
-                with py7zr.SevenZipFile(archive_buffer, 'w') as archive:
-                    archive.writeall(temp_dir, arcname='.')
-
-                archive_data = archive_buffer.getvalue()
-                print(f"Archive created successfully, size: {len(archive_data)} bytes")
-
-                return archive_data, file_checksums, combined_checksum
-
-        except Exception as e:
-            print(f"Error creating archive: {str(e)}, {type(e)}")
-            raise
-
-    @staticmethod
-    def verify_archive(archive_data: bytes) -> tuple[bool, str, dict]:
-        """
-        Verify 7z archive integrity using checksums
-        Returns (is_valid, error_message, extracted_files)
-        """
-        try:
-            with tempfile.TemporaryDirectory() as temp_dir:
-                # Write archive to temp file
-                archive_path = os.path.join(temp_dir, 'archive.7z')
-                with open(archive_path, 'wb') as f:
-                    f.write(archive_data)
-
-                # Extract archive
-                extracted_files = {}
-                with py7zr.SevenZipFile(archive_path, 'r') as archive:
-                    archive.extractall(temp_dir)
-
-                    # Read all extracted files
-                    for root, _, files in os.walk(temp_dir):
-                        for filename in files:
-                            if filename == 'archive.7z':
-                                continue
-                            file_path = os.path.join(root, filename)
-                            rel_path = os.path.relpath(file_path, temp_dir)
-                            with open(file_path, 'rb') as f:
-                                extracted_files[rel_path] = f.read()
-
-            # Read manifest
-            if 'wiregate_manifest.json' not in extracted_files:
-                return False, "No manifest found in archive", {}
-
-            try:
-                manifest = json.loads(extracted_files['wiregate_manifest.json'].decode('utf-8'))
-            except json.JSONDecodeError as e:
-                return False, f"Invalid manifest format: {str(e)}", {}
-
-            if 'file_checksums' not in manifest or 'combined_checksum' not in manifest:
-                return False, "Checksums missing from manifest", {}
-
-            # Verify individual file checksums
-            print("Verifying individual file checksums...")
-            current_checksums = {}
-            for filename, content in extracted_files.items():
-                if filename == 'wiregate_manifest.json':
-                    continue
-
-                if filename not in manifest['file_checksums']:
-                    return False, f"No checksum found for file: {filename}", {}
-
-                calculated_hash = hashlib.sha256(content).hexdigest()
-                if calculated_hash != manifest['file_checksums'][filename]:
-                    return False, f"Checksum mismatch for file: {filename}", {}
-                current_checksums[filename] = calculated_hash
-
-            # Verify combined checksum
-            print("Verifying combined checksum...")
-            combined = hashlib.sha256()
-            for filename, checksum in sorted(current_checksums.items()):
-                combined.update(f"{filename}:{checksum}".encode('utf-8'))
-
-            if combined.hexdigest() != manifest['combined_checksum']:
-                return False, "Combined checksum verification failed", {}
-
-            print("All checksums verified successfully")
-
-            # Remove manifest from extracted files
-            del extracted_files['wiregate_manifest.json']
-            return True, "", extracted_files
-
-        except Exception as e:
-            print(f"Error verifying archive: {str(e)}, {type(e)}")
-            return False, f"Error verifying archive: {str(e)}", {}
-
-class Locale:
-    def __init__(self):
-        self.localePath = './static/locale/'
-        self.activeLanguages = {}
-        with open(os.path.join(f"{self.localePath}active_languages.json"), "r") as f:
-            self.activeLanguages = json.loads(''.join(f.readlines()))
-
-    def getLanguage(self) -> dict | None:
-        currentLanguage = DashboardConfig.GetConfig("Server", "dashboard_language")[1]
-        if currentLanguage == "en":
-            return None
-        if os.path.exists(os.path.join(f"{self.localePath}{currentLanguage}.json")):
-            with open(os.path.join(f"{self.localePath}{currentLanguage}.json"), "r") as f:
-                return dict(json.loads(''.join(f.readlines())))
-        else:
-            return None
-
-    def updateLanguage(self, lang_id):
-        if not os.path.exists(os.path.join(f"{self.localePath}{lang_id}.json")):
-            DashboardConfig.SetConfig("Server", "dashboard_language", "en")
-        else:
-            DashboardConfig.SetConfig("Server", "dashboard_language", lang_id)
 
 
 _, APP_PREFIX = DashboardConfig.GetConfig("Server", "app_prefix")
@@ -1946,8 +1569,57 @@ def InitWireguardConfigurationsList(startup: bool = False):
             except Configuration.InvalidConfigurationFileException as e:
                 print(f"{i} have an invalid configuration file.")
 
+def InitRateLimits():
+    """Reapply rate limits for all peers across all interfaces"""
+    logger = logging.getLogger('wiregate')
+    try:
+        for config_name, config in Configurations.items():
+            logger.debug(f"Processing rate limits for configuration: {config_name}")
+            try:
+                # Get all peers with rate limits
+                rate_limited_peers = sqlSelect(
+                    "SELECT id, upload_rate_limit, download_rate_limit, scheduler_type, allowed_ip FROM '%s' WHERE upload_rate_limit > 0 OR download_rate_limit > 0" % config.Name
+                ).fetchall()
+                
+                logger.debug(f"Found {len(rate_limited_peers)} rate-limited peers for {config_name}")
+                
+                for peer in rate_limited_peers:
+                    try:
+                        # Skip if missing required data
+                        if not peer['id'] or not peer['allowed_ip']:
+                            logger.warning(f"Skipping peer {peer['id']} - missing required data")
+                            continue
+                            
+                        # Execute traffic-weir command to reapply limits
+                        cmd = [
+                            './traffic-weir',
+                            '-interface', config.Name,
+                            '-peer', peer['id'],
+                            '-upload-rate', str(peer['upload_rate_limit'] or 0),
+                            '-download-rate', str(peer['download_rate_limit'] or 0),
+                            '-protocol', config.Protocol,
+                            '-scheduler', peer['scheduler_type'] or 'htb',
+                            '-allowed-ips', peer['allowed_ip']
+                        ]
+                        
+                        logger.debug(f"Executing command: {' '.join(cmd)}")
+                        result = subprocess.run(cmd, capture_output=True, text=True)
+                        
+                        if result.returncode != 0:
+                            logger.error(f"Failed to reapply rate limits for peer {peer['id']} on {config.Name}: {result.stderr}")
+                        else:
+                            logger.debug(f"Successfully applied rate limits for peer {peer['id']} on {config.Name}")
+                            
+                    except Exception as e:
+                        logger.error(f"Error reapplying rate limits for peer {peer['id']} on {config.Name}: {str(e)}")
+                    
+            except Exception as e:
+                logger.error(f"Error processing rate limits for configuration {config_name}: {str(e)}")
+                    
+    except Exception as e:
+        logger.error(f"Error initializing rate limits: {str(e)}")
 
-
+AllLocale:Locale = Locale()
 # Initialize shared instances
 Configurations: dict[str, Configuration] = {}
 JobLogger: PeerJobLogger = PeerJobLogger()

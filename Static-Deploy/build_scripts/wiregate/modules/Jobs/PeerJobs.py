@@ -4,7 +4,6 @@ from datetime import datetime
 import json
 
 from ..shared import sqlSelect
-
 from .PeerJob import PeerJob
 from .PeerJobLogger import PeerJobLogger
 from ..config import CONFIGURATION_PATH

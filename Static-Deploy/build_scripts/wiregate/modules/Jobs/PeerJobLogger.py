@@ -3,7 +3,7 @@ Peer Job Logger
 """
 import sqlite3, os, uuid
 from typing import List
-from ..Log import Log
+from ..Logger.Log import Log
 from ..config import (
     CONFIGURATION_PATH
 )

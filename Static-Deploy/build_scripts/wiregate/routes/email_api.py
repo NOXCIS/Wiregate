@@ -7,7 +7,7 @@ from ..modules.shared import (
     ResponseObject
 )
 
-from ..modules.Email import (
+from ..modules.Share.Email import (
     EmailSender
 )
 

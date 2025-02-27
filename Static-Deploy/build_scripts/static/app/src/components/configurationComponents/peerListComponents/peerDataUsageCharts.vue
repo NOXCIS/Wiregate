@@ -53,7 +53,7 @@ const dashboardStore = DashboardConfigurationStore()
 const fetchRealtimeTrafficInterval = ref(undefined)
 const fetchRealtimeTraffic = async () => {
 	console.log('Fetching traffic for:', props.configurationInfo.Name) // Debug log
-	await fetchGet("/api/getWireguardConfigurationRealtimeTraffic", {
+	await fetchGet("/api/getConfigurationRealtimeTraffic", {
 		configurationName: props.configurationInfo.Name
 	}, (res) => {
 		console.log('Received traffic data:', res.data) // Debug log

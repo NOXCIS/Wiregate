@@ -15,7 +15,7 @@ tor_blueprint = Blueprint('tor', __name__)
 
 
 @tor_blueprint.route('/tor/config', methods=['GET'])
-def get_tor_config():
+def API_get_tor_config():
     print("[DEBUG] Entering get_tor_config()")
     try:
         configs = {}
@@ -65,7 +65,7 @@ def get_tor_config():
         )
 
 @tor_blueprint.route('/tor/plugins', methods=['GET'])
-def get_tor_plugins():
+def API_get_tor_plugins():
     print("[DEBUG] Getting available Tor plugins")
     try:
         # Default available plugins
@@ -89,7 +89,7 @@ def get_tor_plugins():
         )
 
 @tor_blueprint.route('/tor/config/update', methods=['POST'])
-def update_tor_config():
+def API_update_tor_config():
     try:
         data = request.get_json()
         config_type = data.get('type', 'main')
@@ -127,7 +127,7 @@ def update_tor_config():
         return ResponseObject(status=False, message=f"Failed to update configuration: {str(e)}")
 
 @tor_blueprint.route('/tor/plugin/update', methods=['POST'])
-def update_tor_plugin():
+def API_update_tor_plugin():
     try:
         data = request.get_json()
         plugin = data.get('plugin')
@@ -175,7 +175,7 @@ def update_tor_plugin():
         return ResponseObject(status=False, message=f"Failed to update configuration: {str(e)}")
 
 @tor_blueprint.route('/tor/bridges/refresh', methods=['POST'])
-def refresh_tor_bridges():
+def API_refresh_tor_bridges():
     try:
         data = request.get_json()
         plugin = data.get('plugin')

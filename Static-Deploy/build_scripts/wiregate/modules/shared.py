@@ -38,9 +38,6 @@ def ResponseObject(status=True, message=None, data=None):
     return response
 
 
-def get_timestamped_filename():
-    timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
-    return f'./log/access_{timestamp}.log'
 
 
 def sqlSelect(statement: str, paramters: tuple = ()) -> sqlite3.Cursor:

@@ -40,6 +40,7 @@
                 <li><a class="dropdown-item" @click="updateUnit('upload', 'Kb')">Kb/s</a></li>
                 <li><a class="dropdown-item" @click="updateUnit('upload', 'Mb')">Mb/s</a></li>
                 <li><a class="dropdown-item" @click="updateUnit('upload', 'Gb')">Gb/s</a></li>
+                <li><a class="dropdown-item" @click="updateUnit('upload', 'Tb')">Tb/s</a></li>
               </ul>
             </div>
           </div>
@@ -69,8 +70,26 @@
                 <li><a class="dropdown-item" @click="updateUnit('download', 'Kb')">Kb/s</a></li>
                 <li><a class="dropdown-item" @click="updateUnit('download', 'Mb')">Mb/s</a></li>
                 <li><a class="dropdown-item" @click="updateUnit('download', 'Gb')">Gb/s</a></li>
+                <li><a class="dropdown-item" @click="updateUnit('download', 'Tb')">Tb/s</a></li>
               </ul>
             </div>
+          </div>
+
+          <!-- Traffic Scheduler -->
+          <div class="mb-3">
+            <label class="form-label">
+              <LocaleText t="Traffic Scheduler"></LocaleText>
+            </label>
+            <select class="form-select" v-model="schedulerType" :disabled="interfaceLocked">
+              <option value="htb">HTB (Hierarchical Token Bucket)</option>
+              <option value="hfsc">HFSC (Hierarchical Fair Service Curve)</option>
+            </select>
+            <small class="text-muted d-block mt-1" v-if="interfaceLocked">
+              <LocaleText t="This interface is locked to"></LocaleText> {{ schedulerType.toUpperCase() }}
+            </small>
+            <small class="text-muted d-block mt-1" v-else>
+              <LocaleText t="First rate-limited peer will set the scheduler type for the entire interface"></LocaleText>
+            </small>
           </div>
 
           <small class="text-muted d-block mt-1">
@@ -141,10 +160,27 @@ export default {
       error: null,
       isRemoving: false,
       fetchingRate: false,
+      schedulerType: 'htb',
+      hasExistingScheduler: false,
+      interfaceLocked: false,
+      interfaceSchedulerType: null,
+      // Maximum theoretical rates in Kb/s for 64-bit HTB/HFSC
+      // 18,446,744,073,709,551 Kb/s (about 18.4 Petabits/second)
+      MAX_HTB_RATE_KBPS: 18446744073709551,
+      MAX_HFSC_RATE_KBPS: 18446744073709551,
     }
   },
   async created() {
     await this.fetchExistingRateLimit();
+    await this.checkInterfaceScheduler();
+  },
+  async mounted() {
+    // Check if peer already has a scheduler type set
+    const rateData = this.wireguardStore.peerRateLimits[this.selectedPeer.id];
+    this.hasExistingScheduler = !!rateData?.scheduler_type;
+    if (this.hasExistingScheduler) {
+      this.schedulerType = rateData.scheduler_type;
+    }
   },
   computed: {
     isValidRate() {
@@ -188,19 +224,27 @@ export default {
       const val = parseFloat(value);
       if (isNaN(val)) return 0;
       
+      let result;
       switch (unit.toUpperCase()) {
         case 'GB':
         case 'Gb':
-          return val * 1000000; // Gb to Kb (1000 * 1000)
+          result = BigInt(Math.floor(val * 1000000)); // Gb to Kb
+          break;
         case 'MB':
         case 'Mb':
-          return val * 1000; // Mb to Kb (1000)
+          result = BigInt(Math.floor(val * 1000)); // Mb to Kb
+          break;
         default:
-          return val; // Already in Kb
+          result = BigInt(Math.floor(val)); // Already in Kb
       }
+      
+      // Ensure we don't exceed the maximum
+      const maxRate = BigInt(this.MAX_HTB_RATE_KBPS);
+      return result > maxRate ? Number(maxRate) : Number(result);
     },
     
     async fetchExistingRateLimit() {
+      this.fetchingRate = true;
       try {
         await this.wireguardStore.fetchPeerRateLimit(
           this.configurationInfo.Name,
@@ -210,9 +254,18 @@ export default {
         const rateData = this.wireguardStore.peerRateLimits[this.selectedPeer.id];
         [this.uploadRateValue, this.uploadRateUnit] = this.convertFromKb(rateData.upload_rate);
         [this.downloadRateValue, this.downloadRateUnit] = this.convertFromKb(rateData.download_rate);
+        
+        // Update scheduler type and interface lock status
+        this.schedulerType = rateData.scheduler_type || 'htb';
+        // Check if there's an existing scheduler type
+        this.hasExistingScheduler = !!rateData.scheduler_type;
+        // Interface is locked if there's a rate limit and scheduler type
+        this.interfaceLocked = !!(rateData.upload_rate || rateData.download_rate) && this.hasExistingScheduler;
       } catch (error) {
-        this.dashboardStore.newMessage("Error", error.message, "danger");
         this.error = error.message;
+        this.dashboardStore.newMessage("Error", error.message, "danger");
+      } finally {
+        this.fetchingRate = false;
       }
     },
     
@@ -227,7 +280,8 @@ export default {
           this.configurationInfo.Name,
           this.selectedPeer.id,
           this.convertToKb(this.uploadRateValue, this.uploadRateUnit),
-          this.convertToKb(this.downloadRateValue, this.downloadRateUnit)
+          this.convertToKb(this.downloadRateValue, this.downloadRateUnit),
+          this.schedulerType
         );
         this.dashboardStore.newMessage("Server", "Rate limits updated successfully", "success");
       } catch (error) {
@@ -259,33 +313,31 @@ export default {
       if (!rateInKb) return [0, 'Mb'];
       
       const kbValue = parseFloat(rateInKb);
-      if (kbValue >= 1000000) {
-        return [(kbValue / 1000000).toFixed(2), 'Gb'];
-      } else if (kbValue >= 1000) {
-        return [(kbValue / 1000).toFixed(2), 'Mb'];
-      }
-      return [kbValue.toFixed(2), 'Kb'];
+      // Always convert to Mb/s
+      return [(kbValue / 1000).toFixed(2), 'Mb'];
     },
     
     updateUnit(direction, newUnit) {
       const oldUnit = direction === 'upload' ? this.uploadRateUnit : this.downloadRateUnit;
       const currentValue = direction === 'upload' ? this.uploadRateValue : this.downloadRateValue;
 
-      // Convert to Kb using precise math
+      // Convert to Kb first
       let valueInKb = this.convertToKb(currentValue, oldUnit);
 
-      // Convert to new unit using precise math
+      // Convert to new unit
       let newValue;
       switch (newUnit) {
+        case 'Tb':
+          newValue = (valueInKb / 1000000000000).toFixed(4);
+          break;
         case 'Gb':
-          newValue = (valueInKb / Math.pow(1024, 2)).toFixed(3);
+          newValue = (valueInKb / 1000000).toFixed(3);
           break;
         case 'Mb':
-          newValue = (valueInKb / 1024).toFixed(2);
+          newValue = (valueInKb / 1000).toFixed(2);
           break;
         default: // Kb
           newValue = valueInKb.toString();
-          break;
       }
 
       // Update state
@@ -305,6 +357,49 @@ export default {
         });
       }
     },
+    async checkInterfaceScheduler() {
+      try {
+        const result = await this.wireguardStore.getInterfaceScheduler(this.configurationInfo.Name);
+        console.log('[DEBUG] Interface scheduler result:', result);
+        
+        this.interfaceLocked = result.locked;
+        if (result.locked) {
+          this.schedulerType = result.scheduler_type;
+        }
+        
+        console.log('[DEBUG] Updated component state:', {
+          interfaceLocked: this.interfaceLocked,
+          schedulerType: this.schedulerType
+        });
+        
+      } catch (error) {
+        console.error('[DEBUG] Error checking interface scheduler:', error);
+        // Don't set error message for interface scheduler check failures
+        // this.error = error.message;
+      }
+    },
+    async setPeerRateLimit(interfaceName, peerKey, uploadRate, downloadRate, schedulerType) {
+      console.log('[DEBUG] Setting rate limit:', {
+        interface: interfaceName,
+        peer: peerKey,
+        upload: uploadRate,
+        download: downloadRate,
+        scheduler: this.interfaceLocked ? this.interfaceSchedulerType : schedulerType
+      });
+      
+      try {
+        await this.wireguardStore.setPeerRateLimit(
+          interfaceName,
+          peerKey,
+          uploadRate,
+          downloadRate,
+          this.interfaceLocked ? this.interfaceSchedulerType : schedulerType
+        );
+      } catch (error) {
+        console.error('Error setting rate limit:', error);
+        throw error;
+      }
+    }
   }
 }
 </script>

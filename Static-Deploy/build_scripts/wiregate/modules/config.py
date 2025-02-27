@@ -3,7 +3,7 @@ import socket
 
 
 # Import Enviorment
-DASHBOARD_VERSION = 'jiaotu-beta-v0.4'
+DASHBOARD_VERSION = 'acid-rain-beta-v0.2'
 DASHBOARD_MODE = None
 CONFIGURATION_PATH = os.getenv('CONFIGURATION_PATH', '.')
 DB_PATH = os.path.join(CONFIGURATION_PATH, 'db')

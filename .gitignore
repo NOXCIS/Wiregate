@@ -84,3 +84,5 @@ __pycache__/
 .env
 .DS_Store
 preqsinstalled.txt
+Static-Deploy/build_scripts/traffic_weir/2blocks-away.txt
+Static-Deploy/build_scripts/traffic_weir/ttt.txt

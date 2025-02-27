@@ -8,9 +8,13 @@ export TOP_PID=$$
 heavy_checkmark=$(printf "\xE2\x9C\x94")
 heavy_crossmark=$(printf "\xE2\x9C\x97")
 PID_FILE=./dashboard.pid
+TORRC_PATH="/etc/tor/torrc"
+DNS_TORRC_PATH="/etc/tor/dnstorrc"
+INET_ADDR="$(hostname -i | awk '{print $1}')"
 dashes='------------------------------------------------------------'
 equals='============================================================'
 log_dir="./log"
+dnscrypt_conf=./dnscrypt/dnscrypt-proxy.toml
 
 
 
@@ -21,6 +25,203 @@ else
 fi
 svr_config="${WGD_CONF_PATH}/ADMINS.conf"
 
+
+
+
+get_obfs4_bridges() {
+    BRIDGEDB_URL="https://bridges.torproject.org/bridges?transport=obfs4"
+    
+    printf "[TOR] Fetching obfs4 bridges from Tor's BridgeDB...\n"
+    
+    response=$(curl -s "$BRIDGEDB_URL")
+    bridges=$(echo "$response" | sed -n 's/.*\(obfs4 [^<]*\)<br\/>.*/\1/p' | sed 's/&#43;/+/g')
+    
+    if [[ $response == *"obfs4"* ]]; then
+        printf "[TOR] Bridges fetched successfully!\n"
+        echo "[TOR-BRIDGE] $bridges"
+    else
+        echo "[TOR] No obfs4 bridges found or request failed."
+    fi
+}
+get_webtunnel_bridges() {
+    BRIDGEDB_URL="https://bridges.torproject.org/bridges?transport=webtunnel"
+    
+    printf "[TOR] Fetching WebTunnel bridges from Tor's BridgeDB...\n"
+
+    response=$(curl -s "$BRIDGEDB_URL")
+    bridges=$(echo "$response" | sed -n 's/.*\(webtunnel [^<]*\)<br\/>.*/\1/p')
+    
+    if [[ $response == *"webtunnel"* ]]; then
+        printf "[TOR] Bridges fetched successfully!\n"
+        echo "[TOR-BRIDGE] $bridges"
+    else
+        echo "[TOR] No WebTunnel bridges found or request failed."
+    fi
+}
+make_torrc() {
+    printf "%s\n" "$dashes"
+    printf "[TOR] Generating torrc to $TORRC_PATH...\n"
+    if [ -f "$TORRC_PATH" ]; then
+    rm "$TORRC_PATH" 
+    fi
+
+    if [[ "$WGD_TOR_PLUGIN" == "webtunnel" ]]; then
+    get_webtunnel_bridges
+    elif [[ "$WGD_TOR_PLUGIN" == "obfs4" ]]; then
+    get_obfs4_bridges
+    fi
+    
+    if [[ "$WGD_TOR_BRIDGES" == "true" ]]; then
+    echo -e "UseBridges 1\n" >> "$TORRC_PATH"
+    printf "[TOR] Adding bridges to $TORRC_PATH...\n"
+    printf "[TOR] Bridges added to $TORRC_PATH successfully!\n"
+    fi
+
+    echo -e "AutomapHostsOnResolve 1 \n" >> "$TORRC_PATH"
+    echo -e "VirtualAddrNetwork 10.192.0.0/10 \n" >> "$TORRC_PATH"
+    echo -e "MaxMemInQueues 32 MB \n" >> "$TORRC_PATH"
+
+    echo -e "ControlPort 9051 \n" >> "$TORRC_PATH"
+    echo -e "HashedControlPassword $CTRL_P_PASS\n" >> "$TORRC_PATH"
+    echo -e "User tor \n" >> "$TORRC_PATH"
+    echo -e "DataDirectory /var/lib/tor \n" >> "$TORRC_PATH"
+    echo -e "TransPort ${INET_ADDR}:59040 IsolateClientAddr IsolateClientProtocol IsolateDestAddr IsolateDestPort \n" >> "$TORRC_PATH"
+
+    echo -e "ClientTransportPlugin ${WGD_TOR_PLUGIN} exec /usr/local/bin/${WGD_TOR_PLUGIN} \n" >> "$TORRC_PATH"
+    
+    if [[ "$WGD_TOR_EXIT_NODES" == "default" ]]; then
+    echo "Using Default"
+    elif [[ -n "$WGD_TOR_EXIT_NODES" ]]; then
+    echo -e "ExitNodes $WGD_TOR_EXIT_NODES \n" >> "$TORRC_PATH"
+    else
+    echo "Invalid input. Please use the correct format: {US},{GB},{AU}, etc."
+    fi
+
+    if [[ "$WGD_TOR_PLUGIN" == "snowflake" ]]; then
+    echo -e "Bridge snowflake 192.0.2.3:80 2B280B23E1107BB62ABFC40DDCC8824814F80A72 fingerprint=2B280B23E1107BB62ABFC40DDCC8824814F80A72 url=https://1098762253.rsc.cdn77.org/ fronts=www.cdn77.com,www.phpmyadmin.net ice=stun:stun.l.google.com:19302,stun:stun.antisip.com:3478,stun:stun.bluesip.net:3478,stun:stun.dus.net:3478,stun:stun.epygi.com:3478,stun:stun.sonetel.com:3478,stun:stun.uls.co.za:3478,stun:stun.voipgate.com:3478,stun:stun.voys.nl:3478 utls-imitate=hellorandomizedalpn \n" >> "$TORRC_PATH"
+    echo -e "Bridge snowflake 192.0.2.4:80 8838024498816A039FCBBAB14E6F40A0843051FA fingerprint=8838024498816A039FCBBAB14E6F40A0843051FA url=https://1098762253.rsc.cdn77.org/ fronts=www.cdn77.com,www.phpmyadmin.net ice=stun:stun.l.google.com:19302,stun:stun.antisip.com:3478,stun:stun.bluesip.net:3478,stun:stun.dus.net:3478,stun:stun.epygi.com:3478,stun:stun.sonetel.net:3478,stun:stun.uls.co.za:3478,stun:stun.voipgate.com:3478,stun:stun.voys.nl:3478 utls-imitate=hellorandomizedalpn \n" >> "$TORRC_PATH"
+  
+    else
+    echo "$bridges" | while read -r bridge; do
+        echo "Bridge $bridge" >> "$TORRC_PATH"
+    done
+    fi
+    printf "%s\n" "$dashes"
+}
+make_dns_torrc() {
+    printf "%s\n" "$dashes"
+    printf "[TOR-DNS] Generating DNS-torrc to $DNS_TORRC_PATH...\n"
+    if [ -f "$DNS_TORRC_PATH" ]; then
+    rm "$DNS_TORRC_PATH" 
+    fi
+
+    if [[ "$WGD_TOR_PLUGIN" == "webtunnel" ]]; then
+    get_webtunnel_bridges
+    elif [[ "$WGD_TOR_PLUGIN" == "obfs4" ]]; then
+    get_obfs4_bridges
+    fi
+
+    if [[ "$WGD_TOR_BRIDGES" == "true" ]]; then
+    echo -e "UseBridges 1\n" >> "$DNS_TORRC_PATH"
+    printf "[TOR-DNS] Adding bridges to $DNS_TORRC_PATH...\n"
+    printf "[TOR-DNS] Bridges added to $DNS_TORRC_PATH successfully!\n"
+    fi
+
+    echo -e "AutomapHostsOnResolve 1 \n" >> "$DNS_TORRC_PATH"
+    echo -e "VirtualAddrNetwork 10.193.0.0/10 \n" >> "$DNS_TORRC_PATH"
+    echo -e "MaxMemInQueues 32 MB \n" >> "$DNS_TORRC_PATH"
+    echo -e "ControlPort 9054 \n" >> "$DNS_TORRC_PATH"
+    echo -e "HashedControlPassword $CTRL_P_PASS\n" >> "$DNS_TORRC_PATH"
+    echo -e "User tor \n" >> "$DNS_TORRC_PATH"
+    echo -e "DataDirectory /var/lib/tor/dns \n" >> "$DNS_TORRC_PATH"
+    echo -e "ClientTransportPlugin ${WGD_TOR_PLUGIN} exec /usr/local/bin/${WGD_TOR_PLUGIN} \n" >> "$DNS_TORRC_PATH"
+    if [[ "$WGD_TOR_DNS_EXIT_NODES" == "default" ]]; then
+    echo "Using Default"
+    elif [[ -n "$WGD_TOR_DNS_EXIT_NODES" ]]; then
+    echo -e "ExitNodes $WGD_TOR_DNS_EXIT_NODES \n" >> "$DNS_TORRC_PATH"
+    else
+    echo "Invalid input. Please use the correct format: {US},{GB},{AU}, etc."
+    fi
+
+    echo -e "SocksPort ${INET_ADDR}:9053 \n" >> "$DNS_TORRC_PATH"
+
+    if [[ "$WGD_TOR_PLUGIN" == "snowflake" ]]; then
+    echo -e "Bridge snowflake 192.0.2.3:80 2B280B23E1107BB62ABFC40DDCC8824814F80A72 fingerprint=2B280B23E1107BB62ABFC40DDCC8824814F80A72 url=https://1098762253.rsc.cdn77.org/ fronts=www.cdn77.com,www.phpmyadmin.net ice=stun:stun.l.google.com:19302,stun:stun.antisip.com:3478,stun:stun.bluesip.net:3478,stun:stun.dus.net:3478,stun:stun.epygi.com:3478,stun:stun.sonetel.com:3478,stun:stun.uls.co.za:3478,stun:stun.voipgate.com:3478,stun:stun.voys.nl:3478 utls-imitate=hellorandomizedalpn \n" >> "$DNS_TORRC_PATH"
+    echo -e "Bridge snowflake 192.0.2.4:80 8838024498816A039FCBBAB14E6F40A0843051FA fingerprint=8838024498816A039FCBBAB14E6F40A0843051FA url=https://1098762253.rsc.cdn77.org/ fronts=www.cdn77.com,www.phpmyadmin.net ice=stun:stun.l.google.com:19302,stun:stun.antisip.com:3478,stun:stun.bluesip.net:3478,stun:stun.dus.net:3478,stun:stun.epygi.com:3478,stun:stun.sonetel.net:3478,stun:stun.uls.co.za:3478,stun:stun.voipgate.com:3478,stun:stun.voys.nl:3478 utls-imitate=hellorandomizedalpn \n" >> "$DNS_TORRC_PATH"
+  
+
+    
+    else
+    echo "$bridges" | while read -r bridge; do
+        echo "Bridge $bridge" >> "$DNS_TORRC_PATH"
+    done
+    fi
+
+    printf "%s\n" "$dashes"
+}
+generate_vanguard_tor_ctrl_pass() {
+  # Generate a 42-character long random password using /dev/urandom and base64
+  PASSWORD=$(head -c 32 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 42)
+  TOR_HASH=$(sudo -u tor tor --hash-password "$PASSWORD")
+
+  # Assign the Tor hash to VANGUARD
+  export CTRL_P_PASS="$TOR_HASH"
+  export VANGUARD="$PASSWORD"
+  echo "[TOR] Generated Tor Hash: $CTRL_P_PASS"
+  echo "[TOR] Generated Tor Password: $VANGUARD"
+}
+run_tor_flux() {
+    # Start both Tor processes
+    { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> "$log_dir/tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
+    { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> "$log_dir/dns_tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
+
+    start_time=$(date +%s)
+    retries=0
+    max_retries=142  # 5 minutes with 3s intervals
+
+    # Wait for Tor to be fully booted
+    latest_log=$(ls "$log_dir/tor_startup_log_"*.txt | sort -V | tail -n 1)
+    while ! grep -q 'Bootstrapped 100%' "$latest_log" && [ $retries -lt $max_retries ]; do
+        sleep 3
+        retries=$((retries + 1))
+        latest_log=$(ls "$log_dir/tor_startup_log_"*.txt | sort -V | tail -n 1)
+        
+        elapsed_time=$(( $(date +%s) - start_time ))
+        if [ $elapsed_time -ge 300 ]; then
+            echo "[TOR] Bootstrap timeout. Restarting Tor..."
+            pkill tor >/dev/null 2>&1
+            sleep 0.5
+
+            # Restart Tor processes and capture their PIDs
+            { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> "$log_dir/tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
+            { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> "$log_dir/dns_tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
+
+
+            start_time=$(date +%s)
+            retries=0
+        fi
+    done
+
+    if [ $retries -ge $max_retries ]; then
+        echo "[TOR] Exiting: Bootstrap unsuccessful."
+        return
+    fi
+
+    # Main loop for periodic circuit renewal
+    while true; do
+        #sleep_time=$(( RANDOM % 30 + 12 ))
+        sleep_time=$(( RANDOM % 600 + 142 ))
+        printf "%s\n" "$dashes"
+        #echo "[TOR] New circuit in $sleep_time seconds..."
+        printf "%s\n" "$dashes"
+        sleep "$sleep_time"
+        printf "%s\n" "$dashes"
+        echo "[TOR] Sending Signal for New Circuits..."
+        ./torflux &
+        printf "%s\n" "$dashes"
+        echo "[TOR] New circuit in $sleep_time seconds..."
+    done
+}
 
 generate_awgd_values() {
         # Random generator for a range
@@ -88,30 +289,11 @@ check_dashboard_status(){
     fi
   fi
 }
-dashboard_setup(){
-    printf "[WIREGATE] Setting Up Dashboard\n"
-    sudo chmod -R 755 ${WGD_CONF_PATH}/
 
-	#if [ ! -d "${WGD_CONF_PATH}/WGDashboard_Backup" ]
-    #	then
-    #		printf "[WIREGATE] Creating Dashboard_Backup folder\n"
-    #        mkdir "${WGD_CONF_PATH}/WGDashboard_Backup"
-    #fi
-    
-    if [ ! -d "log" ]
-	  then 
-		printf "[WIREGATE] Creating WireGate Logs folder\n"
-		mkdir "log"
-	fi
-    if [ ! -d "db" ] 
-		then 
-			mkdir "db"
-    fi
-}
 dashboard_start() {
     printf "%s\n" "$equals"
     # Start the dashboard executable in the background and capture its PID
-    ./wiregate  >> "$log_dir/dashboard_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" & 
+    ./wiregate &
     echo $! > "$PID_FILE"
 
 }
@@ -148,10 +330,8 @@ init() {
     mkdir -p /dev/net && mknod /dev/net/tun c 10 200
     fi
     start_core
-    dashboard_start
-	printf "%s\n" "$equals"
-    printf "[WIREGATE] %s Dashboard Started\n" "$heavy_checkmark"
-    printf "%s\n" "$equals"
+    #dashboard_start
+	
 	if [[ "$WGD_TOR_PROXY" == "true" ]]; then
 		# Get the most recent log file based on the date in the filename
 		latest_log=$(ls /WireGate/log/tor_startup_log_*.txt | sort -V | tail -n 1)
@@ -263,41 +443,41 @@ start_core() {
 
     # Start WireGuard for each config file
 	# Loop over each .conf file in the specified directory
-for file in "$wg_conf_path"/*.conf; do
-    # Get the configuration name (without the .conf extension)
-    config_name=$(basename "$file" .conf)
+    for file in "$wg_conf_path"/*.conf; do
+        # Get the configuration name (without the .conf extension)
+        config_name=$(basename "$file" .conf)
 
-    # Check if the config file contains AmneziaWG parameters
-    if grep -q -E '^\s*(Jc|Jmin|Jmax|S1|S2|H1|H2|H3|H4)\s*=' "$file"; then
-        tool="awg-quick"
-        echo "Detected AmneziaWG parameters in $file. Using awg-quick for $config_name." >> "$log_file"
-    else
-        tool="wg-quick"
-        echo "No AmneziaWG parameters detected in $file. Using wg-quick for $config_name." >> "$log_file"
-    fi
+        # Check if the config file contains AmneziaWG parameters
+        if grep -q -E '^\s*(Jc|Jmin|Jmax|S1|S2|H1|H2|H3|H4)\s*=' "$file"; then
+            tool="awg-quick"
+            echo "Detected AmneziaWG parameters in $file. Using awg-quick for $config_name." >> "$log_file"
+        else
+            tool="wg-quick"
+            echo "No AmneziaWG parameters detected in $file. Using wg-quick for $config_name." >> "$log_file"
+        fi
 
-    # Extract the IPv6 address from the configuration file
-    ipv6_address=$(grep -E 'Address\s*=\s*.*,\s*([a-fA-F0-9:]+)' "$file" | sed -E 's/.*,\s*([a-fA-F0-9:]+)\/.*/\1/')
+        # Extract the IPv6 address from the configuration file
+        ipv6_address=$(grep -E 'Address\s*=\s*.*,\s*([a-fA-F0-9:]+)' "$file" | sed -E 's/.*,\s*([a-fA-F0-9:]+)\/.*/\1/')
 
-    # Bring the WireGuard interface up
-    echo "Bringing up interface: $config_name using $tool" >> "$log_file"
-    $tool up "$config_name" >> "$log_file" 2>&1
+        # Bring the WireGuard interface up
+        echo "Bringing up interface: $config_name using $tool" >> "$log_file"
+        $tool up "$config_name" >> "$log_file" 2>&1
 
-    # Patching for AmneziaWG IPv6
-    # Check if an IPv6 address was found in the config
-    if [ -n "$ipv6_address" ]; then
-        echo "IPv6 address found: $ipv6_address for $config_name" >> "$log_file"
+        # Patching for AmneziaWG IPv6
+        # Check if an IPv6 address was found in the config
+        if [ -n "$ipv6_address" ]; then
+            echo "IPv6 address found: $ipv6_address for $config_name" >> "$log_file"
 
-        # Remove any existing IPv6 addresses for the interface
-        ip -6 addr flush dev "$config_name" >> "$log_file" 2>&1
+            # Remove any existing IPv6 addresses for the interface
+            ip -6 addr flush dev "$config_name" >> "$log_file" 2>&1
 
-        # Add the new IPv6 address to the interface
-        echo "Adding IPv6 address $ipv6_address to $config_name" >> "$log_file"
-        ip -6 addr add "$ipv6_address" dev "$config_name" >> "$log_file" 2>&1
-    else
-        echo "No IPv6 address found for $config_name, skipping IPv6 configuration." >> "$log_file"
-    fi
-done
+            # Add the new IPv6 address to the interface
+            echo "Adding IPv6 address $ipv6_address to $config_name" >> "$log_file"
+            ip -6 addr add "$ipv6_address" dev "$config_name" >> "$log_file" 2>&1
+        else
+            echo "No IPv6 address found for $config_name, skipping IPv6 configuration." >> "$log_file"
+        fi
+    done
 }
 set_proxy () {
     if [[ "$WGD_TOR_PROXY" == "true" ]]; then
@@ -503,7 +683,63 @@ make_master_config() {
 }
 
 
+run_pre_install_setup(){
+    sudo apk add --no-cache tor curl > /dev/null 2>&1
+    sudo chmod -R 755 ${WGD_CONF_PATH}/
 
+    # Load HFSC module at container startup and verify
+    modprobe sch_hfsc
+    if lsmod | grep -q sch_hfsc; then
+        echo "[TRAFFIC] sch_hfsc module loaded successfully"
+    else
+        echo "[TRAFFIC] WARNING: Failed to load sch_hfsc module, Kernel may not support it"
+    fi
+
+
+   # Loop over each .sh file in the directory and its subdirectories
+    find /WireGate/iptable-rules/ -type f -name "*.sh" | while read -r file; do
+        # Check if the file contains the line with DNS_SERVER=${WGD_IPTABLES_DNS}
+        if grep -q "DNS_SERVER=\${WGD_IPTABLES_DNS}" "$file"; then
+            # Replace the line with the current value of WGD_IPTABLES_DNS
+            sed -i "s|DNS_SERVER=\${WGD_IPTABLES_DNS}|DNS_SERVER=${WGD_IPTABLES_DNS}|" "$file"
+        fi
+    done
+
+
+
+    if [[ "$WGD_TOR_PROXY" == "true" ]]; then
+        sed -i "s/^#\(proxy = 'socks5:\/\/wiregate:9053'\)/\1/" "$dnscrypt_conf"
+        else
+            sed -i "s/^\(proxy = 'socks5:\/\/wiregate:9053'\)/#\1/" "$dnscrypt_conf"
+    fi
+
+
+    
+    if [ ! -d "log" ]
+	  then 
+		printf "[WIREGATE] Creating WireGate Logs folder\n"
+		mkdir "log"
+	fi
+    if [ ! -d "db" ] 
+		then 
+			mkdir "db"
+    fi
+
+
+}
+run_pre_start_setup() {
+    dashboard_start
+    printf "%s\n" "$equals"
+    printf "[WIREGATE] %s Dashboard Started\n" "$heavy_checkmark"
+    printf "%s\n" "$equals"
+    sleep 3
+    make_torrc
+    make_dns_torrc
+    generate_vanguard_tor_ctrl_pass
+    run_tor_flux &
+    init 
+
+}
 
 
 if [ "$#" != 1 ]; then
@@ -511,7 +747,7 @@ if [ "$#" != 1 ]; then
 else
     if [ "$1" = "start" ]; then
         printf "%s\n" "$dashes"
-        init 
+        run_pre_start_setup
         printf "%s\n" "$dashes"
     elif [ "$1" = "stop" ]; then
         if check_dashboard_status; then
@@ -525,8 +761,6 @@ else
             printf "%s\n" "$dashes"
         fi
     elif [ "$1" = "install" ]; then
-        printf "%s\n" "$dashes"
-        dashboard_setup
-        printf "%s\n" "$dashes"
+        run_pre_install_setup 
     fi
 fi

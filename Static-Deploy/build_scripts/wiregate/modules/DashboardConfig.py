@@ -11,7 +11,7 @@ from . shared import (
     sqlSelect, sqlUpdate
 )
 
-from ..Utilities import ValidateDNSAddress
+from .Utilities import ValidateDNSAddress
 
 #from . DashboardAPIkey import DashboardAPIKey
 

@@ -10,7 +10,7 @@ from flask.json.provider import DefaultJSONProvider
 from .modules.shared import (
     app
 )
-from .modules.Log import Log
+from .modules.Logger.Log import Log
 
 from .modules.DashboardConfig import (
     DashboardConfig, DashboardAPIKey
@@ -19,7 +19,8 @@ from .modules.DashboardConfig import (
 from .modules.Core import (
 
     PeerShareLink,
-    PeerJob, Configuration, Peer, APP_PREFIX
+    PeerJob, Configuration, Peer, APP_PREFIX,
+    InitWireguardConfigurationsList  # if needed elsewhere
 
 )
 
@@ -65,9 +66,9 @@ from .routes.email_api import email_blueprint
 from .routes.peer_jobs_api import peer_jobs_blueprint
 from .routes.ldap_auth_api import ldap_auth_blueprint
 from .routes.data_charts_api import data_chart_blueprint
-
-
-
+from .routes.auth_api import auth_blueprint
+from .routes.utils_api import utils_blueprint
+from .routes.locale_api import locale_blueprint
 # Initialize logger
 # Set up the rotating file handler with dynamic filename
 #log_filename = get_timestamped_filename()
@@ -95,9 +96,9 @@ app.register_blueprint(traffic_weir_blueprint, url_prefix=f'{APP_PREFIX}/api')
 app.register_blueprint(peer_jobs_blueprint, url_prefix=f'{APP_PREFIX}/api')
 app.register_blueprint(ldap_auth_blueprint, url_prefix=f'{APP_PREFIX}/api')
 app.register_blueprint(data_chart_blueprint, url_prefix=f'{APP_PREFIX}/api')
-
-
-
+app.register_blueprint(auth_blueprint, url_prefix=f'{APP_PREFIX}/api')
+app.register_blueprint(utils_blueprint, url_prefix=f'{APP_PREFIX}/api')
+app.register_blueprint(locale_blueprint, url_prefix=f'{APP_PREFIX}/api')
 
 '''
 API Routes
@@ -120,10 +121,11 @@ def startThreads():
     scheduleJobThread.daemon = True
     scheduleJobThread.start()
 
-
-
-
-
+def gunicornConfig():
+    """
+    Returns the host and port configuration for Gunicorn.
+    """
+    return waitressInit()
 
 
 
