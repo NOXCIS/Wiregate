@@ -269,10 +269,12 @@ services:
       hostname: wiregate
       cap_add:
         - NET_ADMIN
+        - SYS_MODULE
       devices:
         - /dev/net/tun:/dev/net/tun  
       restart: unless-stopped
       volumes:
+        - /lib/modules:/lib/modules:ro 
         - pf_conf:/WireGate/iptable-rules/
         #- conf:/etc/wireguard 
         - db:/WireGate/db
@@ -355,10 +357,12 @@ services:
       hostname: wiregate
       cap_add:
         - NET_ADMIN
+        - SYS_MODULE
       devices:
-        - /dev/net/tun:/dev/net/tun
+        - /dev/net/tun:/dev/net/tun  
       restart: unless-stopped
       volumes:
+        - /lib/modules:/lib/modules:ro 
         - pf_conf:/WireGate/iptable-rules
         - conf:/etc/wireguard 
         - db:/WireGate/db
