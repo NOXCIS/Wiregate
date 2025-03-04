@@ -97,50 +97,8 @@ statistics:
   interval: 24h
   enabled: true
 filters:
-  - enabled: true
-    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_1.txt
-    name: AdGuard DNS filter
-    id: 1
-  - enabled: true
-    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_2.txt
-    name: AdAway Default Blocklist
-    id: 2
-  - enabled: true
-    url: https://raw.githubusercontent.com/nickspaargaren/no-amazon/refs/heads/master/amazon-adguard.txt
-    name: FAmazon
-    id: 1727235927
-  - enabled: true
-    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_49.txt
-    name: HaGeZi's Ultimate Blocklist
-    id: 1727235928
-  - enabled: true
-    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_50.txt
-    name: uBlock₀ filters – Badware risks
-    id: 1727235929
-  - enabled: true
-    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_23.txt
-    name: WindowsSpyBlocker - Hosts spy rules
-    id: 1727235930
-  - enabled: true
-    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_59.txt
-    name: AdGuard DNS Popup Hosts filter
-    id: 1727235931
-  - enabled: true
-    url: https://adguardteam.github.io/HostlistsRegistry/assets/filter_53.txt
-    name: AWAvenue Ads Rule
-    id: 1727235932
 whitelist_filters: []
 user_rules:
-  - '||advice-ads.s3.amazonaws.com^'
-  - '||afs.googlesyndication.com^'
-  - '||analytics.google.com^'
-  - '||click.googleanalytics.com^$important'
-  - '||ads-api.tiktok.com^$important'
-  - '||ads-sg.tiktok.com^$important'
-  - '||ads.tiktok.com^$important'
-  - /pagead.js$domain=d3ward.github.io
-  - /widget/ads.
-  - ""
 dhcp:
   enabled: false
   interface_name: ""
