@@ -9,3 +9,6 @@ acid-rain-beta-v0.4.1:
 acid-rain-beta-v0.4.2:
   - Fixed Tor Save & Reload
   - Added Tor Config Stop and Start Button
+  - Added Tor Log Viewer
+  - Added Tor Vanguards to Tor DNS
+  - Streamlined Tor Bootstrap Logging
