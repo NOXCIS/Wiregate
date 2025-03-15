@@ -10,10 +10,6 @@ __pycache__/
 *.py[cod]
 
 
-/UI_DEV_KIT/*
-/UI_DEV_KIT
-/UI_DEV_KIT copy/*
-/UI_DEV_KIT copy
 
 /configs/logs
 /configs/tor
@@ -32,57 +28,31 @@ __pycache__/
 !/configs/dnscrypt/dnscrypt-proxy.toml
 
 
-/Dynamic-Deploy/*
-!/Dynamic-Deploy/build_scripts
-!/Dynamic-Deploy/src
-!/Dynamic-Deploy/.dockerignore
-!/Dynamic-Deploy/Dockerfile
-!/Dynamic-Deploy/LICENSE
+/Src/venv/
+/Src/log/
+
+/Src/static/app/dist/
+/Src/static/app/node_modules/
+
+/Src/db/*
+!/Src/db/wsgi.ini
 
 
-/Dynamic-Deploy/src/*
-!/Dynamic-Deploy/src/certbot.ini
-!/Dynamic-Deploy/src/dashboard.py
-!/Dynamic-Deploy/src/Utilities.py
-!/Dynamic-Deploy/src/entrypoint.sh
-!/Dynamic-Deploy/src/gunicorn.conf.py
-!/Dynamic-Deploy/src/requirements.txt
-!/Dynamic-Deploy/src/vanguards.py
-!/Dynamic-Deploy/src/wiregate.sh
-!/Dynamic-Deploy/src/iptable-rules
-!/Dynamic-Deploy/src/vanguards
-!/Dynamic-Deploy/src/dnscrypt
 
-
-/Dynamic-Deploy/build_scripts/static/*
-
-!/Dynamic-Deploy/build_scripts/static/locale
-!/Dynamic-Deploy/build_scripts/static/app
-
-
-/Dynamic-Deploy/build_scripts/static/app/*
-
-!/Dynamic-Deploy/build_scripts/static/app/public
-!/Dynamic-Deploy/build_scripts/static/app/src
-!/Dynamic-Deploy/build_scripts/static/app/.gitignore
-!/Dynamic-Deploy/build_scripts/static/app/build.sh
-!/Dynamic-Deploy/build_scripts/static/app/index.html
-!/Dynamic-Deploy/build_scripts/static/app/jsconfig.json
-!/Dynamic-Deploy/build_scripts/static/app/package.json
-!/Dynamic-Deploy/build_scripts/static/app/package-lock.json
-!/Dynamic-Deploy/build_scripts/static/app/proxy.js
-!/Dynamic-Deploy/build_scripts/static/app/vite.config.js
-
-
-/Static-Deploy/*
-
-!/Static-Deploy/build_scripts
-!/Static-Deploy/src
-!/Static-Deploy/.dockerignore
-!/Static-Deploy/Dockerfile
 .env.anim.run.txt
 .env
 .DS_Store
 preqsinstalled.txt
-Static-Deploy/build_scripts/traffic_weir/2blocks-away.txt
-Static-Deploy/build_scripts/traffic_weir/ttt.txt
+/DB_MIGRATE
+test_users.ldif
+proxy_router.c
+proxy_router/go.mod
+proxy_router/go.sum
+/proxy_router
+Docs/auth_api.py
+/WireGate_Built
+/build
+/Src/static/app/dist
+Src/appmap.log
+/Src/build
+dashboard.pid

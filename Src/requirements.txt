@@ -1,0 +1,17 @@
+bcrypt
+psutil
+pyotp
+py7zr
+Flask
+flask-cors
+icmplib
+requests
+vanguards
+configparser
+stem
+msal
+ldap3
+paste
+gunicorn
+pyinstaller
+
