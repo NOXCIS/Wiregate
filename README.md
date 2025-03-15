@@ -7,9 +7,11 @@
 > [!NOTE]
 **DOCKER INSTALL**
 >
-> **DEV (ONGING DEBUGING)** 	(Has Bugs): 	[noxcis/wiregate:acid-rain-beta-v0.4.2](https://hub.docker.com/layers/noxcis/wiregate/nyx-beta-v0.1/images/sha256:be4724234af6ed225f3de20904b87467c3e635eadb6f58848f033598b96388ec?uuid=bf83a523-8985-4e64-98aa-21523fa92fed%0A) docker image.	
+> **DOCKER REPO** [WireGate Docker Repo](https://hub.docker.com/r/noxcis/wiregate)
 >
-> **EDGE (ONGOING PROD TESTING)**	(Pre Release Images):[noxcis/wiregate:jasper-beta](https://hub.docker.com/layers/noxcis/wiregate/jiaotu-beta-v0.3/images/sha256-93941fc4f2e317b477ed731b15186224017bbd85eec727feb76dc9e3c37e1da9) docker image.
+> **DEV (ONGING DEBUGING)** 	(Has Bugs): 	[noxcis/wiregate:acid-rain-beta-v0.4.2](https://hub.docker.com/layers/noxcis/wiregate/acid-rain-beta-v0.4.2/images/sha256-6edf22bd0f95c22adeb49c4ef3bb95dd4f45afec32068cb7be10469f41db0397) docker image.	
+>
+> **EDGE (ONGOING PROD TESTING)**	(Pre Release Images):[noxcis/wiregate:jasper-beta](https://hub.docker.com/layers/noxcis/wiregate/jasper-beta/images/sha256-7b652e1acc616162d95982b2ecdf220e5b162740e87df660493f69063e268112) docker image.
 > 
 > **STABLE (PROD TESTED)**	(Stable Tested Images) :	[noxcis/wiregate:vidar](https://hub.docker.com/layers/noxcis/wiregate/vidar/images/sha256-427d75bfa850dfd7ebd185b6f1de7f8ffe667ef6a8fe247db8fe59be72a39055?context=explore) docker image. 
 >
