@@ -79,6 +79,7 @@ services:
         - pf_conf:/WireGate/iptable-rules/
         - conf:/etc/wireguard 
         - db:/WireGate/db
+        - ./configs/ssl:/WireGate/SSL_CERT
         - ./configs/dnscrypt:/WireGate/dnscrypt
         - ./configs/tor:/etc/tor/
         - ./configs/logs:/WireGate/log/
@@ -99,6 +100,7 @@ services:
         - WGD_TOR_DNS_EXIT_NODES=${WGD_TOR_DNS_EXIT_NODES}               #Ex. {gb},{fr}
         - WGD_TOR_BRIDGES=${WGD_TOR_BRIDGES}        #Enable Tor Bridges
         - WGD_TOR_PLUGIN=${WGD_TOR_PLUGIN}  
+        - WGD_TOR_DNSCRYPT=${WGD_TOR_DNSCRYPT}
       #WGDashboard Global Settings
       ##########################################################
         - WGD_WELCOME_SESSION=false
