@@ -28,7 +28,8 @@
 >wireguard-tools
 >amneziawg linux kernel module (amneziawg-go already installed)
 >iptables
->ip6tables
+>tor
+>ip6tables (Optional Per Disto)
 >tzdata
 >sudo
 >
