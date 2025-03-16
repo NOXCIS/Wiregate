@@ -298,10 +298,10 @@ install: all
 	
 	# Create and set ownership for Tor directories
 	mkdir -p /var/lib/tor /var/log/tor
-	chown -R tor:tor /var/lib/tor/
-	chown -R tor:tor /var/log/tor/
-	chmod 700 /var/lib/tor/
-	chmod 700 /var/log/tor/
+	sudo chown -R tor:tor /var/lib/tor/
+	sudo chown -R tor:tor /var/log/tor/
+	sudo chmod 700 /var/lib/tor/
+	sudo chmod 700 /var/log/tor/
 
 
 
