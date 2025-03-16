@@ -29,6 +29,7 @@
 >amneziawg linux kernel module (amneziawg-go already installed)
 >iptables
 >tor
+>curl
 >ip6tables (Optional Per Disto)
 >tzdata
 >sudo
