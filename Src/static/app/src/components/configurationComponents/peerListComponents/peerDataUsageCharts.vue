@@ -107,10 +107,11 @@ const toggleFetchRealtimeTraffic = () => {
 	
 	// Set new interval if configuration is active
 	if (props.configurationInfo.Status) {
-		console.log('Setting new interval with refresh rate: 1000ms') // Debug log
+		const refreshInterval = dashboardStore.Configuration.Server.dashboard_refresh_interval
+		console.log(`Setting new interval with refresh rate: ${refreshInterval}ms`) // Debug log
 		fetchRealtimeTrafficInterval.value = setInterval(() => {
 			fetchRealtimeTraffic()
-		}, 1000) // Fetch every second
+		}, refreshInterval)
 		// Fetch initial data
 		fetchRealtimeTraffic()
 	}

@@ -211,6 +211,18 @@ export default {
 				}
 			};
 
+			const resizeCanvas = () => {
+				const dpr = window.devicePixelRatio || 1;
+				const rect = canvas.getBoundingClientRect();
+				
+				canvas.width = rect.width * dpr;
+				canvas.height = rect.height * dpr;
+				canvas.style.width = `${rect.width}px`;
+				canvas.style.height = `${rect.height}px`;
+				
+				ctx.scale(dpr, dpr);
+			};
+
 			const draw = () => {
 				ctx.font = `bold ${fontSize}px ${fontFamily}`;
 				ctx.textAlign = 'center';
@@ -308,17 +320,6 @@ export default {
 					}
 				});
 			};
-
-			// Adjust canvas for pixel-perfect rendering
-			const dpr = window.devicePixelRatio || 1;
-			const rect = canvas.getBoundingClientRect();
-			
-			canvas.width = rect.width * dpr;
-			canvas.height = rect.height * dpr;
-			canvas.style.width = `${rect.width}px`;
-			canvas.style.height = `${rect.height}px`;
-			
-			ctx.scale(dpr, dpr);
 
 			// Initialize
 			initColumns();

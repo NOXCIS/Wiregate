@@ -56,3 +56,4 @@ Docs/auth_api.py
 Src/appmap.log
 /Src/build
 dashboard.pid
+/Src/configs

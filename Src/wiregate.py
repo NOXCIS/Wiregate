@@ -213,5 +213,5 @@ if __name__ == "__main__":
         GunicornApp(app, options).run()
     else:
         # For development only
-        GunicornApp(app, options).run()
-        #app.run(host=app_ip, port=app_port, debug=True)
+        #GunicornApp(app, options).run()
+        app.run(host=app_ip, port=app_port, debug=True)
