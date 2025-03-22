@@ -57,37 +57,80 @@ amneziawg-deps:
 	chmod +x amneziawg-go ../amneziawg-tools/src/wg ../amneziawg-tools/src/wg-quick/linux.bash
 	@echo "DONE AmneziaWG"
 
+# Add to the top with other variables
+NODE_VERSION = 20.11.1
+NODE_DIST_DIR = $(BUILD_DIR)/node
+NODE_INSTALL_DIR = $(BUILD_DIR)/node-install
+
 builder-deps:
+	# Install Node.js and npm in build directory
+	mkdir -p $(NODE_DIST_DIR) $(NODE_INSTALL_DIR)
 	
+	if [ ! -f "$(NODE_INSTALL_DIR)/bin/node" ]; then \
+		curl -o $(NODE_DIST_DIR)/node.tar.gz https://nodejs.org/dist/v$(NODE_VERSION)/node-v$(NODE_VERSION).tar.gz && \
+		tar -xzf $(NODE_DIST_DIR)/node.tar.gz -C $(NODE_DIST_DIR) --strip-components=1 && \
+		cd $(NODE_DIST_DIR) && \
+		./configure --prefix=$(abspath $(NODE_INSTALL_DIR)) && \
+		make -j$(nproc) && \
+		make install && \
+		cd .. && \
+		rm -rf $(NODE_DIST_DIR)/* ; \
+	fi
+
+	# Add source language download mirrors
+	PIP_MIRRORS="https://pypi.tuna.tsinghua.edu.cn/simple \
+		https://mirrors.aliyun.com/pypi/simple \
+		https://pypi.org/simple"
+
+	NPM_MIRRORS="https://registry.npmmirror.com \
+		https://registry.npmjs.org"
+
+	# Install other build dependencies
 	if grep -q "Alpine" /etc/os-release 2>/dev/null; then \
-		apk add --no-cache python3 py3-virtualenv py3-pip musl-dev build-base zlib-dev libffi-dev openssl-dev linux-headers rust cargo wget npm; \
+		apk add --no-cache python3 py3-virtualenv py3-pip musl-dev build-base zlib-dev libffi-dev openssl-dev linux-headers rust cargo wget; \
 	elif grep -q "Debian\|Ubuntu\|Mint" /etc/os-release 2>/dev/null; then \
-		apt-get update && apt-get install -y python3 python3-venv python3-pip build-essential zlib1g-dev libffi-dev libssl-dev linux-headers-generic rustc cargo wget npm; \
+		apt-get update && apt-get install -y python3 python3-venv python3-pip build-essential zlib1g-dev libffi-dev libssl-dev linux-headers-generic rustc cargo wget; \
 	elif grep -q "Arch\|Manjaro" /etc/os-release 2>/dev/null; then \
-		pacman -Sy --noconfirm python python-virtualenv python-pip base-devel zlib libffi openssl linux-headers rust cargo wget npm; \
+		pacman -Sy --noconfirm python python-virtualenv python-pip base-devel zlib libffi openssl linux-headers rust cargo wget; \
 	elif grep -q "Fedora" /etc/os-release 2>/dev/null; then \
-		dnf install -y python3 python3-virtualenv python3-pip gcc gcc-c++ make zlib-devel libffi-devel openssl-devel kernel-headers rust cargo wget npm; \
+		dnf install -y python3 python3-virtualenv python3-pip gcc gcc-c++ make zlib-devel libffi-devel openssl-devel kernel-headers rust cargo wget; \
 	elif grep -q "SUSE" /etc/os-release 2>/dev/null; then \
-		zypper install -y python3 python3-virtualenv python3-pip gcc gcc-c++ make zlib-devel libffi-devel libopenssl-devel kernel-headers rust cargo wget npm; \
+		zypper install -y python3 python3-virtualenv python3-pip gcc gcc-c++ make zlib-devel libffi-devel libopenssl-devel kernel-headers rust cargo wget; \
 	elif grep -q "CentOS\|RHEL" /etc/os-release 2>/dev/null; then \
-		yum install -y python3 python3-virtualenv python3-pip gcc gcc-c++ make zlib-devel libffi-devel openssl-devel kernel-headers rust cargo wget npm; \
+		yum install -y python3 python3-virtualenv python3-pip gcc gcc-c++ make zlib-devel libffi-devel openssl-devel kernel-headers rust cargo wget; \
 	else \
 		echo "WARNING: Unsupported distribution. Please install dependencies manually."; \
 	fi
 
+	# Configure pip to use mirrors
+	mkdir -p ~/.pip && \
+	echo "[global]" > ~/.pip/pip.conf && \
+	echo "index-url = $(word 1,$(PIP_MIRRORS))" >> ~/.pip/pip.conf && \
+	echo "extra-index-url = $(wordlist 2,$(words $(PIP_MIRRORS)),$(PIP_MIRRORS))" >> ~/.pip/pip.conf
+
+	# Configure npm to use mirrors (using local npm installation)
+	$(NODE_INSTALL_DIR)/bin/npm config set registry $(word 1,$(NPM_MIRRORS)) && \
+	$(NODE_INSTALL_DIR)/bin/npm config set disturl $(word 1,$(NPM_MIRRORS))/dist
 
 # Frontend dependencies and build
 frontend-deps:
 	@echo "Installing Node.js dependencies..."
-	cd $(STATIC_DIR) && npm update && npm install
-
+	cd $(STATIC_DIR) && \
+	# Clear existing node_modules and package-lock.json for clean install
+	rm -rf node_modules package-lock.json && \
+	# Use configured npm with mirrors
+	$(NODE_INSTALL_DIR)/bin/npm cache clean --force && \
+	$(NODE_INSTALL_DIR)/bin/npm install --no-audit --no-fund
 
 frontend: frontend-deps
 	@echo "Building frontend..."
-	cd $(STATIC_DIR) && npm run build
-	mkdir -p $(BUILD_DIR)/app
-	mv $(STATIC_DIR)/dist $(BUILD_DIR)/app/dist
-	rm -rf $(STATIC_DIR)/static/app/node_modules
+	cd $(STATIC_DIR) && \
+	$(NODE_INSTALL_DIR)/bin/npm run build && \
+	mkdir -p $(BUILD_DIR)/app && \
+	mv dist $(BUILD_DIR)/app/dist && \
+	# Clean up node_modules after build
+	rm -rf node_modules
+
 # Go dependencies
 go-deps:
 	@echo "Setting up Go environment..."
