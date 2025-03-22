@@ -98,21 +98,27 @@ builder-deps:
 	fi
 
 	# Configure npm to use mirrors (using local npm installation)
-	$(NODE_DIST_DIR)/bin/npm config set registry $(word 1,$(NPM_MIRRORS)) && \
-	$(NODE_DIST_DIR)/bin/npm config set disturl $(word 1,$(NPM_MIRRORS))/dist
+	# Use a subshell to set PATH temporarily
+	( \
+		export PATH="$(abspath $(NODE_DIST_DIR))/bin:$$PATH" && \
+		npm config set registry $(word 1,$(NPM_MIRRORS)) && \
+		npm config set disturl $(word 1,$(NPM_MIRRORS))/dist \
+	)
 
 # Frontend dependencies and build
 frontend-deps:
 	@echo "Installing Node.js dependencies..."
 	cd $(STATIC_DIR) && \
 	rm -rf node_modules package-lock.json && \
-	$(NODE_DIST_DIR)/bin/npm cache clean --force && \
-	$(NODE_DIST_DIR)/bin/npm install --no-audit --no-fund
+	PATH="$(abspath $(NODE_DIST_DIR))/bin:$$PATH" \
+	npm cache clean --force && \
+	npm install --no-audit --no-fund
 
 frontend: frontend-deps
 	@echo "Building frontend..."
 	cd $(STATIC_DIR) && \
-	$(NODE_DIST_DIR)/bin/npm run build && \
+	PATH="$(abspath $(NODE_DIST_DIR))/bin:$$PATH" \
+	npm run build && \
 	mkdir -p $(BUILD_DIR)/app && \
 	mv dist $(BUILD_DIR)/app/dist && \
 	rm -rf node_modules
