@@ -60,21 +60,16 @@ amneziawg-deps:
 # Add to the top with other variables
 NODE_VERSION = 20.11.1
 NODE_DIST_DIR = $(BUILD_DIR)/node
-NODE_INSTALL_DIR = $(BUILD_DIR)/node-install
+NODE_ARCH ?= $(shell uname -m | sed 's/x86_64/x64/;s/aarch64/arm64/')
 
 builder-deps:
-	# Install Node.js and npm in build directory
-	mkdir -p $(NODE_DIST_DIR) $(NODE_INSTALL_DIR)
+	# Download and extract pre-built Node.js binaries
+	mkdir -p $(NODE_DIST_DIR)
 	
-	if [ ! -f "$(NODE_INSTALL_DIR)/bin/node" ]; then \
-		curl -o $(NODE_DIST_DIR)/node.tar.gz https://nodejs.org/dist/v$(NODE_VERSION)/node-v$(NODE_VERSION).tar.gz && \
-		tar -xzf $(NODE_DIST_DIR)/node.tar.gz -C $(NODE_DIST_DIR) --strip-components=1 && \
-		cd $(NODE_DIST_DIR) && \
-		./configure --prefix=$(abspath $(NODE_INSTALL_DIR)) && \
-		make -j$(nproc) && \
-		make install && \
-		cd .. && \
-		rm -rf $(NODE_DIST_DIR)/* ; \
+	if [ ! -f "$(NODE_DIST_DIR)/bin/node" ]; then \
+		curl -o $(NODE_DIST_DIR)/node.tar.xz https://nodejs.org/dist/v$(NODE_VERSION)/node-v$(NODE_VERSION)-linux-$(NODE_ARCH).tar.xz && \
+		tar -xf $(NODE_DIST_DIR)/node.tar.xz -C $(NODE_DIST_DIR) --strip-components=1 && \
+		rm $(NODE_DIST_DIR)/node.tar.xz; \
 	fi
 
 	# Add source language download mirrors
@@ -102,33 +97,24 @@ builder-deps:
 		echo "WARNING: Unsupported distribution. Please install dependencies manually."; \
 	fi
 
-	# Configure pip to use mirrors
-	mkdir -p ~/.pip && \
-	echo "[global]" > ~/.pip/pip.conf && \
-	echo "index-url = $(word 1,$(PIP_MIRRORS))" >> ~/.pip/pip.conf && \
-	echo "extra-index-url = $(wordlist 2,$(words $(PIP_MIRRORS)),$(PIP_MIRRORS))" >> ~/.pip/pip.conf
-
 	# Configure npm to use mirrors (using local npm installation)
-	$(NODE_INSTALL_DIR)/bin/npm config set registry $(word 1,$(NPM_MIRRORS)) && \
-	$(NODE_INSTALL_DIR)/bin/npm config set disturl $(word 1,$(NPM_MIRRORS))/dist
+	$(NODE_DIST_DIR)/bin/npm config set registry $(word 1,$(NPM_MIRRORS)) && \
+	$(NODE_DIST_DIR)/bin/npm config set disturl $(word 1,$(NPM_MIRRORS))/dist
 
 # Frontend dependencies and build
 frontend-deps:
 	@echo "Installing Node.js dependencies..."
 	cd $(STATIC_DIR) && \
-	# Clear existing node_modules and package-lock.json for clean install
 	rm -rf node_modules package-lock.json && \
-	# Use configured npm with mirrors
-	$(NODE_INSTALL_DIR)/bin/npm cache clean --force && \
-	$(NODE_INSTALL_DIR)/bin/npm install --no-audit --no-fund
+	$(NODE_DIST_DIR)/bin/npm cache clean --force && \
+	$(NODE_DIST_DIR)/bin/npm install --no-audit --no-fund
 
 frontend: frontend-deps
 	@echo "Building frontend..."
 	cd $(STATIC_DIR) && \
-	$(NODE_INSTALL_DIR)/bin/npm run build && \
+	$(NODE_DIST_DIR)/bin/npm run build && \
 	mkdir -p $(BUILD_DIR)/app && \
 	mv dist $(BUILD_DIR)/app/dist && \
-	# Clean up node_modules after build
 	rm -rf node_modules
 
 # Go dependencies
