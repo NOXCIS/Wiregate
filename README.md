@@ -5,6 +5,8 @@
 <hr>
 
 > [!NOTE]
+**DOCKER INSTALL**
+>
 > **DEV (ONGING DEBUGING)** 	(Has Bugs): 	[noxcis/wiregate:acid-rain-beta-v0.4.2](https://hub.docker.com/layers/noxcis/wiregate/nyx-beta-v0.1/images/sha256:be4724234af6ed225f3de20904b87467c3e635eadb6f58848f033598b96388ec?uuid=bf83a523-8985-4e64-98aa-21523fa92fed%0A) docker image.	
 >
 > **EDGE (ONGOING PROD TESTING)**	(Pre Release Images):[noxcis/wiregate:jasper-beta](https://hub.docker.com/layers/noxcis/wiregate/jiaotu-beta-v0.3/images/sha256-93941fc4f2e317b477ed731b15186224017bbd85eec727feb76dc9e3c37e1da9) docker image.
@@ -14,6 +16,7 @@
 
 > [!IMPORTANT]
 > **BARE METAL INSTALL**
+>
 >Pull the update staging branch and ....
 >**Supported Distros**
 > Ubuntu/Debian, Alpine, Fedora, Arch, SUSE, CentOS\|RHEL

@@ -96,11 +96,9 @@ statistics:
   ignored: []
   interval: 24h
   enabled: true
-filters:
-  
+filters: []
 whitelist_filters: []
-user_rules:
-  
+user_rules: []
 dhcp:
   enabled: false
   interface_name: ""

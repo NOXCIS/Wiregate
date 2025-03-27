@@ -9,32 +9,37 @@ networks:
       com.docker.network.bridge.enable_icc: "true"
     attachable: true
     internal: false
+    enable_ipv6: true
     ipam:
       config:
         - subnet: 10.2.0.0/24
+        - subnet: 2001:db8:abc::/64
+          gateway: 2001:db8:abc::1
 
 
 services:
 
 
   wiregate:
-      build: #BYO Image
-        context: ./Static-Deploy          #Static   Build
-        #context: ./WG-Dash               #Dynamic  Build
+      build:
+        context: .
         dockerfile: Dockerfile
-      #image: noxcis/wg-dashboard:chimera #Dynamic  Image
-      #image: noxcis/wiregate:chimera     #Static   Image
+      #image: noxcis/wiregate:chimera
       container_name: wiregate
       hostname: wiregate
       cap_add:
         - NET_ADMIN
+        - SYS_MODULE
       devices:
-        - /dev/net/tun:/dev/net/tun
+        - /dev/net/tun:/dev/net/tun  
       restart: unless-stopped
       volumes:
-        - pf_conf:/WireGate/iptable-rules
+        - /lib/modules:/lib/modules:ro 
+        - pf_conf:/WireGate/iptable-rules/
         - conf:/etc/wireguard 
         - db:/WireGate/db
+        - ./configs/ssl:/WireGate/SSL_CERT
+        - ./configs/dnscrypt:/WireGate/dnscrypt
         - ./configs/tor:/etc/tor/
         - ./configs/logs:/WireGate/log/
         - ./configs/master-key:/WireGate/master-key
@@ -52,28 +57,28 @@ services:
         - WGD_TOR_PROXY=true          #Enable Tor
         - WGD_TOR_EXIT_NODES={ch}     #Ex. {gb},{fr}
         - WGD_TOR_DNS_EXIT_NODES={us}
-        - WGD_TOR_BRIDGES=true        #Enable Tor Bridges
+        - WGD_TOR_BRIDGES=false        #Enable Tor Bridges
         - WGD_TOR_PLUGIN=snowflake    #OPTIONS webtunnel, obfs4, snowflake
+        - WGD_TOR_DNSCRYPT=false
       #WGDashboard Global Settings
       ##########################################################
         - WGD_WELCOME_SESSION=false
-        - WGD_AUTH_REQ=true
+        - WGD_AUTH_REQ=false
         - WGD_USER=admin
         - WGD_PASS=admin
-        - WGD_REMOTE_ENDPOINT=0.0.0.0
+        - WGD_REMOTE_ENDPOINT=192.168.0.4
         - WGD_REMOTE_ENDPOINT_PORT=80
         - WGD_PEER_ENDPOINT_ALLOWED_IP=0.0.0.0/0, ::/0
         - WGD_KEEP_ALIVE=21
         - WGD_MTU=1420
         - WGD_PORT_RANGE_STARTPORT=4430
-
       #DNS Setiings (Set To use Containers Above) You can use your own DNS
       ##########################################################
         - WGD_DNS=1.1.1.1
         - WGD_IPTABLES_DNS=1.1.1.1
-
       ports:
-        - "4430-4433:4430-4433/udp" #UDP Interface Listen Ports
+        - 44333:44333/udp
+        - "4430-4433:4430-4433/udp" #UDP Interface Listen Ports For Zones
         - 8000:80/tcp #Comment Out for full network lockdown, I.E only Accessible via VPN conttenction at http://wire.gate using config in generated master-key folder
       sysctls:        #Otherwise access the dashboard @ your-sever-ip/domain:6060
         - net.ipv4.ip_forward=1
@@ -83,7 +88,8 @@ services:
       networks:
         private_network:
           ipv4_address: 10.2.0.3
-    
+          ipv6_address: 2001:db8:abc::3
+
 
 
 volumes:
