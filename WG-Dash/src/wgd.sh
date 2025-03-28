@@ -5,13 +5,14 @@
 #trap "kill $TOP_PID"
 export TOP_PID=$$
 
-
 app_name="dashboard.py"
 app_official_name="WGDashboard"
 venv_python="./venv/bin/python3"
 venv_gunicorn="./venv/bin/gunicorn"
 pythonExecutable="python3"
+### BEGIN Wiregate Mod ###
 svr_config="/etc/wireguard/ADMINS.conf"
+### END Wiregate Mod ###
 
 heavy_checkmark=$(printf "\xE2\x9C\x94")
 heavy_crossmark=$(printf "\xE2\x9C\x97")
@@ -68,7 +69,7 @@ _determineOS(){
   elif [ -f /etc/redhat-release ]; then
       OS="redhat"
   else
-      printf "[WGDashboard] %s Sorry, your OS is not supported. Currently the install script only support Debian-based, Red Hat-based OS." "$heavy_crossmark"
+      printf "[WGDashboard] %s Sorry, your OS is not supported. Currently the install script only support Debian-based, Red Hat-based OS. With experimental support for Alpine Linux.\n" "$heavy_crossmark"
       printf "%s\n" "$helpMsg"
       kill  $TOP_PID
   fi
@@ -80,7 +81,7 @@ _installPython(){
 		ubuntu|debian)
 			{ sudo apt update ; sudo apt-get install -y python3 net-tools; printf "\n\n"; } &>> ./log/install.txt 
 		;;
-		centos|fedora|redhat|rehl)
+		centos|fedora|redhat|rhel|almalinux|rocky)
 			if command -v dnf &> /dev/null; then
 				{ sudo dnf install -y python3 net-tools; printf "\n\n"; } >> ./log/install.txt
 			else
@@ -88,8 +89,8 @@ _installPython(){
 			fi
 		;;
 		alpine)
-			{ apk update; apk add --no-cache python3 net-tools certbot; printf "\n\n"; } &>> ./log/install.txt 
-		;;
+				{ sudo apk update; sudo apk add python3 net-tools --no-cache; printf "\n\n"; } >> ./log/install.txt
+			;;
 	esac
 	
 	if ! python3 --version > /dev/null 2>&1
@@ -108,7 +109,7 @@ _installPythonVenv(){
 			ubuntu|debian)
 				{ sudo apt update ; sudo apt-get install -y python3-venv; printf "\n\n"; } &>> ./log/install.txt
 			;;
-			centos|fedora|redhat|rhel)
+			centos|fedora|redhat|rhel|almalinux|rocky)
 				if command -v dnf &> /dev/null; then
 					{ sudo dnf install -y python3-virtualenv; printf "\n\n"; } >> ./log/install.txt
 				else
@@ -116,10 +117,10 @@ _installPythonVenv(){
 				fi
 			;;
 			alpine)
-				{ apk add --no-cache py3-virtualenv; printf "\n\n"; } &>> ./log/install.txt 
+				{ sudo apk update; sudo apk add py3-virtualenv ; printf "\n\n"; } >> ./log/install.txt
 			;;
 			*)
-				printf "[WGDashboard] %s Sorry, your OS is not supported. Currently the install script only support Debian-based, Red Hat-based OS.\n" "$heavy_crossmark"
+				printf "[WGDashboard] %s Sorry, your OS is not supported. Currently the install script only support Debian-based, Red Hat-based OS. With experimental support for Alpine Linux.\n" "$heavy_crossmark"
 				printf "%s\n" "$helpMsg"
 				kill  $TOP_PID
 			;;
@@ -142,7 +143,6 @@ _installPythonVenv(){
 }
 
 _installPythonPip(){
-	
 	if ! $pythonExecutable -m pip -h > /dev/null 2>&1
 	then
 		case "$OS" in
@@ -153,7 +153,7 @@ _installPythonPip(){
 					{ sudo apt update ; sudo apt-get install -y ${pythonExecutable}-distutil python3-pip; printf "\n\n"; } &>> ./log/install.txt
 				fi
 			;;
-			centos|fedora|redhat|rhel)
+			centos|fedora|redhat|rhel|almalinux|rocky)
 				if [ "$pythonExecutable" = "python3" ]; then
 					{ sudo dnf install -y python3-pip; printf "\n\n"; } >> ./log/install.txt
 				else
@@ -161,10 +161,10 @@ _installPythonPip(){
 				fi
 			;;
 			alpine)
-				{ apk add --no-cache py3-pip; printf "\n\n"; } &>> ./log/install.txt 
+				{ sudo apk update; sudo apk add py3-pip --no-cache; printf "\n\n"; } >> ./log/install.txt
 			;;
 			*)
-				printf "[WGDashboard] %s Sorry, your OS is not supported. Currently the install script only support Debian-based, Red Hat-based OS.\n" "$heavy_crossmark"
+				printf "[WGDashboard] %s Sorry, your OS is not supported. Currently the install script only support Debian-based, Red Hat-based OS. With experimental support for Alpine Linux.\n" "$heavy_crossmark"
 				printf "%s\n" "$helpMsg"
 				kill  $TOP_PID
 			;;
@@ -182,17 +182,40 @@ _installPythonPip(){
 }
 
 _checkWireguard(){
-	if ! wg -h > /dev/null 2>&1
-	then
-		printf "[WGDashboard] %s WireGuard is not installed. Please follow instruction on https://www.wireguard.com/install/ to install. \n" "$heavy_crossmark"
-		kill  $TOP_PID
-	fi
-	if ! wg-quick -h > /dev/null 2>&1
-	then
-		printf "[WGDashboard] %s WireGuard is not installed. Please follow instruction on https://www.wireguard.com/install/ to install. \n" "$heavy_crossmark"
-		kill  $TOP_PID
-	fi
+    if ! command -v wg > /dev/null 2>&1 || ! command -v wg-quick > /dev/null 2>&1
+    then
+        case "$OS" in
+            ubuntu|debian)
+                { 
+                    sudo apt update && sudo apt-get install -y wireguard; 
+                    printf "\n[WGDashboard] WireGuard installed on %s.\n\n" "$OS"; 
+                } &>> ./log/install.txt
+            ;;
+            centos|fedora|redhat|rhel|almalinux|rocky)
+                { 
+                    sudo dnf install -y wireguard-tools;
+                    printf "\n[WGDashboard] WireGuard installed on %s.\n\n" "$OS"; 
+                } &>> ./log/install.txt
+            ;;
+            alpine)
+                { 
+                    sudo apk update && sudo apk add wireguard-tools --no-cache;
+                    printf "\n[WGDashboard] WireGuard installed on %s.\n\n" "$OS"; 
+                } &>> ./log/install.txt
+            ;;
+            *)
+                printf "[WGDashboard] %s Sorry, your OS is not supported. Currently, the install script only supports Debian-based, Red Hat-based, and Alpine Linux.\n" "$heavy_crossmark"
+                printf "%s\n" "$helpMsg"
+                kill $TOP_PID
+            ;;
+        esac
+    else
+        printf "[WGDashboard] WireGuard is already installed.\n"
+    fi
 }
+
+
+
 
 _checkPythonVersion(){
 	version_pass=$($pythonExecutable -c 'import sys; print("1") if (sys.version_info.major == 3 and sys.version_info.minor >= 10) else print("0");')
@@ -221,8 +244,12 @@ _checkPythonVersion(){
 
 install_wgd(){
     printf "[WGDashboard] Starting to install WGDashboard\n"
-    _checkWireguard
-    sudo chmod -R 755 /etc/wireguard/
+    
+    if [ ! -d "/etc/wireguard/WGDashboard_Backup" ]
+    	then
+    		printf "[WGDashboard] Creating /etc/wireguard/WGDashboard_Backup folder\n"
+            sudo mkdir "/etc/wireguard/WGDashboard_Backup"
+    fi
     
     if [ ! -d "log" ]
 	  then 
@@ -241,24 +268,27 @@ install_wgd(){
     _checkPythonVersion
     _installPythonVenv
     _installPythonPip
+	  _checkWireguard
+    sudo chmod -R 755 /etc/wireguard/
 
     if [ ! -d "db" ] 
 		then 
 			printf "[WGDashboard] Creating ./db folder\n"
 			mkdir "db"
     fi
-	if [ ! -d "dashboard_config" ] 
+    ### BEGIN Wiregate Mod ###
+    if [ ! -d "dashboard_config" ] 
 		then 
 			printf "[WGDashboard] Creating ./dashboard_config folder\n"
 			mkdir "dashboard_config"
     fi
+    ### END Wiregate Mod ###
     _check_and_set_venv
     printf "[WGDashboard] Upgrading Python Package Manage (PIP)\n"
 	{ date; python3 -m ensurepip --upgrade; printf "\n\n"; } >> ./log/install.txt
-    { date; python3 -m pip install --no-cache-dir --upgrade pip; printf "\n\n"; } >> ./log/install.txt
+    { date; python3 -m pip install --upgrade pip; printf "\n\n"; } >> ./log/install.txt
     printf "[WGDashboard] Installing latest Python dependencies\n"
-    { date; python3 -m pip install --no-cache-dir -r requirements.txt ; printf "\n\n"; } >> ./log/install.txt
-	#{ date; pip cache purge ; printf "\n\n"; } >> ./log/install.txt
+	{ date; python3 -m pip install -r requirements.txt ; printf "\n\n"; } >> ./log/install.txt #This all works on the default installation.
     printf "[WGDashboard] WGDashboard installed successfully!\n"
     printf "[WGDashboard] Enter ./wgd.sh start to start the dashboard\n"
 }
@@ -295,8 +325,10 @@ gunicorn_start () {
     export PATH=$PATH:/usr/local/bin:$HOME/.local/bin
   fi
   _check_and_set_venv
+  ### BEGIN Wiregate Mod ###
   . .env
-	export WGD_IPTABLES_DNS
+  export WGD_IPTABLES_DNS
+  ### END Wiregate Mod ###
   sudo "$venv_gunicorn" --config ./gunicorn.conf.py
   sleep 5
   checkPIDExist=0
@@ -318,7 +350,9 @@ gunicorn_stop () {
 
 start_wgd () {
 	_checkWireguard
-	set_env regular
+    ### BEGIN Wiregate Mod ###
+    set_env regular
+    ### END Wiregate Mod ###
     gunicorn_start
 }
 
@@ -330,15 +364,45 @@ stop_wgd() {
 	fi
 }
 
+# ============= Docker Functions =============
 startwgd_docker() {
 	_checkWireguard
-	printf "[WGDashboard][Docker] %s WGD Docker Started\n" "$heavy_checkmark"
-    set_env docker 
-    start_core
+	printf "[WGDashboard][Docker] WireGuard configuration started\n"
+    ### BEGIN Wiregate Mod ###
+    set_env docker
+    ### END Wiregate Mod ###
+	{ date; start_core ; printf "\n\n"; } >> ./log/install.txt
     gunicorn_start
 }
 
+start_core() {
+    ### BEGIN Wiregate Mod ###
+    # Check if $svr_config exists in /etc/wireguard
+    if [ ! -f "$svr_config" ]; then
+		printf "[Wiregate][WGDashboard][Docker] %s Wireguard Configuration Missing, Creating ....\n" "$heavy_checkmark"
+		set_proxy
+		wiregate_newconf_wgd
+	else
+		printf "[Wiregate][WGDashboard][Docker] %s Loading Wireguard Configuartions.\n" "$heavy_checkmark"
+	fi
+    ### END Wiregate Mod ###
+	# Re-assign config_files to ensure it includes any newly created configurations
+	local config_files=$(find /etc/wireguard -type f -name "*.conf")
+	### BEGIN Wiregate Mod ###
+    local iptable_dir="/opt/wireguarddashboard/src/iptable-rules"
+    ### END Wiregate Mod ###
+	# Set file permissions
+	find /etc/wireguard -type f -name "*.conf" -exec chmod 600 {} \;
+	find "$iptable_dir" -type f -name "*.sh" -exec chmod +x {} \;
+	
+	# Start WireGuard for each config file
+	for file in $config_files; do
+		config_name=$(basename "$file" ".conf")
+		wg-quick up "$config_name"
+	done
+}
 
+### BEGIN Wiregate Mod ###
 set_env() {
   local env_file=".env"
   local env_type="$1"
@@ -389,89 +453,13 @@ set_env() {
   fi
 }
 
-
-start_core() {
-	# Check if wg0.conf exists in /etc/wireguard
-    if [ ! -f "$svr_config" ]; then
-		printf "[WGDashboard][Docker] %s Wireguard Configuration Missing, Creating ....\n" "$heavy_checkmark"
-		set_proxy
-		newconf_wgd
-	else
-		printf "[WGDashboard][Docker] %s Loading Wireguard Configuartions.\n" "$heavy_checkmark"
-	fi
-	# Re-assign config_files to ensure it includes any newly created configurations
-	local config_files=$(find /etc/wireguard -type f -name "*.conf")
-	local iptable_dir="/opt/wireguarddashboard/src/iptable-rules"
-	# Set file permissions
-	find /etc/wireguard -type f -name "*.conf" -exec chmod 600 {} \;
-	find "$iptable_dir" -type f -name "*.sh" -exec chmod +x {} \;
-	
-	# Start WireGuard for each config file
-  printf "[WGDashboard][Docker] %s Starting Wireguard Configuartions.\n" "$heavy_checkmark"
-  printf "%s\n" "$dashes"
-  
-	for file in $config_files; do
-		config_name=$(basename "$file" ".conf")  
-		wg-quick up "$config_name"
-	done
-}
-
-
-start_wgd_debug() {
-	printf "%s\n" "$dashes"
-	_checkWireguard
-	printf "[WGDashboard] Starting WGDashboard in the foreground.\n"
-	sudo "$venv_python" "$app_name"
-	printf "%s\n" "$dashes"
-}
-
-update_wgd() {
-	_determineOS
-	if ! python3 --version > /dev/null 2>&1
-	then
-		printf "[WGDashboard] Python is not installed, trying to install now\n"
-		_installPython
-	else
-		printf "[WGDashboard] %s Python is installed\n" "$heavy_checkmark"
-	fi
-	
-	_checkPythonVersion
-	_installPythonVenv
-	_installPythonPip	
-	
-	new_ver=$($venv_python -c "import json; import urllib.request; data = urllib.request.urlopen('https://api.github.com/repos/donaldzou/WGDashboard/releases/latest').read(); output = json.loads(data);print(output['tag_name'])")
-	printf "%s\n" "$dashes"
-	printf "[WGDashboard] Are you sure you want to update to the %s? (Y/N): " "$new_ver"
-	read up
-	if [ "$up" = "Y" ] || [ "$up" = "y" ]; then
-		printf "[WGDashboard] Shutting down WGDashboard\n"
-		if check_wgd_status; then
-			stop_wgd
-		fi
-		mv wgd.sh wgd.sh.old
-		printf "[WGDashboard] Downloading %s from GitHub..." "$new_ver"
-		{ date; git stash; git pull https://github.com/donaldzou/WGDashboard.git $new_ver --force; } >> ./log/update.txt
-		chmod +x ./wgd.sh
-		sudo ./wgd.sh install
-		printf "[WGDashboard] Update completed!\n"
-		printf "%s\n" "$dashes"
-		rm wgd.sh.old
-	else
-		printf "%s\n" "$dashes"
-		printf "[WGDashboard] Update Canceled.\n"
-		printf "%s\n" "$dashes"
-	fi
-}
-
-
-newconf_wgd () {
+wiregate_newconf_wgd() {
   newconf_wgd0
   newconf_wgd1
   newconf_wgd2
   newconf_wgd3
   return
 }
-
 set_proxy () {
     if [[ "$WGD_TOR_PROXY" == "true" ]]; then
         postType="tor-post"
@@ -490,8 +478,6 @@ LANpostdown="/opt/wireguarddashboard/src/iptable-rules/LAN-only-users/postdown.s
 MEMpostdown="/opt/wireguarddashboard/src/iptable-rules/Members/${postType}down.sh"
 }
 
-
-
 newconf_wgd0() {
     local port_wg0=$WGD_PORT_RANGE_STARTPORT
     private_key=$(wg genkey)
@@ -507,9 +493,8 @@ PreDown = $AMDpostdown
 
 EOF
 
-        make_master_config
+  make_master_config
 }
-
 
 newconf_wgd1() {
     local port_wg1=$WGD_PORT_RANGE_STARTPORT
@@ -627,67 +612,136 @@ PresharedKey = $preshared_key
 EOF
 }
 
+### END Wiregate Mod ###
 
+newconf_wgd() {
+    local wg_port_listen=$wg_port
+    local wg_addr_range=$wg_net
+    private_key=$(wg genkey)
+    public_key=$(echo "$private_key" | wg pubkey)
+    cat <<EOF >"/etc/wireguard/wg0.conf"
+[Interface]
+PrivateKey = $private_key
+Address = $wg_addr_range
+ListenPort = $wg_port_listen
+SaveConfig = true
+PostUp = /opt/wireguarddashboard/src/iptable-rules/postup.sh
+PreDown = /opt/wireguarddashboard/src/iptable-rules/postdown.sh
+EOF
+}
 
+# ============= Docker Functions =============
 
+start_wgd_debug() {
+	printf "%s\n" "$dashes"
+	_checkWireguard
+	printf "[WGDashboard] Starting WGDashboard in the foreground.\n"
+	sudo "$venv_python" "$app_name"
+	printf "%s\n" "$dashes"
+}
 
-
-
-
-
-
-
-
-if [ "$#" != 1 ];
+update_wgd() {
+	_determineOS
+	if ! python3 --version > /dev/null 2>&1
 	then
-		help
+		printf "[WGDashboard] Python is not installed, trying to install now\n"
+		_installPython
 	else
-		if [ "$1" = "start" ]; then
-			if check_wgd_status; then
-				printf "%s\n" "$dashes"
-				printf "[WGDashboard] WGDashboard is already running.\n"
-				printf "%s\n" "$dashes"
-				else
-					start_wgd
-			fi
-			elif [ "$1" = "docker_start" ]; then
-				printf "%s\n" "$dashes"
-				startwgd_docker
-				printf "%s\n" "$dashes"
-			elif [ "$1" = "stop" ]; then
-				if check_wgd_status; then
-					printf "%s\n" "$dashes"
-					stop_wgd
-					printf "[WGDashboard] WGDashboard is stopped.\n"
-					printf "%s\n" "$dashes"
-					else
-						printf "%s\n" "$dashes"
-						printf "[WGDashboard] WGDashboard is not running.\n"
-						printf "%s\n" "$dashes"
-				fi
-			elif [ "$1" = "update" ]; then
-				update_wgd
-			elif [ "$1" = "install" ]; then
-				printf "%s\n" "$dashes"
-				install_wgd
-				printf "%s\n" "$dashes"
-			elif [ "$1" = "restart" ]; then
-				if check_wgd_status; then
-					printf "%s\n" "$dashes"
-					stop_wgd
-					printf "[WGDashboard] WGDashboard is stopped.\n"
-					sleep 4
-					start_wgd
-				else
-					start_wgd
-				fi
-			elif [ "$1" = "debug" ]; then
-				if check_wgd_status; then
-					printf "[WGDashboard] WGDashboard is already running.\n"
-				else
-					start_wgd_debug
-				fi
-			else
-				help
+		printf "[WGDashboard] %s Python is installed\n" "$heavy_checkmark"
+	fi
+	
+	_checkPythonVersion
+	_installPythonVenv
+	_installPythonPip	
+	
+	new_ver=$($venv_python -c "import json; import urllib.request; data = urllib.request.urlopen('https://api.github.com/repos/donaldzou/WGDashboard/releases/latest').read(); output = json.loads(data);print(output['tag_name'])")
+	printf "%s\n" "$dashes"
+
+	if [ "$commandConfirmed" = "true" ]; then
+		printf "[WGDashboard] Confirmation granted.\n"
+		up="Y"
+	else
+		printf "[WGDashboard] Are you sure you want to update to the %s? (Y/N): " "$new_ver"
+		read up
+	fi
+
+	if [ "$up" = "Y" ] || [ "$up" = "y" ]; then
+		printf "[WGDashboard] Shutting down WGDashboard\n"
+
+		if check_wgd_status; then
+			stop_wgd
 		fi
+
+		mv wgd.sh wgd.sh.old && \
+		printf "[WGDashboard] Downloading %s from GitHub..." "$new_ver" && \
+		{ date; git stash; git pull https://github.com/donaldzou/WGDashboard.git $new_ver --force; } >> ./log/update.txt && \
+		chmod +x ./wgd.sh && \
+		sudo ./wgd.sh install && \
+		printf "[WGDashboard] Update completed!\n" && \
+		printf "%s\n" "$dashes"; \
+		rm wgd.sh.old
+	else
+		printf "%s\n" "$dashes"
+		printf "[WGDashboard] Update Canceled.\n"
+		printf "%s\n" "$dashes"
+	fi
+}
+
+if [ "$#" -lt 1 ]; then
+	help
+else
+	if [ "$2" = "-y" ] || [ "$2" = "-Y" ]; then
+		commandConfirmed="true"
+	fi
+
+	if [ "$1" = "start" ]; then
+		if check_wgd_status; then
+		printf "%s\n" "$dashes"
+		printf "[WGDashboard] WGDashboard is already running.\n"
+		printf "%s\n" "$dashes"
+		else
+			start_wgd
+		fi
+    ### BEGIN Wiregate Mod ###
+    elif [ "$1" = "docker_start" ]; then
+        printf "%s\n" "$dashes"
+        startwgd_docker
+        printf "%s\n" "$dashes"
+    ### END Wiregate Mod ###
+	elif [ "$1" = "stop" ]; then
+		if check_wgd_status; then
+			printf "%s\n" "$dashes"
+			stop_wgd
+			printf "[WGDashboard] WGDashboard is stopped.\n"
+			printf "%s\n" "$dashes"
+			else
+			printf "%s\n" "$dashes"
+			printf "[WGDashboard] WGDashboard is not running.\n"
+			printf "%s\n" "$dashes"
+		fi
+	elif [ "$1" = "update" ]; then
+		update_wgd
+	elif [ "$1" = "install" ]; then
+		printf "%s\n" "$dashes"
+		install_wgd
+		printf "%s\n" "$dashes"
+	elif [ "$1" = "restart" ]; then
+		if check_wgd_status; then
+		printf "%s\n" "$dashes"
+		stop_wgd
+		printf "| WGDashboard is stopped.                                  |\n"
+		sleep 4
+		start_wgd
+		else
+		start_wgd
+		fi
+	elif [ "$1" = "debug" ]; then
+		if check_wgd_status; then
+		printf "| WGDashboard is already running.                          |\n"
+		else
+			start_wgd_debug
+		fi
+	else
+		help
+	fi
 fi
