@@ -92,9 +92,6 @@ RUN     python3 -m venv venv \
 RUN    venv/bin/pyinstaller \
             --onefile \
             --clean \
-            --hidden-import=gunicorn.glogging \
-            --hidden-import=gunicorn.workers.sync \
-            --hidden-import=gunicorn.workers.gthread \
             --distpath=/build/dist \
             --name=wiregate \
             wiregate.py && \

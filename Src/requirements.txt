@@ -12,7 +12,8 @@ stem
 msal
 ldap3
 paste
-gunicorn
+uvicorn
+asgiref
 pyinstaller
 redis
 

@@ -17,28 +17,13 @@ from wiregate.dashboard import app, app_ip, app_port
 from wiregate.modules.Core import InitWireguardConfigurationsList, InitRateLimits
 from wiregate.dashboard import startThreads
 import logging
-from gunicorn.app.base import BaseApplication
+import uvicorn
 import sys
 import time
 import argparse
-import configparser  # Add this import
-import os  # Add this import
-
-# Add new Gunicorn application class
-class GunicornApp(BaseApplication):
-    def __init__(self, app, options=None):
-        self.application = app
-        self.options = options or {}
-        super().__init__()
-
-    def load_config(self):
-        config = {key: value for key, value in self.options.items()
-                  if key in self.cfg.settings and value is not None}
-        for key, value in config.items():
-            self.cfg.set(key.lower(), value)
-
-    def load(self):
-        return self.application
+import configparser
+import os
+from asgiref.wsgi import WsgiToAsgi
     
 
 from datetime import datetime
@@ -61,18 +46,13 @@ if __name__ == "__main__":
     parser.add_argument('--keyfile', type=str, help='Path to SSL private key file')
     args = parser.parse_args()
     
-    # Default options
+    # Default options for Uvicorn
     options = {
-        'bind': f'{app_ip}:{app_port}',
-        'workers': 4,
-        'threads': 2,
-        'accesslog': '-',  # Log to stdout
-        'errorlog': '-',   # Log to stderr
-        'loglevel': 'INFO',
-        'daemon': True,
-        'capture_output': True,
-        'preload_app': True,
-        'logger_class': 'gunicorn.glogging.Logger',
+        'host': app_ip,
+        'port': int(app_port),
+        'log_level': 'info',
+        'access_log': True,
+
     }
     
     # Try to load from default config file location if not specified
@@ -84,42 +64,31 @@ if __name__ == "__main__":
         config = configparser.ConfigParser()
         try:
             config.read(config_path)
-            if 'gunicorn' in config:
-                gunicorn_section = config['gunicorn']
+            # Support both 'uvicorn' and 'gunicorn' sections for backward compatibility
+            config_section = None
+            if 'uvicorn' in config:
+                config_section = config['uvicorn']
+            elif 'gunicorn' in config:
+                config_section = config['gunicorn']
+                
+            if config_section:
                 # Override defaults with config file values
-                if 'workers' in gunicorn_section:
-                    options['workers'] = int(gunicorn_section['workers'])
-                if 'threads' in gunicorn_section:
-                    options['threads'] = int(gunicorn_section['threads'])
-                if 'loglevel' in gunicorn_section:
-                    options['loglevel'] = gunicorn_section['loglevel'].lower()
-                if 'daemon' in gunicorn_section:
-                    options['daemon'] = gunicorn_section.getboolean('daemon')
+                if 'workers' in config_section:
+                    options['workers'] = int(config_section['workers'])
+                if 'log_level' in config_section or 'loglevel' in config_section:
+                    log_level = config_section.get('log_level', config_section.get('loglevel', 'info'))
+                    options['log_level'] = log_level.lower()
                 
                 # Handle SSL configuration from config file
                 ssl_enabled = False
-                if 'ssl' in gunicorn_section:
-                    ssl_enabled = gunicorn_section.getboolean('ssl')
+                if 'ssl' in config_section:
+                    ssl_enabled = config_section.getboolean('ssl')
                     
                 if ssl_enabled:
-                    if 'certfile' in gunicorn_section and 'keyfile' in gunicorn_section:
-                        options['certfile'] = gunicorn_section['certfile']
-                        options['keyfile'] = gunicorn_section['keyfile']
-                else:
-                    # Explicitly remove certfile and keyfile if SSL is disabled
-                    if 'certfile' in options:
-                        del options['certfile']
-                    if 'keyfile' in options:
-                        del options['keyfile']
-                    
-                # Handle other gunicorn options from config file
-                for key in ['capture_output', 'preload_app']:
-                    if key in gunicorn_section:
-                        options[key] = gunicorn_section.getboolean(key)
-                # Handle any additional gunicorn options present in config
-                for key, value in gunicorn_section.items():
-                    if key not in options and key not in ['ssl', 'certfile', 'keyfile']:
-                        options[key] = value
+                    if 'certfile' in config_section and 'keyfile' in config_section:
+                        options['ssl_certfile'] = config_section['certfile']
+                        options['ssl_keyfile'] = config_section['keyfile']
+                
                 print(f"Loaded configuration successfully")
         except Exception as e:
             print(f"Error loading configuration file: {e}")
@@ -132,86 +101,38 @@ if __name__ == "__main__":
     # Override with command-line arguments (highest precedence)
     if args.workers is not None:
         options['workers'] = args.workers
-    if args.threads is not None:
-        options['threads'] = args.threads
     if args.loglevel is not None:
-        options['loglevel'] = args.loglevel.lower()
-    if args.daemon is not None:
-        options['daemon'] = args.daemon
+        options['log_level'] = args.loglevel.lower()
     
     # Set up logging based on the chosen log level
-    log_level = options['loglevel'].upper()
-    logging.basicConfig(level=log_level)
-    
-    # Set up logconfig_dict
-    options['logconfig_dict'] = {
-        'version': 1,
-        'disable_existing_loggers': False,
-        'handlers': {
-            'console': {
-                'class': 'logging.StreamHandler',
-                'formatter': 'generic',
-                'stream': 'ext://sys.stdout'
-            },
-            'access_file': {
-                'class': 'logging.FileHandler',
-                'filename': f'./log/access_{date}.log',
-                'formatter': 'generic'
-            },
-            'error_file': {
-                'class': 'logging.FileHandler',
-                'filename': f'./log/error_{date}.log',
-                'formatter': 'generic',
-                'level': log_level
-            }
-        },
-        'formatters': {
-            'generic': {
-                'format': '%(asctime)s [%(levelname)s] %(message)s',
-                'datefmt': '[%Y-%m-%d %H:%M:%S]',
-                'class': 'logging.Formatter'
-            }
-        },
-        'loggers': {
-            'gunicorn.access': {
-                'handlers': ['console', 'access_file'],
-                'level': log_level,
-                'propagate': False
-            },
-            'gunicorn.error': {
-                'handlers': ['console', 'error_file'],
-                'level': log_level,
-                'propagate': False
-            }
-        }
-    }
+    log_level = options['log_level'].upper()
+    logging.basicConfig(
+        level=log_level,
+        format='%(asctime)s [%(levelname)s] %(message)s',
+        datefmt='[%Y-%m-%d %H:%M:%S]'
+    )
     
     # Handle SSL configuration (command line takes precedence)
     if args.ssl:
         if not args.certfile or not args.keyfile:
             parser.error("--ssl requires --certfile and --keyfile")
-        options['certfile'] = args.certfile
-        options['keyfile'] = args.keyfile
+        options['ssl_certfile'] = args.certfile
+        options['ssl_keyfile'] = args.keyfile
         print(f"\nStarting Wiregate Dashboard with SSL on https://{app_ip}:{app_port}")
-    elif 'certfile' in options and 'keyfile' in options:
+    elif 'ssl_certfile' in options and 'ssl_keyfile' in options:
         print(f"\nStarting Wiregate Dashboard with SSL on https://{app_ip}:{app_port}")
     else:
-        # Ensure certfile and keyfile are removed if SSL is disabled
-        if 'certfile' in options:
-            del options['certfile']
-        if 'keyfile' in options:
-            del options['keyfile']
         print(f"\nStarting Wiregate Dashboard on http://{app_ip}:{app_port}")
     
     InitWireguardConfigurationsList(startup=True)
     InitRateLimits()
     startThreads()
     
-    # Choose between Gunicorn with SSL or Flask development server
-    if args.ssl:
-        # Use Gunicorn with SSL (recommended for production)
-        GunicornApp(app, options).run()
-    else:
-        # For development only
-        #GunicornApp(app, options).run()
-        app.run(host=app_ip, port=app_port, debug=True)
+    # Convert Flask WSGI app to ASGI for Uvicorn compatibility
+    asgi_app = WsgiToAsgi(app)
+    
+    # Remove workers option to avoid Uvicorn warning/crash
+    if 'workers' in options:
+        del options['workers']
+    # Start Uvicorn server
+    uvicorn.run(asgi_app, **options)
