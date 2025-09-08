@@ -1,6 +1,6 @@
 import random, shutil, configparser, psutil
 import os, subprocess, uuid, datetime, time
-import ipaddress, json, re, sqlite3
+import ipaddress, json, re
 import logging
 
 from datetime import datetime, timedelta
@@ -24,7 +24,7 @@ from .Locale.Locale import Locale
 from .Share.ShareLink import PeerShareLinks
 from .Share.ShareLink import PeerShareLink
 from .DataBase.DataBaseManager import (
-    DatabaseManager, sqlSelect, sqlUpdate, sqldb
+    DatabaseManager, sqlSelect, sqlUpdate, sqldb, ConfigurationDatabase
 )
 
 
@@ -79,17 +79,20 @@ class Configuration:
         if not os.path.exists(backupPath):
             os.mkdir(backupPath)
 
+        # Initialize database manager
+        self.db = ConfigurationDatabase(self.Name)
+
         if name is not None:
             if data is not None and "Backup" in data.keys():
-                db = self.__importDatabase(
+                db = self.db.import_database(
                     os.path.join(
                         DashboardConfig.GetConfig("Server", "wg_conf_path")[1],
                         'WGDashboard_Backup',
                         data["Backup"].replace(".conf", ".sql")))
             else:
-                self.__createDatabase()
+                self.db.create_database()
                 # Ensure migration happens right after database creation
-                self.__migrateDatabase()
+                self.db.migrate_database()
 
             self.__parseConfigurationFile()
             self.__initPeersList()
@@ -139,9 +142,9 @@ class Configuration:
             self.__parser["Interface"]["SaveConfig"] = "true"
 
             if "Backup" not in data.keys():
-                self.__createDatabase()
+                self.db.create_database()
                 # Ensure migration happens here too
-                self.__migrateDatabase()
+                self.db.migrate_database()
                 with open(self.configPath, "w+") as configFile:
                     self.__parser.write(configFile)
                 self.__initPeersList()
@@ -336,184 +339,24 @@ class Configuration:
             self.Status = self.getStatus()
 
     def __dropDatabase(self):
-        existingTables = sqlSelect(
-            f"SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '{self.Name}%'").fetchall()
-        for t in existingTables:
-            sqlUpdate("DROP TABLE '%s'" % t['name'])
-
-        existingTables = sqlSelect(
-            f"SELECT name FROM sqlite_master WHERE type='table' AND name LIKE '{self.Name}%'").fetchall()
+        """Drop database - now handled by ConfigurationDatabase"""
+        self.db.drop_database()
 
     def __createDatabase(self, dbName=None):
-        if dbName is None:
-            dbName = self.Name
-
-        existingTables = sqlSelect("SELECT name FROM sqlite_master WHERE type='table'").fetchall()
-        existingTables = [t['name'] for t in existingTables]
-        if dbName not in existingTables:
-            sqlUpdate(
-                """
-                CREATE TABLE IF NOT EXISTS '%s'(
-                    id VARCHAR NOT NULL, 
-                    private_key VARCHAR NULL, 
-                    DNS VARCHAR NULL, 
-                    endpoint_allowed_ip VARCHAR NULL, 
-                    name VARCHAR NULL, 
-                    total_receive FLOAT NULL, 
-                    total_sent FLOAT NULL, 
-                    total_data FLOAT NULL, 
-                    endpoint VARCHAR NULL, 
-                    status VARCHAR NULL, 
-                    latest_handshake VARCHAR NULL, 
-                    allowed_ip VARCHAR NULL,  
-                    cumu_receive FLOAT NULL, 
-                    cumu_sent FLOAT NULL, 
-                    cumu_data FLOAT NULL, 
-                    mtu INT NULL, 
-                    keepalive INT NULL, 
-                    remote_endpoint VARCHAR NULL, 
-                    preshared_key VARCHAR NULL,
-                    address_v4 VARCHAR NULL,  
-                    address_v6 VARCHAR NULL,
-                    upload_rate_limit INTEGER DEFAULT 0,
-                    download_rate_limit INTEGER DEFAULT 0,
-                    scheduler_type TEXT CHECK(scheduler_type IN ('htb', 'hfsc') OR scheduler_type IS NULL),
-                    PRIMARY KEY (id)
-                )
-                """ % dbName
-            )
-
-        # Create other tables with similar updates...
-
-        if f'{dbName}_restrict_access' not in existingTables:
-            sqlUpdate(
-                """
-                CREATE TABLE '%s_restrict_access' (
-                    id VARCHAR NOT NULL, private_key VARCHAR NULL, DNS VARCHAR NULL, 
-                    endpoint_allowed_ip VARCHAR NULL, name VARCHAR NULL, total_receive FLOAT NULL, 
-                    total_sent FLOAT NULL, total_data FLOAT NULL, endpoint VARCHAR NULL, 
-                    status VARCHAR NULL, latest_handshake VARCHAR NULL, allowed_ip VARCHAR NULL, 
-                    cumu_receive FLOAT NULL, cumu_sent FLOAT NULL, cumu_data FLOAT NULL, mtu INT NULL, 
-                    keepalive INT NULL, remote_endpoint VARCHAR NULL, preshared_key VARCHAR NULL,
-                    address_v4 VARCHAR NULL,  
-                    address_v6 VARCHAR NULL,
-                    upload_rate_limit INTEGER DEFAULT 0,
-                    download_rate_limit INTEGER DEFAULT 0,
-                    scheduler_type TEXT CHECK(scheduler_type IN ('htb', 'hfsc') OR scheduler_type IS NULL),
-                    PRIMARY KEY (id)
-                )
-                """ % dbName
-            )
-        if f'{dbName}_transfer' not in existingTables:
-            sqlUpdate(
-                """
-                CREATE TABLE '%s_transfer' (
-                    id VARCHAR NOT NULL, total_receive FLOAT NULL,
-                    total_sent FLOAT NULL, total_data FLOAT NULL,
-                    cumu_receive FLOAT NULL, cumu_sent FLOAT NULL, cumu_data FLOAT NULL, time DATETIME
-                )
-                """ % dbName
-            )
-        if f'{dbName}_deleted' not in existingTables:
-            sqlUpdate(
-                """
-                CREATE TABLE '%s_deleted' (
-                    id VARCHAR NOT NULL, private_key VARCHAR NULL, DNS VARCHAR NULL, 
-                    endpoint_allowed_ip VARCHAR NULL, name VARCHAR NULL, total_receive FLOAT NULL, 
-                    total_sent FLOAT NULL, total_data FLOAT NULL, endpoint VARCHAR NULL, 
-                    status VARCHAR NULL, latest_handshake VARCHAR NULL, allowed_ip VARCHAR NULL, 
-                    cumu_receive FLOAT NULL, cumu_sent FLOAT NULL, cumu_data FLOAT NULL, mtu INT NULL, 
-                    keepalive INT NULL, remote_endpoint VARCHAR NULL, preshared_key VARCHAR NULL,
-                    address_v4 VARCHAR NULL,  
-                    address_v6 VARCHAR NULL,
-                    upload_rate_limit INTEGER DEFAULT 0,
-                    download_rate_limit INTEGER DEFAULT 0,
-                    scheduler_type TEXT CHECK(scheduler_type IN ('htb', 'hfsc') OR scheduler_type IS NULL),
-                    PRIMARY KEY (id)
-                )
-                """ % dbName
-            )
+        """Create database - now handled by ConfigurationDatabase"""
+        self.db.create_database(dbName)
 
     def __migrateDatabase(self):
-        """Add missing columns to existing tables if they don't exist"""
-        tables = [self.Name, f"{self.Name}_restrict_access", f"{self.Name}_deleted"]
-        columns = {
-            'address_v4': 'VARCHAR NULL',
-            'address_v6': 'VARCHAR NULL', 
-            'upload_rate_limit': 'INTEGER DEFAULT 0',
-            'download_rate_limit': 'INTEGER DEFAULT 0',
-            'scheduler_type': "TEXT CHECK(scheduler_type IN ('htb', 'hfsc') OR scheduler_type IS NULL)"
-        }
-
-        for table in tables:
-            # Check if table exists first
-            table_exists = sqlSelect(f"SELECT name FROM sqlite_master WHERE type='table' AND name='{table}'").fetchone()
-            if not table_exists:
-                print(f"[WireGate] Table {table} does not exist, skipping migration")
-                continue
-                
-            # Get current columns for the table
-            try:
-                cursor = sqlSelect(f"PRAGMA table_info('{table}')")
-                existing_columns = [row['name'] for row in cursor.fetchall()]
-                
-                for column, type_def in columns.items():
-                    if column not in existing_columns:
-                        try:
-                            # Add missing column
-                            sqlUpdate(f"ALTER TABLE '{table}' ADD COLUMN {column} {type_def}")
-                            print(f"[WireGate] Added {column} to {table}")
-                        except sqlite3.OperationalError as e:
-                            print(f"[WireGate] Error adding {column} to {table}: {e}")
-            except sqlite3.OperationalError as e:
-                print(f"[WireGate] Error checking columns for table {table}: {e}")
+        """Migrate database - now handled by ConfigurationDatabase"""
+        self.db.migrate_database()
 
     def __dumpDatabase(self):
-        for line in sqldb.iterdump():
-            if (line.startswith(f"INSERT INTO \"{self.Name}\"")
-                    or line.startswith(f'INSERT INTO "{self.Name}_restrict_access"')
-                    or line.startswith(f'INSERT INTO "{self.Name}_transfer"')
-                    or line.startswith(f'INSERT INTO "{self.Name}_deleted"')
-            ):
-                yield line
+        """Dump database - now handled by ConfigurationDatabase"""
+        return self.db.dump_database()
 
     def __importDatabase(self, sqlFilePath) -> bool:
-        self.__dropDatabase()
-        self.__createDatabase()
-        self.__migrateDatabase()  # Add this line to ensure columns exist
-        if not os.path.exists(sqlFilePath):
-            return False
-
-        with open(sqlFilePath, 'r') as f:
-            for l in f.readlines():
-                l = l.rstrip("\n")
-                if len(l) > 0:
-                    # Split addresses into v4 and v6 parts before insert
-                    if "INSERT INTO" in l:
-                        try:
-                            # Parse out address values
-                            addresses = re.search(r"Address\s*=\s*'([^']*)'", l)
-                            if addresses:
-                                addr_parts = addresses.group(1).split(',')
-                                addr_v4 = []
-                                addr_v6 = []
-                                for addr in addr_parts:
-                                    addr = addr.strip()
-                                    if ':' in addr:  # IPv6
-                                        addr_v6.append(addr)
-                                    else:  # IPv4
-                                        addr_v4.append(addr)
-
-                                # Replace original address with split version
-                                l = l.replace(
-                                    f"Address = '{addresses.group(1)}'",
-                                    f"address_v4 = '{','.join(addr_v4)}', address_v6 = '{','.join(addr_v6)}'"
-                                )
-                        except Exception as e:
-                            print(f"Error parsing addresses: {e}")
-
-                    sqlUpdate(l)
-        return True
+        """Import database - now handled by ConfigurationDatabase"""
+        return self.db.import_database(sqlFilePath)
 
     def __getPublicKey(self) -> str:
         return GenerateWireguardPublicKey(self.PrivateKey)[1]
@@ -528,7 +371,7 @@ class Configuration:
 
     def __getRestrictedPeers(self):
         self.RestrictedPeers = []
-        restricted = sqlSelect("SELECT * FROM '%s_restrict_access'" % self.Name).fetchall()
+        restricted = self.db.get_restricted_peers()
         for i in restricted:
             self.RestrictedPeers.append(Peer(i, self))
 
@@ -568,8 +411,7 @@ class Configuration:
 
                     for i in p:
                         if "PublicKey" in i.keys():
-                            checkIfExist = sqlSelect("SELECT * FROM '%s' WHERE id = ?" % self.Name,
-                                                     ((i['PublicKey']),)).fetchone()
+                            checkIfExist = self.db.search_peer(i['PublicKey'])
                             if checkIfExist is None:
                                 allowed_ips = i.get("AllowedIPs", "N/A").split(',')
                                 addr_v4 = []
@@ -608,25 +450,17 @@ class Configuration:
                                     "download_rate_limit": 0,
                                     "scheduler_type": "htb"
                                 }
-                                sqlUpdate(
-                                    """
-                                    INSERT INTO '%s'
-                                        VALUES (:id, :private_key, :DNS, :endpoint_allowed_ip, :name, :total_receive, :total_sent, 
-                                        :total_data, :endpoint, :status, :latest_handshake, :allowed_ip, :cumu_receive, :cumu_sent, 
-                                        :cumu_data, :mtu, :keepalive, :remote_endpoint, :preshared_key, :address_v4, :address_v6, 
-                                        :upload_rate_limit, :download_rate_limit, :scheduler_type);
-                                    """ % self.Name, newPeer)
+                                self.db.insert_peer(newPeer)
                                 self.Peers.append(Peer(newPeer, self))
                             else:
-                                sqlUpdate("UPDATE '%s' SET allowed_ip = ? WHERE id = ?" % self.Name,
-                                          (i.get("AllowedIPs", "N/A"), i['PublicKey'],))
+                                self.db.update_peer(i['PublicKey'], {"allowed_ip": i.get("AllowedIPs", "N/A")})
                                 self.Peers.append(Peer(checkIfExist, self))
                 except Exception as e:
                     if __name__ == '__main__':
                         print(f"[WireGate] {self.Name} Error: {str(e)}")
         else:
             self.Peers.clear()
-            checkIfExist = sqlSelect("SELECT * FROM '%s'" % self.Name).fetchall()
+            checkIfExist = self.db.get_peers()
             for i in checkIfExist:
                 self.Peers.append(Peer(i, self))
 
@@ -675,14 +509,7 @@ class Configuration:
                     "scheduler_type": "htb"  # Add default scheduler type
                 }
 
-                sqlUpdate(
-                    """
-                    INSERT INTO '%s'
-                    VALUES (:id, :private_key, :DNS, :endpoint_allowed_ip, :name, :total_receive, :total_sent,
-                    :total_data, :endpoint, :status, :latest_handshake, :allowed_ip, :cumu_receive, :cumu_sent,
-                    :cumu_data, :mtu, :keepalive, :remote_endpoint, :preshared_key, :address_v4, :address_v6, 
-                    :upload_rate_limit, :download_rate_limit, :scheduler_type);
-                    """ % self.Name, newPeer)
+                self.db.insert_peer(newPeer)
 
             # Handle wg commands and config file updates
             config_path = f"/etc/wireguard/{self.Name}.conf"
@@ -736,9 +563,16 @@ class Configuration:
             return False
 
     def searchPeer(self, publicKey):
+        # Check main peers first
         for i in self.Peers:
             if i.id == publicKey:
                 return True, i
+        
+        # Check restricted peers if not found in main
+        for i in self.RestrictedPeers:
+            if i.id == publicKey:
+                return True, i
+                
         return False, None
 
     def allowAccessPeers(self, listOfPublicKeys):
@@ -747,12 +581,16 @@ class Configuration:
         interface_address = self.get_iface_address()
         cmd_prefix = self.get_iface_proto()
         for i in listOfPublicKeys:
-            p = sqlSelect("SELECT * FROM '%s_restrict_access' WHERE id = ?" % self.Name, (i,)).fetchone()
+            # Search in restricted table
+            restricted_peers = self.db.get_restricted_peers()
+            p = None
+            for peer in restricted_peers:
+                if peer.get('id') == i:
+                    p = peer
+                    break
+            
             if p is not None:
-                sqlUpdate("INSERT INTO '%s' SELECT * FROM %s_restrict_access WHERE id = ?"
-                          % (self.Name, self.Name,), (p['id'],))
-                sqlUpdate("DELETE FROM '%s_restrict_access' WHERE id = ?"
-                          % self.Name, (p['id'],))
+                self.db.move_peer_from_restricted(i)
 
                 presharedKeyExist = len(p['preshared_key']) > 0
                 rd = random.Random()
@@ -793,11 +631,9 @@ class Configuration:
                     cmd = (f"{cmd_prefix} set {self.Name} peer {pf.id} remove")
                     subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
 
-                    sqlUpdate("INSERT INTO '%s_restrict_access' SELECT * FROM %s WHERE id = ?" %
-                              (self.Name, self.Name,), (pf.id,))
-                    sqlUpdate("UPDATE '%s_restrict_access' SET status = 'stopped' WHERE id = ?" %
-                              (self.Name,), (pf.id,))
-                    sqlUpdate("DELETE FROM '%s' WHERE id = ?" % self.Name, (pf.id,))
+                    self.db.move_peer_to_restricted(pf.id)
+                    # Update status to stopped
+                    self.db.update_peer(pf.id, {"status": "stopped"})
                     numOfRestrictedPeers += 1
                 except Exception as e:
                     numOfFailedToRestrictPeers += 1
@@ -832,7 +668,7 @@ class Configuration:
                     cmd = (f"{cmd_prefix} set {self.Name} peer {pf.id} remove")
                     subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
 
-                    sqlUpdate("DELETE FROM '%s' WHERE id = ?" % self.Name, (pf.id,))
+                    self.db.delete_peer(pf.id)
                     numOfDeletedPeers += 1
                 except Exception as e:
                     numOfFailedToDeletePeers += 1
@@ -988,11 +824,9 @@ class Configuration:
             else:
                 status = "stopped"
             if int(latestHandshake[count + 1]) > 0:
-                sqlUpdate("UPDATE '%s' SET latest_handshake = ?, status = ? WHERE id= ?" % self.Name
-                          , (str(minus).split(".", maxsplit=1)[0], status, latestHandshake[count],))
+                self.db.update_peer_handshake(latestHandshake[count], str(minus).split(".", maxsplit=1)[0], status)
             else:
-                sqlUpdate("UPDATE '%s' SET latest_handshake = 'No Handshake', status = ? WHERE id= ?" % self.Name
-                          , (status, latestHandshake[count],))
+                self.db.update_peer_handshake(latestHandshake[count], 'No Handshake', status)
             count += 2
 
     def getPeersTransfer(self):
@@ -1008,11 +842,8 @@ class Configuration:
             data_usage = [p.split("\t") for p in data_usage]
             for i in range(len(data_usage)):
                 if len(data_usage[i]) == 3:
-                    cur_i = sqlSelect(
-                        "SELECT total_receive, total_sent, cumu_receive, cumu_sent, status FROM '%s' WHERE id= ? "
-                        % self.Name, (data_usage[i][0],)).fetchone()
+                    cur_i = self.db.search_peer(data_usage[i][0])
                     if cur_i is not None:
-                        cur_i = dict(cur_i)
                         total_sent = cur_i['total_sent']
                         total_receive = cur_i['total_receive']
                         cur_total_sent = float(data_usage[i][2]) / (1024 ** 3)
@@ -1023,19 +854,16 @@ class Configuration:
                             total_sent = cur_total_sent
                             total_receive = cur_total_receive
                         else:
-                            sqlUpdate(
-                                "UPDATE '%s' SET cumu_receive = ?, cumu_sent = ?, cumu_data = ? WHERE id = ?" %
-                                self.Name, (cumulative_receive, cumulative_sent,
-                                            cumulative_sent + cumulative_receive,
-                                            data_usage[i][0],))
+                            self.db.update_peer(data_usage[i][0], {
+                                'cumu_receive': cumulative_receive,
+                                'cumu_sent': cumulative_sent,
+                                'cumu_data': cumulative_sent + cumulative_receive
+                            })
                             total_sent = 0
                             total_receive = 0
                         _, p = self.searchPeer(data_usage[i][0])
                         if p.total_receive != total_receive or p.total_sent != total_sent:
-                            sqlUpdate(
-                                "UPDATE '%s' SET total_receive = ?, total_sent = ?, total_data = ? WHERE id = ?"
-                                % self.Name, (total_receive, total_sent,
-                                              total_receive + total_sent, data_usage[i][0],))
+                            self.db.update_peer_transfer(data_usage[i][0], total_receive, total_sent, total_receive + total_sent)
         except Exception as e:
             print(f"[WireGate] {self.Name} Error: {str(e)} {str(e.__traceback__)}")
 
@@ -1053,8 +881,7 @@ class Configuration:
         data_usage = data_usage.decode("UTF-8").split()
         count = 0
         for _ in range(int(len(data_usage) / 2)):
-            sqlUpdate("UPDATE '%s' SET endpoint = ? WHERE id = ?" % self.Name
-                      , (data_usage[count + 1], data_usage[count],))
+            self.db.update_peer_endpoint(data_usage[count], data_usage[count + 1])
             count += 2
 
     def toggleConfiguration(self) -> tuple[bool, str]:
@@ -1422,12 +1249,8 @@ class Configuration:
         try:
             if self.getStatus():
                 self.toggleConfiguration()
-            self.__createDatabase(newConfigurationName)
-            sqlUpdate(f'INSERT INTO "{newConfigurationName}" SELECT * FROM "{self.Name}"')
-            sqlUpdate(
-                f'INSERT INTO "{newConfigurationName}_restrict_access" SELECT * FROM "{self.Name}_restrict_access"')
-            sqlUpdate(f'INSERT INTO "{newConfigurationName}_deleted" SELECT * FROM "{self.Name}_deleted"')
-            sqlUpdate(f'INSERT INTO "{newConfigurationName}_transfer" SELECT * FROM "{self.Name}_transfer"')
+            self.db.create_database(newConfigurationName)
+            self.db.copy_database_to(newConfigurationName)
             AllPeerJobs.updateJobConfigurationName(self.Name, newConfigurationName)
             shutil.copy(
                 self.configPath,
@@ -1664,12 +1487,15 @@ class Peer:
             if f"{cmd_prefix} showconf {self.configuration.Name}" not in saveConfig.decode().strip('\n'):
                 return ResponseObject(False,
                                       "Update peer failed when saving the configuration")
-            sqlUpdate(
-                '''UPDATE '%s' SET name = ?, private_key = ?, DNS = ?, endpoint_allowed_ip = ?, mtu = ?, 
-                keepalive = ?, preshared_key = ? WHERE id = ?''' % self.configuration.Name,
-                (name, private_key, dns_addresses, endpoint_allowed_ip, mtu,
-                 keepalive, preshared_key, self.id,)
-            )
+            self.configuration.db.update_peer(self.id, {
+                'name': name,
+                'private_key': private_key,
+                'DNS': dns_addresses,
+                'endpoint_allowed_ip': endpoint_allowed_ip,
+                'mtu': mtu,
+                'keepalive': keepalive,
+                'preshared_key': preshared_key
+            })
             return ResponseObject()
         except subprocess.CalledProcessError as exc:
             return ResponseObject(False, exc.output.decode("UTF-8").strip())
@@ -1729,21 +1555,9 @@ PersistentKeepalive = {str(self.keepalive)}
 
     def resetDataUsage(self, type):
         try:
-            if type == "total":
-                sqlUpdate(
-                    "UPDATE '%s' SET total_data = 0, cumu_data = 0, total_receive = 0, cumu_receive = 0, total_sent = 0, cumu_sent = 0  WHERE id = ?" % self.configuration.Name,
-                    (self.id,))
-            elif type == "receive":
-                sqlUpdate("UPDATE '%s' SET total_receive = 0, cumu_receive = 0 WHERE id = ?" % self.configuration.Name,
-                          (self.id,))
-            elif type == "sent":
-                sqlUpdate("UPDATE '%s' SET total_sent = 0, cumu_sent = 0 WHERE id = ?" % self.configuration.Name,
-                          (self.id,))
-            else:
-                return False
+            return self.configuration.db.reset_peer_data_usage(self.id, type)
         except Exception as e:
             return False
-        return True
 
 
 
@@ -1775,17 +1589,19 @@ def InitRateLimits():
             logger.debug(f"Processing rate limits for configuration: {config_name}")
             try:
                 # Get all peers with rate limits
-                rate_limited_peers = sqlSelect(
-                    "SELECT id, upload_rate_limit, download_rate_limit, scheduler_type, allowed_ip FROM '%s' WHERE upload_rate_limit > 0 OR download_rate_limit > 0" % config.Name
-                ).fetchall()
+                all_peers = config.db.get_peers()
+                rate_limited_peers = [
+                    peer for peer in all_peers 
+                    if (peer.get('upload_rate_limit', 0) > 0 or peer.get('download_rate_limit', 0) > 0)
+                ]
                 
                 logger.debug(f"Found {len(rate_limited_peers)} rate-limited peers for {config_name}")
                 
                 for peer in rate_limited_peers:
                     try:
                         # Skip if missing required data
-                        if not peer['id'] or not peer['allowed_ip']:
-                            logger.warning(f"Skipping peer {peer['id']} - missing required data")
+                        if not peer.get('id') or not peer.get('allowed_ip'):
+                            logger.warning(f"Skipping peer {peer.get('id')} - missing required data")
                             continue
                             
                         # Execute traffic-weir command to reapply limits
@@ -1793,10 +1609,10 @@ def InitRateLimits():
                             './traffic-weir',
                             '-interface', config.Name,
                             '-peer', peer['id'],
-                            '-upload-rate', str(peer['upload_rate_limit'] or 0),
-                            '-download-rate', str(peer['download_rate_limit'] or 0),
+                            '-upload-rate', str(peer.get('upload_rate_limit', 0)),
+                            '-download-rate', str(peer.get('download_rate_limit', 0)),
                             '-protocol', config.Protocol,
-                            '-scheduler', peer['scheduler_type'] or 'htb',
+                            '-scheduler', peer.get('scheduler_type', 'htb'),
                             '-allowed-ips', peer['allowed_ip']
                         ]
                         

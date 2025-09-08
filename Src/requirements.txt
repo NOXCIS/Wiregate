@@ -14,4 +14,5 @@ ldap3
 paste
 gunicorn
 pyinstaller
+redis
 

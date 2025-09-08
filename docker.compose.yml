@@ -19,6 +19,19 @@ networks:
 
 services:
 
+  redis:
+    image: redis:7-alpine
+    container_name: wiregate-redis
+    hostname: redis
+    restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf
+    volumes:
+      - redis_data:/data
+      - ./configs/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.4
+        ipv6_address: 2001:db8:abc::4
 
   wiregate:
       build:
@@ -36,8 +49,8 @@ services:
       volumes:
         - /lib/modules:/lib/modules:ro 
         - pf_conf:/WireGate/iptable-rules/
-        - conf:/etc/wireguard 
-        - db:/WireGate/db
+        #- conf:/etc/wireguard 
+        #- db:/WireGate/db
         - ./configs/ssl:/WireGate/SSL_CERT
         - ./configs/dnscrypt:/WireGate/dnscrypt
         - ./configs/tor:/etc/tor/
@@ -51,6 +64,11 @@ services:
         - AMNEZIA_WG=true
       #Set Timezone
         - TZ=America/New_York
+      #Redis Database Settings
+        - REDIS_HOST=redis
+        - REDIS_PORT=6379
+        - REDIS_DB=0
+        - REDIS_PASSWORD=wiregate_redis_password
 
       #Tor Settings
       ##########################################################
@@ -93,7 +111,8 @@ services:
 
 
 volumes:
-    db:
-    conf:
+    #db:
+    #conf:
     pf_conf:
+    redis_data:
   

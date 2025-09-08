@@ -109,11 +109,18 @@ def API_get_peer_rate_limit():
         if not found:
             return ResponseObject(False, f"Peer {peer_key} not found in interface {config.Name}")
             
-        # Get rate limits from database
+        # Get rate limits from database - check both main and restricted tables
         rate_limit_results = sqlSelect(
             "SELECT upload_rate_limit, download_rate_limit, scheduler_type FROM '%s' WHERE id = ?" % interface,
             (peer.id,)
         ).fetchall()
+        
+        # If not found in main table, check restricted table
+        if not rate_limit_results:
+            rate_limit_results = sqlSelect(
+                "SELECT upload_rate_limit, download_rate_limit, scheduler_type FROM '%s_restrict_access' WHERE id = ?" % interface,
+                (peer.id,)
+            ).fetchall()
         
         db_upload_rate = rate_limit_results[0]['upload_rate_limit'] if rate_limit_results else 0
         db_download_rate = rate_limit_results[0]['download_rate_limit'] if rate_limit_results else 0
@@ -234,7 +241,7 @@ def API_get_interface_scheduler():
         result = sqlSelect(sql).fetchone()
         print(f"[DEBUG] SQL query result: {result}")
         
-        # Convert sqlite3.Row to dict for debugging
+        # Convert result to dict for debugging
         result_dict = dict(result) if result else None
         print(f"[DEBUG] Result as dict: {result_dict}")
         
@@ -252,7 +259,7 @@ def API_get_interface_scheduler():
         
         # Return the found scheduler type and locked status
         response_data = {
-            "scheduler_type": result_dict['scheduler_type'],
+            "scheduler_type": result_dict['scheduler_type'] if result_dict else 'htb',
             "locked": True  # Locked because we found an active rate limit
         }
         print(f"[DEBUG] Returning response data: {response_data}")
