@@ -7,7 +7,7 @@ import ipaddress
 from typing import Any
 
 
-from .DataBase.DataBaseManager import (
+from .DataBase import (
     sqlSelect, sqlUpdate
 )
 

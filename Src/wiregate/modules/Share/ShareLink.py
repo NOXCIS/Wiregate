@@ -1,7 +1,7 @@
 from datetime import datetime
 import uuid
 
-from ..DataBase.DataBaseManager import (
+from ..DataBase import (
     sqlSelect, sqlUpdate
 )
 

@@ -16,7 +16,7 @@
 from wiregate.dashboard import app, app_ip, app_port
 from wiregate.modules.Core import InitWireguardConfigurationsList, InitRateLimits
 from wiregate.dashboard import startThreads, stopThreads
-from wiregate.modules.DataBase.DataBaseManager import check_and_migrate_sqlite_databases
+from wiregate.modules.DataBase import check_and_migrate_sqlite_databases
 import logging
 import uvicorn
 import sys

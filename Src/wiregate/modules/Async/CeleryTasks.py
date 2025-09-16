@@ -1,20 +1,40 @@
 """
 Celery task queue for background processing
 """
-from celery import Celery
 import time
 
+# Optional Celery imports with fallbacks
+try:
+    from celery import Celery
+    CELERY_AVAILABLE = True
+except ImportError:
+    CELERY_AVAILABLE = False
+    # Create mock Celery app for fallback
+    class MockCelery:
+        def __init__(self, *args, **kwargs):
+            pass
+        def task(self, *args, **kwargs):
+            def decorator(func):
+                return func
+            return decorator
+        def config_from_object(self, *args, **kwargs):
+            pass
+    Celery = MockCelery
+
 # Celery app configuration
-celery_app = Celery('wiregate_tasks')
-celery_app.config_from_object({
-    'broker_url': 'redis://localhost:6379/0',
-    'result_backend': 'redis://localhost:6379/0',
-    'task_serializer': 'json',
-    'accept_content': ['json'],
-    'result_serializer': 'json',
-    'timezone': 'UTC',
-    'enable_utc': True,
-})
+if CELERY_AVAILABLE:
+    celery_app = Celery('wiregate_tasks')
+    celery_app.config_from_object({
+        'broker_url': 'redis://localhost:6379/0',
+        'result_backend': 'redis://localhost:6379/0',
+        'task_serializer': 'json',
+        'accept_content': ['json'],
+        'result_serializer': 'json',
+        'timezone': 'UTC',
+        'enable_utc': True,
+    })
+else:
+    celery_app = Celery('wiregate_tasks')
 
 @celery_app.task
 def process_peer_configuration(peer_data):

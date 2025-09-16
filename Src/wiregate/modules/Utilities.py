@@ -1,6 +1,6 @@
 import re, ipaddress
 import subprocess
-from .SecureCommand import execute_wg_command, execute_secure_command
+from .Security import execute_wg_command, execute_secure_command
 
 
 def strToBool(value: str) -> bool:

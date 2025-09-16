@@ -266,7 +266,7 @@ def API_control_tor_process():
             log.write(f"Executing: ./torflux -config {config_type} -action {action}\n")
             # Use secure command execution
             try:
-                from ..modules.SecureCommand import execute_secure_command
+                from ..modules.Security import execute_secure_command
                 result = execute_secure_command('./torflux', ['-config', config_type, '-action', action])
             except ImportError:
                 # Fallback to subprocess if SecureCommand is not available

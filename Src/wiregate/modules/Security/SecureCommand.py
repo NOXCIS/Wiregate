@@ -361,7 +361,7 @@ class SecureCommandExecutor:
     def execute_wg_command(self, action: str, interface: str = None, 
                           peer_key: str = None, **kwargs) -> Dict[str, Any]:
         """Execute WireGuard commands safely"""
-        args = []
+        args = [action]  # Include the action (e.g., 'show') as the first argument
         
         if action == 'show':
             if interface:
@@ -595,7 +595,7 @@ def execute_wg_command(action: str, interface: str = None, **kwargs) -> Dict[str
 def execute_awg_command(action: str, interface: str = None, **kwargs) -> Dict[str, Any]:
     """Convenience function for AmneziaWG command execution"""
     # Use the same logic as WG commands but with 'awg' command
-    args = []
+    args = [action]  # Include the action (e.g., 'show') as the first argument
     
     if action == 'show':
         if interface:
@@ -613,7 +613,7 @@ def execute_awg_command(action: str, interface: str = None, **kwargs) -> Dict[st
         if not interface:
             return {'success': False, 'error': 'Interface required for awg set'}
         
-        args.extend(['set', interface])
+        args.append(interface)
         
         # Add peer key
         if 'peer_key' in kwargs:

@@ -9,7 +9,7 @@ import time
 logger = logging.getLogger('wiregate')
 
 from flask import (
-    Blueprint, request, render_template, Response, send_from_directory, send_file
+    Blueprint, request, render_template, Response, send_from_directory, send_file, g
 )
 
 from ..modules.App import (
@@ -17,17 +17,14 @@ from ..modules.App import (
     
 )
 
-from ..modules.DataBase.DataBaseManager import (
+from ..modules.DataBase import (
     sqlUpdate
 )
 
-from ..modules.Async.ThreadPool import (
+from ..modules.Async import (
     thread_pool, bulk_peer_status_check, redis_bulk_operations, 
-    file_operations, wg_command_operations
-)
-
-from ..modules.Async.ProcessPool import (
-    process_pool, bulk_peer_processing, bulk_peer_validation, 
+    file_operations, wg_command_operations, process_pool, 
+    bulk_peer_processing, bulk_peer_validation, 
     bulk_peer_encryption, bulk_usage_analysis, bulk_qr_generation
 )
 
@@ -37,9 +34,9 @@ from ..modules.Core import (
     InitWireguardConfigurationsList
 )
 
-from ..modules.SecureCommand import (
+from ..modules.Security import (
     execute_secure_command, execute_wg_command, execute_awg_command, execute_wg_quick_command, 
-    execute_ip_command, execute_awk_command, execute_grep_command
+    validate_input
 )
 
 
@@ -57,6 +54,28 @@ from ..modules.Utilities import (
 
 
 api_blueprint = Blueprint('api', __name__)
+
+def _is_safe_sql_statement(sql: str) -> bool:
+    """Validate that SQL statement is safe for execution"""
+    sql_upper = sql.upper().strip()
+    
+    # Only allow specific SQL operations
+    allowed_operations = ['INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP']
+    if not any(sql_upper.startswith(op) for op in allowed_operations):
+        return False
+    
+    # Block dangerous SQL patterns
+    dangerous_patterns = [
+        'DROP TABLE', 'DROP DATABASE', 'TRUNCATE', 'ALTER TABLE',
+        'EXEC', 'EXECUTE', 'UNION', '--', '/*', '*/', ';',
+        'INFORMATION_SCHEMA', 'SYS.', 'MYSQL.', 'PG_'
+    ]
+    
+    for pattern in dangerous_patterns:
+        if pattern in sql_upper:
+            return False
+    
+    return True
 
 
 
@@ -110,8 +129,9 @@ def API_cleanupOrphanedConfigurations():
 
 
 @api_blueprint.route(f'/addConfiguration', methods=["POST"])
+@validate_input(required_fields=['ConfigurationName', 'Address', 'ListenPort', 'PrivateKey'])
 def API_addConfiguration():
-    data = request.get_json()
+    data = g.sanitized_data
     requiredKeys = [
         "ConfigurationName", "Address", "ListenPort", "PrivateKey"
     ]
@@ -182,6 +202,11 @@ def API_addConfiguration():
                     for line in f:
                         line = line.strip()
                         if line:
+                            # Validate SQL statement before execution
+                            if not _is_safe_sql_statement(line):
+                                logger.warning(f"Skipping potentially unsafe SQL statement: {line}")
+                                continue
+                            
                             # Update table names to match new configuration name
                             line = line.replace(
                                 f'"{data["Backup"].split("_")[0]}"',
@@ -302,8 +327,9 @@ def API_toggleConfiguration():
 
 
 @api_blueprint.post('/updateConfiguration')
+@validate_input(required_fields=['Name'])
 def API_updateConfiguration():
-    data = request.get_json()
+    data = g.sanitized_data
     requiredKeys = ["Name"]
     for i in requiredKeys:
         if i not in data.keys():
@@ -1004,7 +1030,7 @@ def API_getConfigurationInfo():
         return ResponseObject(False, "Please provide configuration name")
     
     # Refresh peer jobs to ensure we have the latest data
-    from ..modules.Jobs.PeerJobs import AllPeerJobs
+    from ..modules.Jobs import AllPeerJobs
     logger.debug(f" Refreshing AllPeerJobs data...")
     AllPeerJobs._PeerJobs__getJobs()
     logger.debug(f" AllPeerJobs now has {len(AllPeerJobs.Jobs)} total jobs")

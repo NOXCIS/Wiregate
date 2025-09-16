@@ -3,10 +3,10 @@ import subprocess
 import logging
 from ..modules.App import ResponseObject
 from ..modules.Core import Configurations
-from ..modules.DataBase.DataBaseManager import get_redis_manager
+from ..modules.DataBase import get_redis_manager
 # Import SecureCommand with fallback
 try:
-    from ..modules.SecureCommand import execute_secure_command
+    from ..modules.Security import execute_secure_command
 except ImportError:
     # Fallback function if SecureCommand is not available
     def execute_secure_command(command, args=None):

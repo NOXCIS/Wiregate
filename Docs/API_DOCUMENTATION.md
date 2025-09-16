@@ -142,6 +142,12 @@ Server-Sent Events stream with the following event format:
 }
 ```
 
+**Example Usage:**
+```bash
+curl -N http://localhost:8080/api/config-status-stream \
+  -H "Content-Type: text/event-stream"
+```
+
 ### Get All Configurations
 ```
 GET /api/getConfigurations
@@ -1799,7 +1805,7 @@ The API may include rate limiting. Please handle 429 (Too Many Requests) respons
 
 ## Authentication API
 
-The Authentication API provides comprehensive authentication and session management capabilities including local authentication, LDAP integration, and API key management.
+The Authentication API provides comprehensive authentication and session management capabilities including local authentication, LDAP integration, API key management, and advanced security features.
 
 ### Handshake
 ```
@@ -1821,6 +1827,261 @@ Performs authentication handshake to establish a session.
 ```bash
 curl -X GET http://localhost:8080/api/handshake \
   -H "Content-Type: application/json"
+```
+
+### Security Check
+```
+GET /api/security-check
+```
+Performs security startup checks to ensure the system is properly configured.
+
+**Response:**
+```json
+{
+    "status": true,
+    "message": "Security checks completed successfully"
+}
+```
+
+**Example Usage:**
+```bash
+curl -X GET http://localhost:8080/api/security-check \
+  -H "Content-Type: application/json"
+```
+
+### Get CSRF Token
+```
+GET /api/csrf-token
+```
+Gets a CSRF token for form submissions.
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": {
+        "csrf_token": "string"
+    }
+}
+```
+
+**Example Usage:**
+```bash
+curl -X GET http://localhost:8080/api/csrf-token \
+  -H "Content-Type: application/json" \
+  -b "authToken=your_auth_token"
+```
+
+### Validate CSRF Token
+```
+POST /api/validate-csrf
+```
+Validates a CSRF token for security.
+
+**Request Body:**
+```json
+{
+    "csrf_token": "string"
+}
+```
+
+**Response:**
+```json
+{
+    "status": true,
+    "message": "CSRF token is valid"
+}
+```
+
+**Example Usage:**
+```bash
+curl -X POST http://localhost:8080/api/validate-csrf \
+  -H "Content-Type: application/json" \
+  -b "authToken=your_auth_token" \
+  -d '{"csrf_token": "your_csrf_token"}'
+```
+
+### Get Rate Limit Status
+```
+GET /api/rate-limit-status
+```
+Gets the current rate limit status for the requesting IP address.
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": {
+        "identifier": "string",
+        "is_limited": "boolean",
+        "remaining_requests": "number",
+        "reset_time": "string"
+    }
+}
+```
+
+**Example Usage:**
+```bash
+curl -X GET http://localhost:8080/api/rate-limit-status \
+  -H "Content-Type: application/json"
+```
+
+### Reset Rate Limit
+```
+POST /api/reset-rate-limit
+```
+Resets rate limit for a specific identifier (admin function).
+
+**Request Body:**
+```json
+{
+    "identifier": "string"
+}
+```
+
+**Response:**
+```json
+{
+    "status": true,
+    "message": "Rate limit reset for identifier"
+}
+```
+
+**Example Usage:**
+```bash
+curl -X POST http://localhost:8080/api/reset-rate-limit \
+  -H "Content-Type: application/json" \
+  -H "wg-dashboard-apikey: your-api-key" \
+  -d '{"identifier": "192.168.1.100"}'
+```
+
+### Test Distributed Rate Limit
+```
+GET /api/distributed-rate-limit-test
+```
+Tests the distributed rate limiting system.
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": {
+        "is_limited": "boolean",
+        "info": "object",
+        "identifier": "string"
+    }
+}
+```
+
+**Example Usage:**
+```bash
+curl -X GET http://localhost:8080/api/distributed-rate-limit-test \
+  -H "Content-Type: application/json"
+```
+
+### Get Rate Limit Metrics
+```
+GET /api/rate-limit-metrics
+```
+Gets rate limiting metrics and statistics (admin function).
+
+**Query Parameters:**
+- `window`: Time window in seconds (default: 3600)
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": {
+        "total_requests": "number",
+        "blocked_requests": "number",
+        "unique_identifiers": "number",
+        "top_identifiers": ["object"]
+    }
+}
+```
+
+**Example Usage:**
+```bash
+curl -X GET "http://localhost:8080/api/rate-limit-metrics?window=3600" \
+  -H "Content-Type: application/json" \
+  -H "wg-dashboard-apikey: your-api-key"
+```
+
+### Get Rate Limit Health
+```
+GET /api/rate-limit-health
+```
+Gets the health status of the rate limiting system.
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": {
+        "system_healthy": "boolean",
+        "redis_connected": "boolean",
+        "metrics_available": "boolean"
+    }
+}
+```
+
+**Example Usage:**
+```bash
+curl -X GET http://localhost:8080/api/rate-limit-health \
+  -H "Content-Type: application/json"
+```
+
+### Get Top Limited Identifiers
+```
+GET /api/top-limited-identifiers
+```
+Gets the top identifiers that are being rate limited (admin function).
+
+**Query Parameters:**
+- `limit`: Number of identifiers to return (default: 10)
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": [
+        {
+            "identifier": "string",
+            "request_count": "number",
+            "blocked_count": "number",
+            "last_seen": "string"
+        }
+    ]
+}
+```
+
+**Example Usage:**
+```bash
+curl -X GET "http://localhost:8080/api/top-limited-identifiers?limit=10" \
+  -H "Content-Type: application/json" \
+  -H "wg-dashboard-apikey: your-api-key"
+```
+
+### Cleanup Rate Limit Metrics
+```
+POST /api/cleanup-rate-limit-metrics
+```
+Cleans up old rate limiting metrics data (admin function).
+
+**Response:**
+```json
+{
+    "status": true,
+    "message": "Cleaned up X old metrics entries"
+}
+```
+
+**Example Usage:**
+```bash
+curl -X POST http://localhost:8080/api/cleanup-rate-limit-metrics \
+  -H "Content-Type: application/json" \
+  -H "wg-dashboard-apikey: your-api-key"
 ```
 
 ### Validate Authentication

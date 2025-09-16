@@ -11,14 +11,13 @@ import time
 from .modules.App import (
     app
 )
-from .modules.Logger.Log import Log
+from .modules.Logger import Log
 
 from .modules.DashboardConfig import (
     DashboardConfig, DashboardAPIKey
 )
 
-from .modules.Async.ThreadPool import thread_pool
-from .modules.Async.ProcessPool import process_pool
+from .modules.Async import thread_pool, process_pool
 
 from .modules.Core import (
 
@@ -31,7 +30,7 @@ from .modules.ConfigEnv import DASHBOARD_MODE, ALLOWED_ORIGINS
 from .modules.Security import security_manager, secure_headers
 
 
-from .modules.Jobs.PeerJobs import AllPeerJobs
+from .modules.Jobs import AllPeerJobs
 class ModelEncoder(JSONEncoder):
     def default(self, o: Any) -> Any:
         if hasattr(o, 'toJson'):

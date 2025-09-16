@@ -16,12 +16,13 @@ try:
     import redis
 except ImportError:
     redis = None
-from ..modules.ConfigEnv import (
+from ..ConfigEnv import (
     redis_host, redis_port, redis_db, redis_password,
     RATE_LIMIT_REQUESTS, RATE_LIMIT_WINDOW, BRUTE_FORCE_MAX_ATTEMPTS,
     BRUTE_FORCE_LOCKOUT_TIME, SESSION_TIMEOUT, SECURE_SESSION,
     DASHBOARD_MODE, ALLOWED_ORIGINS
 )
+from ..RateLimitMetrics import rate_limit_metrics
 
 class SecurityManager:
     """Centralized security management for Wiregate"""
@@ -29,19 +30,52 @@ class SecurityManager:
     def __init__(self):
         if redis is not None:
             try:
-                self.redis_client = redis.Redis(
-                    host=redis_host,
-                    port=redis_port,
-                    db=redis_db,
-                    password=redis_password,
-                    decode_responses=True,
-                    socket_connect_timeout=5,
-                    socket_timeout=5
-                )
+                # Try Redis cluster first, fallback to single instance
+                if hasattr(redis, 'RedisCluster'):
+                    try:
+                        self.redis_client = redis.RedisCluster(
+                            startup_nodes=[{"host": redis_host, "port": redis_port}],
+                            password=redis_password,
+                            decode_responses=True,
+                            socket_connect_timeout=5,
+                            socket_timeout=5,
+                            skip_full_coverage_check=True
+                        )
+                        # Test cluster connection
+                        self.redis_client.ping()
+                        self.is_cluster = True
+                    except Exception:
+                        # Fallback to single Redis instance
+                        self.redis_client = redis.Redis(
+                            host=redis_host,
+                            port=redis_port,
+                            db=redis_db,
+                            password=redis_password,
+                            decode_responses=True,
+                            socket_connect_timeout=5,
+                            socket_timeout=5
+                        )
+                        self.is_cluster = False
+                else:
+                    self.redis_client = redis.Redis(
+                        host=redis_host,
+                        port=redis_port,
+                        db=redis_db,
+                        password=redis_password,
+                        decode_responses=True,
+                        socket_connect_timeout=5,
+                        socket_timeout=5
+                    )
+                    self.is_cluster = False
             except Exception:
                 self.redis_client = None
+                self.is_cluster = False
         else:
             self.redis_client = None
+            self.is_cluster = False
+        
+        # Initialize metrics
+        rate_limit_metrics.redis_client = self.redis_client
         
         # Security patterns
         self.path_traversal_patterns = [
@@ -75,7 +109,7 @@ class SecurityManager:
         return False
     
     def is_rate_limited(self, identifier: str, limit: int = None, window: int = None) -> Tuple[bool, Dict]:
-        """Check if request is rate limited"""
+        """Check if request is rate limited with distributed support"""
         if self.redis_client is None:
             return False, {}
             
@@ -96,8 +130,8 @@ class SecurityManager:
             # Count current requests
             pipe.zcard(key)
             
-            # Add current request
-            pipe.zadd(key, {str(current_time): current_time})
+            # Add current request with microsecond precision for better distribution
+            pipe.zadd(key, {f"{current_time}.{int(time.time() * 1000000) % 1000000}": current_time})
             
             # Set expiration
             pipe.expire(key, window)
@@ -111,13 +145,158 @@ class SecurityManager:
                 'current_requests': current_requests,
                 'limit': limit,
                 'window': window,
-                'reset_time': current_time + window
+                'reset_time': current_time + window,
+                'remaining_requests': max(0, limit - current_requests)
             }
             
         except Exception as e:
             # If Redis fails, allow the request but log the error
             print(f"Rate limiting error: {e}")
             return False, {}
+    
+    def is_distributed_rate_limited(self, identifier: str, limit: int = None, window: int = None, 
+                                   burst_limit: int = None) -> Tuple[bool, Dict]:
+        """Advanced distributed rate limiting with burst protection"""
+        if self.redis_client is None:
+            return False, {}
+            
+        limit = limit or RATE_LIMIT_REQUESTS
+        window = window or RATE_LIMIT_WINDOW
+        burst_limit = burst_limit or (limit // 4)  # 25% of normal limit for burst
+        
+        current_time = int(time.time())
+        window_start = current_time - window
+        burst_window = 60  # 1 minute burst window
+        
+        # Keys for different rate limiting strategies
+        rate_key = f"rate_limit:{identifier}"
+        burst_key = f"burst_limit:{identifier}"
+        sliding_key = f"sliding_limit:{identifier}"
+        
+        try:
+            pipe = self.redis_client.pipeline()
+            
+            # 1. Standard rate limiting
+            pipe.zremrangebyscore(rate_key, 0, window_start)
+            pipe.zcard(rate_key)
+            pipe.zadd(rate_key, {f"{current_time}.{int(time.time() * 1000000) % 1000000}": current_time})
+            pipe.expire(rate_key, window)
+            
+            # 2. Burst protection (short window)
+            burst_start = current_time - burst_window
+            pipe.zremrangebyscore(burst_key, 0, burst_start)
+            pipe.zcard(burst_key)
+            pipe.zadd(burst_key, {f"{current_time}.{int(time.time() * 1000000) % 1000000}": current_time})
+            pipe.expire(burst_key, burst_window)
+            
+            # 3. Sliding window (more precise)
+            pipe.zremrangebyscore(sliding_key, 0, window_start)
+            pipe.zcard(sliding_key)
+            pipe.zadd(sliding_key, {f"{current_time}.{int(time.time() * 1000000) % 1000000}": current_time})
+            pipe.expire(sliding_key, window)
+            
+            results = pipe.execute()
+            
+            # Extract results
+            current_requests = results[1]
+            burst_requests = results[6]
+            sliding_requests = results[11]
+            
+            # Check all limits
+            is_rate_limited = current_requests >= limit
+            is_burst_limited = burst_requests >= burst_limit
+            is_sliding_limited = sliding_requests >= limit
+            
+            # Overall limiting decision
+            is_limited = is_rate_limited or is_burst_limited or is_sliding_limited
+            
+            # Record metrics
+            limit_type = None
+            if is_burst_limited:
+                limit_type = 'burst'
+            elif is_sliding_limited:
+                limit_type = 'sliding'
+            elif is_rate_limited:
+                limit_type = 'rate'
+            
+            # Record request metrics (async, don't wait for completion)
+            try:
+                rate_limit_metrics.record_request(
+                    identifier=identifier,
+                    endpoint=getattr(request, 'path', 'unknown'),
+                    is_limited=is_limited,
+                    limit_type=limit_type
+                )
+            except Exception:
+                pass  # Don't fail rate limiting if metrics fail
+            
+            return is_limited, {
+                'current_requests': current_requests,
+                'burst_requests': burst_requests,
+                'sliding_requests': sliding_requests,
+                'limit': limit,
+                'burst_limit': burst_limit,
+                'window': window,
+                'reset_time': current_time + window,
+                'remaining_requests': max(0, limit - current_requests),
+                'is_rate_limited': is_rate_limited,
+                'is_burst_limited': is_burst_limited,
+                'is_sliding_limited': is_sliding_limited
+            }
+            
+        except Exception as e:
+            print(f"Distributed rate limiting error: {e}")
+            return False, {}
+    
+    def get_rate_limit_status(self, identifier: str) -> Dict:
+        """Get current rate limit status for an identifier"""
+        if self.redis_client is None:
+            return {'status': 'disabled'}
+            
+        current_time = int(time.time())
+        window = RATE_LIMIT_WINDOW
+        window_start = current_time - window
+        
+        try:
+            rate_key = f"rate_limit:{identifier}"
+            burst_key = f"burst_limit:{identifier}"
+            
+            pipe = self.redis_client.pipeline()
+            pipe.zremrangebyscore(rate_key, 0, window_start)
+            pipe.zcard(rate_key)
+            pipe.zcard(burst_key)
+            pipe.ttl(rate_key)
+            
+            results = pipe.execute()
+            
+            return {
+                'status': 'active',
+                'current_requests': results[1],
+                'burst_requests': results[2],
+                'ttl': results[3],
+                'window_remaining': max(0, window - (current_time - window_start))
+            }
+            
+        except Exception as e:
+            print(f"Rate limit status error: {e}")
+            return {'status': 'error', 'error': str(e)}
+    
+    def reset_rate_limit(self, identifier: str) -> bool:
+        """Reset rate limit for an identifier (admin function)"""
+        if self.redis_client is None:
+            return False
+            
+        try:
+            keys = [
+                f"rate_limit:{identifier}",
+                f"burst_limit:{identifier}",
+                f"sliding_limit:{identifier}"
+            ]
+            self.redis_client.delete(*keys)
+            return True
+        except Exception as e:
+            print(f"Rate limit reset error: {e}")
+            return False
     
     def check_brute_force(self, identifier: str) -> Tuple[bool, Dict]:
         """Check if identifier is locked due to brute force attempts"""
@@ -289,8 +468,8 @@ class SecurityManager:
 # Global security manager instance
 security_manager = SecurityManager()
 
-def rate_limit(limit: int = None, window: int = None, per: str = 'ip'):
-    """Decorator for rate limiting endpoints"""
+def rate_limit(limit: int = None, window: int = None, per: str = 'ip', use_distributed: bool = True):
+    """Decorator for rate limiting endpoints with distributed support"""
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
@@ -302,17 +481,31 @@ def rate_limit(limit: int = None, window: int = None, per: str = 'ip'):
             else:
                 identifier = request.remote_addr
             
-            # Check rate limit
-            is_limited, info = security_manager.is_rate_limited(identifier, limit, window)
+            # Check rate limit using distributed method if enabled
+            if use_distributed:
+                is_limited, info = security_manager.is_distributed_rate_limited(identifier, limit, window)
+            else:
+                is_limited, info = security_manager.is_rate_limited(identifier, limit, window)
             
             if is_limited:
+                # Determine which type of limit was exceeded
+                limit_type = "rate"
+                if info.get('is_burst_limited', False):
+                    limit_type = "burst"
+                elif info.get('is_sliding_limited', False):
+                    limit_type = "sliding"
+                
                 return jsonify({
                     'status': False,
-                    'message': 'Rate limit exceeded',
+                    'message': f'Rate limit exceeded ({limit_type})',
                     'data': {
                         'retry_after': info.get('reset_time', 0) - int(time.time()),
                         'limit': info.get('limit', 0),
-                        'current_requests': info.get('current_requests', 0)
+                        'current_requests': info.get('current_requests', 0),
+                        'remaining_requests': info.get('remaining_requests', 0),
+                        'limit_type': limit_type,
+                        'burst_requests': info.get('burst_requests', 0),
+                        'sliding_requests': info.get('sliding_requests', 0)
                     }
                 }), 429
             

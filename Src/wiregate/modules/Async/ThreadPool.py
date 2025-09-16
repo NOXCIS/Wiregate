@@ -90,7 +90,7 @@ def bulk_peer_status_check(peer_ids: List[str], config_name: str = None) -> List
 
 def redis_bulk_operations(operations: List[tuple]) -> List[Any]:
     """Execute multiple Redis operations in parallel"""
-    from ..DataBase.DataBaseManager import get_redis_manager
+    from ..DataBase import get_redis_manager
     
     def execute_redis_op(operation):
         op_type, key, value = operation

@@ -6,10 +6,7 @@ from datetime import datetime
 
 from ..modules.App import ResponseObject
 
-from ..modules.Jobs.PeerJobLogger import JobLogger
-
-from ..modules.Jobs.PeerJob import PeerJob
-from ..modules.Jobs.PeerJobs import AllPeerJobs
+from ..modules.Jobs import JobLogger, PeerJob, AllPeerJobs
 from ..modules.Core import Configurations
 
 
