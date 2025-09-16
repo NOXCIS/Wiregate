@@ -7,21 +7,22 @@ import LocaleText from "@/components/text/localeText.vue";
 export default {
 	name: "totp",
 	components: {LocaleText},
-	async setup(){
+	setup(){
 		const store = DashboardConfigurationStore();
-		let l = ""
-		await fetchGet("/api/Welcome_GetTotpLink", {}, (res => {
-			if (res.status) l = res.data;
-		}));
-		return {l, store}
+		return {store}
 	},
-	mounted() {
+	async mounted() {
+		await fetchGet("/api/Welcome_GetTotpLink", {}, (res => {
+			if (res.status) this.l = res.data;
+		}));
+		
 		if (this.l) {
 			QRCode.toCanvas(document.getElementById('qrcode'), this.l, function (error) {})
 		}
 	},
 	data(){
 		return {
+			l: "",
 			totp: "",
 			totpInvalidMessage: "",
 			verified: false

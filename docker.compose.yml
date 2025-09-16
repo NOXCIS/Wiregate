@@ -26,12 +26,18 @@ services:
     restart: unless-stopped
     command: redis-server /usr/local/etc/redis/redis.conf
     volumes:
-      - redis_data:/data
+      #- redis_data:/data
       - ./configs/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
     networks:
       private_network:
         ipv4_address: 10.2.0.4
         ipv6_address: 2001:db8:abc::4
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
 
   wiregate:
       build:
@@ -64,6 +70,8 @@ services:
         - AMNEZIA_WG=true
       #Set Timezone
         - TZ=America/New_York
+      #Dashboard Mode (development/production)
+        - DASHBOARD_MODE=development
       #Redis Database Settings
         - REDIS_HOST=redis
         - REDIS_PORT=6379
@@ -114,5 +122,5 @@ volumes:
     #db:
     #conf:
     pf_conf:
-    redis_data:
+    #redis_data:
   

@@ -1,0 +1,23 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+- namespace.yaml
+- redis-configmap.yaml
+- redis-secret.yaml
+- redis-deployment.yaml
+- wiregate-configmap.yaml
+- wiregate-secret.yaml
+- wiregate-serviceaccount.yaml
+- wiregate-deployment.yaml
+- dnscrypt-configmap.yaml
+- tor-configmap.yaml
+- ssl-configmap.yaml
+- network-policy.yaml
+
+commonLabels:
+  app.kubernetes.io/name: wiregate
+  app.kubernetes.io/version: "1.0.0"
+  app.kubernetes.io/component: vpn-gateway
+
+namespace: wiregate

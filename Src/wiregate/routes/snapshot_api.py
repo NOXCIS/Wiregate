@@ -4,6 +4,8 @@ import shutil
 import json
 import logging
 
+logger = logging.getLogger('wiregate')
+
 from flask import request, make_response, Blueprint 
 
 
@@ -19,9 +21,46 @@ from ..modules.DashboardConfig import (
     DashboardConfig
 )
 
-from ..modules.Archive.SnapShot import (
-    ArchiveUtils
-)
+# Import Security modules with fallbacks
+try:
+    from ..modules.Security import security_manager, secure_file_upload, validate_input
+except ImportError:
+    # Fallback if Security module is not available
+    class MockSecurityManager:
+        def validate_filename(self, filename):
+            return True, filename
+        def validate_path(self, file_path, base_path=None):
+            return True, file_path
+        def sanitize_input(self, data):
+            return data
+    
+    security_manager = MockSecurityManager()
+    
+    def secure_file_upload(f):
+        def wrapper(*args, **kwargs):
+            return f(*args, **kwargs)
+        return wrapper
+    
+    def validate_input(required_fields=None):
+        def decorator(f):
+            def wrapper(*args, **kwargs):
+                return f(*args, **kwargs)
+            return wrapper
+        return decorator
+
+# Import Archive module with fallback
+try:
+    from ..modules.Archive.SnapShot import ArchiveUtils
+except ImportError:
+    # Fallback if Archive module is not available
+    class ArchiveUtils:
+        @staticmethod
+        def create_archive(data, filename):
+            return {"success": False, "message": "Archive module not available"}
+        
+        @staticmethod
+        def extract_archive(file_path, extract_to):
+            return {"success": False, "message": "Archive module not available"}
 
 from ..modules.Utilities import (
     RegexMatch, get_backup_paths
@@ -84,10 +123,10 @@ def API_getAllConfigurationBackup():
                         }
 
                         # Check for associated backup files
-                        sql_file = f.replace(".conf", ".sql")
-                        if os.path.exists(os.path.join(dir_path, sql_file)):
+                        redis_file = f.replace(".conf", ".redis")
+                        if os.path.exists(os.path.join(dir_path, redis_file)):
                             backup_info['database'] = True
-                            backup_info['databaseContent'] = open(os.path.join(dir_path, sql_file), 'r').read()
+                            backup_info['databaseContent'] = open(os.path.join(dir_path, redis_file), 'r').read()
 
                         iptables_file = f.replace(".conf", "_iptables.json")
                         if os.path.exists(os.path.join(dir_path, iptables_file)):
@@ -134,7 +173,7 @@ def API_DeleteConfigurationBackup():
         # Delete backup files if they exist
         files_to_delete = [
             backup_paths['conf_file'],
-            backup_paths['sql_file'],
+            backup_paths['redis_file'],
             backup_paths['iptables_file']
         ]
 
@@ -189,15 +228,25 @@ def API_restoreConfigurationBackup():
         if os.path.exists(temp_dir):
             shutil.rmtree(temp_dir)
         os.makedirs(temp_dir)
-
+        
         try:
             if backup_file:
                 # Handle uploaded 7z file
                 if not backup_file.filename.endswith('.7z'):
                     return ResponseObject(False, "Uploaded file must be a .7z archive")
 
+                # Validate filename and path
+                is_valid, error_msg = security_manager.validate_filename(backup_file.filename)
+                if not is_valid:
+                    return ResponseObject(False, f"Invalid filename: {error_msg}")
+                
+                # Validate path to prevent traversal
+                is_valid, safe_path = security_manager.validate_path(backup_file.filename, temp_dir)
+                if not is_valid:
+                    return ResponseObject(False, f"Invalid file path: {error_msg}")
+                
                 # Save uploaded file
-                file_path = os.path.join(temp_dir, backup_file.filename)
+                file_path = os.path.join(temp_dir, safe_path)
                 backup_file.save(file_path)
 
                 # Verify and extract the archive
@@ -218,12 +267,14 @@ def API_restoreConfigurationBackup():
                 # Save extracted files to appropriate locations
                 for filename, content in extracted_files.items():
                     if filename.startswith('iptable-rules/'):
-                        # Handle iptables rules
+                        # Handle iptables rules - preserve directory structure
                         rules_dir = os.path.join(
                             DashboardConfig.GetConfig("Server", "iptable_rules_path")[1]
                         )
-                        os.makedirs(rules_dir, exist_ok=True)
-                        file_path = os.path.join(rules_dir, os.path.basename(filename))
+                        # Remove 'iptable-rules/' prefix and use the rest as the path
+                        relative_path = filename[14:]  # Remove 'iptable-rules/' (14 characters)
+                        file_path = os.path.join(rules_dir, relative_path)
+                        os.makedirs(os.path.dirname(file_path), exist_ok=True)
                     else:
                         # Handle regular backup files
                         file_path = os.path.join(backup_paths['config_dir'], filename)
@@ -244,8 +295,17 @@ def API_restoreConfigurationBackup():
                 if not success:
                     return ResponseObject(False, "Failed to restore backup")
 
-            return ResponseObject(True, "Backup restored successfully")
+                # Force refresh of peers list to ensure latest data
+                Configurations[configuration_name].getPeersList()
+                
+                # Return updated configuration data for frontend refresh
+                return ResponseObject(True, "Backup restored successfully", {
+                    "configuration": Configurations[configuration_name].toJson(),
+                    "peers": [peer.toJson() for peer in Configurations[configuration_name].getPeersList()]
+                })
 
+        except Exception as e:
+            return ResponseObject(False, f"Error processing uploaded file: {str(e)}")
         finally:
             # Clean up temp directory
             if os.path.exists(temp_dir):
@@ -261,7 +321,7 @@ def API_downloadConfigurationBackup():
     try:
         config_name = request.args.get('configurationName')
         backup_name = request.args.get('backupFileName')
-        print(f"Download requested for config: {config_name}, backup: {backup_name}")
+        logger.debug(f"Download requested for config: {config_name}, backup: {backup_name}")
 
         if not config_name or not backup_name:
             return ResponseObject(False, "Configuration name and backup filename are required")
@@ -281,10 +341,10 @@ def API_downloadConfigurationBackup():
             with open(backup_paths['conf_file'], 'rb') as f:
                 files_dict[os.path.basename(backup_paths['conf_file'])] = f.read()
 
-            # Add SQL backup if it exists
-            if os.path.exists(backup_paths['sql_file']):
-                with open(backup_paths['sql_file'], 'rb') as f:
-                    files_dict[os.path.basename(backup_paths['sql_file'])] = f.read()
+            # Add Redis backup if it exists
+            if os.path.exists(backup_paths['redis_file']):
+                with open(backup_paths['redis_file'], 'rb') as f:
+                    files_dict[os.path.basename(backup_paths['redis_file'])] = f.read()
 
             # Add iptables backup if it exists
             if os.path.exists(backup_paths['iptables_file']):
@@ -292,19 +352,33 @@ def API_downloadConfigurationBackup():
                 with open(backup_paths['iptables_file'], 'rb') as f:
                     files_dict[os.path.basename(backup_paths['iptables_file'])] = f.read()
 
-                # Then process the scripts referenced in iptables.json
+                # Then process the scripts stored in iptables.json
                 with open(backup_paths['iptables_file'], 'r') as f:
                     scripts = json.load(f)
                 # Include all script files if they exist
                 script_types = ['preup', 'postup', 'predown', 'postdown']
                 for script_type in script_types:
                     script_key = f"{script_type}_script"
-                    if script_key in scripts:
-                        script_name = f"{config_name}-{script_type}.sh"
-                        script_path = os.path.join("./iptable-rules", script_name)
-                        if os.path.exists(script_path):
-                            with open(script_path, 'rb') as sf:
-                                files_dict[f"iptable-rules/{script_name}"] = sf.read()
+                    if script_key in scripts and scripts[script_key]:
+                        # Determine the correct directory structure based on config name
+                        if config_name in ['ADMINS', 'MEMBERS', 'GUESTS', 'LANP2P']:
+                            # Use the special directory structure for pregenerated configs
+                            if config_name == 'ADMINS':
+                                script_dir = 'iptable-rules/Admins'
+                            elif config_name == 'MEMBERS':
+                                script_dir = 'iptable-rules/Members'
+                            elif config_name == 'GUESTS':
+                                script_dir = 'iptable-rules/Guest'
+                            elif config_name == 'LANP2P':
+                                script_dir = 'iptable-rules/LAN-only-users'
+                            script_name = f"{script_type}.sh"
+                        else:
+                            # Use subdirectory structure for all custom configs
+                            script_dir = f'iptable-rules/{config_name}'
+                            script_name = f"{script_type}.sh"
+                        
+                        # The script content is already in the JSON, no need to read from filesystem
+                        files_dict[f"{script_dir}/{script_name}"] = scripts[script_key].encode('utf-8')
 
             # Create archive with integrity checks
             archive_data, _, combined_checksum = ArchiveUtils.create_archive(files_dict)
@@ -327,6 +401,7 @@ def API_downloadConfigurationBackup():
 
 
 @snapshot_api_blueprint.post('/uploadConfigurationBackup')
+@secure_file_upload(allowed_extensions=['.7z'], max_size=50*1024*1024)  # 50MB max
 def API_uploadConfigurationBackup():
     """Upload and process a backup using organized structure"""
     try:

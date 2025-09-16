@@ -1,13 +1,15 @@
 import os, pyotp
 import psutil, logging, json
-import re, shutil
+import  shutil
 import subprocess
 
 from datetime import datetime
 import time
 
+logger = logging.getLogger('wiregate')
+
 from flask import (
-    Blueprint, request, render_template, Response
+    Blueprint, request, render_template, Response, send_from_directory, send_file
 )
 
 from ..modules.App import (
@@ -19,10 +21,25 @@ from ..modules.DataBase.DataBaseManager import (
     sqlUpdate
 )
 
+from ..modules.Async.ThreadPool import (
+    thread_pool, bulk_peer_status_check, redis_bulk_operations, 
+    file_operations, wg_command_operations
+)
+
+from ..modules.Async.ProcessPool import (
+    process_pool, bulk_peer_processing, bulk_peer_validation, 
+    bulk_peer_encryption, bulk_usage_analysis, bulk_qr_generation
+)
+
 from ..modules.Core import (
     DashboardConfig,  Configuration,
     Configurations,
     InitWireguardConfigurationsList
+)
+
+from ..modules.SecureCommand import (
+    execute_secure_command, execute_wg_command, execute_awg_command, execute_wg_quick_command, 
+    execute_ip_command, execute_awk_command, execute_grep_command
 )
 
 
@@ -34,7 +51,7 @@ from ..modules.ConfigEnv import wgd_config_path
 
 from ..modules.Utilities import (
     GenerateWireguardPublicKey,
-    GenerateWireguardPrivateKey, get_backup_paths
+    GenerateWireguardPrivateKey, get_backup_paths, RegexMatch
 )
 
 
@@ -67,6 +84,30 @@ def API_getConfigurations():
     InitWireguardConfigurationsList()
     return ResponseObject(data=[wc for wc in Configurations.values()])
 
+@api_blueprint.route(f'/cleanupOrphanedConfigurations', methods=["POST"])
+def API_cleanupOrphanedConfigurations():
+    """Manually trigger cleanup of orphaned database configurations"""
+    try:
+        from ..modules.Core import cleanup_orphaned_configurations
+        import os
+        
+        # Get list of existing configuration files
+        conf_path = DashboardConfig.GetConfig("Server", "wg_conf_path")[1]
+        confs = os.listdir(conf_path)
+        existing_config_files = set()
+        
+        for i in confs:
+            if RegexMatch("^(.{1,}).(conf)$", i):
+                existing_config_files.add(i.replace('.conf', ''))
+        
+        # Run cleanup
+        cleanup_orphaned_configurations(existing_config_files)
+        
+        return ResponseObject(True, "Orphaned configuration cleanup completed successfully")
+        
+    except Exception as e:
+        return ResponseObject(False, f"Error during cleanup: {str(e)}")
+
 
 @api_blueprint.route(f'/addConfiguration', methods=["POST"])
 def API_addConfiguration():
@@ -94,7 +135,7 @@ def API_addConfiguration():
                                   "Address")
 
     # Create iptables-rules directory if it doesn't exist
-    iptables_dir = "./iptable-rules"
+    iptables_dir = DashboardConfig.GetConfig("Server", "iptable_rules_path")[1]
     if not os.path.exists(iptables_dir):
         try:
             os.makedirs(iptables_dir)
@@ -108,7 +149,7 @@ def API_addConfiguration():
         config_name = data["Backup"].split("_")[0]
         backup_paths = get_backup_paths(config_name)
         backup_file = os.path.join(backup_paths['config_dir'], data["Backup"])
-        backup_sql = os.path.join(backup_paths['config_dir'], data["Backup"].replace('.conf', '.sql'))
+        backup_redis = os.path.join(backup_paths['config_dir'], data["Backup"].replace('.conf', '.redis'))
         backup_iptables = os.path.join(backup_paths['config_dir'], data["Backup"].replace('.conf', '_iptables.json'))
 
         if not os.path.exists(backup_file):
@@ -135,9 +176,9 @@ def API_addConfiguration():
             return ResponseObject(False, f"Failed to initialize configuration: {str(e)}")
 
         # Restore database if it exists
-        if os.path.exists(backup_sql):
+        if os.path.exists(backup_redis):
             try:
-                with open(backup_sql, 'r') as f:
+                with open(backup_redis, 'r') as f:
                     for line in f:
                         line = line.strip()
                         if line:
@@ -194,16 +235,20 @@ def API_addConfiguration():
 
             # Create all IPTables scripts (PreUp, PostUp, PreDown, PostDown)
             script_types = {
-                'PreUp': '-preup.sh',
-                'PostUp': '-postup.sh',
-                'PreDown': '-predown.sh',
-                'PostDown': '-postdown.sh'
+                'PreUp': 'preup',
+                'PostUp': 'postup',
+                'PreDown': 'predown',
+                'PostDown': 'postdown'
             }
 
+            # Create subdirectory for this configuration
+            config_script_dir = os.path.join(iptables_dir, config_name)
+            os.makedirs(config_script_dir, exist_ok=True)
+
             script_paths = {}
-            for script_type, suffix in script_types.items():
+            for script_type, script_name in script_types.items():
                 if script_type in data and data.get(script_type):
-                    script_path = os.path.join(iptables_dir, f"{config_name}{suffix}")
+                    script_path = os.path.join(config_script_dir, f"{script_name}.sh")
                     with open(script_path, 'w') as f:
                         f.write("#!/bin/bash\n\n")
                         f.write(f"# IPTables {script_type} Rules for {config_name}\n")
@@ -236,12 +281,12 @@ def API_addConfiguration():
 
             if not os.path.islink(symlink_path):
                 os.symlink(conf_file_path, symlink_path)
-                print(f"Created symbolic link: {symlink_path} -> {conf_file_path}")
+                logger.debug(f"Created symbolic link: {symlink_path} -> {conf_file_path}")
             else:
-                print(f"Symbolic link for {data['ConfigurationName']} already exists, skipping...")
+                logger.debug(f"Symbolic link for {data['ConfigurationName']} already exists, skipping...")
 
         except Exception as e:
-            print(f"Warning: Failed to create AmneziaWG symlink: {str(e)}")
+            logger.warning(f"Failed to create AmneziaWG symlink: {str(e)}")
 
     return ResponseObject()
 
@@ -565,17 +610,38 @@ def API_deleteWireguardConfiguration():
     config_name = data.get("Name")
 
     # Delete iptables script files before deleting configuration
-    script_types = ['-preup.sh', '-postup.sh', '-predown.sh', '-postdown.sh']
-    iptables_dir = "./iptable-rules"
+    script_types = ['preup', 'postup', 'predown', 'postdown']
+    iptables_dir = DashboardConfig.GetConfig("Server", "iptable_rules_path")[1]
 
-    for script_suffix in script_types:
-        script_path = os.path.join(iptables_dir, f"{config_name}{script_suffix}")
+    # Try to delete scripts from subdirectory structure first (new format)
+    config_script_dir = os.path.join(iptables_dir, config_name)
+    if os.path.exists(config_script_dir):
+        for script_type in script_types:
+            script_path = os.path.join(config_script_dir, f"{script_type}.sh")
+            try:
+                if os.path.exists(script_path):
+                    os.remove(script_path)
+                    logger.debug(f"Deleted iptables script: {script_path}")
+            except Exception as e:
+                logger.warning(f"Failed to delete iptables script {script_path}: {str(e)}")
+        
+        # Remove the config directory if it's empty
         try:
-            if os.path.exists(script_path):
-                os.remove(script_path)
-                print(f"Deleted iptables script: {script_path}")
+            if not os.listdir(config_script_dir):
+                os.rmdir(config_script_dir)
+                logger.debug(f"Removed empty config directory: {config_script_dir}")
         except Exception as e:
-            print(f"Warning: Failed to delete iptables script {script_path}: {str(e)}")
+            logger.warning(f"Failed to remove config directory {config_script_dir}: {str(e)}")
+    else:
+        # Fallback to old format (scripts directly in iptables_dir)
+        for script_type in script_types:
+            script_path = os.path.join(iptables_dir, f"{config_name}-{script_type}.sh")
+            try:
+                if os.path.exists(script_path):
+                    os.remove(script_path)
+                    logger.debug(f"Deleted iptables script: {script_path}")
+            except Exception as e:
+                logger.warning(f"Failed to delete iptables script {script_path}: {str(e)}")
 
     # Delete the configuration
     status = Configurations[config_name].deleteConfiguration()
@@ -778,14 +844,24 @@ def API_sharePeer_get():
 
 @api_blueprint.post('/allowAccessPeers/<configName>')
 def API_allowAccessPeers(configName: str) -> ResponseObject:
-    data = request.get_json()
-    peers = data['peers']
-    if configName in Configurations.keys():
-        if len(peers) == 0:
+    try:
+        data = request.get_json()
+        if not data:
+            return ResponseObject(False, "No data provided")
+        
+        peers = data.get('peers', [])
+        if not peers:
             return ResponseObject(False, "Please specify one or more peers")
+            
+        if configName not in Configurations.keys():
+            return ResponseObject(False, "Configuration does not exist")
+            
         configuration = Configurations.get(configName)
         return configuration.allowAccessPeers(peers)
-    return ResponseObject(False, "Configuration does not exist")
+        
+    except Exception as e:
+        logger.error(f"allowAccessPeers: {str(e)}")
+        return ResponseObject(False, f"Internal server error: {str(e)}")
 
 
 @api_blueprint.post('/addPeers/<configName>')
@@ -849,7 +925,9 @@ def API_addPeers(configName):
                     })
                 if len(keyPairs) == 0:
                     return ResponseObject(False, "Generating key pairs by bulk failed")
-                config.addPeers(keyPairs)
+                logger.debug(f"API: Calling addPeers with {len(keyPairs)} bulk peers")
+                result = config.addPeers(keyPairs)
+                logger.debug(f"API: addPeers result: {result}")
                 return ResponseObject()
 
             else:
@@ -862,6 +940,7 @@ def API_addPeers(configName):
                     if i not in availableIps[1]:
                         return ResponseObject(False, f"This IP is not available: {i}")
 
+                logger.debug(f"API: Calling addPeers with single peer: {public_key[:8]}...")
                 status = config.addPeers([
                     {
                         "name": name,
@@ -877,7 +956,7 @@ def API_addPeers(configName):
                 )
                 return ResponseObject(status)
         except Exception as e:
-            print(e)
+            logger.error(f"Add peers failed: {e}")
             return ResponseObject(False, "Add peers failed. Please see data for specific issue")
 
     return ResponseObject(False, "Configuration does not exist")
@@ -919,12 +998,43 @@ def API_getAvailableIPs(configName):
 @api_blueprint.get('/getWireguardConfigurationInfo')
 def API_getConfigurationInfo():
     configurationName = request.args.get("configurationName")
+    logger.debug(f" getWireguardConfigurationInfo called for: {configurationName}")
+    
     if not configurationName or configurationName not in Configurations.keys():
         return ResponseObject(False, "Please provide configuration name")
+    
+    # Refresh peer jobs to ensure we have the latest data
+    from ..modules.Jobs.PeerJobs import AllPeerJobs
+    logger.debug(f" Refreshing AllPeerJobs data...")
+    AllPeerJobs._PeerJobs__getJobs()
+    logger.debug(f" AllPeerJobs now has {len(AllPeerJobs.Jobs)} total jobs")
+    
+    # Get configuration and peers
+    config = Configurations[configurationName]
+    peers = config.getPeersList()
+    restricted_peers = config.getRestrictedPeersList()
+    
+    logger.debug(f" Found {len(peers)} peers for configuration {configurationName}")
+    
+    # Convert peers to JSON to include jobs and other data
+    peers_json = []
+    for i, peer in enumerate(peers):
+        logger.debug(f" Processing peer {i+1}: {peer.id}")
+        peer_json = peer.toJson()
+        logger.debug(f" Peer {peer.id} jobs: {len(peer_json.get('jobs', []))}")
+        if peer_json.get('jobs'):
+            for j, job in enumerate(peer_json['jobs']):
+                logger.debug(f"   Job {j+1}: {job}")
+        peers_json.append(peer_json)
+    
+    restricted_peers_json = [peer.toJson() for peer in restricted_peers]
+    
+    logger.debug(f" Returning {len(peers_json)} peers with jobs data")
+    
     return ResponseObject(data={
-        "configurationInfo": Configurations[configurationName],
-        "configurationPeers": Configurations[configurationName].getPeersList(),
-        "configurationRestrictedPeers": Configurations[configurationName].getRestrictedPeersList()
+        "configurationInfo": config,
+        "configurationPeers": peers_json,
+        "configurationRestrictedPeers": restricted_peers_json
     })
 
 @api_blueprint.get('/getDashboardTheme')
@@ -1093,9 +1203,10 @@ def API_SystemStatus():
                             
                             # Get transfer data for all peers
                             try:
-                                cmd = f"awg show {name} transfer"
-                                output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
-                                data_usage = output.decode("UTF-8").split("\n")
+                                result = execute_awg_command('show', name, subcommand='transfer')
+                                if not result['success']:
+                                    continue
+                                data_usage = result['stdout'].split("\n")
                                 
                                 total_recv = 0
                                 total_sent = 0
@@ -1118,9 +1229,10 @@ def API_SystemStatus():
                             # Interface not found in psutil, add it manually
                             logging.info(f"Adding missing amneziawg interface to network stats: {name}")
                             try:
-                                cmd = f"awg show {name} transfer"
-                                output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
-                                data_usage = output.decode("UTF-8").split("\n")
+                                result = execute_awg_command('show', name, subcommand='transfer')
+                                if not result['success']:
+                                    continue
+                                data_usage = result['stdout'].split("\n")
                                 
                                 total_recv = 0
                                 total_sent = 0
@@ -1227,9 +1339,270 @@ def API_SystemStatus():
         )
 
 
+# Thread Pool API Endpoints
+@app.route('/api/threadPool/status', methods=['GET'])
+def API_threadPoolStatus():
+    """Get thread pool status and statistics"""
+    try:
+        status = {
+            'active': thread_pool.executor is not None,
+            'max_workers': thread_pool.max_workers,
+            'thread_count': len(thread_pool.executor._threads) if thread_pool.executor else 0
+        }
+        return ResponseObject(data=status)
+    except Exception as e:
+        return ResponseObject(False, str(e))
+
+@app.route('/api/threadPool/bulkPeerStatus', methods=['POST'])
+def API_bulkPeerStatus():
+    """Check status of multiple peers in parallel using thread pool"""
+    try:
+        data = request.get_json()
+        peer_ids = data.get('peer_ids', [])
+        config_name = data.get('config_name')
+        
+        if not peer_ids:
+            return ResponseObject(False, "No peer IDs provided")
+        
+        # Use thread pool to check peer statuses in parallel
+        results = bulk_peer_status_check(peer_ids, config_name)
+        
+        return ResponseObject(data={
+            'results': results,
+            'total_checked': len(results),
+            'successful': len([r for r in results if r.get('status') == 'connected'])
+        })
+    except Exception as e:
+        return ResponseObject(False, str(e))
+
+@app.route('/api/threadPool/bulkRedisOps', methods=['POST'])
+def API_bulkRedisOps():
+    """Execute multiple Redis operations in parallel using thread pool"""
+    try:
+        data = request.get_json()
+        operations = data.get('operations', [])
+        
+        if not operations:
+            return ResponseObject(False, "No operations provided")
+        
+        # Use thread pool to execute Redis operations in parallel
+        results = redis_bulk_operations(operations)
+        
+        return ResponseObject(data={
+            'results': results,
+            'total_operations': len(results),
+            'successful': len([r for r in results if r is not None and 'error' not in str(r)])
+        })
+    except Exception as e:
+        return ResponseObject(False, str(e))
+
+@app.route('/api/threadPool/bulkFileOps', methods=['POST'])
+def API_bulkFileOps():
+    """Execute multiple file operations in parallel using thread pool"""
+    try:
+        data = request.get_json()
+        operations = data.get('operations', [])
+        
+        if not operations:
+            return ResponseObject(False, "No operations provided")
+        
+        # Use thread pool to execute file operations in parallel
+        results = file_operations(operations)
+        
+        return ResponseObject(data={
+            'results': results,
+            'total_operations': len(results),
+            'successful': len([r for r in results if r is not None and 'error' not in str(r)])
+        })
+    except Exception as e:
+        return ResponseObject(False, str(e))
+
+@app.route('/api/threadPool/bulkWgCommands', methods=['POST'])
+def API_bulkWgCommands():
+    """Execute multiple WireGuard commands in parallel using thread pool"""
+    try:
+        data = request.get_json()
+        commands = data.get('commands', [])
+        
+        if not commands:
+            return ResponseObject(False, "No commands provided")
+        
+        # Use thread pool to execute WireGuard commands in parallel
+        results = wg_command_operations(commands)
+        
+        return ResponseObject(data={
+            'results': results,
+            'total_commands': len(results),
+            'successful': len([r for r in results if r.get('success', False)])
+        })
+    except Exception as e:
+        return ResponseObject(False, str(e))
+
+
+# Process Pool API Endpoints
+@app.route('/api/processPool/status', methods=['GET'])
+def API_processPoolStatus():
+    """Get process pool status and statistics"""
+    try:
+        status = {
+            'active': process_pool.pool is not None,
+            'max_workers': process_pool.max_workers,
+            'process_count': len(process_pool.pool._pool) if process_pool.pool else 0
+        }
+        return ResponseObject(data=status)
+    except Exception as e:
+        return ResponseObject(False, str(e))
+
+@app.route('/api/processPool/bulkPeerProcessing', methods=['POST'])
+def API_bulkPeerProcessing():
+    """Process multiple peers in parallel using process pool"""
+    try:
+        data = request.get_json()
+        peers_data = data.get('peers_data', [])
+        
+        if not peers_data:
+            return ResponseObject(False, "No peer data provided")
+        
+        # Use process pool to process peers in parallel
+        results = bulk_peer_processing(peers_data)
+        
+        return ResponseObject(data={
+            'results': results,
+            'total_processed': len(results),
+            'successful': len([r for r in results if r is not None])
+        })
+    except Exception as e:
+        return ResponseObject(False, str(e))
+
+@app.route('/api/processPool/bulkPeerValidation', methods=['POST'])
+def API_bulkPeerValidation():
+    """Validate multiple peers in parallel using process pool"""
+    try:
+        data = request.get_json()
+        peers_data = data.get('peers_data', [])
+        
+        if not peers_data:
+            return ResponseObject(False, "No peer data provided")
+        
+        # Use process pool to validate peers in parallel
+        results = bulk_peer_validation(peers_data)
+        
+        valid_count = len([r for r in results if r.get('valid', False)])
+        
+        return ResponseObject(data={
+            'results': results,
+            'total_validated': len(results),
+            'valid_count': valid_count,
+            'invalid_count': len(results) - valid_count
+        })
+    except Exception as e:
+        return ResponseObject(False, str(e))
+
+@app.route('/api/processPool/bulkPeerEncryption', methods=['POST'])
+def API_bulkPeerEncryption():
+    """Encrypt multiple peers in parallel using process pool"""
+    try:
+        data = request.get_json()
+        peers_data = data.get('peers_data', [])
+        
+        if not peers_data:
+            return ResponseObject(False, "No peer data provided")
+        
+        # Use process pool to encrypt peers in parallel
+        results = bulk_peer_encryption(peers_data)
+        
+        return ResponseObject(data={
+            'results': results,
+            'total_encrypted': len(results),
+            'successful': len([r for r in results if r is not None])
+        })
+    except Exception as e:
+        return ResponseObject(False, str(e))
+
+@app.route('/api/processPool/bulkUsageAnalysis', methods=['POST'])
+def API_bulkUsageAnalysis():
+    """Analyze usage patterns for multiple peers in parallel using process pool"""
+    try:
+        data = request.get_json()
+        usage_data_list = data.get('usage_data_list', [])
+        
+        if not usage_data_list:
+            return ResponseObject(False, "No usage data provided")
+        
+        # Use process pool to analyze usage in parallel
+        results = bulk_usage_analysis(usage_data_list)
+        
+        return ResponseObject(data={
+            'results': results,
+            'total_analyzed': len(results),
+            'successful': len([r for r in results if r is not None])
+        })
+    except Exception as e:
+        return ResponseObject(False, str(e))
+
+@app.route('/api/processPool/bulkQrGeneration', methods=['POST'])
+def API_bulkQrGeneration():
+    """Generate QR codes for multiple peers in parallel using process pool"""
+    try:
+        data = request.get_json()
+        peer_data_list = data.get('peer_data_list', [])
+        
+        if not peer_data_list:
+            return ResponseObject(False, "No peer data provided")
+        
+        # Use process pool to generate QR codes in parallel
+        results = bulk_qr_generation(peer_data_list)
+        
+        return ResponseObject(data={
+            'results': results,
+            'total_generated': len(results),
+            'successful': len([r for r in results if r is not None])
+        })
+    except Exception as e:
+        return ResponseObject(False, str(e))
+
+@app.route('/api/processPool/performanceTest', methods=['POST'])
+def API_processPoolPerformanceTest():
+    """Test process pool performance with CPU-intensive tasks"""
+    try:
+        data = request.get_json()
+        task_count = data.get('task_count', 10)
+        
+        # Generate test data
+        test_peers = []
+        for i in range(task_count):
+            test_peers.append({
+                'id': f'test_peer_{i}',
+                'name': f'Test Peer {i}',
+                'public_key': 'A' * 44 + '=',  # Simulate public key
+                'allowed_ips': f'10.0.0.{i}/32',
+                'endpoint': f'example.com:{51820 + i}'
+            })
+        
+        import time
+        start_time = time.time()
+        
+        # Process peers in parallel
+        results = bulk_peer_processing(test_peers)
+        
+        end_time = time.time()
+        duration = end_time - start_time
+        
+        return ResponseObject(data={
+            'results': results,
+            'task_count': task_count,
+            'duration': duration,
+            'tasks_per_second': task_count / duration if duration > 0 else 0,
+            'avg_time_per_task': duration / task_count if task_count > 0 else 0
+        })
+    except Exception as e:
+        return ResponseObject(False, str(e))
+
+
 @app.get('/')
 def index():
     return render_template('index.html')
+
 
 
 

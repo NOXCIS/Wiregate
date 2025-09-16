@@ -1,3 +1,154 @@
-**/venv/*
-**/node_modules/*
-**/__pycache__/*
+# =============================================================================
+# DOCKERIGNORE FOR WIREGATE PROJECT
+# =============================================================================
+# This file minimizes the Docker build context to improve build performance
+# and reduce image size by excluding unnecessary files.
+# =============================================================================
+
+# Version control
+.git
+.gitignore
+.gitattributes
+
+# Documentation
+*.md
+Docs/
+README*
+LICENSE
+SECURITY*
+
+# Development files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+venv_dev/
+ENV/
+env.bak/
+venv.bak/
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.npm
+.yarn-integrity
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+.eggs/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs
+*.log
+logs/
+*.log.*
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+tmp/
+temp/
+.tmp/
+.temp/
+
+# IDE and editor files
+*.sublime-project
+*.sublime-workspace
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Docker files (except the one being used)
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Test files
+tests/
+test_*
+*_test.py
+*_test.js
+
+# Configuration files that might contain secrets
+.env
+.env.local
+.env.*.local
+config.local.*
+
+# Backup files
+*.bak
+*.backup
+*.old
+
+# Archives
+*.tar
+*.tar.gz
+*.zip
+*.rar
+*.7z
+
+# Large binary files
+*.bin
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Kubernetes files
+k8s/
+*.yaml
+*.yml
+
+# CI/CD files
+.github/
+.gitlab-ci.yml
+.travis.yml
+.circleci/
+
+# Other project files
+Makefile
+requirements-dev.txt
+package-lock.json
+yarn.lock
+
+# Specific to this project
+attachments/
+AutoInstaller-Functions/
+DOCKER_TESTING.md
+stackscript.sh
+Ubuntu.Dockerfile

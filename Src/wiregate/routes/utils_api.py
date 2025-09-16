@@ -1,5 +1,6 @@
 from flask import Blueprint, request
 import json, ipaddress, logging
+import requests
 from datetime import datetime
 from icmplib import ping, traceroute
 from ..modules.App import ResponseObject
@@ -7,6 +8,7 @@ from ..modules.Core import Configurations
 from ..modules.ConfigEnv import DASHBOARD_VERSION
 
 utils_blueprint = Blueprint('utils', __name__)
+logger = logging.getLogger('wiregate')
 
 '''
 Tools
@@ -25,7 +27,7 @@ def API_ping_getAllPeersIpAddress():
                 try:
                     ip = ipaddress.ip_network(x, strict=False)
                 except ValueError as e:
-                    print(f"{p.id} - {c.Name}")
+                    logger.warning(f"{p.id} - {c.Name}")
                 if len(list(ip.hosts())) == 1:
                     parsed.append(str(ip.hosts()[0]))
             endpoint = p.endpoint.replace(" ", "").replace("(none)", "")
@@ -117,7 +119,7 @@ def API_traceroute_execute():
                     result[i]['geo'] = d[i]
 
             except Exception as e:
-                print(e)
+                logger.error(f"Error in ping operation: {e}")
             return ResponseObject(data=result)
         except Exception as exp:
             return ResponseObject(False, exp)
@@ -127,146 +129,85 @@ def API_traceroute_execute():
 
 @utils_blueprint.get('/getDashboardUpdate')
 def API_getDashboardUpdate():
-    try:
-        # Replace with your actual Docker Hub repository
-        docker_hub_repo = "noxcis/wiregate"
-
-        # Docker Hub API URL to list tags
-        list_tags_url = f"https://hub.docker.com/v2/repositories/{docker_hub_repo}/tags"
-
-        # Send a request to Docker Hub to list all tags
-        response = requests.get(list_tags_url, timeout=5)
-
-        # Check if the request was successful
-        if response.status_code == 200:
-            # Parse the JSON response
-            tags_data = response.json()
-
-            # Get the results (list of tags)
-            tags = tags_data.get('results', [])
-
-            if not tags:
-                return ResponseObject(False, "No tags found in the repository")
-
-            # Create a list to store parsed tags with their details
-            parsed_tags = []
-
-            # Iterate through tags and parse details
-            for tag in tags:
-                try:
-                    # Extract tag name and last pushed timestamp
-                    tag_name = tag.get('name', '')
-
-                    # Use tag_last_pushed for most accurate timestamp
-                    last_pushed_str = tag.get('tag_last_pushed', tag.get('last_updated', ''))
-
-                    # Convert timestamp to datetime
-                    if last_pushed_str:
-                        last_pushed = datetime.fromisoformat(last_pushed_str.replace('Z', '+00:00'))
-
-                        parsed_tags.append({
-                            'name': tag_name,
-                            'last_pushed': last_pushed
-                        })
-                except Exception as tag_parse_error:
-                    logging.error(f"Error parsing tag {tag}: {tag_parse_error}")
-
-            # Sort tags by last pushed date
-            if parsed_tags:
-                sorted_tags = sorted(parsed_tags, key=lambda x: x['last_pushed'], reverse=True)
-                latest_tag = sorted_tags[0]['name']
-                latest_pushed = sorted_tags[0]['last_pushed']
-
-                # Create Docker Hub URL
-                docker_hub_url = f"https://hub.docker.com/r/{docker_hub_repo}/tags?page=1&name={latest_tag}"
-
-                # Get changelog for current version
-                current_changelog = get_changelog_for_version(DASHBOARD_VERSION)
-
-                # Compare with current version
-                if latest_tag and latest_tag != DASHBOARD_VERSION:
-                    return ResponseObject(
-                        message=f"{latest_tag} is now available for update!",
-                        data={
-                            "url": docker_hub_url,
-                            "changelog": get_changelog_for_version(latest_tag)
-                        }
-                    )
-                else:
-                    return ResponseObject(
-                        message="You're on the latest version",
-                        data={
-                            "url": docker_hub_url,
-                            "changelog": current_changelog  # Include changelog for current version
-                        }
-                    )
-
-            return ResponseObject(False, "Unable to parse tags")
-
-        # If request was not successful
-        return ResponseObject(False, f"API request failed with status {response.status_code}")
-
-    except requests.RequestException as e:
-        logging.error(f"Request to Docker Hub API failed: {str(e)}")
-        return ResponseObject(False, f"Request failed: {str(e)}")
-    except Exception as e:
-        logging.error(f"Unexpected error in Docker Hub update check: {str(e)}")
-        return ResponseObject(False, f"Unexpected error: {str(e)}")
+    global _update_cache
+    
+    # Only return cached data - no direct API calls to prevent blocking
+    # This endpoint should be very fast since it only returns cached data
+    if _update_cache['last_check'] and _update_cache['data']:
+        return ResponseObject(True, _update_cache['data']['message'], _update_cache['data'])
+    elif _update_cache['last_check'] and _update_cache['error']:
+        return ResponseObject(False, _update_cache['error'])
+    else:
+        # No cached data available yet - background thread hasn't run yet
+        # Trigger a background update check if none has been attempted
+        try:
+            import threading
+            def run_update_check():
+                _background_update_check()
+            
+            # Run update check in a separate thread to avoid blocking
+            update_thread = threading.Thread(target=run_update_check, daemon=True)
+            update_thread.start()
+            
+            return ResponseObject(False, "Update check started - please refresh in a moment")
+        except Exception as e:
+            logging.warning(f"Failed to start background update check: {e}")
+            return ResponseObject(False, "Update check in progress - please try again later")
 
 
 def get_changelog_for_version(version):
     """Return changelog data for a specific version by fetching from GitHub."""
-    print(f"[DEBUG] get_changelog_for_version called for version: {version}")
+    logger.debug(f"get_changelog_for_version called for version: {version}")
     try:
         # URL to the raw changelog file on GitHub
         changelog_url = "https://raw.githubusercontent.com/NOXCIS/Wiregate/refs/heads/main/Docs/CHANGELOG.md"
-        print(f"[DEBUG] Fetching changelog from: {changelog_url}")
+        logger.debug(f"Fetching changelog from: {changelog_url}")
         
         # Initialize an empty dictionary to store the parsed changelog
         changelog_map = {}
         
         # Fetch the changelog content
         response = requests.get(changelog_url, timeout=5)
-        print(f"[DEBUG] Response status code: {response.status_code}")
+        logger.debug(f" Response status code: {response.status_code}")
         
         if response.status_code == 200:
             # Parse the content
             current_version = None
             content = response.text.strip().split('\n')
-            print(f"[DEBUG] Raw content length: {len(content)} lines")
-            print(f"[DEBUG] Raw content: {content}")
+            logger.debug(f" Raw content length: {len(content)} lines")
+            logger.debug(f" Raw content: {content}")
             
             for line in content:
                 line = line.strip()
                 if not line:
                     continue
                 
-                print(f"[DEBUG] Processing line: '{line}'")
+                logger.debug(f" Processing line: '{line}'")
                     
                 # Check if this line defines a version
                 if line.endswith(':'):
                     current_version = line.replace(':', '').strip()
                     changelog_map[current_version] = []
-                    print(f"[DEBUG] Found version: {current_version}")
+                    logger.debug(f" Found version: {current_version}")
                 # If this is a changelog item for the current version
                 elif line.startswith('-') and current_version:
                     item = line.replace('-', '', 1).strip()
                     changelog_map[current_version].append(item)
-                    print(f"[DEBUG] Added item to {current_version}: {item}")
+                    logger.debug(f" Added item to {current_version}: {item}")
             
-            print(f"[DEBUG] Final changelog map has {len(changelog_map)} versions")
-            print(f"[DEBUG] Final changelog map: {changelog_map}")
-            print(f"[DEBUG] Returning items for version {version}: {changelog_map.get(version, [])}")
+            logger.debug(f" Final changelog map has {len(changelog_map)} versions")
+            logger.debug(f" Final changelog map: {changelog_map}")
+            logger.debug(f" Returning items for version {version}: {changelog_map.get(version, [])}")
             # Return the changelog items for the requested version, or empty list if not found
             return changelog_map.get(version, [])
         else:
             logging.error(f"Failed to fetch changelog: HTTP {response.status_code}")
-            print(f"[DEBUG] HTTP error: {response.status_code}")
+            logger.debug(f" HTTP error: {response.status_code}")
             return []
             
     except Exception as e:
         logging.error(f"Error fetching changelog: {str(e)}")
-        print(f"[DEBUG] Exception caught: {str(e)}")
+        logger.debug(f" Exception caught: {str(e)}")
         # Fallback to hardcoded changelog if fetch fails
         fallback_map = {
             "acid-rain-beta-v0.4": [
@@ -276,5 +217,82 @@ def get_changelog_for_version(version):
                 "Added system monitoring features"
             ],
         }
-        print(f"[DEBUG] Using fallback changelog: {fallback_map.get(version, [])}")
+        logger.debug(f" Using fallback changelog: {fallback_map.get(version, [])}")
         return fallback_map.get(version, [])
+
+# Global cache for update information
+_update_cache = {
+    'last_check': None,
+    'data': None,
+    'error': None
+}
+
+def _background_update_check():
+    """Background function to check for updates without blocking the UI"""
+    global _update_cache
+    
+    try:
+        # Replace with your actual Docker Hub repository
+        docker_hub_repo = "noxcis/wiregate"
+        list_tags_url = f"https://hub.docker.com/v2/repositories/{docker_hub_repo}/tags"
+        
+        # Use a longer timeout for background check
+        response = requests.get(list_tags_url, timeout=10)
+        
+        if response.status_code == 200:
+            tags_data = response.json()
+            tags = tags_data.get('results', [])
+            
+            if tags:
+                parsed_tags = []
+                for tag in tags:
+                    try:
+                        tag_name = tag.get('name', '')
+                        last_pushed_str = tag.get('tag_last_pushed', tag.get('last_updated', ''))
+                        
+                        if last_pushed_str:
+                            last_pushed = datetime.fromisoformat(last_pushed_str.replace('Z', '+00:00'))
+                            parsed_tags.append({
+                                'name': tag_name,
+                                'last_pushed': last_pushed
+                            })
+                    except Exception:
+                        continue
+                
+                if parsed_tags:
+                    sorted_tags = sorted(parsed_tags, key=lambda x: x['last_pushed'], reverse=True)
+                    latest_tag = sorted_tags[0]['name']
+                    latest_pushed = sorted_tags[0]['last_pushed']
+                    
+                    docker_hub_url = f"https://hub.docker.com/r/{docker_hub_repo}/tags?page=1&name={latest_tag}"
+                    
+                    if latest_tag and latest_tag != DASHBOARD_VERSION:
+                        _update_cache = {
+                            'last_check': datetime.now(),
+                            'data': {
+                                'url': docker_hub_url,
+                                'changelog': get_changelog_for_version(latest_tag),
+                                'message': f"{latest_tag} is now available for update!"
+                            },
+                            'error': None
+                        }
+                    else:
+                        _update_cache = {
+                            'last_check': datetime.now(),
+                            'data': {
+                                'url': docker_hub_url,
+                                'changelog': get_changelog_for_version(DASHBOARD_VERSION),
+                                'message': "You're on the latest version"
+                            },
+                            'error': None
+                        }
+        
+    except Exception as e:
+        logging.warning(f"Background update check failed: {e}")
+        _update_cache = {
+            'last_check': datetime.now(),
+            'data': None,
+            'error': str(e)
+        }
+
+# Background update checking is now handled by the main dashboard thread system

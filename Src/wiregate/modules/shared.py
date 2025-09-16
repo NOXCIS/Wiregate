@@ -1,15 +1,23 @@
 from flask import Flask, make_response
 import secrets
 import os
-import sqlite3
 from datetime import timedelta
+from .DataBase.DataBaseManager import sqlSelect, sqlUpdate
+from .ConfigEnv import MAX_REQUEST_SIZE, SESSION_TIMEOUT, SECURE_SESSION, DASHBOARD_MODE
 
 # Create Flask app
 app = Flask("WGDashboard", template_folder=os.path.abspath("./static/app/dist"))
 app.config['SEND_FILE_MAX_AGE_DEFAULT'] = 5206928
-app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024
+app.config['MAX_CONTENT_LENGTH'] = MAX_REQUEST_SIZE
 app.secret_key = secrets.token_urlsafe(420)
-app.permanent_session_lifetime = timedelta(hours=1)
+app.permanent_session_lifetime = timedelta(seconds=SESSION_TIMEOUT)
+
+# Security configurations
+app.config['SESSION_COOKIE_SECURE'] = SECURE_SESSION and DASHBOARD_MODE == 'production'
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_USE_SIGNER'] = True
+app.config['SESSION_KEY_PREFIX'] = 'wiregate:'
 
 from .ConfigEnv import (
     DASHBOARD_VERSION,
@@ -23,11 +31,6 @@ from .ConfigEnv import (
 if not os.path.isdir(DB_PATH):
     os.mkdir(DB_PATH)
 
-# Database connection
-sqldb = sqlite3.connect(os.path.join(CONFIGURATION_PATH, 'db', 'wgdashboard.db'), check_same_thread=False)
-sqldb.row_factory = sqlite3.Row
-cursor = sqldb.cursor()
-
 def ResponseObject(status=True, message=None, data=None):
     response = make_response({
         "status": status,
@@ -36,31 +39,6 @@ def ResponseObject(status=True, message=None, data=None):
     })
     response.content_type = "application/json"
     return response
-
-
-
-
-def sqlSelect(statement: str, paramters: tuple = ()) -> sqlite3.Cursor:
-    with sqldb:
-        try:
-            cursor = sqldb.cursor()
-            return cursor.execute(statement, paramters)
-
-        except sqlite3.OperationalError as error:
-            print("[WGDashboard] SQLite Error:" + str(error) + " | Statement: " + statement)
-            return []
-
-
-def sqlUpdate(statement: str, paramters: tuple = ()) -> sqlite3.Cursor:
-    with sqldb:
-        cursor = sqldb.cursor()
-        try:
-            statement = statement.rstrip(';')
-            s = f'BEGIN TRANSACTION;{statement};END TRANSACTION;'
-            cursor.execute(statement, paramters)
-            sqldb.commit()
-        except sqlite3.OperationalError as error:
-            print("[WGDashboard] SQLite Error:" + str(error) + " | Statement: " + statement)
 
 
 

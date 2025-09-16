@@ -45,6 +45,8 @@ export default {
 			handler(newValue){
 				if (!this.edit){
 					this.job = JSON.parse(JSON.stringify(newValue))
+					// Parse the existing job value to populate thresholdValue for data fields
+					this.parseExistingJobValue()
 				}
 			}
 		},
@@ -64,6 +66,7 @@ export default {
 			}
 		},
 		thresholdValue(newValue) {
+			console.log('thresholdValue changed to:', newValue, 'isDataField:', this.isDataField);
 			if (this.isDataField) {
 				if (this.job.Action === 'rate_limit') {
 					// Preserve rate limits when updating threshold
@@ -81,24 +84,66 @@ export default {
 				} else {
 					this.job.Value = String(newValue)
 				}
+				console.log('Updated job.Value to:', this.job.Value);
 			}
 		}
 	},
 	methods: {
 		save(){
-			if (!this.job.Field || !this.job.Action || !this.job.Value || 
-				(this.job.Field !== 'weekly' && !this.job.Operator)) {
+			// Comprehensive validation
+			if (!this.job.Field || !this.job.Action || !this.job.Value) {
 				this.alert();
 				return;
+			}
+
+			// Validate operator for non-weekly fields
+			if (this.job.Field !== 'weekly' && !this.job.Operator) {
+				this.alert();
+				return;
+			}
+
+			// Validate weekly schedule format
+			if (this.job.Field === 'weekly' && !this.job.Value) {
+				this.alert();
+				return;
+			}
+
+			// Validate data fields have numeric values
+			if (this.isDataField() && this.job.Field !== 'weekly') {
+				try {
+					const value = JSON.parse(this.job.Value);
+					if (this.job.Action === 'rate_limit') {
+						if (typeof value.threshold !== 'number' || value.threshold < 0) {
+							this.alert();
+							return;
+						}
+					} else {
+						const numValue = parseFloat(this.job.Value);
+						if (isNaN(numValue) || numValue < 0) {
+							this.alert();
+							return;
+						}
+					}
+				} catch (e) {
+					const numValue = parseFloat(this.job.Value);
+					if (isNaN(numValue) || numValue < 0) {
+						this.alert();
+						return;
+					}
+				}
+			}
+
+			// Validate date format for date fields
+			if (this.job.Field === 'date') {
+				const dateRegex = /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/;
+				if (!dateRegex.test(this.job.Value)) {
+					this.alert();
+					return;
+				}
 			}
 
 			if (!this.job.Peer && this.pjob?.Peer) {
 				this.job.Peer = this.pjob.Peer;
-			}
-
-			if (this.job.Field === 'weekly' && !this.job.Value) {
-				this.alert();
-				return;
 			}
 
 			fetchPost(`/api/savePeerScheduleJob/`, {
@@ -186,10 +231,12 @@ export default {
 			this.job.Value = formattedValue;
 		},
 		parseExistingJobValue() {
-			console.log('Parsing existing job value:', {
-				jobValue: this.job.Value,
-				jobField: this.job.Field
-			});
+			console.log('=== parseExistingJobValue called ===');
+			console.log('Job object:', this.job);
+			console.log('Job Value:', this.job.Value);
+			console.log('Job Field:', this.job.Field);
+			console.log('isDataField result:', this.isDataField());
+			console.log('thresholdValue before:', this.thresholdValue);
 
 			if (this.job.Value && this.job.Field === 'weekly') {
 				// Clear existing arrays before parsing
@@ -215,7 +262,30 @@ export default {
 					this.selectedDays.push(day);
 					this.timeIntervals[day] = { start, end };
 				});
+			} else if (this.job.Value && this.isDataField()) {
+				// Handle data fields (total_receive, total_sent, total_data)
+				console.log('Parsing data field value:', this.job.Value, 'Field:', this.job.Field, 'isDataField:', this.isDataField);
+				try {
+					const value = JSON.parse(this.job.Value);
+					console.log('Parsed JSON value:', value);
+					if (value.threshold !== undefined) {
+						this.thresholdValue = value.threshold;
+						console.log('Set thresholdValue from JSON:', this.thresholdValue);
+					} else {
+						console.log('No threshold property in JSON, using direct value');
+						this.thresholdValue = parseFloat(this.job.Value) || 0;
+					}
+				} catch (e) {
+					// If not JSON, treat as simple number
+					console.log('Not JSON, parsing as number:', this.job.Value);
+					this.thresholdValue = parseFloat(this.job.Value) || 0;
+					console.log('Set thresholdValue from string:', this.thresholdValue);
+				}
+			} else {
+				console.log('Not parsing - job.Value:', this.job.Value, 'isDataField:', this.isDataField);
 			}
+			console.log('thresholdValue after parsing:', this.thresholdValue);
+			console.log('=== parseExistingJobValue completed ===');
 		},
 		formatTime(time) {
 			const [hours, minutes] = time.split(':').map(Number);
@@ -267,13 +337,13 @@ export default {
 			if (value === 'rate_limit') {
 				// Initialize rate limit value structure
 				this.job.Value = JSON.stringify({
-					threshold: Number(this.thresholdValue),
+					threshold: Number(this.thresholdValue) || 0,
 					upload_rate: 0,
 					download_rate: 0
 				})
-			} else if (this.isDataField) {
+			} else if (this.isDataField()) {
 				// Reset to simple threshold value for non-rate-limit actions
-				this.job.Value = String(this.thresholdValue)
+				this.job.Value = String(this.thresholdValue || 0)
 			}
 		},
 		isDataField() {
@@ -361,6 +431,10 @@ export default {
 
 					<!-- Data unit input - only show for data fields -->
 					<div v-if="this.isDataField && this.job.Field !== 'weekly' && this.job.Field !== 'date'" class="input-group" style="width: auto">
+						<!-- Debug info -->
+						<small class="text-muted" style="font-size: 0.7em;">
+							DEBUG: thresholdValue={{ thresholdValue }}, job.Value={{ job.Value }}
+						</small>
 						<input
 							type="number"
 							class="form-control form-control-sm"

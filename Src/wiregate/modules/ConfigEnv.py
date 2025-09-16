@@ -3,7 +3,7 @@ import socket
 
 
 # Import Enviorment
-DASHBOARD_VERSION = 'jasper-beta'
+DASHBOARD_VERSION = 'casper-beta-v0.1.0'
 DASHBOARD_MODE = None
 CONFIGURATION_PATH = os.getenv('CONFIGURATION_PATH', '.')
 DB_PATH = os.path.join(CONFIGURATION_PATH, 'db')
@@ -40,3 +40,20 @@ if wgd_remote_endpoint == '0.0.0.0':
             wgd_remote_endpoint = s.getsockname()[0]
     except Exception:
         wgd_remote_endpoint = '0.0.0.0'  # Fallback if socket fails
+
+# Redis Database Settings
+redis_host = os.getenv('REDIS_HOST', 'localhost')
+redis_port = int(os.getenv('REDIS_PORT', '6379'))
+redis_db = int(os.getenv('REDIS_DB', '0'))
+redis_password = os.getenv('REDIS_PASSWORD')
+
+# Security Settings
+DASHBOARD_MODE = os.getenv('DASHBOARD_MODE', 'development')  # development, production
+ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', '*').split(',') if os.getenv('ALLOWED_ORIGINS') else ['*']
+MAX_REQUEST_SIZE = int(os.getenv('MAX_REQUEST_SIZE', '16777216'))  # 16MB default
+RATE_LIMIT_REQUESTS = int(os.getenv('RATE_LIMIT_REQUESTS', '100'))  # requests per minute
+RATE_LIMIT_WINDOW = int(os.getenv('RATE_LIMIT_WINDOW', '60'))  # seconds
+BRUTE_FORCE_MAX_ATTEMPTS = int(os.getenv('BRUTE_FORCE_MAX_ATTEMPTS', '5'))  # max failed attempts
+BRUTE_FORCE_LOCKOUT_TIME = int(os.getenv('BRUTE_FORCE_LOCKOUT_TIME', '900'))  # 15 minutes
+SESSION_TIMEOUT = int(os.getenv('SESSION_TIMEOUT', '3600'))  # 1 hour
+SECURE_SESSION = os.getenv('SECURE_SESSION', 'true').lower() == 'true'

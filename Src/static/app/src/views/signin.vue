@@ -11,13 +11,17 @@ import SignInTOTP from "@/components/signIn/signInTOTP.vue";
 export default {
 	name: "signin",
 	components: {SignInTOTP, SignInInput, LocaleText, RemoteServerList, Message},
-	async setup(){
+	setup(){
 		const store = DashboardConfigurationStore()
+		return {store}
+	},
+	async mounted() {
 		let theme = "dark"
 		let totpEnabled = false;
 		let version = undefined;
 		let ldapEnabled = false;
-		if (!store.IsElectronApp){
+		
+		if (!this.store.IsElectronApp){
 			await Promise.all([
 				fetchGet("/api/getDashboardTheme", {}, (res) => {
 					theme = res.data
@@ -33,11 +37,20 @@ export default {
 				})
 			]);
 		}
-		store.removeActiveCrossServer();
-		return {store, theme, totpEnabled, version, ldapEnabled}
+		this.store.removeActiveCrossServer();
+		
+		// Set the data properties
+		this.theme = theme;
+		this.totpEnabled = totpEnabled;
+		this.version = version;
+		this.ldapEnabled = ldapEnabled;
 	},
 	data(){
 		return {
+			theme: "dark",
+			totpEnabled: false,
+			version: undefined,
+			ldapEnabled: false,
 			data: {
 				username: "",
 				password: "",

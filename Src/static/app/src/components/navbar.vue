@@ -5,11 +5,10 @@ import {DashboardConfigurationStore} from "@/stores/DashboardConfigurationStore.
 import {fetchGet} from "@/utilities/fetch.js";
 import LocaleText from "@/components/text/localeText.vue";
 import {GetLocale} from "@/utilities/locale.js";
-import HelpModal from "@/components/navbarComponents/helpModal.vue";
 
 export default {
 	name: "navbar",
-	components: {HelpModal, LocaleText},
+	components: {LocaleText},
 	setup(){
 		const wireguardConfigurationsStore = WireguardConfigurationsStore();
 		const dashboardConfigurationStore = DashboardConfigurationStore();
@@ -22,7 +21,6 @@ export default {
 			updateUrl: "",
 			changelogItems: [],
 			showChangelog: false,
-			openHelpModal: false,
 		}
 	},
 	computed: {
@@ -35,29 +33,68 @@ export default {
 		}
 	},
 	mounted() {
-		fetchGet("/api/getDashboardUpdate", {}, (res) => {
-			console.log("Update check response:", res);
-			if (res.status){
-				if (res.data){
-					this.updateAvailable = true
-					if (typeof res.data === 'object' && res.data.url) {
-						this.updateUrl = res.data.url
-						this.changelogItems = res.data.changelog || []
-						console.log("Changelog items:", this.changelogItems);
-					} else {
-						this.updateUrl = res.data
-					}
-					console.log("Update URL:", this.updateUrl);
-				}
-				this.updateMessage = res.message
-				console.log("Update message:", this.updateMessage);
-			}else{
-				this.updateMessage = GetLocale("Failed to check available update")
-				console.log(`Failed to get update: ${res.message}`)
-			}
-		})
+		// Don't run update check on mount to prevent blocking
+		// The update check will be triggered after configurations are loaded
+		this.updateMessage = "Update check will run after configurations load";
+		
+		// Listen for the custom event to trigger update check
+		this.updateCheckHandler = () => {
+			this.checkForUpdates();
+		};
+		window.addEventListener('triggerUpdateCheck', this.updateCheckHandler);
+	},
+	beforeUnmount() {
+		// Clean up event listener
+		if (this.updateCheckHandler) {
+			window.removeEventListener('triggerUpdateCheck', this.updateCheckHandler);
+		}
 	},
 	methods: {
+		checkForUpdates() {
+			// Make this completely non-blocking by not awaiting anything
+			// Add a timeout to prevent hanging
+			const timeoutId = setTimeout(() => {
+				this.updateMessage = "Update check timed out";
+			}, 10000); // Increased timeout to 10 seconds
+			
+			fetchGet("/api/getDashboardUpdate", {}, (res) => {
+				clearTimeout(timeoutId);
+				console.log("Update check response:", res);
+				if (res.status){
+					if (res.data){
+						this.updateAvailable = true
+						if (typeof res.data === 'object' && res.data.url) {
+							this.updateUrl = res.data.url
+							this.changelogItems = res.data.changelog || []
+							console.log("Changelog items:", this.changelogItems);
+						} else {
+							this.updateUrl = res.data
+						}
+						console.log("Update URL:", this.updateUrl);
+					}
+					this.updateMessage = res.message
+					console.log("Update message:", this.updateMessage);
+				}else{
+					this.updateMessage = res.message || GetLocale("Failed to check available update")
+					console.log(`Update check failed: ${res.message}`)
+					
+					// If update check was started, retry after a delay
+					if (res.message && res.message.includes("Update check started")) {
+						setTimeout(() => {
+							this.checkForUpdates();
+						}, 3000); // Retry after 3 seconds
+					}
+				}
+			}).catch(error => {
+				clearTimeout(timeoutId);
+				console.warn("Update check failed:", error);
+				this.updateMessage = GetLocale("Update check failed");
+			});
+		},
+		refreshUpdateCheck() {
+			this.updateMessage = "Checking for updates...";
+			this.checkForUpdates();
+		},
 		toggleChangelog() {
 			console.log("Toggling changelog. Current state:", this.showChangelog);
 			console.log("Current changelog items:", this.changelogItems);
@@ -99,12 +136,6 @@ export default {
 							<i class="bi bi-gear me-2"></i>
 							<LocaleText t="Settings"></LocaleText>	
 						</RouterLink>
-					</li>
-					<li class="nav-item">
-						<a class="nav-link rounded-3" role="button" @click="openHelpModal = true">
-							<i class="bi bi-question-circle me-2"></i>
-							<LocaleText t="Help"></LocaleText>
-						</a>
 					</li>
 				</ul>
 				<hr class="text-body">
@@ -182,7 +213,7 @@ export default {
 						   target="_blank">
 							<div class="d-flex align-items-center">
 								<i class="bi bi-arrow-up-circle me-2"></i>
-								<div class="d-flex flex-column">
+								<div class="d-flex flex-column flex-grow-1">
 									<small><LocaleText :t="this.updateMessage"></LocaleText></small>
 									<small class="text-muted">
 										<LocaleText t="Current Version:"></LocaleText> 
@@ -202,22 +233,29 @@ export default {
 										</ul>
 									</div>
 								</div>
+								<button class="btn btn-sm btn-outline-light ms-2" 
+								        @click.stop.prevent="refreshUpdateCheck"
+								        title="Refresh update check">
+									<i class="bi bi-arrow-clockwise"></i>
+								</button>
 							</div>
 						</a>
 						<div v-else class="nav-link text-muted rounded-3 d-flex align-items-center">
 							<i class="bi bi-check-circle me-2"></i>
-							<div class="d-flex flex-column">
+							<div class="d-flex flex-column flex-grow-1">
 								<small><LocaleText :t="this.updateMessage"></LocaleText></small>
 								<small>{{ dashboardConfigurationStore.Configuration.Server.version }}</small>
 							</div>
+							<button class="btn btn-sm btn-outline-light ms-2" 
+							        @click.stop.prevent="refreshUpdateCheck"
+							        title="Refresh update check">
+								<i class="bi bi-arrow-clockwise"></i>
+							</button>
 						</div>
 					</li>
 				</ul>
 			</div>
 		</nav>
-		<Transition name="zoom">
-			<HelpModal v-if="this.openHelpModal" @close="openHelpModal = false;"></HelpModal>
-		</Transition>
 	</div>
 </template>
 
@@ -226,6 +264,34 @@ export default {
 	background: linear-gradient(234deg, var(--brandColor4) 0%, var(--brandColor6) 100%);
 	color: white !important;
 	font-weight: 500;
+}
+
+/* Update check refresh button styles */
+.btn-outline-light {
+	border-color: rgba(255, 255, 255, 0.3);
+	color: rgba(255, 255, 255, 0.7);
+	font-size: 0.75rem;
+	padding: 0.25rem 0.5rem;
+	min-width: 2rem;
+}
+
+.btn-outline-light:hover {
+	background-color: rgba(255, 255, 255, 0.1);
+	border-color: rgba(255, 255, 255, 0.5);
+	color: white;
+}
+
+.btn-outline-light:focus {
+	box-shadow: 0 0 0 0.2rem rgba(255, 255, 255, 0.25);
+}
+
+/* Ensure proper spacing for update section */
+.nav-item .d-flex {
+	align-items: center;
+}
+
+.flex-grow-1 {
+	flex-grow: 1;
 }
 
 @media screen and (max-width: 768px) {

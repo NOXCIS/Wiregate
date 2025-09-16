@@ -17,7 +17,7 @@ import { DashboardConfigurationStore } from "@/stores/DashboardConfigurationStor
 export default {
    name: "newConfiguration",
   components: { LocaleText },
-  async setup(){
+  setup(){
     const store = WireguardConfigurationsStore()
     const dashboardStore = DashboardConfigurationStore();
     

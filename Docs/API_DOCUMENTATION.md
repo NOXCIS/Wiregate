@@ -1,6 +1,101 @@
 # WireGate API Documentation
 
-This document provides detailed information about all available API endpoints in the WireGate application.
+This document provides comprehensive information about all available API endpoints in the WireGate application. WireGate is a powerful WireGuard management dashboard that provides both web-based and programmatic access to WireGuard configuration management, traffic monitoring, and advanced features.
+
+## Overview
+
+WireGate offers a RESTful API that allows you to:
+- Manage WireGuard configurations and peers
+- Monitor real-time traffic and system status
+- Configure traffic shaping and rate limiting
+- Set up automated peer management jobs
+- Integrate with external systems via API keys
+- Manage backups and snapshots
+- Configure authentication and security settings
+
+## Base URL
+
+All API endpoints are prefixed with `/api/`. For example:
+```
+http://localhost:8080/api/getConfigurations
+```
+
+## Authentication
+
+Most API endpoints require authentication. WireGate supports multiple authentication methods:
+
+1. **Session-based Authentication**: Use cookies for web-based access
+2. **API Key Authentication**: Use `wg-dashboard-apikey` header for programmatic access
+3. **LDAP Integration**: Enterprise authentication via LDAP/Active Directory
+
+### API Key Usage
+```bash
+curl -X GET http://localhost:8080/api/getConfigurations \
+  -H "wg-dashboard-apikey: your-api-key-here"
+```
+
+### Session Authentication
+```bash
+curl -X GET http://localhost:8080/api/getConfigurations \
+  -H "Cookie: authToken=your-session-token"
+```
+
+## Response Format
+
+All API responses follow a consistent format:
+
+```json
+{
+    "status": "boolean",    // true for success, false for error
+    "message": "string",    // Optional message describing the result
+    "data": "any"          // Response data (varies by endpoint)
+}
+```
+
+## Error Handling
+
+When an error occurs, the API returns:
+```json
+{
+    "status": false,
+    "message": "Error description",
+    "data": null
+}
+```
+
+Common HTTP status codes:
+- `200 OK`: Request successful
+- `400 Bad Request`: Invalid request parameters
+- `401 Unauthorized`: Authentication required or failed
+- `404 Not Found`: Resource not found
+- `500 Internal Server Error`: Server error
+
+## Rate Limiting
+
+The API implements rate limiting to prevent abuse. If you exceed the rate limit, you'll receive a `429 Too Many Requests` response. Implement appropriate retry logic with exponential backoff.
+
+## Getting Started
+
+1. **Check Authentication Requirements**:
+   ```bash
+   curl -X GET http://localhost:8080/api/requireAuthentication
+   ```
+
+2. **Authenticate** (if required):
+   ```bash
+   curl -X POST http://localhost:8080/api/authenticate \
+     -H "Content-Type: application/json" \
+     -d '{"username": "admin", "password": "password"}'
+   ```
+
+3. **Get Available Configurations**:
+   ```bash
+   curl -X GET http://localhost:8080/api/getConfigurations
+   ```
+
+## API Categories
+
+The WireGate API is organized into the following categories:
 
 ## Table of Contents
 - [Configuration Management](#configuration-management)
@@ -23,6 +118,8 @@ This document provides detailed information about all available API endpoints in
 - [Data Charts API](#data-charts-api)
 - [Snapshot API](#snapshot-api)
 - [Authentication API](#authentication-api)
+- [Thread Pool API](#thread-pool-api)
+- [Process Pool API](#process-pool-api)
 
 ## Configuration Management
 
@@ -66,6 +163,30 @@ Returns a list of all WireGuard configurations.
         }
     ]
 }
+```
+
+### Cleanup Orphaned Configurations
+```
+POST /api/cleanupOrphanedConfigurations
+```
+Manually triggers cleanup of orphaned database configurations that no longer have corresponding configuration files.
+
+**Response:**
+```json
+{
+    "status": true,
+    "message": "Orphaned configurations cleaned up successfully",
+    "data": {
+        "cleaned_count": "number",
+        "removed_configurations": ["string"]
+    }
+}
+```
+
+**Example Usage:**
+```bash
+curl -X POST http://localhost:8080/api/cleanupOrphanedConfigurations \
+  -H "Content-Type: application/json"
 ```
 
 ### Add Configuration
@@ -238,7 +359,73 @@ Downloads configuration files for all peers in a configuration.
 ```
 GET /api/getAvailableIPs/<configName>
 ```
-Returns a list of available IP addresses for new peers.
+Returns a list of available IP addresses for new peers in a specific configuration.
+
+**Path Parameters:**
+- `configName`: Name of the configuration
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": {
+        "available_ips": ["string"],
+        "total_available": "number",
+        "configuration_name": "string"
+    }
+}
+```
+
+**Example Usage:**
+```bash
+curl -X GET "http://localhost:8080/api/getAvailableIPs/my-config" \
+  -H "Content-Type: application/json"
+```
+
+### Get Wireguard Configuration Info
+```
+GET /api/getWireguardConfigurationInfo?configurationName=string
+```
+Returns detailed information about a WireGuard configuration including peers and their scheduled jobs.
+
+**Query Parameters:**
+- `configurationName`: Name of the configuration
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": {
+        "configurationInfo": "object",
+        "configurationPeers": [
+            {
+                "id": "string",
+                "name": "string",
+                "public_key": "string",
+                "allowed_ip": "string",
+                "endpoint": "string",
+                "jobs": [
+                    {
+                        "JobID": "string",
+                        "Field": "string",
+                        "Action": "string",
+                        "Value": "string",
+                        "CreationDate": "string",
+                        "ExpireDate": "string"
+                    }
+                ]
+            }
+        ],
+        "configurationRestrictedPeers": ["object"]
+    }
+}
+```
+
+**Example Usage:**
+```bash
+curl -X GET "http://localhost:8080/api/getWireguardConfigurationInfo?configurationName=my-config" \
+  -H "Content-Type: application/json"
+```
 
 ### Restrict Peers
 ```
@@ -376,6 +563,48 @@ Returns the current version of the dashboard.
 GET /api/getDashboardProto
 ```
 Returns the current protocol setting.
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": "string"  // Protocol setting (e.g., "http" or "https")
+}
+```
+
+### Get Dashboard Theme
+```
+GET /api/getDashboardTheme
+```
+Returns the current dashboard theme setting.
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": "string"  // Theme name (e.g., "dark", "light")
+}
+```
+
+### Get Dashboard Version
+```
+GET /api/getDashboardVersion
+```
+Returns the current version of the dashboard.
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": "string"  // Version string (e.g., "acid-rain-beta-v0.4")
+}
+```
+
+**Example Usage:**
+```bash
+curl -X GET http://localhost:8080/api/getDashboardVersion \
+  -H "Content-Type: application/json"
+```
 
 ## System Status
 
@@ -982,11 +1211,13 @@ Clears the Tor logs.
 
 ## Traffic Weir API
 
+The Traffic Weir API provides comprehensive traffic shaping and rate limiting capabilities for WireGuard peers using Linux traffic control (tc) with multiple scheduler types.
+
 ### Set Peer Rate Limit
 ```
 POST /api/set_peer_rate_limit
 ```
-Sets traffic rate limits for a WireGuard peer.
+Sets traffic rate limits for a WireGuard peer using configurable schedulers.
 
 **Request Body:**
 ```json
@@ -995,8 +1226,36 @@ Sets traffic rate limits for a WireGuard peer.
     "peer_key": "string",
     "upload_rate": "number",
     "download_rate": "number",
-    "scheduler_type": "string"  // "htb" or "hfsc"
+    "scheduler_type": "string"  // "htb", "hfsc", or "cake"
 }
+```
+
+**Parameters:**
+- `interface`: Name of the WireGuard interface
+- `peer_key`: Public key of the peer
+- `upload_rate`: Upload rate limit in kbps
+- `download_rate`: Download rate limit in kbps
+- `scheduler_type`: Traffic scheduler type ("htb", "hfsc", or "cake")
+
+**Response:**
+```json
+{
+    "status": true,
+    "message": "Successfully configured rate limiting for peer peer_id on interface interface_name"
+}
+```
+
+**Example Usage:**
+```bash
+curl -X POST http://localhost:8080/api/set_peer_rate_limit \
+  -H "Content-Type: application/json" \
+  -d '{
+    "interface": "wg0",
+    "peer_key": "ABC123...",
+    "upload_rate": 1000,
+    "download_rate": 2000,
+    "scheduler_type": "htb"
+  }'
 ```
 
 ### Get Peer Rate Limit
@@ -1005,16 +1264,27 @@ GET /api/get_peer_rate_limit?interface=string&peer_key=string
 ```
 Gets the current rate limits for a peer.
 
+**Query Parameters:**
+- `interface`: Name of the WireGuard interface
+- `peer_key`: Public key of the peer (URL encoded)
+
 **Response:**
 ```json
 {
     "status": true,
+    "message": "Rate limits retrieved successfully",
     "data": {
         "upload_rate": "number",
         "download_rate": "number",
         "scheduler_type": "string"
     }
 }
+```
+
+**Example Usage:**
+```bash
+curl -X GET "http://localhost:8080/api/get_peer_rate_limit?interface=wg0&peer_key=ABC123..." \
+  -H "Content-Type: application/json"
 ```
 
 ### Remove Peer Rate Limit
@@ -1031,16 +1301,38 @@ Removes rate limits from a peer.
 }
 ```
 
+**Response:**
+```json
+{
+    "status": true,
+    "message": "Rate limits removed successfully for peer peer_id on interface interface_name"
+}
+```
+
+**Example Usage:**
+```bash
+curl -X POST http://localhost:8080/api/remove_peer_rate_limit \
+  -H "Content-Type: application/json" \
+  -d '{
+    "interface": "wg0",
+    "peer_key": "ABC123..."
+  }'
+```
+
 ### Get Interface Scheduler
 ```
-GET /api/get_interface_scheduler
+GET /api/get_interface_scheduler?interface=string
 ```
-Gets the scheduler type for an interface if any peer has it set.
+Gets the scheduler type for an interface if any peer has rate limits set.
+
+**Query Parameters:**
+- `interface`: Name of the WireGuard interface
 
 **Response:**
 ```json
 {
     "status": true,
+    "message": "Interface scheduler type retrieved successfully",
     "data": {
         "scheduler_type": "string",
         "locked": "boolean"
@@ -1048,11 +1340,17 @@ Gets the scheduler type for an interface if any peer has it set.
 }
 ```
 
+**Example Usage:**
+```bash
+curl -X GET "http://localhost:8080/api/get_interface_scheduler?interface=wg0" \
+  -H "Content-Type: application/json"
+```
+
 ### Nuke Interface
 ```
 POST /api/nuke_interface
 ```
-Removes all traffic control qdiscs from an interface.
+Removes all traffic control qdiscs from an interface. This is useful for resetting all traffic shaping rules.
 
 **Request Body:**
 ```json
@@ -1061,13 +1359,41 @@ Removes all traffic control qdiscs from an interface.
 }
 ```
 
+**Response:**
+```json
+{
+    "status": true,
+    "message": "Successfully nuked all traffic control on interface interface_name"
+}
+```
+
+**Example Usage:**
+```bash
+curl -X POST http://localhost:8080/api/nuke_interface \
+  -H "Content-Type: application/json" \
+  -d '{
+    "interface": "wg0"
+  }'
+```
+
+**Scheduler Types:**
+- **HTB (Hierarchical Token Bucket)**: Default scheduler, good for general traffic shaping
+- **HFSC (Hierarchical Fair Service Curve)**: More advanced scheduler with better fairness
+- **CAKE (Common Applications Kept Enhanced)**: Modern scheduler with automatic flow classification
+
 ## Network Utilities
+
+The Network Utilities API provides comprehensive network diagnostic and monitoring tools for WireGuard configurations.
 
 ### Execute Ping
 ```
 GET /api/ping/execute?ipAddress=string&count=number
 ```
-Performs a ping test to the specified IP address.
+Performs a ping test to the specified IP address with configurable packet count.
+
+**Query Parameters:**
+- `ipAddress`: IP address to ping (IPv4 or IPv6)
+- `count`: Number of ping packets to send
 
 **Response:**
 ```json
@@ -1082,16 +1408,30 @@ Performs a ping test to the specified IP address.
         "package_sent": "number",
         "package_received": "number",
         "package_loss": "number",
-        "geo": "object"  // Optional geolocation data
+        "geo": {
+            "city": "string",
+            "country": "string",
+            "lat": "number",
+            "lon": "number"
+        }
     }
 }
+```
+
+**Example Usage:**
+```bash
+curl -X GET "http://localhost:8080/api/ping/execute?ipAddress=8.8.8.8&count=5" \
+  -H "Content-Type: application/json"
 ```
 
 ### Execute Traceroute
 ```
 GET /api/traceroute/execute?ipAddress=string
 ```
-Performs a traceroute to the specified IP address.
+Performs a traceroute to the specified IP address to show the network path.
+
+**Query Parameters:**
+- `ipAddress`: IP address to trace route to
 
 **Response:**
 ```json
@@ -1104,17 +1444,28 @@ Performs a traceroute to the specified IP address.
             "avg_rtt": "number",
             "min_rtt": "number",
             "max_rtt": "number",
-            "geo": "object"  // Optional geolocation data
+            "geo": {
+                "city": "string",
+                "country": "string",
+                "lat": "number",
+                "lon": "number"
+            }
         }
     ]
 }
+```
+
+**Example Usage:**
+```bash
+curl -X GET "http://localhost:8080/api/traceroute/execute?ipAddress=8.8.8.8" \
+  -H "Content-Type: application/json"
 ```
 
 ### Get All Peer IP Addresses
 ```
 GET /api/ping/getAllPeersIpAddress
 ```
-Returns all peer IP addresses organized by configuration.
+Returns all peer IP addresses organized by configuration with endpoint information.
 
 **Response:**
 ```json
@@ -1131,24 +1482,49 @@ Returns all peer IP addresses organized by configuration.
 }
 ```
 
+**Example Usage:**
+```bash
+curl -X GET http://localhost:8080/api/ping/getAllPeersIpAddress \
+  -H "Content-Type: application/json"
+```
+
 ### Get Dashboard Update
 ```
 GET /api/getDashboardUpdate
 ```
-Checks for available dashboard updates.
+Checks for available dashboard updates by querying Docker Hub for the latest version.
 
 **Response:**
 ```json
 {
     "status": true,
+    "message": "string",
     "data": {
-        "current_version": "string",
-        "latest_version": "string",
-        "update_available": "boolean",
-        "changelog": "string"
+        "url": "string",
+        "changelog": ["string"],
+        "message": "string"
     }
 }
 ```
+
+**Example Usage:**
+```bash
+curl -X GET http://localhost:8080/api/getDashboardUpdate \
+  -H "Content-Type: application/json"
+```
+
+**Features:**
+- Automatic version checking from Docker Hub
+- Changelog retrieval from GitHub
+- Background update checking to prevent UI blocking
+- Cached results for performance
+
+**Use Cases:**
+- Network connectivity testing
+- Troubleshooting peer connections
+- Geographic location analysis
+- Update notifications
+- Network path analysis
 
 ## Peer Jobs API
 
@@ -1233,23 +1609,40 @@ Retrieves logs for scheduled jobs of a configuration.
 
 ## Data Charts API
 
+The Data Charts API provides real-time traffic monitoring and analytics for WireGuard configurations.
+
 ### Get Configuration Realtime Traffic
 ```
 GET /api/getConfigurationRealtimeTraffic?configurationName=string
 ```
-Returns realtime traffic usage data for a configuration.
+Returns realtime traffic usage data for a specific configuration.
+
+**Query Parameters:**
+- `configurationName`: Name of the configuration to get traffic data for
 
 **Response:**
 ```json
 {
     "status": true,
     "data": {
-        "upload": "number",
-        "download": "number",
-        "total": "number"
+        "upload": "number",      // Upload traffic in bytes
+        "download": "number",    // Download traffic in bytes
+        "total": "number"        // Total traffic in bytes
     }
 }
 ```
+
+**Example Usage:**
+```bash
+curl -X GET "http://localhost:8080/api/getConfigurationRealtimeTraffic?configurationName=wg0" \
+  -H "Content-Type: application/json"
+```
+
+**Use Cases:**
+- Real-time monitoring dashboards
+- Traffic usage alerts
+- Bandwidth consumption tracking
+- Network performance analysis
 
 ## Snapshot API
 
@@ -1406,11 +1799,13 @@ The API may include rate limiting. Please handle 429 (Too Many Requests) respons
 
 ## Authentication API
 
+The Authentication API provides comprehensive authentication and session management capabilities including local authentication, LDAP integration, and API key management.
+
 ### Handshake
 ```
 GET /api/handshake
 ```
-Performs authentication handshake.
+Performs authentication handshake to establish a session.
 
 **Response:**
 ```json
@@ -1420,4 +1815,755 @@ Performs authentication handshake.
         "token": "string"
     }
 }
-``` 
+```
+
+**Example Usage:**
+```bash
+curl -X GET http://localhost:8080/api/handshake \
+  -H "Content-Type: application/json"
+```
+
+### Validate Authentication
+```
+GET /api/validateAuthentication
+```
+Validates the current authentication status and session.
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": "boolean"  // true if authenticated, false otherwise
+}
+```
+
+**Example Usage:**
+```bash
+curl -X GET http://localhost:8080/api/validateAuthentication \
+  -H "Content-Type: application/json" \
+  -b "authToken=your_auth_token"
+```
+
+### Require Authentication
+```
+GET /api/requireAuthentication
+```
+Checks if authentication is required for the dashboard.
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": "boolean"  // true if authentication is required
+}
+```
+
+**Example Usage:**
+```bash
+curl -X GET http://localhost:8080/api/requireAuthentication \
+  -H "Content-Type: application/json"
+```
+
+### Authenticate
+```
+POST /api/authenticate
+```
+Authenticates a user with username/password and optional TOTP.
+
+**Request Body:**
+```json
+{
+    "username": "string",
+    "password": "string",
+    "totp": "string"  // Optional, required if TOTP is enabled
+}
+```
+
+**Response:**
+```json
+{
+    "status": true,
+    "message": "string",  // Welcome message
+    "data": "string"      // Authentication token
+}
+```
+
+**Example Usage:**
+```bash
+curl -X POST http://localhost:8080/api/authenticate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "username": "admin",
+    "password": "password123",
+    "totp": "123456"
+  }'
+```
+
+### Sign Out
+```
+GET /api/signout
+```
+Signs out the current user and clears the session.
+
+**Response:**
+```json
+{
+    "status": true,
+    "message": "",
+    "data": null
+}
+```
+
+**Example Usage:**
+```bash
+curl -X GET http://localhost:8080/api/signout \
+  -H "Content-Type: application/json" \
+  -b "authToken=your_auth_token"
+```
+
+**Authentication Methods:**
+- **Local Authentication**: Username/password stored in dashboard configuration
+- **LDAP Authentication**: Integration with LDAP/Active Directory servers
+- **TOTP (Two-Factor Authentication)**: Time-based one-time passwords
+- **API Key Authentication**: Programmatic access using API keys
+
+**Security Features:**
+- Constant-time comparison to prevent timing attacks
+- Secure session management with HTTP-only cookies
+- Comprehensive logging of authentication attempts
+- Support for multiple authentication backends
+
+## Thread Pool API
+
+The Thread Pool API provides high-performance parallel processing capabilities for bulk operations using Python's ThreadPoolExecutor.
+
+### Get Thread Pool Status
+```
+GET /api/threadPool/status
+```
+Returns the current status and statistics of the thread pool.
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": {
+        "active": "boolean",
+        "max_workers": "number",
+        "current_workers": "number",
+        "queue_size": "number"
+    }
+}
+```
+
+**Example Usage:**
+```bash
+curl -X GET http://localhost:8080/api/threadPool/status \
+  -H "Content-Type: application/json"
+```
+
+### Bulk Peer Status Check
+```
+POST /api/threadPool/bulkPeerStatus
+```
+Checks the status of multiple peers in parallel using the thread pool.
+
+**Request Body:**
+```json
+{
+    "peer_ids": ["string"],
+    "configuration_name": "string"
+}
+```
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": [
+        {
+            "peer_id": "string",
+            "is_online": "boolean",
+            "last_seen": "string",
+            "response_time": "number"
+        }
+    ]
+}
+```
+
+**Example Usage:**
+```bash
+curl -X POST http://localhost:8080/api/threadPool/bulkPeerStatus \
+  -H "Content-Type: application/json" \
+  -d '{
+    "peer_ids": ["peer1", "peer2", "peer3"],
+    "configuration_name": "my-vpn"
+  }'
+```
+
+### Bulk Redis Operations
+```
+POST /api/threadPool/bulkRedisOps
+```
+Executes multiple Redis operations in parallel using the thread pool.
+
+**Request Body:**
+```json
+{
+    "operations": [
+        {
+            "operation": "string",
+            "key": "string",
+            "value": "any"
+        }
+    ]
+}
+```
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": [
+        {
+            "operation": "string",
+            "success": "boolean",
+            "result": "any",
+            "error": "string"
+        }
+    ]
+}
+```
+
+### Bulk File Operations
+```
+POST /api/threadPool/bulkFileOps
+```
+Executes multiple file operations in parallel using the thread pool.
+
+**Request Body:**
+```json
+{
+    "operations": [
+        {
+            "operation": "string",
+            "file_path": "string",
+            "data": "any"
+        }
+    ]
+}
+```
+
+### Bulk WireGuard Commands
+```
+POST /api/threadPool/bulkWgCommands
+```
+Executes multiple WireGuard commands in parallel using the thread pool.
+
+**Request Body:**
+```json
+{
+    "commands": [
+        {
+            "command": "string",
+            "args": ["string"],
+            "timeout": "number"
+        }
+    ]
+}
+```
+
+## Process Pool API
+
+The Process Pool API provides CPU-intensive parallel processing capabilities using Python's ProcessPoolExecutor for tasks that benefit from true parallelism.
+
+### Get Process Pool Status
+```
+GET /api/processPool/status
+```
+Returns the current status and statistics of the process pool.
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": {
+        "active": "boolean",
+        "max_workers": "number",
+        "current_workers": "number",
+        "queue_size": "number"
+    }
+}
+```
+
+**Example Usage:**
+```bash
+curl -X GET http://localhost:8080/api/processPool/status \
+  -H "Content-Type: application/json"
+```
+
+### Bulk Peer Processing
+```
+POST /api/processPool/bulkPeerProcessing
+```
+Processes multiple peers in parallel using the process pool.
+
+**Request Body:**
+```json
+{
+    "peers_data": [
+        {
+            "peer_id": "string",
+            "configuration_name": "string",
+            "operation": "string"
+        }
+    ]
+}
+```
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": [
+        {
+            "peer_id": "string",
+            "success": "boolean",
+            "result": "any",
+            "processing_time": "number"
+        }
+    ]
+}
+```
+
+### Bulk Peer Validation
+```
+POST /api/processPool/bulkPeerValidation
+```
+Validates multiple peers in parallel using the process pool.
+
+**Request Body:**
+```json
+{
+    "peers_data": [
+        {
+            "peer_id": "string",
+            "public_key": "string",
+            "allowed_ips": "string"
+        }
+    ]
+}
+```
+
+### Bulk Peer Encryption
+```
+POST /api/processPool/bulkPeerEncryption
+```
+Encrypts multiple peers in parallel using the process pool.
+
+**Request Body:**
+```json
+{
+    "peers_data": [
+        {
+            "peer_id": "string",
+            "private_key": "string",
+            "public_key": "string"
+        }
+    ]
+}
+```
+
+### Bulk Usage Analysis
+```
+POST /api/processPool/bulkUsageAnalysis
+```
+Analyzes usage patterns for multiple peers in parallel using the process pool.
+
+**Request Body:**
+```json
+{
+    "usage_data_list": [
+        {
+            "peer_id": "string",
+            "traffic_data": "object",
+            "time_range": "string"
+        }
+    ]
+}
+```
+
+### Bulk QR Code Generation
+```
+POST /api/processPool/bulkQrGeneration
+```
+Generates QR codes for multiple peers in parallel using the process pool.
+
+**Request Body:**
+```json
+{
+    "peer_data_list": [
+        {
+            "peer_id": "string",
+            "configuration_data": "string",
+            "qr_size": "number"
+        }
+    ]
+}
+```
+
+### Process Pool Performance Test
+```
+POST /api/processPool/performanceTest
+```
+Tests process pool performance with CPU-intensive tasks.
+
+**Request Body:**
+```json
+{
+    "task_count": "number",
+    "task_duration": "number"
+}
+```
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": {
+        "total_time": "number",
+        "average_time_per_task": "number",
+        "tasks_completed": "number",
+        "throughput": "number"
+    }
+}
+```
+
+**Use Cases:**
+- High-performance bulk operations
+- CPU-intensive data processing
+- Parallel peer management
+- Performance testing and benchmarking
+- Resource-intensive cryptographic operations
+
+---
+
+## Complete API Examples
+
+This section provides comprehensive examples for common use cases with the WireGate API.
+
+### Example 1: Complete Configuration Management Workflow
+
+```bash
+#!/bin/bash
+# Complete workflow for managing a WireGuard configuration
+
+# 1. Check if authentication is required
+AUTH_REQUIRED=$(curl -s http://localhost:8080/api/requireAuthentication | jq -r '.data')
+
+if [ "$AUTH_REQUIRED" = "true" ]; then
+    # 2. Authenticate
+    AUTH_RESPONSE=$(curl -s -X POST http://localhost:8080/api/authenticate \
+        -H "Content-Type: application/json" \
+        -d '{"username": "admin", "password": "password123"}')
+    
+    # Extract auth token
+    AUTH_TOKEN=$(echo $AUTH_RESPONSE | jq -r '.data')
+    COOKIE_HEADER="Cookie: authToken=$AUTH_TOKEN"
+else
+    COOKIE_HEADER=""
+fi
+
+# 3. Create a new configuration
+curl -s -X POST http://localhost:8080/api/addConfiguration \
+    -H "Content-Type: application/json" \
+    -H "$COOKIE_HEADER" \
+    -d '{
+        "ConfigurationName": "my-vpn",
+        "Address": "10.0.0.1/24",
+        "ListenPort": 51820,
+        "PrivateKey": "generated_private_key_here"
+    }'
+
+# 4. Add a peer to the configuration
+curl -s -X POST http://localhost:8080/api/addPeers/my-vpn \
+    -H "Content-Type: application/json" \
+    -H "$COOKIE_HEADER" \
+    -d '{
+        "public_key": "peer_public_key_here",
+        "allowed_ips": "10.0.0.2/32",
+        "name": "client-1"
+    }'
+
+# 5. Get configuration info
+curl -s -X GET "http://localhost:8080/api/getWireguardConfigurationInfo?configurationName=my-vpn" \
+    -H "$COOKIE_HEADER"
+
+# 6. Set up rate limiting for the peer
+curl -s -X POST http://localhost:8080/api/set_peer_rate_limit \
+    -H "Content-Type: application/json" \
+    -H "$COOKIE_HEADER" \
+    -d '{
+        "interface": "my-vpn",
+        "peer_key": "peer_public_key_here",
+        "upload_rate": 1000,
+        "download_rate": 2000,
+        "scheduler_type": "htb"
+    }'
+```
+
+### Example 2: Automated Peer Management with Scheduled Jobs
+
+```bash
+#!/bin/bash
+# Set up automated peer management with scheduled jobs
+
+# Create a weekly schedule job to restrict access during business hours
+curl -s -X POST http://localhost:8080/api/savePeerScheduleJob \
+    -H "Content-Type: application/json" \
+    -H "$COOKIE_HEADER" \
+    -d '{
+        "Job": {
+            "JobID": "weekly-restrict-1",
+            "Configuration": "my-vpn",
+            "Peer": "peer_public_key_here",
+            "Field": "weekly",
+            "Value": "1:09:00-17:00,2:09:00-17:00,3:09:00-17:00,4:09:00-17:00,5:09:00-17:00",
+            "CreationDate": "2024-01-01 00:00:00",
+            "ExpireDate": "2024-12-31 23:59:59",
+            "Action": "restrict"
+        }
+    }'
+
+# Create a data usage job to restrict peers who exceed 1GB
+curl -s -X POST http://localhost:8080/api/savePeerScheduleJob \
+    -H "Content-Type: application/json" \
+    -H "$COOKIE_HEADER" \
+    -d '{
+        "Job": {
+            "JobID": "data-limit-1",
+            "Configuration": "my-vpn",
+            "Peer": "peer_public_key_here",
+            "Field": "total_data",
+            "Operator": "lgt",
+            "Value": "1073741824",
+            "CreationDate": "2024-01-01 00:00:00",
+            "ExpireDate": "2024-12-31 23:59:59",
+            "Action": "restrict"
+        }
+    }'
+```
+
+### Example 3: Monitoring and Analytics
+
+```bash
+#!/bin/bash
+# Comprehensive monitoring and analytics example
+
+# 1. Get system status
+echo "=== System Status ==="
+curl -s -X GET http://localhost:8080/api/systemStatus \
+    -H "$COOKIE_HEADER" | jq '.'
+
+# 2. Get real-time traffic for all configurations
+echo "=== Real-time Traffic ==="
+for config in $(curl -s -X GET http://localhost:8080/api/getConfigurations \
+    -H "$COOKIE_HEADER" | jq -r '.data[].Name'); do
+    echo "Configuration: $config"
+    curl -s -X GET "http://localhost:8080/api/getConfigurationRealtimeTraffic?configurationName=$config" \
+        -H "$COOKIE_HEADER" | jq '.'
+done
+
+# 3. Test network connectivity
+echo "=== Network Tests ==="
+curl -s -X GET "http://localhost:8080/api/ping/execute?ipAddress=8.8.8.8&count=3" \
+    -H "$COOKIE_HEADER" | jq '.'
+
+# 4. Get all peer IP addresses
+echo "=== All Peer IPs ==="
+curl -s -X GET http://localhost:8080/api/ping/getAllPeersIpAddress \
+    -H "$COOKIE_HEADER" | jq '.'
+```
+
+### Example 4: Backup and Restore Operations
+
+```bash
+#!/bin/bash
+# Complete backup and restore workflow
+
+# 1. Create a backup of a configuration
+echo "Creating backup..."
+BACKUP_RESPONSE=$(curl -s -X GET "http://localhost:8080/api/createConfigurationBackup?configurationName=my-vpn" \
+    -H "$COOKIE_HEADER")
+
+echo $BACKUP_RESPONSE | jq '.'
+
+# 2. List all available backups
+echo "Available backups:"
+curl -s -X GET http://localhost:8080/api/getAllConfigurationBackup \
+    -H "$COOKIE_HEADER" | jq '.'
+
+# 3. Download a specific backup
+BACKUP_FILE="my-vpn_20240101120000.conf"
+curl -s -X GET "http://localhost:8080/api/downloadConfigurationBackup?configurationName=my-vpn&backupFileName=$BACKUP_FILE" \
+    -H "$COOKIE_HEADER" \
+    -o "backup_$BACKUP_FILE.7z"
+
+# 4. Restore from backup
+curl -s -X POST http://localhost:8080/api/restoreConfigurationBackup \
+    -H "Content-Type: application/json" \
+    -H "$COOKIE_HEADER" \
+    -d "{
+        \"configurationName\": \"my-vpn\",
+        \"backupFileName\": \"$BACKUP_FILE\"
+    }"
+```
+
+### Example 5: Traffic Shaping and Rate Limiting
+
+```bash
+#!/bin/bash
+# Advanced traffic shaping example
+
+# 1. Set up rate limiting for multiple peers
+PEERS=("peer1_key" "peer2_key" "peer3_key")
+RATES=("1000:2000" "500:1000" "2000:4000")
+
+for i in "${!PEERS[@]}"; do
+    IFS=':' read -r upload download <<< "${RATES[$i]}"
+    
+    echo "Setting rate limit for peer ${PEERS[$i]}: ${upload}kbps up, ${download}kbps down"
+    
+    curl -s -X POST http://localhost:8080/api/set_peer_rate_limit \
+        -H "Content-Type: application/json" \
+        -H "$COOKIE_HEADER" \
+        -d "{
+            \"interface\": \"my-vpn\",
+            \"peer_key\": \"${PEERS[$i]}\",
+            \"upload_rate\": $upload,
+            \"download_rate\": $download,
+            \"scheduler_type\": \"htb\"
+        }"
+done
+
+# 2. Check current rate limits
+echo "Current rate limits:"
+for peer in "${PEERS[@]}"; do
+    echo "Peer: $peer"
+    curl -s -X GET "http://localhost:8080/api/get_peer_rate_limit?interface=my-vpn&peer_key=$peer" \
+        -H "$COOKIE_HEADER" | jq '.data'
+done
+
+# 3. Get interface scheduler status
+echo "Interface scheduler status:"
+curl -s -X GET "http://localhost:8080/api/get_interface_scheduler?interface=my-vpn" \
+    -H "$COOKIE_HEADER" | jq '.'
+```
+
+### Example 6: Email Integration
+
+```bash
+#!/bin/bash
+# Email integration example
+
+# 1. Check if email is ready
+EMAIL_READY=$(curl -s -X GET http://localhost:8080/api/email/ready \
+    -H "$COOKIE_HEADER" | jq -r '.data')
+
+if [ "$EMAIL_READY" = "true" ]; then
+    # 2. Send peer configuration via email
+    curl -s -X POST http://localhost:8080/api/email/send \
+        -H "Content-Type: application/json" \
+        -H "$COOKIE_HEADER" \
+        -d '{
+            "Receiver": "user@example.com",
+            "Subject": "Your VPN Configuration",
+            "Body": "Please find your VPN configuration attached.",
+            "ConfigurationName": "my-vpn",
+            "Peer": "peer_public_key_here",
+            "IncludeAttachment": true
+        }'
+    
+    # 3. Preview email body with template variables
+    curl -s -X POST http://localhost:8080/api/email/previewBody \
+        -H "Content-Type: application/json" \
+        -H "$COOKIE_HEADER" \
+        -d '{
+            "Body": "Hello {{ peer.name }}, your VPN config is ready!",
+            "ConfigurationName": "my-vpn",
+            "Peer": "peer_public_key_here"
+        }' | jq -r '.data'
+fi
+```
+
+### Example 7: LDAP Integration
+
+```bash
+#!/bin/bash
+# LDAP configuration example
+
+# 1. Get current LDAP settings
+echo "Current LDAP settings:"
+curl -s -X GET http://localhost:8080/api/getLDAPSettings \
+    -H "$COOKIE_HEADER" | jq '.'
+
+# 2. Configure LDAP settings
+curl -s -X POST http://localhost:8080/api/saveLDAPSettings \
+    -H "Content-Type: application/json" \
+    -H "$COOKIE_HEADER" \
+    -d '{
+        "enabled": true,
+        "server": "ldap.example.com",
+        "port": 389,
+        "use_ssl": false,
+        "domain": "example.com",
+        "bind_dn": "cn=admin,dc=example,dc=com",
+        "bind_password": "admin_password",
+        "search_base": "ou=users,dc=example,dc=com",
+        "search_filter": "(uid=%s)",
+        "attr_username": "uid",
+        "require_group": true,
+        "group_dn": "cn=vpn-users,ou=groups,dc=example,dc=com"
+    }'
+
+# 3. Test LDAP connection
+curl -s -X POST http://localhost:8080/api/testLDAPConnection \
+    -H "Content-Type: application/json" \
+    -H "$COOKIE_HEADER" \
+    -d '{
+        "server": "ldap.example.com",
+        "port": 389,
+        "use_ssl": false,
+        "bind_dn": "cn=admin,dc=example,dc=com",
+        "bind_password": "admin_password",
+        "search_base": "ou=users,dc=example,dc=com"
+    }' | jq '.'
+```
+
+## Best Practices
+
+1. **Error Handling**: Always check the `status` field in responses and implement proper error handling
+2. **Rate Limiting**: Implement exponential backoff for retry logic
+3. **Authentication**: Store API keys securely and rotate them regularly
+4. **Monitoring**: Use the system status and traffic monitoring endpoints for health checks
+5. **Backups**: Regularly create backups of your configurations
+6. **Logging**: Monitor the dashboard logs for security and operational insights
+7. **Testing**: Use the network utilities to test connectivity and troubleshoot issues
+
+## Troubleshooting
+
+### Common Issues
+
+1. **Authentication Failures**: Check credentials and ensure TOTP is configured correctly
+2. **Rate Limiting**: Implement proper retry logic with exponential backoff
+3. **Configuration Errors**: Validate all required parameters before making requests
+4. **Network Issues**: Use the ping and traceroute utilities to diagnose connectivity problems
+5. **Permission Errors**: Ensure the dashboard has proper permissions for WireGuard operations
+
+### Debug Mode
+
+Enable debug logging by checking the dashboard configuration and monitoring the logs for detailed error information.
+
+---
+
+*This documentation covers all available API endpoints in WireGate. For additional support or feature requests, please refer to the project repository.*

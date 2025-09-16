@@ -19,7 +19,7 @@ const route = useRoute()
 </script>
 
 <template>
-	<div style="z-index: 9999; height: 5px" class="position-absolute loadingBar top-0 start-0"></div>
+	<div style="z-index: 9999; height: 4px" class="position-absolute loadingBar top-0 start-0"></div>
 	<nav class="navbar bg-dark sticky-top" data-bs-theme="dark" v-if="!route.meta.hideTopNav">
 		<div class="container-fluid d-flex text-body align-items-center">
 			<RouterLink to="/" class="navbar-brand mb-0 h1">
@@ -35,13 +35,11 @@ const route = useRoute()
 			</a>
 		</div>
 	</nav>
-	<Suspense>
-		<RouterView v-slot="{ Component }">
-			<Transition name="app" mode="out-in" type="transition" appear>
-				<Component :is="Component"></Component>
-			</Transition>
-		</RouterView>
-	</Suspense>
+	<RouterView v-slot="{ Component }">
+		<Transition name="app" mode="out-in" type="transition" appear>
+			<Component :is="Component"></Component>
+		</Transition>
+	</RouterView>
 </template>
 
 <style scoped>

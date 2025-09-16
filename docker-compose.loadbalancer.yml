@@ -1,0 +1,81 @@
+version: '3.8'
+
+services:
+  # Load Balancer
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    depends_on:
+      - wiregate-1
+      - wiregate-2
+      - wiregate-3
+      - wiregate-4
+    restart: unless-stopped
+
+  # WireGate Instance 1
+  wiregate-1:
+    build: .
+    ports:
+      - "8001:8000"
+    environment:
+      - WIREGATE_PORT=8000
+      - WIREGATE_WORKERS=1
+    volumes:
+      - ./configs:/app/configs
+      - ./Src/db:/app/db
+    restart: unless-stopped
+
+  # WireGate Instance 2
+  wiregate-2:
+    build: .
+    ports:
+      - "8002:8000"
+    environment:
+      - WIREGATE_PORT=8000
+      - WIREGATE_WORKERS=1
+    volumes:
+      - ./configs:/app/configs
+      - ./Src/db:/app/db
+    restart: unless-stopped
+
+  # WireGate Instance 3
+  wiregate-3:
+    build: .
+    ports:
+      - "8003:8000"
+    environment:
+      - WIREGATE_PORT=8000
+      - WIREGATE_WORKERS=1
+    volumes:
+      - ./configs:/app/configs
+      - ./Src/db:/app/db
+    restart: unless-stopped
+
+  # WireGate Instance 4
+  wiregate-4:
+    build: .
+    ports:
+      - "8004:8000"
+    environment:
+      - WIREGATE_PORT=8000
+      - WIREGATE_WORKERS=1
+    volumes:
+      - ./configs:/app/configs
+      - ./Src/db:/app/db
+    restart: unless-stopped
+
+  # Shared Redis
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  redis_data:

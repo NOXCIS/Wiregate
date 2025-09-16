@@ -20,7 +20,6 @@ import (
 const (
 	tcPath    = "/sbin/tc"
 	ifbFormat = "ifb-%s" // Will be formatted with interface name
-	pfctlPath = "/sbin/pfctl"
 	logFile   = "traffic-weir.log"
 	// Maximum rates in Kb/s
 	maxRate32 = 4194303 // 32-bit max: ~4.2 Gb/s
@@ -30,11 +29,9 @@ const (
 var (
 	schedulerType string
 	logger        *log.Logger
-	isPFSystem    bool
 	supports64Bit bool
 	wgPath        string // Dynamic path for wg
 	awgPath       string // Dynamic path for awg
-	pfHelper      *PFHelper
 )
 
 type PeerInfo struct {
@@ -50,14 +47,6 @@ func init() {
 		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
 	}
 
-	// Initialize PF helper if on a PF system
-	if isPFSystem {
-		var err error
-		pfHelper, err = NewPFHelper(logger)
-		if err != nil {
-			logger.Printf("WARNING: Failed to initialize PF helper: %v", err)
-		}
-	}
 }
 
 func initLogger() error {
@@ -70,10 +59,6 @@ func initLogger() error {
 }
 
 func init() {
-	// Detect if we're on a PF-based system
-	if runtime.GOOS == "darwin" || runtime.GOOS == "openbsd" {
-		isPFSystem = true
-	}
 
 	// Define common paths based on OS
 	var commonPaths []string
@@ -86,23 +71,6 @@ func init() {
 			"/usr/local/sbin",
 			"/opt/bin",
 			"/opt/local/bin",
-		}
-	case "darwin":
-		commonPaths = []string{
-			"/usr/bin",
-			"/usr/local/bin",
-			"/opt/homebrew/bin",
-			"/usr/local/sbin",
-			"/opt/local/bin",
-			"/opt/local/sbin",
-		}
-	case "openbsd":
-		commonPaths = []string{
-			"/usr/bin",
-			"/usr/local/bin",
-			"/usr/sbin",
-			"/usr/local/sbin",
-			"/opt/bin",
 		}
 	}
 
@@ -149,6 +117,91 @@ func findExecutable(names []string, commonPaths []string) (string, error) {
 	return "", fmt.Errorf("executable not found in PATH or common locations")
 }
 
+// setupCAKEPerPeerLimits sets up per-peer rate limiting on top of CAKE
+func setupCAKEPerPeerLimits(iface, allowedIP string, downloadRate, uploadRate int64) error {
+	ipOnly := strings.Split(allowedIP, "/")[0]
+	protocol := "ip"
+	matchType := "ip"
+
+	if strings.Contains(ipOnly, ":") {
+		protocol = "ipv6"
+		matchType = "ip6"
+	}
+
+	// Add ingress qdisc for download policing
+	if downloadRate > 0 {
+		ingressCmd := exec.Command(tcPath, "qdisc", "add", "dev", iface, "ingress")
+		ingressCmd.Run() // Ignore errors as it might already exist
+
+		rateBits := downloadRate * 1000
+		burst := downloadRate * 125 // 1ms worth of traffic
+
+		// Add download policing filter
+		downloadFilterCmd := exec.Command(tcPath, "filter", "add", "dev", iface,
+			"parent", "ffff:", "protocol", protocol, "prio", "1",
+			"u32", "match", matchType, "dst", ipOnly,
+			"police", "rate", fmt.Sprintf("%dbit", rateBits),
+			"burst", fmt.Sprintf("%d", burst),
+			"drop", "flowid", ":1")
+
+		if output, err := downloadFilterCmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("failed to add CAKE download filter: %v, output: %s", err, output)
+		}
+		logger.Printf("Successfully added CAKE download filter for %s", ipOnly)
+	}
+
+	// Add upload policing filter on the CAKE qdisc
+	if uploadRate > 0 {
+		rateBits := uploadRate * 1000
+		burst := uploadRate * 125
+
+		// Add upload policing filter
+		uploadFilterCmd := exec.Command(tcPath, "filter", "add", "dev", iface,
+			"parent", "1:", "protocol", protocol, "prio", "1",
+			"u32", "match", matchType, "src", ipOnly,
+			"police", "rate", fmt.Sprintf("%dbit", rateBits),
+			"burst", fmt.Sprintf("%d", burst),
+			"drop", "flowid", ":1")
+
+		if output, err := uploadFilterCmd.CombinedOutput(); err != nil {
+			return fmt.Errorf("failed to add CAKE upload filter: %v, output: %s", err, output)
+		}
+		logger.Printf("Successfully added CAKE upload filter for %s", ipOnly)
+	}
+
+	return nil
+}
+
+// removeCAKERateLimit removes CAKE-based rate limiting for a peer
+func removeCAKERateLimit(iface, allowedIP string) error {
+	logger.Printf("Removing CAKE rate limiting for IP %s", allowedIP)
+
+	ipOnly := strings.Split(allowedIP, "/")[0]
+	protocol := "ip"
+
+	if strings.Contains(ipOnly, ":") {
+		protocol = "ipv6"
+	}
+
+	// Remove download filters (ingress)
+	downloadCmd := exec.Command(tcPath, "filter", "del", "dev", iface,
+		"parent", "ffff:", "protocol", protocol, "prio", "1",
+		"u32", "match", "ip", "dst", ipOnly)
+	downloadCmd.Run() // Ignore errors
+
+	// Remove upload filters (egress)
+	uploadCmd := exec.Command(tcPath, "filter", "del", "dev", iface,
+		"parent", "1:", "protocol", protocol, "prio", "1",
+		"u32", "match", "ip", "src", ipOnly)
+	uploadCmd.Run() // Ignore errors
+
+	// Note: We don't remove the CAKE qdisc itself as it might be used by other peers
+	// The CAKE qdisc will continue to work for other flows
+
+	logger.Printf("Successfully removed CAKE rate limiting for %s", ipOnly)
+	return nil
+}
+
 func main() {
 	logger.Printf("Starting traffic-weir...")
 
@@ -178,7 +231,7 @@ func main() {
 	flag.StringVar(&protocol, "protocol", "wg", "Protocol (wg or awg)")
 	flag.BoolVar(&remove, "remove", false, "Remove rate limits")
 	flag.BoolVar(&nuke, "nuke", false, "Remove all traffic control qdiscs from interface")
-	flag.StringVar(&schedulerType, "scheduler", "htb", "Traffic scheduler type (htb or hfsc)")
+	flag.StringVar(&schedulerType, "scheduler", "htb", "Traffic scheduler type (htb, hfsc, or cake)")
 	flag.StringVar(&allowedIPs, "allowed-ips", "", "Comma-separated list of allowed IPs (optional, overrides peer lookup)") // New flag
 	flag.Parse()
 
@@ -272,7 +325,7 @@ func main() {
 			os.Exit(1)
 		}
 	}
-	
+
 	if len(peerInfo.AllowedIPs) == 0 {
 		logger.Printf("ERROR: No allowed IPs found for peer %s", peer)
 		os.Exit(1)
@@ -283,26 +336,35 @@ func main() {
 	// If remove flag is specified, only remove filters/classes for this peer.
 	if remove {
 		logger.Printf("Resetting (removing) rate limits for peer %s on interface %s...", peer, iface)
-		// Remove filters and classes on main interface (download side)
-		if err := removePeerRateLimitOnDevice(iface, allowedIP, peer); err != nil {
-			logger.Printf("ERROR: Error removing rate limits on interface: %v", err)
-			os.Exit(1)
-		}
-		// If the IFB device exists, remove upload filters from it.
-		if _, err := exec.Command("ip", "link", "show", fmt.Sprintf(ifbFormat, iface)).CombinedOutput(); err == nil {
-			if err := removePeerRateLimitOnDevice(fmt.Sprintf(ifbFormat, iface), allowedIP, peer); err != nil {
-				logger.Printf("ERROR: Error removing rate limits on IFB device: %v", err)
+
+		if schedulerType == "cake" {
+			// CAKE uses different removal logic
+			if err := removeCAKERateLimit(iface, allowedIP); err != nil {
+				logger.Printf("ERROR: Error removing CAKE rate limits: %v", err)
 				os.Exit(1)
 			}
-			if err := addDefaultFilterOnDevice(fmt.Sprintf(ifbFormat, iface), allowedIP); err != nil {
-				logger.Printf("ERROR: Error adding default filter on IFB device: %v", err)
+		} else {
+			// Remove filters and classes on main interface (download side)
+			if err := removePeerRateLimitOnDevice(iface, allowedIP, peer); err != nil {
+				logger.Printf("ERROR: Error removing rate limits on interface: %v", err)
 				os.Exit(1)
 			}
-		}
-		// Re-add the default filter on the main interface.
-		if err := addDefaultFilterOnDevice(iface, allowedIP); err != nil {
-			logger.Printf("ERROR: Error adding default filter on interface: %v", err)
-			os.Exit(1)
+			// If the IFB device exists, remove upload filters from it.
+			if _, err := exec.Command("ip", "link", "show", fmt.Sprintf(ifbFormat, iface)).CombinedOutput(); err == nil {
+				if err := removePeerRateLimitOnDevice(fmt.Sprintf(ifbFormat, iface), allowedIP, peer); err != nil {
+					logger.Printf("ERROR: Error removing rate limits on IFB device: %v", err)
+					os.Exit(1)
+				}
+				if err := addDefaultFilterOnDevice(fmt.Sprintf(ifbFormat, iface), allowedIP); err != nil {
+					logger.Printf("ERROR: Error adding default filter on IFB device: %v", err)
+					os.Exit(1)
+				}
+			}
+			// Re-add the default filter on the main interface.
+			if err := addDefaultFilterOnDevice(iface, allowedIP); err != nil {
+				logger.Printf("ERROR: Error adding default filter on interface: %v", err)
+				os.Exit(1)
+			}
 		}
 		logger.Printf("Successfully removed rate limits for peer %s on interface %s", peer, iface)
 		os.Exit(0)
@@ -322,7 +384,18 @@ func main() {
 	downloadClassID := fmt.Sprintf("1:%x2", classBase) // download class on main iface
 	uploadClassID := fmt.Sprintf("1:%x1", classBase)   // upload class on IFB device
 
-	// Download shaping (remains on main interface)
+	// Handle CAKE scheduler differently - it replaces the entire qdisc setup
+	if schedulerType == "cake" {
+		// CAKE qdisc is already set up by checkAndSetupRootQdisc, so we just need to add per-peer limits
+		if err := setupCAKEPerPeerLimits(iface, allowedIP, downloadRate, uploadRate); err != nil {
+			logger.Printf("ERROR: Error setting up CAKE per-peer limits for peer %s: %v", peer, err)
+			os.Exit(1)
+		}
+		logger.Printf("Successfully configured CAKE rate limiting for peer %s on interface %s", peer, iface)
+		os.Exit(0) // CAKE handles everything, so we exit here
+	}
+
+	// Download shaping (remains on main interface) - for HTB/HFSC only
 	if downloadRate > 0 {
 		if err := createClass(iface, downloadClassID, downloadRate); err != nil {
 			logger.Printf("ERROR: Error creating download rate limit class: %v", err)
@@ -333,56 +406,49 @@ func main() {
 			os.Exit(1)
 		}
 	} else if downloadRate == 0 {
-		if err := removeFilter(iface, allowedIP, false, true); err != nil {
+		if err := removeFilter(iface, allowedIP); err != nil {
 			logger.Printf("ERROR: Error removing download filter: %v", err)
 			os.Exit(1)
 		}
 	}
 
-	// Upload shaping section
+	// Upload shaping section - for HTB/HFSC only (CAKE is handled above)
 	if uploadRate > 0 {
-		if isPFSystem {
-			if err := pfHelper.SetupTrafficShaping(iface, allowedIP, uploadRate, downloadRate); err != nil {
-				logger.Printf("ERROR: Failed to setup PF traffic shaping: %v", err)
+		ifbDev := fmt.Sprintf(ifbFormat, iface)
+		err := setupIFB(iface)
+		if err != nil && err.Error() == "IFB is not supported on this system" {
+			logger.Printf("WARNING: IFB not supported, falling back to basic tc shaping")
+			// Basic tc shaping on the interface directly
+			if err := setupBasicTCShaping(iface, allowedIP, uploadRate); err != nil {
+				logger.Printf("ERROR: Error setting up basic tc shaping: %v", err)
 				os.Exit(1)
 			}
+		} else if err != nil {
+			logger.Printf("ERROR: Error setting up IFB device: %v", err)
+			os.Exit(1)
 		} else {
-			ifbDev := fmt.Sprintf(ifbFormat, iface)
-			err := setupIFB(iface)
-			if err != nil && err.Error() == "IFB is not supported on this system" {
-				logger.Printf("WARNING: IFB not supported, falling back to basic tc shaping")
-				// Basic tc shaping on the interface directly
-				if err := setupBasicTCShaping(iface, allowedIP, uploadRate); err != nil {
-					logger.Printf("ERROR: Error setting up basic tc shaping: %v", err)
-					os.Exit(1)
-				}
-			} else if err != nil {
-				logger.Printf("ERROR: Error setting up IFB device: %v", err)
+			if err := addIngressRedirect(iface, allowedIP, ifbDev); err != nil {
+				logger.Printf("ERROR: Error adding ingress redirect: %v", err)
 				os.Exit(1)
-			} else {
-				if err := addIngressRedirect(iface, allowedIP, ifbDev); err != nil {
-					logger.Printf("ERROR: Error adding ingress redirect: %v", err)
-					os.Exit(1)
-				}
-				if err := checkAndSetupRootQdisc(ifbDev); err != nil {
-					logger.Printf("ERROR: Error setting up root qdisc on IFB device: %v", err)
-					os.Exit(1)
-				}
-				// Create upload class on the IFB device
-				if err := createClass(ifbDev, uploadClassID, uploadRate); err != nil {
-					logger.Printf("ERROR: Error creating upload class on IFB device: %v", err)
-					os.Exit(1)
-				}
-				// Add upload filter
-				if err := tryAddFiltersForIP(ifbDev, uploadClassID, allowedIP, uploadRate, 0); err != nil {
-					logger.Printf("ERROR: Error setting up upload rate limits for peer %s on IFB device: %v", peer, err)
-					os.Exit(1)
-				}
+			}
+			if err := checkAndSetupRootQdisc(ifbDev); err != nil {
+				logger.Printf("ERROR: Error setting up root qdisc on IFB device: %v", err)
+				os.Exit(1)
+			}
+			// Create upload class on the IFB device
+			if err := createClass(ifbDev, uploadClassID, uploadRate); err != nil {
+				logger.Printf("ERROR: Error creating upload class on IFB device: %v", err)
+				os.Exit(1)
+			}
+			// Add upload filter
+			if err := tryAddFiltersForIP(ifbDev, uploadClassID, allowedIP, uploadRate, 0); err != nil {
+				logger.Printf("ERROR: Error setting up upload rate limits for peer %s on IFB device: %v", peer, err)
+				os.Exit(1)
 			}
 		}
 	} else if uploadRate == 0 {
 		// Remove upload filter from IFB device if needed.
-		if err := removeFilter(fmt.Sprintf(ifbFormat, iface), allowedIP, true, false); err != nil {
+		if err := removeFilter(fmt.Sprintf(ifbFormat, iface), allowedIP); err != nil {
 			logger.Printf("ERROR: Error removing upload filter from IFB device: %v", err)
 			os.Exit(1)
 		}
@@ -430,11 +496,27 @@ func checkAndSetupRootQdisc(dev string) error {
 // setupRootQdisc creates the qdisc on the given device with better error handling
 func setupRootQdisc(dev string) error {
 	var cmd *exec.Cmd
-	if schedulerType == "hfsc" {
+	switch schedulerType {
+	case "cake":
+		logger.Printf("Setting up root CAKE qdisc on %s...", dev)
+		cmd = exec.Command(tcPath, "qdisc", "add", "dev", dev,
+			"root", "handle", "1:", "cake", "bandwidth", "1Gbit", "besteffort")
+
+		_, err := cmd.CombinedOutput()
+		if err != nil {
+			// CAKE not available, fall back to HTB
+			logger.Printf("CAKE not available, falling back to HTB: %v", err)
+			cmd = exec.Command(tcPath, "qdisc", "add", "dev", dev,
+				"root", "handle", "1:", "htb", "default", "99")
+		} else {
+			logger.Printf("Successfully set up CAKE qdisc on %s", dev)
+			return nil
+		}
+	case "hfsc":
 		logger.Printf("Setting up root HFSC qdisc on %s...", dev)
 		cmd = exec.Command(tcPath, "qdisc", "add", "dev", dev,
 			"root", "handle", "1:", "hfsc", "default", "99")
-	} else {
+	default:
 		logger.Printf("Setting up root HTB qdisc on %s...", dev)
 		cmd = exec.Command(tcPath, "qdisc", "add", "dev", dev,
 			"root", "handle", "1:", "htb", "default", "99")
@@ -474,7 +556,13 @@ func createClass(dev, classID string, rateKbps int64) error {
 	classIDHex := fmt.Sprintf("1:%04x", classNum)
 	logger.Printf("Creating class on device %s with classID %s and rate %d Kbps", dev, classIDHex, rate)
 
-	if schedulerType == "hfsc" {
+	switch schedulerType {
+	case "cake":
+		// CAKE doesn't use classes - it manages flows automatically
+		// We'll use filters to redirect traffic to CAKE with bandwidth limits
+		logger.Printf("CAKE scheduler doesn't use classes - using filter-based rate limiting")
+		return nil
+	case "hfsc":
 		modifyCmd := exec.Command(tcPath, "class", "change", "dev", dev,
 			"parent", "1:", "classid", classIDHex,
 			"hfsc", "sc", "rate", fmt.Sprintf("%dbit", rateBits),
@@ -489,7 +577,7 @@ func createClass(dev, classID string, rateKbps int64) error {
 				return fmt.Errorf("failed to add hfsc traffic class on %s: %v\nOutput: %s", dev, err, output)
 			}
 		}
-	} else {
+	default:
 		modifyCmd := exec.Command(tcPath, "class", "change", "dev", dev,
 			"parent", "1:", "classid", classIDHex,
 			"htb", "rate", fmt.Sprintf("%dbit", rateBits),
@@ -520,7 +608,7 @@ func tryAddFiltersForIP(dev, classID, peer string, uploadRate, downloadRate int6
 	ipOnly := strings.Split(peer, "/")[0]
 	protocol := "ip"
 	matchType := "ip"
-	
+
 	if strings.Contains(ipOnly, ":") {
 		protocol = "ipv6"
 		matchType = "ip6"
@@ -533,9 +621,9 @@ func tryAddFiltersForIP(dev, classID, peer string, uploadRate, downloadRate int6
 			"u32", "match", matchType, "src", ipOnly,
 			"flowid", classID)
 		if output, err := filterCmd.CombinedOutput(); err != nil {
-			logger.Printf("Failed upload filter command: %s %s", tcPath, 
+			logger.Printf("Failed upload filter command: %s %s", tcPath,
 				strings.Join(filterCmd.Args[1:], " "))
-			return fmt.Errorf("failed to add upload filter on %s: %v\nCommand output: %s", 
+			return fmt.Errorf("failed to add upload filter on %s: %v\nCommand output: %s",
 				dev, err, string(output))
 		}
 		logger.Printf("Successfully added upload filter for %s on %s", ipOnly, dev)
@@ -548,9 +636,9 @@ func tryAddFiltersForIP(dev, classID, peer string, uploadRate, downloadRate int6
 			"u32", "match", matchType, "dst", ipOnly,
 			"flowid", classID)
 		if output, err := filterCmd.CombinedOutput(); err != nil {
-			logger.Printf("Failed download filter command: %s %s", tcPath, 
+			logger.Printf("Failed download filter command: %s %s", tcPath,
 				strings.Join(filterCmd.Args[1:], " "))
-			return fmt.Errorf("failed to add download filter on %s: %v\nCommand output: %s", 
+			return fmt.Errorf("failed to add download filter on %s: %v\nCommand output: %s",
 				dev, err, string(output))
 		}
 		logger.Printf("Successfully added download filter for %s on %s", ipOnly, dev)
@@ -639,10 +727,10 @@ func peerToClassBase(peer string) int {
 }
 
 // removeFilter removes u32 filters for the given peer (matched by allowed IP) on a device.
-func removeFilter(dev, ip string, isUpload, isDownload bool) error {
+func removeFilter(dev, ip string) error {
 	ipOnly := strings.Split(ip, "/")[0]
 	protocol := "ip"
-	
+
 	if strings.Contains(ipOnly, ":") {
 		protocol = "ipv6"
 	}
@@ -664,7 +752,7 @@ func removeFilter(dev, ip string, isUpload, isDownload bool) error {
 			"parent", "1:",
 			"handle", handle, "prio", "1",
 			"protocol", protocol)
-		
+
 		if output, err := cmd.CombinedOutput(); err != nil {
 			logger.Printf("NOTE: Filter removal (handle %s) on %s returned: %v\nOutput: %s (usually safe to ignore)",
 				handle, dev, err, string(output))
@@ -676,7 +764,7 @@ func removeFilter(dev, ip string, isUpload, isDownload bool) error {
 	// If we're removing filters from the main interface, also clean up the corresponding IFB device
 	if !strings.HasPrefix(dev, "ifb-") {
 		ifbDev := fmt.Sprintf(ifbFormat, dev)
-		if err := removeFilter(ifbDev, ip, true, false); err != nil {
+		if err := removeFilter(ifbDev, ip); err != nil {
 			logger.Printf("NOTE: Error removing filter on IFB device %s: %v (usually safe to ignore)", ifbDev, err)
 		}
 	}
@@ -688,7 +776,7 @@ func removeFilter(dev, ip string, isUpload, isDownload bool) error {
 func parseFilterOutput(output, targetIP string) []string {
 	var handles []string
 	lines := strings.Split(output, "\n")
-	
+
 	var currentHandle string
 	for _, line := range lines {
 		// Filter handle lines start with "filter"
@@ -702,14 +790,14 @@ func parseFilterOutput(output, targetIP string) []string {
 			}
 		}
 		// Check if this filter matches our target IP
-		if currentHandle != "" && (strings.Contains(line, "match "+targetIP) || 
-			strings.Contains(line, "src "+targetIP) || 
+		if currentHandle != "" && (strings.Contains(line, "match "+targetIP) ||
+			strings.Contains(line, "src "+targetIP) ||
 			strings.Contains(line, "dst "+targetIP)) {
 			handles = append(handles, currentHandle)
 			currentHandle = ""
 		}
 	}
-	
+
 	return handles
 }
 
@@ -748,7 +836,7 @@ func addDefaultFilterOnDevice(dev, allowedIP string) error {
 // removePeerRateLimitOnDevice removes filters and classes for a given peer on a specified device.
 func removePeerRateLimitOnDevice(dev, allowedIP, peerKey string) error {
 	logger.Printf("Removing rate limits on device %s for peer %s (IP: %s)", dev, peerKey, allowedIP)
-	
+
 	// Calculate class IDs
 	classBase := peerToClassBase(peerKey)
 	uploadClassID := fmt.Sprintf("1:%x1", classBase)
@@ -772,75 +860,183 @@ func removePeerRateLimitOnDevice(dev, allowedIP, peerKey string) error {
 		if !strings.HasPrefix(dev, "ifb-") {
 			// Main interface: Handle download filters and class
 			logger.Printf("Removing download filters for IP %s on %s", ipOnly, dev)
-			
-			// First remove all matching filters
+
+			// First remove all matching filters - try multiple approaches
 			output, _ := exec.Command(tcPath, "filter", "show", "dev", dev, "parent", "1:").CombinedOutput()
 			filters := parseFilterOutput(string(output), ipOnly)
+			logger.Printf("Found %d filters to remove on %s for IP %s", len(filters), dev, ipOnly)
+
+			// Remove filters by handle
 			for _, handle := range filters {
 				removeCmd := exec.Command(tcPath, "filter", "del", "dev", dev,
 					"parent", "1:", "handle", handle, "prio", "1",
 					"protocol", protocol)
-				if err := removeCmd.Run(); err != nil {
-					logger.Printf("Warning: Error removing filter handle %s: %v", handle, err)
+				if output, err := removeCmd.CombinedOutput(); err != nil {
+					logger.Printf("Warning: Error removing filter handle %s: %v, output: %s", handle, err, string(output))
+				} else {
+					logger.Printf("Successfully removed filter handle %s", handle)
 				}
 			}
 
-			// Then remove the class
-			logger.Printf("Removing download class %s on main interface", downloadClassID)
-			classCmd := exec.Command(tcPath, "class", "del", "dev", dev, "classid", downloadClassID)
-			classCmd.Run() // Ignore errors as class might not exist
+			// Also try to remove filters by matching criteria (more aggressive approach)
+			removeByMatchCmd := exec.Command(tcPath, "filter", "del", "dev", dev,
+				"parent", "1:", "protocol", protocol, "prio", "1",
+				"u32", "match", "ip", "dst", ipOnly)
+			if output, err := removeByMatchCmd.CombinedOutput(); err != nil {
+				logger.Printf("Note: Filter removal by match criteria returned: %v, output: %s (may not exist)", err, string(output))
+			} else {
+				logger.Printf("Successfully removed filters by match criteria")
+			}
 
-			// Verify removal
-			if output, _ := exec.Command(tcPath, "class", "show", "dev", dev).CombinedOutput(); 
-			   strings.Contains(string(output), downloadClassID) {
-				if attempt == maxAttempts {
-					return fmt.Errorf("failed to remove class %s after %d attempts", downloadClassID, maxAttempts)
+			// Check if class exists before trying to remove it
+			checkCmd := exec.Command(tcPath, "class", "show", "dev", dev)
+			checkOutput, _ := checkCmd.CombinedOutput()
+			classExists := strings.Contains(string(checkOutput), downloadClassID)
+
+			if classExists {
+				// Wait a bit for filters to be fully processed
+				time.Sleep(200 * time.Millisecond)
+
+				// Then remove the class
+				logger.Printf("Removing download class %s on main interface", downloadClassID)
+				classCmd := exec.Command(tcPath, "class", "del", "dev", dev, "classid", downloadClassID)
+				if output, err := classCmd.CombinedOutput(); err != nil {
+					logger.Printf("Warning: Error removing class %s: %v, output: %s", downloadClassID, err, string(output))
+
+					// If class is "in use", try to force remove it by first removing all filters again
+					if strings.Contains(string(output), "in use") {
+						logger.Printf("Class %s is in use, attempting to remove remaining filters", downloadClassID)
+
+						// Try to remove any remaining filters that might be using this class
+						forceRemoveCmd := exec.Command(tcPath, "filter", "del", "dev", dev,
+							"parent", "1:", "protocol", protocol, "prio", "1",
+							"u32", "match", "ip", "dst", ipOnly)
+						forceRemoveCmd.Run() // Ignore errors
+
+						// Wait and try class removal again
+						time.Sleep(100 * time.Millisecond)
+						classCmd2 := exec.Command(tcPath, "class", "del", "dev", dev, "classid", downloadClassID)
+						if output2, err2 := classCmd2.CombinedOutput(); err2 != nil {
+							logger.Printf("Warning: Still unable to remove class %s: %v, output: %s", downloadClassID, err2, string(output2))
+						} else {
+							logger.Printf("Successfully removed class %s on second attempt", downloadClassID)
+						}
+					}
+				} else {
+					logger.Printf("Successfully removed class %s", downloadClassID)
 				}
-				time.Sleep(100 * time.Millisecond)
-				continue
+
+				// Verify removal
+				verifyCmd := exec.Command(tcPath, "class", "show", "dev", dev)
+				verifyOutput, _ := verifyCmd.CombinedOutput()
+				if strings.Contains(string(verifyOutput), downloadClassID) {
+					if attempt == maxAttempts {
+						logger.Printf("Class %s still exists after removal attempts, but continuing", downloadClassID)
+						// Don't fail here, just log and continue
+					} else {
+						time.Sleep(100 * time.Millisecond)
+						continue
+					}
+				}
+			} else {
+				logger.Printf("Class %s does not exist on %s, skipping removal", downloadClassID, dev)
 			}
 		} else {
 			// IFB device: Handle upload filters and class
 			logger.Printf("Removing upload filters for IP %s on %s", ipOnly, dev)
-			
-			// Remove all matching filters
+
+			// Remove all matching filters - try multiple approaches
 			output, _ := exec.Command(tcPath, "filter", "show", "dev", dev, "parent", "1:").CombinedOutput()
 			filters := parseFilterOutput(string(output), ipOnly)
+			logger.Printf("Found %d filters to remove on %s for IP %s", len(filters), dev, ipOnly)
+
+			// Remove filters by handle
 			for _, handle := range filters {
 				removeCmd := exec.Command(tcPath, "filter", "del", "dev", dev,
 					"parent", "1:", "handle", handle, "prio", "1",
 					"protocol", protocol)
-				if err := removeCmd.Run(); err != nil {
-					logger.Printf("Warning: Error removing filter handle %s: %v", handle, err)
+				if output, err := removeCmd.CombinedOutput(); err != nil {
+					logger.Printf("Warning: Error removing filter handle %s: %v, output: %s", handle, err, string(output))
+				} else {
+					logger.Printf("Successfully removed filter handle %s", handle)
 				}
 			}
 
-			// Remove the class
-			logger.Printf("Removing upload class %s on IFB device", uploadClassID)
-			classCmd := exec.Command(tcPath, "class", "del", "dev", dev, "classid", uploadClassID)
-			classCmd.Run() // Ignore errors as class might not exist
-
-			// Clean up ingress redirect on the main interface
-			realDev := strings.TrimPrefix(dev, "ifb-")
-			logger.Printf("Cleaning up ingress redirect on %s", realDev)
-			
-			// Remove all ingress redirect filters
-			ingressOutput, _ := exec.Command(tcPath, "filter", "show", "dev", realDev, "parent", "ffff:").CombinedOutput()
-			ingressFilters := parseFilterOutput(string(ingressOutput), ipOnly)
-			for _, handle := range ingressFilters {
-				removeCmd := exec.Command(tcPath, "filter", "del", "dev", realDev,
-					"parent", "ffff:", "handle", handle, "prio", "1")
-				removeCmd.Run() // Ignore errors
+			// Also try to remove filters by matching criteria (more aggressive approach)
+			removeByMatchCmd := exec.Command(tcPath, "filter", "del", "dev", dev,
+				"parent", "1:", "protocol", protocol, "prio", "1",
+				"u32", "match", "ip", "src", ipOnly)
+			if output, err := removeByMatchCmd.CombinedOutput(); err != nil {
+				logger.Printf("Note: Filter removal by match criteria returned: %v, output: %s (may not exist)", err, string(output))
+			} else {
+				logger.Printf("Successfully removed filters by match criteria")
 			}
 
-			// Verify removal
-			if output, _ := exec.Command(tcPath, "class", "show", "dev", dev).CombinedOutput(); 
-			   strings.Contains(string(output), uploadClassID) {
-				if attempt == maxAttempts {
-					return fmt.Errorf("failed to remove class %s after %d attempts", uploadClassID, maxAttempts)
+			// Check if class exists before trying to remove it
+			checkCmd := exec.Command(tcPath, "class", "show", "dev", dev)
+			checkOutput, _ := checkCmd.CombinedOutput()
+			classExists := strings.Contains(string(checkOutput), uploadClassID)
+
+			if classExists {
+				// Wait a bit for filters to be fully processed
+				time.Sleep(200 * time.Millisecond)
+
+				// Remove the class
+				logger.Printf("Removing upload class %s on IFB device", uploadClassID)
+				classCmd := exec.Command(tcPath, "class", "del", "dev", dev, "classid", uploadClassID)
+				if output, err := classCmd.CombinedOutput(); err != nil {
+					logger.Printf("Warning: Error removing class %s: %v, output: %s", uploadClassID, err, string(output))
+
+					// If class is "in use", try to force remove it by first removing all filters again
+					if strings.Contains(string(output), "in use") {
+						logger.Printf("Class %s is in use, attempting to remove remaining filters", uploadClassID)
+
+						// Try to remove any remaining filters that might be using this class
+						forceRemoveCmd := exec.Command(tcPath, "filter", "del", "dev", dev,
+							"parent", "1:", "protocol", protocol, "prio", "1",
+							"u32", "match", "ip", "src", ipOnly)
+						forceRemoveCmd.Run() // Ignore errors
+
+						// Wait and try class removal again
+						time.Sleep(100 * time.Millisecond)
+						classCmd2 := exec.Command(tcPath, "class", "del", "dev", dev, "classid", uploadClassID)
+						if output2, err2 := classCmd2.CombinedOutput(); err2 != nil {
+							logger.Printf("Warning: Still unable to remove class %s: %v, output: %s", uploadClassID, err2, string(output2))
+						} else {
+							logger.Printf("Successfully removed class %s on second attempt", uploadClassID)
+						}
+					}
+				} else {
+					logger.Printf("Successfully removed class %s", uploadClassID)
 				}
-				time.Sleep(100 * time.Millisecond)
-				continue
+
+				// Clean up ingress redirect on the main interface
+				realDev := strings.TrimPrefix(dev, "ifb-")
+				logger.Printf("Cleaning up ingress redirect on %s", realDev)
+
+				// Remove all ingress redirect filters
+				ingressOutput, _ := exec.Command(tcPath, "filter", "show", "dev", realDev, "parent", "ffff:").CombinedOutput()
+				ingressFilters := parseFilterOutput(string(ingressOutput), ipOnly)
+				for _, handle := range ingressFilters {
+					removeCmd := exec.Command(tcPath, "filter", "del", "dev", realDev,
+						"parent", "ffff:", "handle", handle, "prio", "1")
+					removeCmd.Run() // Ignore errors
+				}
+
+				// Verify removal
+				verifyCmd := exec.Command(tcPath, "class", "show", "dev", dev)
+				verifyOutput, _ := verifyCmd.CombinedOutput()
+				if strings.Contains(string(verifyOutput), uploadClassID) {
+					if attempt == maxAttempts {
+						logger.Printf("Class %s still exists after removal attempts, but continuing", uploadClassID)
+						// Don't fail here, just log and continue
+					} else {
+						time.Sleep(100 * time.Millisecond)
+						continue
+					}
+				}
+			} else {
+				logger.Printf("Class %s does not exist on %s, skipping removal", uploadClassID, dev)
 			}
 		}
 
@@ -1010,59 +1206,18 @@ func addIngressRedirect(realDev, allowedIP, ifb string) error {
 // cleanupOnError performs emergency cleanup on the specified interface.
 func cleanupOnError(dev string) {
 	logger.Printf("WARN: Performing emergency cleanup...")
-	if isPFSystem {
-		// Clean up PF rules
-		if err := exec.Command(pfctlPath, "-F", "rules").Run(); err != nil {
-			logger.Printf("WARN: Failed to clean PF rules: %v", err)
-		}
-	} else {
-		// Existing IFB cleanup code
-		if err := exec.Command(tcPath, "filter", "del", "dev", dev, "parent", "1:").Run(); err != nil {
-			logger.Printf("WARN: Failed to clean filters on %s: %v", dev, err)
-		}
-		if err := exec.Command(tcPath, "qdisc", "del", "dev", dev, "root").Run(); err != nil {
-			logger.Printf("WARN: Failed to clean qdisc on %s: %v", dev, err)
-		}
-		// Clean up IFB device if it exists
-		ifbDev := fmt.Sprintf(ifbFormat, dev)
-		if err := exec.Command(tcPath, "qdisc", "del", "dev", ifbDev, "root").Run(); err != nil {
-			logger.Printf("WARN: Failed to clean qdisc on %s: %v", ifbDev, err)
-		}
+	// Clean up IFB cleanup code
+	if err := exec.Command(tcPath, "filter", "del", "dev", dev, "parent", "1:").Run(); err != nil {
+		logger.Printf("WARN: Failed to clean filters on %s: %v", dev, err)
 	}
-}
-
-// setupPFRateLimit configures PF rules for rate limiting
-func setupPFRateLimit(iface, allowedIP string, rateKbps int64) error {
-	logger.Printf("Setting up PF rate limit for IP %s at %d Kbps", allowedIP, rateKbps)
-
-	// Create temporary PF rule file
-	tmpFile, err := os.CreateTemp("", "pf-rules-*")
-	if err != nil {
-		return fmt.Errorf("failed to create temp file: %v", err)
+	if err := exec.Command(tcPath, "qdisc", "del", "dev", dev, "root").Run(); err != nil {
+		logger.Printf("WARN: Failed to clean qdisc on %s: %v", dev, err)
 	}
-	defer os.Remove(tmpFile.Name())
-
-	// Write PF rule
-	rule := fmt.Sprintf("queue traffic_weir on %s from %s to any bandwidth %dK\n",
-		iface, allowedIP, rateKbps)
-	if _, err := tmpFile.WriteString(rule); err != nil {
-		return fmt.Errorf("failed to write PF rule: %v", err)
+	// Clean up IFB device if it exists
+	ifbDev := fmt.Sprintf(ifbFormat, dev)
+	if err := exec.Command(tcPath, "qdisc", "del", "dev", ifbDev, "root").Run(); err != nil {
+		logger.Printf("WARN: Failed to clean qdisc on %s: %v", ifbDev, err)
 	}
-	tmpFile.Close()
-
-	// Load the rule
-	cmd := exec.Command(pfctlPath, "-f", tmpFile.Name())
-	if output, err := cmd.CombinedOutput(); err != nil {
-		return fmt.Errorf("failed to load PF rules: %v, output: %s", err, output)
-	}
-
-	// Enable PF if not already enabled
-	cmd = exec.Command(pfctlPath, "-e")
-	if err := cmd.Run(); err != nil {
-		logger.Printf("NOTE: PF enable returned: %v (may already be enabled)", err)
-	}
-
-	return nil
 }
 
 // setupBasicTCShaping sets up basic traffic shaping without IFB

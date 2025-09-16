@@ -42,8 +42,8 @@ const resetInput = (t) => {
 }
 
 watch(uploadFiles, () => {
-	if(uploadFiles.conf !== undefined && uploadFiles.sql !== undefined){
-		if (uploadFiles.conf.filename.replace('.conf', '') !== uploadFiles.sql.filename.replace('.sql', '')){
+	if(uploadFiles.conf !== undefined && uploadFiles.redis !== undefined){
+		if (uploadFiles.conf.filename.replace('.conf', '') !== uploadFiles.redis.filename.replace('.redis', '')){
 			dashboardStore.newMessage("WGDashboard", 
 				"Backup configuration filename not matching database filename", "danger")
 		}
@@ -60,7 +60,7 @@ const fileNameValidation = computed(() => {
 
 const uploadReady = computed(() => {
 	return uploadFiles.conf !== undefined 
-		&& uploadFiles.sql !== undefined
+		&& uploadFiles.redis !== undefined
 })
 
 </script>

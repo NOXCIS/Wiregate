@@ -41,7 +41,7 @@ RUN mkdir -p /build/torflux-build /build/traffic_weir
 COPY ./Src/torflux/torflux.go /build/torflux-build/
 COPY ./Src/torflux/go.mod /build/torflux-build/
 COPY ./Src/traffic_weir/traffic-weir.go /build/traffic_weir/
-COPY ./Src/traffic_weir/pf_helper.go /build/traffic_weir/
+
 COPY ./Src/traffic_weir/go.mod /build/traffic_weir/
 
 

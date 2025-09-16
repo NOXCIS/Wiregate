@@ -9,37 +9,38 @@ import LocaleText from "@/components/text/localeText.vue";
 export default {
 	name: "share",
 	components: {LocaleText},
-	async setup(){
+	setup(){
 		const route = useRoute();
 		const loaded = ref(false)
 		const store = DashboardConfigurationStore();
 		const theme = ref("");
 		const peerConfiguration = ref(undefined);
 		const blob = ref(new Blob())
+		return {route, loaded, store, theme, peerConfiguration, blob}
+	},
+	async mounted() {
 		await fetchGet("/api/getDashboardTheme", {}, (res) => {
-			theme.value = res.data
+			this.theme = res.data
 		});
 		
-		const id = route.query.ShareID
+		const id = this.route.query.ShareID
 		if(id === undefined || id.length === 0){
-			peerConfiguration.value = undefined
-			loaded.value = true;
+			this.peerConfiguration = undefined
+			this.loaded = true;
 		}else{
 			await fetchGet("/api/sharePeer/get", {
 				ShareID: id
 			}, (res) => {
 				if (res.status){
-					peerConfiguration.value = res.data;
-					blob.value = new Blob([peerConfiguration.value.file], { type: "text/plain" });
+					this.peerConfiguration = res.data;
+					this.blob = new Blob([this.peerConfiguration.file], { type: "text/plain" });
 				}else{
-					peerConfiguration.value = undefined
+					this.peerConfiguration = undefined
 				}
-				loaded.value = true;
+				this.loaded = true;
 			})
 		}
-		return {store, theme, peerConfiguration, blob}
-	},
-	mounted() {
+		
 		if(this.peerConfiguration){
 			QRCode.toCanvas(document.querySelector("#qrcode"), this.peerConfiguration.file,  (error) => {
 				if (error) console.error(error)

@@ -13,46 +13,47 @@ from ..modules.ConfigEnv import (TORRC_PATH, DNS_TORRC_PATH)
 
 import time
 import socket
+
+logger = logging.getLogger('wiregate')
 import glob
-from pathlib import Path
 
 tor_blueprint = Blueprint('tor', __name__)
 
 
 @tor_blueprint.route('/tor/config', methods=['GET'])
 def API_get_tor_config():
-    print("[DEBUG] Entering get_tor_config()")
+    logger.debug(" Entering get_tor_config()")
     try:
         configs = {}
-        print(f"[DEBUG] Checking for torrc at {TORRC_PATH}")
+        logger.debug(f" Checking for torrc at {TORRC_PATH}")
         if os.path.exists(TORRC_PATH):
-            print("[DEBUG] Found main torrc file")
+            logger.debug(" Found main torrc file")
             with open(TORRC_PATH, 'r') as f:
                 configs['main'] = f.read()
-                print(f"[DEBUG] Read {len(configs['main'])} bytes from main config")
+                logger.debug(f" Read {len(configs['main'])} bytes from main config")
 
-        print(f"[DEBUG] Checking for DNS torrc at {DNS_TORRC_PATH}")
+        logger.debug(f" Checking for DNS torrc at {DNS_TORRC_PATH}")
         if os.path.exists(DNS_TORRC_PATH):
-            print("[DEBUG] Found DNS torrc file") 
+            logger.debug(" Found DNS torrc file") 
             with open(DNS_TORRC_PATH, 'r') as f:
                 configs['dns'] = f.read()
-                print(f"[DEBUG] Read {len(configs['dns'])} bytes from DNS config")
+                logger.debug(f" Read {len(configs['dns'])} bytes from DNS config")
         
         # Get current plugin type from torrc
         current_plugin = 'obfs4'  # default
-        print("[DEBUG] Determining current plugin type")
+        logger.debug(" Determining current plugin type")
         if configs.get('main'):
-            print("[DEBUG] Checking main config content")
+            logger.debug(" Checking main config content")
             if 'webtunnel' in configs['main']:
-                print("[DEBUG] Found webtunnel plugin")
+                logger.debug(" Found webtunnel plugin")
                 current_plugin = 'webtunnel'
             elif 'snowflake' in configs['main']:
-                print("[DEBUG] Found snowflake plugin")
+                logger.debug(" Found snowflake plugin")
                 current_plugin = 'snowflake'
             else:
-                print("[DEBUG] Using default obfs4 plugin")
+                logger.debug(" Using default obfs4 plugin")
 
-        print("[DEBUG] Returning successful response")
+        logger.debug(" Returning successful response")
         return ResponseObject(
             status=True,
             data={
@@ -61,7 +62,7 @@ def API_get_tor_config():
             }
         )
     except Exception as e:
-        print(f"[DEBUG] Error occurred: {str(e)}")
+        logger.debug(f" Error occurred: {str(e)}")
         logging.error(f"Error reading Tor config: {str(e)}")
         return ResponseObject(
             status=False,
@@ -71,7 +72,7 @@ def API_get_tor_config():
 
 @tor_blueprint.route('/tor/plugins', methods=['GET'])
 def API_get_tor_plugins():
-    print("[DEBUG] Getting available Tor plugins")
+    logger.debug(" Getting available Tor plugins")
     try:
         # Default available plugins
         plugins = ['obfs4', 'webtunnel', 'snowflake']
@@ -84,7 +85,7 @@ def API_get_tor_plugins():
             }
         )
     except Exception as e:
-        print(f"[DEBUG] Error getting plugins: {str(e)}")
+        logger.debug(f" Error getting plugins: {str(e)}")
         return ResponseObject(
             status=False,
             message=f"Failed to get available plugins: {str(e)}",
@@ -120,7 +121,7 @@ def API_update_tor_config():
             subprocess.run(['./torflux', '-config', config_type], 
                         check=True, 
                         capture_output=True)
-            print(f"[DEBUG] Sent HUP signal to Tor config: {config_path}")
+            logger.debug(f" Sent HUP signal to Tor config: {config_path}")
         
         except subprocess.CalledProcessError as e:
             return ResponseObject(status=False, 
@@ -262,28 +263,37 @@ def API_control_tor_process():
                 log.write("WARNING: VANGUARD environment variable is not set\n")
             
             # Execute torflux with appropriate action
+            log.write(f"Executing: ./torflux -config {config_type} -action {action}\n")
+            # Use secure command execution
             try:
-                log.write(f"Executing: ./torflux -config {config_type} -action {action}\n")
+                from ..modules.SecureCommand import execute_secure_command
+                result = execute_secure_command('./torflux', ['-config', config_type, '-action', action])
+            except ImportError:
+                # Fallback to subprocess if SecureCommand is not available
+                import subprocess
                 result = subprocess.run(['./torflux', '-config', config_type, '-action', action], 
-                            check=True, 
-                            capture_output=True)
-                log.write(f"Command stdout: {result.stdout.decode()}\n")
-                log.write(f"Command stderr: {result.stderr.decode()}\n")
-                print(f"[DEBUG] {action.capitalize()}ed Tor process for {config_type} configuration")
-                log.write(f"Successfully {action}ed Tor process for {config_type} configuration\n")
-                
+                            capture_output=True, text=True)
+                result = {
+                    'success': result.returncode == 0,
+                    'stdout': result.stdout,
+                    'stderr': result.stderr,
+                    'returncode': result.returncode
+                }
+            log.write(f"Command stdout: {result['stdout']}\n")
+            log.write(f"Command stderr: {result['stderr']}\n")
+            logger.debug(f" {action.capitalize()}ed Tor process for {config_type} configuration")
+            log.write(f"Successfully {action}ed Tor process for {config_type} configuration\n")
+            
+            if result['success']:
                 return ResponseObject(
                     status=True, 
                     message=f"Tor process {action}ed successfully",
                     data={'action': action, 'configType': config_type}
                 )
-            
-            except subprocess.CalledProcessError as e:
-                error_msg = f"Failed to {action} Tor: {e.stderr.decode()}"
+            else:
+                error_msg = f"Failed to {action} Tor: {result['stderr']}"
                 log.write(f"ERROR: {error_msg}\n")
-                log.write(f"Command exit code: {e.returncode}\n")
-                log.write(f"Command stdout: {e.stdout.decode()}\n")
-                log.write(f"Command stderr: {e.stderr.decode()}\n")
+                log.write(f"Command exit code: {result['returncode']}\n")
                 return ResponseObject(status=False, message=error_msg)
                 
         except Exception as e:
@@ -328,7 +338,7 @@ def API_get_tor_status():
             data=status
         )
     except Exception as e:
-        print(f"[DEBUG] Error getting Tor status: {str(e)}")
+        logger.debug(f" Error getting Tor status: {str(e)}")
         return ResponseObject(status=False, message=f"Failed to get Tor status: {str(e)}")
 
 @tor_blueprint.route('/tor/logs/files', methods=['GET'])
@@ -357,7 +367,7 @@ def API_get_tor_log_files():
             data={'files': log_files}
         )
     except Exception as e:
-        print(f"[DEBUG] Error getting log files: {str(e)}")
+        logger.debug(f" Error getting log files: {str(e)}")
         return ResponseObject(status=False, message=f"Failed to get log files: {str(e)}")
 
 @tor_blueprint.route('/tor/logs', methods=['GET'])
@@ -407,7 +417,7 @@ def API_get_tor_logs():
             data={'content': content}
         )
     except Exception as e:
-        print(f"[DEBUG] Error getting logs: {str(e)}")
+        logger.debug(f" Error getting logs: {str(e)}")
         return ResponseObject(status=False, message=f"Failed to get logs: {str(e)}")
 
 @tor_blueprint.route('/tor/logs/clear', methods=['POST'])
@@ -441,7 +451,7 @@ def API_clear_tor_logs():
             message=f"Log file cleared successfully"
         )
     except Exception as e:
-        print(f"[DEBUG] Error clearing logs: {str(e)}")
+        logger.debug(f" Error clearing logs: {str(e)}")
         return ResponseObject(status=False, message=f"Failed to clear logs: {str(e)}")
 
 

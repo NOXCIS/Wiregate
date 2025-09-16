@@ -17,6 +17,9 @@ from .modules.DashboardConfig import (
     DashboardConfig, DashboardAPIKey
 )
 
+from .modules.Async.ThreadPool import thread_pool
+from .modules.Async.ProcessPool import process_pool
+
 from .modules.Core import (
 
     PeerShareLink,
@@ -24,6 +27,8 @@ from .modules.Core import (
     Configurations
 
 )
+from .modules.ConfigEnv import DASHBOARD_MODE, ALLOWED_ORIGINS
+from .modules.Security import security_manager, secure_headers
 
 
 from .modules.Jobs.PeerJobs import AllPeerJobs
@@ -55,23 +60,90 @@ _, app_ip = DashboardConfig.GetConfig("Server", "app_ip")
 _, app_port = DashboardConfig.GetConfig("Server", "app_port")
 
 
-CORS(app, resources={rf"{APP_PREFIX}/api/*": {
-    "origins": "*",
-    "methods": "DELETE, POST, GET, OPTIONS",
-    "allow_headers": ["Content-Type", "wg-dashboard-apikey"]
-}})
+# Configure CORS based on environment
+if DASHBOARD_MODE == 'production' and '*' not in ALLOWED_ORIGINS:
+    # Production mode with specific allowed origins
+    CORS(app, resources={rf"{APP_PREFIX}/api/*": {
+        "origins": ALLOWED_ORIGINS,
+        "methods": "DELETE, POST, GET, OPTIONS",
+        "allow_headers": ["Content-Type", "wg-dashboard-apikey"],
+        "supports_credentials": True
+    }})
+else:
+    # Development mode or wildcard allowed
+    CORS(app, resources={rf"{APP_PREFIX}/api/*": {
+        "origins": ALLOWED_ORIGINS,
+        "methods": "DELETE, POST, GET, OPTIONS",
+        "allow_headers": ["Content-Type", "wg-dashboard-apikey"]
+    }})
 
-from .routes.api import api_blueprint  
-from .routes.tor_api import tor_blueprint
-from .routes.traffic_weir_api import traffic_weir_blueprint
-from .routes.email_api import email_blueprint
-from .routes.peer_jobs_api import peer_jobs_blueprint
-from .routes.ldap_auth_api import ldap_auth_blueprint
-from .routes.data_charts_api import data_chart_blueprint
-from .routes.auth_api import auth_blueprint
-from .routes.utils_api import utils_blueprint
-from .routes.locale_api import locale_blueprint
-from .routes.snapshot_api import snapshot_api_blueprint
+# Import core route modules with fallbacks
+try:
+    from .routes.api import api_blueprint
+except ImportError:
+    from flask import Blueprint
+    api_blueprint = Blueprint('api', __name__)
+
+try:
+    from .routes.tor_api import tor_blueprint
+except ImportError:
+    from flask import Blueprint
+    tor_blueprint = Blueprint('tor', __name__)
+
+try:
+    from .routes.traffic_weir_api import traffic_weir_blueprint
+except ImportError:
+    from flask import Blueprint
+    traffic_weir_blueprint = Blueprint('traffic_weir', __name__)
+
+try:
+    from .routes.email_api import email_blueprint
+except ImportError:
+    from flask import Blueprint
+    email_blueprint = Blueprint('email', __name__)
+
+try:
+    from .routes.peer_jobs_api import peer_jobs_blueprint
+except ImportError:
+    from flask import Blueprint
+    peer_jobs_blueprint = Blueprint('peer_jobs', __name__)
+# Import route modules with fallbacks
+try:
+    from .routes.ldap_auth_api import ldap_auth_blueprint
+except ImportError:
+    from flask import Blueprint
+    ldap_auth_blueprint = Blueprint('ldap_auth', __name__)
+
+try:
+    from .routes.data_charts_api import data_chart_blueprint
+except ImportError:
+    from flask import Blueprint
+    data_chart_blueprint = Blueprint('data_chart', __name__)
+
+try:
+    from .routes.auth_api import auth_blueprint
+except ImportError:
+    from flask import Blueprint
+    auth_blueprint = Blueprint('auth', __name__)
+
+try:
+    from .routes.utils_api import utils_blueprint
+except ImportError:
+    from flask import Blueprint
+    utils_blueprint = Blueprint('utils', __name__)
+
+try:
+    from .routes.locale_api import locale_blueprint
+except ImportError:
+    from flask import Blueprint
+    locale_blueprint = Blueprint('locale', __name__)
+# Import snapshot_api with fallback
+try:
+    from .routes.snapshot_api import snapshot_api_blueprint
+except ImportError:
+    # Create a dummy blueprint if snapshot_api is not available
+    from flask import Blueprint
+    snapshot_api_blueprint = Blueprint('snapshot_api', __name__)
 
 
 
@@ -91,6 +163,11 @@ app.register_blueprint(utils_blueprint, url_prefix=f'{APP_PREFIX}/api')
 app.register_blueprint(locale_blueprint, url_prefix=f'{APP_PREFIX}/api')
 app.register_blueprint(snapshot_api_blueprint, url_prefix=f'{APP_PREFIX}/api')
 
+# Add security headers to all responses
+@app.after_request
+def add_security_headers(response):
+    return secure_headers(response)
+
 
 
 
@@ -99,6 +176,10 @@ def backGroundThread():
     global Configurations
     print(f"[WireGate] Background Thread #1 Started", flush=True)
     time.sleep(10)
+    
+    # Counter for update checks (check every 360 iterations = 1 hour)
+    update_check_counter = 0
+    
     while True:
         with app.app_context():
             for c in Configurations.values():
@@ -111,6 +192,19 @@ def backGroundThread():
                         c.getRestrictedPeersList()
                     except Exception as e:
                         print(f"[WireGate] Background Thread #1 Error: {str(e)}", flush=True)
+            
+            # Check for updates every hour (360 iterations * 10 seconds = 3600 seconds)
+            # This will only run after the initial update check is triggered from the frontend
+            update_check_counter += 1
+            if update_check_counter >= 360:
+                try:
+                    from .routes.utils_api import _background_update_check
+                    _background_update_check()
+                    print(f"[WireGate] Update check completed", flush=True)
+                except Exception as e:
+                    print(f"[WireGate] Update check error: {str(e)}", flush=True)
+                update_check_counter = 0  # Reset counter
+                
         time.sleep(10)
 
 
@@ -123,13 +217,17 @@ def peerJobScheduleBackgroundThread():
             time.sleep(15)
 
 
-def waitressInit():
-    _, app_ip = DashboardConfig.GetConfig("Server", "app_ip")
-    _, app_port = DashboardConfig.GetConfig("Server", "app_port")
-    return app_ip, app_port
 
 
 def startThreads():
+    # Start thread pool for I/O operations
+    thread_pool.start_pool()
+    print("[WireGate] Thread pool started with 20 workers")
+    
+    # Start process pool for CPU-intensive operations
+    process_pool.start_pool()
+    print("[WireGate] Process pool started with 4 workers")
+    
     bgThread = threading.Thread(target=backGroundThread)
     bgThread.daemon = True
     bgThread.start()
@@ -137,12 +235,21 @@ def startThreads():
     scheduleJobThread = threading.Thread(target=peerJobScheduleBackgroundThread)
     scheduleJobThread.daemon = True
     scheduleJobThread.start()
+    
 
-def gunicornConfig():
-    """
-    Returns the host and port configuration for Gunicorn.
-    """
-    return waitressInit()
+def stopThreads():
+    """Stop thread pool and process pool, cleanup resources"""
+    try:
+        thread_pool.stop_pool()
+        print("[WireGate] Thread pool stopped")
+    except Exception as e:
+        print(f"[WireGate] Error stopping thread pool: {e}")
+    
+    try:
+        process_pool.stop_pool()
+        print("[WireGate] Process pool stopped")
+    except Exception as e:
+        print(f"[WireGate] Error stopping process pool: {e}")
 
 
 

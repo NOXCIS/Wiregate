@@ -2,8 +2,8 @@
 # Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
 # Under MIT License
 
-# Trap the SIGTERM signal and call the stop_service function
-trap 'stop_service' SIGTERM
+# Trap signals and call the stop_service function
+trap 'stop_service' SIGTERM SIGINT SIGQUIT
 
 
 dashes='------------------------------------------------------------'
@@ -15,10 +15,25 @@ dnscrypt_conf=./dnscrypt/dnscrypt-proxy.toml
 
 stop_service() {
   printf "%s\n" "$equals"  
-  echo "[WIREGATE] Stopping WireGuard Dashboard and Tor."
+  echo "[WIREGATE] Received stop signal. Stopping WireGuard Dashboard and Tor."
+  
+  # Stop the main wiregate process
   ./wiregate.sh stop
-  pkill tor
-  printf "[WIREGATE] Tor EXITED.\n"
+  
+  # Kill any remaining tor processes
+  pkill -f tor 2>/dev/null || true
+  
+  # Kill any remaining wiregate processes
+  pkill -f wiregate 2>/dev/null || true
+  
+  # Kill any remaining vanguards processes
+  pkill -f vanguards 2>/dev/null || true
+  
+  # Kill any remaining torflux processes
+  pkill -f torflux 2>/dev/null || true
+  
+  printf "[WIREGATE] All processes stopped.\n"
+  printf "%s\n" "$equals"
   exit 0
 }
 

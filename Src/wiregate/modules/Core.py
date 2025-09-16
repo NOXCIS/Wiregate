@@ -4,6 +4,8 @@ import ipaddress, json, re
 import logging
 
 from datetime import datetime, timedelta
+
+logger = logging.getLogger('wiregate')
  
 from .DashboardConfig import DashboardConfig
 from .Utilities import (
@@ -24,7 +26,12 @@ from .Locale.Locale import Locale
 from .Share.ShareLink import PeerShareLinks
 from .Share.ShareLink import PeerShareLink
 from .DataBase.DataBaseManager import (
-    DatabaseManager, sqlSelect, sqlUpdate, sqldb, ConfigurationDatabase
+    DatabaseManager, sqlSelect, sqlUpdate, sqldb, ConfigurationDatabase, check_and_migrate_sqlite_databases
+)
+from .SecureCommand import (
+    execute_secure_command, execute_wg_command, execute_wg_quick_command, 
+    execute_awg_command, execute_awg_quick_command,
+    execute_ip_command, execute_awk_command, execute_grep_command
 )
 
 
@@ -88,7 +95,7 @@ class Configuration:
                     os.path.join(
                         DashboardConfig.GetConfig("Server", "wg_conf_path")[1],
                         'WGDashboard_Backup',
-                        data["Backup"].replace(".conf", ".sql")))
+                        data["Backup"].replace(".conf", ".redis")))
             else:
                 self.db.create_database()
                 # Ensure migration happens right after database creation
@@ -149,13 +156,11 @@ class Configuration:
                     self.__parser.write(configFile)
                 self.__initPeersList()
 
-        print(f"[WireGate] Initialized Configuration: {name}")
+        logger.info(f"Initialized Configuration: {name}")
         if self.getAutostartStatus() and not self.getStatus() and startup:
             self.toggleConfiguration()
-            print(f"[WireGate] Autostart Configuration: {name}")
+            logger.info(f"Autostart Configuration: {name}")
 
-        #if startup:
-        #    self.reapply_rate_limits()
 
     def __initPeersList(self):
         self.Peers: list[Peer] = []
@@ -179,7 +184,7 @@ class Configuration:
         status, err = self.toggleConfiguration()
         if not status:
             restoreStatus = self.restoreBackup(backup['filename'])
-            print(f"Restore status: {restoreStatus}")
+            logger.debug(f"Restore status: {restoreStatus}")
             self.toggleConfiguration()
             return False, err
         return True, None
@@ -381,9 +386,28 @@ class Configuration:
         self.__configFileModifiedTime = mt
         return changed
 
+    def __cleanup_master_keys_in_dev_mode(self):
+        """Clean up master key entries from database in development mode"""
+        from .ConfigEnv import DASHBOARD_MODE
+        if DASHBOARD_MODE == 'development':
+            try:
+                # Get all peers from database
+                all_peers = self.db.get_peers()
+                for peer in all_peers:
+                    # Check if this is a master key peer (has IP 10.0.0.254/32)
+                    if peer.get('allowed_ip') == '10.0.0.254/32' or '10.0.0.254/32' in str(peer.get('allowed_ip', '')):
+                        logger.info(f"Removing old master key peer from database: {peer.get('id', 'unknown')[:8]}...")
+                        self.db.delete_peer(peer.get('id'))
+            except Exception as e:
+                logger.error(f"Error cleaning up master keys in development mode: {e}")
+
     def __getPeers(self):
         if self.configurationFileChanged():
             self.Peers = []
+            
+            # Clean up master keys in development mode before processing config file
+            self.__cleanup_master_keys_in_dev_mode()
+            
             with open(os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], f'{self.Name}.conf'),
                       'r') as configFile:
                 p = []
@@ -453,11 +477,15 @@ class Configuration:
                                 self.db.insert_peer(newPeer)
                                 self.Peers.append(Peer(newPeer, self))
                             else:
-                                self.db.update_peer(i['PublicKey'], {"allowed_ip": i.get("AllowedIPs", "N/A")})
+                                # Update both allowed_ip and name if they exist in the config file
+                                update_data = {"allowed_ip": i.get("AllowedIPs", "N/A")}
+                                if i.get("name"):
+                                    update_data["name"] = i.get("name")
+                                self.db.update_peer(i['PublicKey'], update_data)
                                 self.Peers.append(Peer(checkIfExist, self))
                 except Exception as e:
                     if __name__ == '__main__':
-                        print(f"[WireGate] {self.Name} Error: {str(e)}")
+                        logger.error(f"{self.Name} Error: {str(e)}")
         else:
             self.Peers.clear()
             checkIfExist = self.db.get_peers()
@@ -513,18 +541,39 @@ class Configuration:
 
             # Handle wg commands and config file updates
             config_path = f"/etc/wireguard/{self.Name}.conf"
-            for p in peers:
+            for i, p in enumerate(peers):
+                logger.debug(f"Adding peer {i+1}/{len(peers)}: {p['id'][:8]}...")
                 presharedKeyExist = len(p['preshared_key']) > 0
                 rd = random.Random()
                 uid = str(uuid.UUID(int=rd.getrandbits(128), version=4))
 
-                # Handle wg command
+                # Handle wg command securely
                 if presharedKeyExist:
                     with open(uid, "w+") as f:
                         f.write(p['preshared_key'])
-                cmd = (
-                    f"{cmd_prefix} set {self.Name} peer {p['id']} allowed-ips {p['allowed_ip'].replace(' ', '')}{f' preshared-key {uid}' if presharedKeyExist else ''}")
-                subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+                
+                # Use secure command execution
+                if cmd_prefix == "awg":
+                    result = execute_awg_command(
+                        action='set',
+                        interface=self.Name,
+                        peer_key=p['id'],
+                        allowed_ips=p['allowed_ip'].replace(' ', ''),
+                        preshared_key=p['preshared_key'] if presharedKeyExist else None
+                    )
+                else:
+                    result = execute_wg_command(
+                        action='set',
+                        interface=self.Name,
+                        peer_key=p['id'],
+                        allowed_ips=p['allowed_ip'].replace(' ', ''),
+                        preshared_key=p['preshared_key'] if presharedKeyExist else None
+                    )
+                
+                logger.debug(f"Peer {i+1} result: success={result['success']}, error={result.get('error', 'None')}")
+                if not result['success']:
+                    raise Exception(f"Failed to set peer {i+1}: {result.get('error', result.get('stderr', 'Unknown error'))}")
+                
                 if presharedKeyExist:
                     os.remove(uid)
 
@@ -550,8 +599,12 @@ class Configuration:
                             f.writelines(config_lines)
 
             # Save and patch
-            cmd = (f"{cmd_prefix}-quick save {self.Name}")
-            subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+            if cmd_prefix == "awg":
+                result = execute_awg_quick_command('save', self.Name)
+            else:
+                result = execute_wg_quick_command('save', self.Name)
+            if not result['success']:
+                raise Exception(f"Failed to save configuration: {result.get('error', result.get('stderr', 'Unknown error'))}")
             try_patch = self.patch_iface_address(interface_address)
             if try_patch:
                 return try_patch
@@ -559,7 +612,7 @@ class Configuration:
             self.getPeersList()
             return True
         except Exception as e:
-            print(str(e))
+            logger.error(f"Error in addPeers: {str(e)}")
             return False
 
     def searchPeer(self, publicKey):
@@ -576,45 +629,85 @@ class Configuration:
         return False, None
 
     def allowAccessPeers(self, listOfPublicKeys):
-        if not self.getStatus():
-            self.toggleConfiguration()
-        interface_address = self.get_iface_address()
-        cmd_prefix = self.get_iface_proto()
-        for i in listOfPublicKeys:
-            # Search in restricted table
-            restricted_peers = self.db.get_restricted_peers()
-            p = None
-            for peer in restricted_peers:
-                if peer.get('id') == i:
-                    p = peer
-                    break
+        try:
+            if not self.getStatus():
+                self.toggleConfiguration()
+            interface_address = self.get_iface_address()
+            cmd_prefix = self.get_iface_proto()
             
-            if p is not None:
-                self.db.move_peer_from_restricted(i)
+            for i in listOfPublicKeys:
+                # Search in restricted table
+                restricted_peers = self.db.get_restricted_peers()
+                p = None
+                for peer in restricted_peers:
+                    if peer.get('id') == i:
+                        p = peer
+                        break
+                
+                if p is not None:
+                    # Move peer from restricted table
+                    if not self.db.move_peer_from_restricted(i):
+                        return ResponseObject(False, f"Failed to move peer {i} from restricted table")
 
-                presharedKeyExist = len(p['preshared_key']) > 0
-                rd = random.Random()
-                uid = str(uuid.UUID(int=rd.getrandbits(128), version=4))
-                if presharedKeyExist:
-                    with open(uid, "w+") as f:
-                        f.write(p['preshared_key'])
+                    presharedKeyExist = len(p.get('preshared_key', '')) > 0
+                    uid = None
+                    
+                    try:
+                        if presharedKeyExist:
+                            rd = random.Random()
+                            uid = str(uuid.UUID(int=rd.getrandbits(128), version=4))
+                            with open(uid, "w+") as f:
+                                f.write(p['preshared_key'])
 
-                cmd = (
-                    f"{cmd_prefix} set {self.Name} peer {p['id']} allowed-ips {p['allowed_ip'].replace(' ', '')}{f' preshared-key {uid}' if presharedKeyExist else ''}")
-                subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+                        # Use secure command execution with fallback
+                        # Use secure command execution with protocol check
+                        if cmd_prefix == "awg":
+                            result = execute_awg_command(
+                                action='set',
+                                interface=self.Name,
+                                peer_key=p['id'],
+                                allowed_ips=p['allowed_ip'].replace(' ', ''),
+                                preshared_key=p['preshared_key'] if presharedKeyExist else None
+                            )
+                        else:
+                            result = execute_wg_command(
+                                action='set',
+                                interface=self.Name,
+                                peer_key=p['id'],
+                                allowed_ips=p['allowed_ip'].replace(' ', ''),
+                                preshared_key=p['preshared_key'] if presharedKeyExist else None
+                            )
+                            
+                        if not result['success']:
+                            return ResponseObject(False, f"Failed to execute WireGuard command: {result.get('error', result.get('stderr', 'Unknown error'))}")
 
-                if presharedKeyExist: os.remove(uid)
-            else:
-                return ResponseObject(False, "Failed to allow access of peer " + i)
-        if not self.__wgSave():
-            return ResponseObject(False, "Failed to save configuration through WireGuard")
+                    except subprocess.CalledProcessError as e:
+                        return ResponseObject(False, f"Failed to execute WireGuard command: {str(e)}")
+                    except Exception as e:
+                        return ResponseObject(False, f"Error processing peer {i}: {str(e)}")
+                    finally:
+                        # Clean up temporary file
+                        if presharedKeyExist and uid and os.path.exists(uid):
+                            try:
+                                os.remove(uid)
+                            except Exception as e:
+                                logger.warning(f"Failed to remove temporary file {uid}: {e}")
+                else:
+                    return ResponseObject(False, "Failed to allow access of peer " + i)
+                    
+            if not self.__wgSave():
+                return ResponseObject(False, "Failed to save configuration through WireGuard")
 
-        try_patch = self.patch_iface_address(interface_address)
-        if try_patch:
-            return try_patch
+            try_patch = self.patch_iface_address(interface_address)
+            if try_patch:
+                return try_patch
 
-        self.__getPeers()
-        return ResponseObject(True, "Allow access successfully")
+            self.__getPeers()
+            return ResponseObject(True, "Allow access successfully")
+            
+        except Exception as e:
+            logger.error(f"Error in allowAccessPeers: {str(e)}")
+            return ResponseObject(False, f"Internal error: {str(e)}")
 
     def restrictPeers(self, listOfPublicKeys):
         numOfRestrictedPeers = 0
@@ -627,9 +720,22 @@ class Configuration:
             found, pf = self.searchPeer(p)
             if found:
                 try:
-
-                    cmd = (f"{cmd_prefix} set {self.Name} peer {pf.id} remove")
-                    subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+                    if cmd_prefix == "awg":
+                        result = execute_awg_command(
+                            action='set',
+                            interface=self.Name,
+                            peer_key=pf.id,
+                            remove=True
+                        )
+                    else:
+                        result = execute_wg_command(
+                            action='set',
+                            interface=self.Name,
+                            peer_key=pf.id,
+                            remove=True
+                        )
+                    if not result['success']:
+                        raise Exception(f"Failed to remove peer: {result.get('error', result.get('stderr', 'Unknown error'))}")
 
                     self.db.move_peer_to_restricted(pf.id)
                     # Update status to stopped
@@ -665,8 +771,22 @@ class Configuration:
             if found:
                 try:
                     # Build cmd string based off of interface protocol
-                    cmd = (f"{cmd_prefix} set {self.Name} peer {pf.id} remove")
-                    subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+                    if cmd_prefix == "awg":
+                        result = execute_awg_command(
+                            action='set',
+                            interface=self.Name,
+                            peer_key=pf.id,
+                            remove=True
+                        )
+                    else:
+                        result = execute_wg_command(
+                            action='set',
+                            interface=self.Name,
+                            peer_key=pf.id,
+                            remove=True
+                        )
+                    if not result['success']:
+                        raise Exception(f"Failed to remove peer: {result.get('error', result.get('stderr', 'Unknown error'))}")
 
                     self.db.delete_peer(pf.id)
                     numOfDeletedPeers += 1
@@ -730,20 +850,30 @@ class Configuration:
                 return "wg"
 
         except Exception as e:
-            print(f"Error while parsing interface config: {e}")
+            logger.error(f"Error while parsing interface config: {e}")
             return None
 
     def get_iface_address(self):
         try:
             # Fetch both inet (IPv4) and inet6 (IPv6) addresses
-            ipv4_address = subprocess.check_output(
-                f"ip addr show {self.Name} | awk '/inet /{{print $2}}'", shell=True
-            ).decode().strip()
-
-            # Capture all IPv6 addresses (link-local and global)
-            ipv6_addresses = subprocess.check_output(
-                f"ip addr show {self.Name} | awk '/inet6 /{{print $2}}'", shell=True
-            ).decode().splitlines()
+            ip_result = execute_ip_command('addr_show', self.Name)
+            if not ip_result['success']:
+                return None, None
+            
+            # Parse IPv4 addresses from output
+            ipv4_address = ""
+            ipv6_addresses = []
+            for line in ip_result['stdout'].splitlines():
+                if 'inet ' in line and not 'inet6' in line:
+                    # Extract IP address from line like "inet 192.168.1.1/24 dev wg0"
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        ipv4_address = parts[1]
+                elif 'inet6 ' in line:
+                    # Extract IPv6 address from line like "inet6 2001:db8::1/64 dev wg0"
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        ipv6_addresses.append(parts[1])
 
             # Filter out potential duplicates and retain unique IPv6 addresses
             unique_ipv6_addresses = set(ipv6_addresses)
@@ -763,6 +893,9 @@ class Configuration:
 
     def patch_iface_address(self, interface_address):
         try:
+            # Fix link-local IPv6 addresses before writing to config
+            fixed_address = self._fix_link_local_ipv6(interface_address)
+            
             config_path = os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], f"{self.Name}.conf")
             with open(config_path, "r") as conf_file:
                 lines = conf_file.readlines()
@@ -771,8 +904,8 @@ class Configuration:
             interface_index = next((i for i, line in enumerate(lines) if line.strip() == "[Interface]"), None)
             address_line_index = next((i for i, line in enumerate(lines) if line.strip().startswith("Address")), None)
 
-            # Create the new Address line with both IPv4 and IPv6 addresses
-            address_line = f"Address = {interface_address}\n"
+            # Create the new Address line with fixed addresses
+            address_line = f"Address = {fixed_address}\n"
 
             # Check if the Address line exists, update it or insert after the [Interface] section
             if address_line_index is not None:
@@ -787,16 +920,110 @@ class Configuration:
             # Write back the modified configuration to the file
             with open(config_path, "w") as conf_file:
                 conf_file.writelines(lines)
+            
+            # If we fixed link-local addresses, also fix the live interface
+            if fixed_address != interface_address and self.getStatus():
+                logger.debug(f" Link-local detected, fixing live interface {self.Name}")
+                self._apply_ipv6_fix_to_live_interface(fixed_address)
 
         except IOError:
             return ResponseObject(False, "Failed to write the interface address to the config file")
+
+    def _fix_link_local_ipv6(self, interface_address):
+        """Replace link-local IPv6 addresses with ULA addresses"""
+        import ipaddress
+        
+        addresses = [addr.strip() for addr in interface_address.split(',')]
+        fixed_addresses = []
+        
+        for addr in addresses:
+            try:
+                ip_net = ipaddress.ip_network(addr, strict=False)
+                
+                # If it's a link-local IPv6 (fe80::/10), replace with ULA
+                if ip_net.version == 6 and str(ip_net.network_address).startswith('fe80:'):
+                    # Generate consistent ULA based on config name
+                    config_hash = abs(hash(self.Name)) % 65536  # Get a consistent hash
+                    ula_addr = f"fd42:{config_hash:04x}:42::1/{ip_net.prefixlen}"
+                    logger.debug(f" Replacing link-local {addr} with ULA {ula_addr}")
+                    fixed_addresses.append(ula_addr)
+                else:
+                    fixed_addresses.append(addr)
+            except Exception as e:
+                # Keep non-IP addresses as-is
+                logger.debug(f" Keeping address as-is: {addr} (error: {e})")
+                fixed_addresses.append(addr)
+        
+        result = ', '.join(fixed_addresses)
+        if result != interface_address:
+            logger.debug(f" Fixed interface address: {interface_address} -> {result}")
+        
+        return result
+
+    def _apply_ipv6_fix_to_live_interface(self, fixed_address):
+        """Apply IPv6 fixes directly to the live interface"""
+        try:
+            import subprocess
+            
+            # Extract IPv6 addresses from the fixed address string
+            ipv4_addr = None
+            ipv6_addr = None
+            
+            for addr in fixed_address.split(','):
+                addr = addr.strip()
+                if ':' in addr and not addr.startswith('fe80:'):
+                    ipv6_addr = addr
+                elif '.' in addr:
+                    ipv4_addr = addr
+            
+            if ipv6_addr:
+                logger.debug(f" Applying IPv6 fix to live interface {self.Name}")
+                
+                # Remove all existing IPv6 addresses (including link-local)
+                result = execute_ip_command('addr_flush', self.Name)
+                if result['success']:
+                    logger.debug(f" Flushed IPv6 addresses from {self.Name}")
+                else:
+                    logger.warning(f"Failed to flush IPv6: {result['stderr']}")
+                
+                # Add the proper ULA IPv6 address
+                result = execute_ip_command('addr_add', self.Name, address=ipv6_addr)
+                if result['success']:
+                    logger.debug(f" Added ULA address {ipv6_addr} to {self.Name}")
+                else:
+                    logger.error(f"Failed to add ULA address: {result.stderr}")
+                
+                # Ensure IPv4 address is still present (in case it was affected)
+                if ipv4_addr:
+                    # Check if IPv4 is still there
+                    check_result = execute_ip_command('addr_show', self.Name)
+                    if check_result['success']:
+                        # Check if IPv4 address is in the output
+                        ipv4_found = False
+                        for line in check_result['stdout'].splitlines():
+                            if f"inet {ipv4_addr.split('/')[0]}" in line:
+                                ipv4_found = True
+                                break
+                        
+                        if not ipv4_found:
+                            # Re-add IPv4 if missing
+                            result = execute_ip_command('addr_add', self.Name, address=ipv4_addr)
+                            if result['success']:
+                                logger.debug(f" Re-added IPv4 address {ipv4_addr} to {self.Name}")
+                
+        except Exception as e:
+            logger.error(f"Failed to fix live interface IPv6: {e}")
 
     def __wgSave(self) -> tuple[bool, str] | tuple[bool, None]:
         cmd_prefix = self.get_iface_proto()
         try:
             # Build cmd string based off of interface protocol
-            cmd = (f"{cmd_prefix}-quick save {self.Name}")
-            subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+            if cmd_prefix == "awg":
+                result = execute_awg_quick_command('save', self.Name)
+            else:
+                result = execute_wg_quick_command('save', self.Name)
+            if not result['success']:
+                return False, result.get('error', result.get('stderr', 'Unknown error'))
 
             return True, None
         except subprocess.CalledProcessError as e:
@@ -808,12 +1035,16 @@ class Configuration:
         try:
             # Build cmd string based off of interface protocol
             cmd_prefix = self.get_iface_proto()
-            cmd = (f"{cmd_prefix} show {self.Name} latest-handshakes")
-            latestHandshake = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+            if cmd_prefix == "awg":
+                result = execute_awg_command('show', self.Name, subcommand='latest-handshakes')
+            else:
+                result = execute_wg_command('show', self.Name, subcommand='latest-handshakes')
+            if not result['success']:
+                return "stopped"
+            latestHandshake = result['stdout'].split()
 
-        except subprocess.CalledProcessError:
+        except Exception:
             return "stopped"
-        latestHandshake = latestHandshake.decode("UTF-8").split()
         count = 0
         now = datetime.now()
         time_delta = timedelta(minutes=2)
@@ -835,10 +1066,13 @@ class Configuration:
         try:
             # Build cmd string based off of interface protocol
             cmd_prefix = self.get_iface_proto()
-            cmd = (f"{cmd_prefix} show {self.Name} transfer")
-            data_usage = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
-
-            data_usage = data_usage.decode("UTF-8").split("\n")
+            if cmd_prefix == "awg":
+                result = execute_awg_command('show', self.Name, subcommand='transfer')
+            else:
+                result = execute_wg_command('show', self.Name, subcommand='transfer')
+            if not result['success']:
+                return
+            data_usage = result['stdout'].split("\n")
             data_usage = [p.split("\t") for p in data_usage]
             for i in range(len(data_usage)):
                 if len(data_usage[i]) == 3:
@@ -865,7 +1099,7 @@ class Configuration:
                         if p.total_receive != total_receive or p.total_sent != total_sent:
                             self.db.update_peer_transfer(data_usage[i][0], total_receive, total_sent, total_receive + total_sent)
         except Exception as e:
-            print(f"[WireGate] {self.Name} Error: {str(e)} {str(e.__traceback__)}")
+            logger.error(f"{self.Name} Error: {str(e)} {str(e.__traceback__)}")
 
     def getPeersEndpoint(self):
         if not self.getStatus():
@@ -873,12 +1107,16 @@ class Configuration:
         try:
             # Build cmd string based off of interface protocol
             cmd_prefix = self.get_iface_proto()
-            cmd = (f"{cmd_prefix} show {self.Name} endpoints")
-            data_usage = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+            if cmd_prefix == "awg":
+                result = execute_awg_command('show', self.Name, subcommand='endpoints')
+            else:
+                result = execute_wg_command('show', self.Name, subcommand='endpoints')
+            if not result['success']:
+                return "stopped"
+            data_usage = result['stdout'].split()
 
-        except subprocess.CalledProcessError:
+        except Exception:
             return "stopped"
-        data_usage = data_usage.decode("UTF-8").split()
         count = 0
         for _ in range(int(len(data_usage) / 2)):
             self.db.update_peer_endpoint(data_usage[count], data_usage[count + 1])
@@ -893,13 +1131,14 @@ class Configuration:
 
         if self.Status:
             try:
-
-                cmd = (f"{cmd_prefix}-quick down {self.Name}")
-                check = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
-                # check = subprocess.check_output(f"wg-quick down {self.Name}",
-                #                                shell=True, stderr=subprocess.STDOUT)
-            except subprocess.CalledProcessError as exc:
-                return False, str(exc.output.strip().decode("utf-8"))
+                if cmd_prefix == "awg":
+                    result = execute_awg_quick_command('down', self.Name)
+                else:
+                    result = execute_wg_quick_command('down', self.Name)
+                if not result['success']:
+                    return False, result.get('error', result.get('stderr', 'Unknown error'))
+            except Exception as exc:
+                return False, str(exc)
 
             # Write the interface address after bringing it down
             try_patch = self.patch_iface_address(interface_address)
@@ -925,28 +1164,34 @@ class Configuration:
 
                 # Modify the logic to continue without IPv6 if not found
                 if ipv6_address:
-                    # Bring the WireGuard interface up
-                    cmd = (f"{cmd_prefix}-quick up {self.Name}")
-                    check = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
-                    # check = subprocess.check_output(f"wg-quick up {self.Name}",
-                    #                                shell=True, stderr=subprocess.STDOUT)
+                    # Bring the interface up
+                    if cmd_prefix == "awg":
+                        result = execute_awg_quick_command('up', self.Name)
+                    else:
+                        result = execute_wg_quick_command('up', self.Name)
+                    if not result['success']:
+                        return False, result.get('error', result.get('stderr', 'Unknown error'))
 
                     try:
                         # Remove any existing IPv6 addresses for the interface
-                        remove_ipv6_cmd = f"ip -6 addr flush dev {self.Name}"
-                        subprocess.check_output(remove_ipv6_cmd, shell=True, stderr=subprocess.STDOUT)
+                        result = execute_ip_command('addr_flush', self.Name)
+                        if not result['success']:
+                            return False, result.get('error', result.get('stderr', 'Unknown error'))
 
                         # Add the new IPv6 address with the desired parameters
-                        add_ipv6_cmd = f"ip -6 addr add {ipv6_address} dev {self.Name}"
-                        subprocess.check_output(add_ipv6_cmd, shell=True, stderr=subprocess.STDOUT)
+                        result = execute_ip_command('addr_add', self.Name, address=ipv6_address)
+                        if not result['success']:
+                            return False, result.get('error', result.get('stderr', 'Unknown error'))
                     except subprocess.CalledProcessError as exc:
                         return False, str(exc.output.strip().decode("utf-8"))
                 else:
                     # No IPv6 address found, just bring the interface up without modifying IPv6
-                    cmd = (f"{cmd_prefix}-quick up {self.Name}")
-                    check = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
-                    # check = subprocess.check_output(f"wg-quick up {self.Name}",
-                    #                                shell=True, stderr=subprocess.STDOUT)
+                    if cmd_prefix == "awg":
+                        result = execute_awg_quick_command('up', self.Name)
+                    else:
+                        result = execute_wg_quick_command('up', self.Name)
+                    if not result['success']:
+                        return False, result.get('error', result.get('stderr', 'Unknown error'))
             except subprocess.CalledProcessError as exc:
                 return False, str(exc.output.strip().decode("utf-8"))
         self.__parseConfigurationFile()
@@ -998,7 +1243,7 @@ class Configuration:
             shutil.copy(self.configPath, backup_paths['conf_file'])
 
             # Backup database
-            with open(backup_paths['sql_file'], 'w+') as f:
+            with open(backup_paths['redis_file'], 'w+') as f:
                 for l in self.__dumpDatabase():
                     f.write(l + "\n")
 
@@ -1013,10 +1258,43 @@ class Configuration:
 
             for script_key, (script_name, script_path) in script_types.items():
                 if script_path:
-                    script_file = os.path.join("./iptable-rules", f"{self.Name}-{script_name}.sh")
+                    # script_path contains the actual file path from PostUp/PreUp/etc attributes
+                    logger.debug(f"Processing {script_key}: script_path='{script_path}'")
+                    iptables_dir = DashboardConfig.GetConfig("Server", "iptable_rules_path")[1]
+                    
+                    if os.path.isabs(script_path):
+                        # Absolute path - use as is
+                        script_file = script_path
+                    else:
+                        # Relative path - try multiple locations
+                        # First try the exact path from PostUp attribute
+                        if script_path.startswith('./iptable-rules/'):
+                            # PostUp contains full path relative to iptables_dir, extract the relative path
+                            clean_path = script_path[2:]  # Remove './' prefix
+                            # Remove 'iptable-rules/' prefix since iptables_dir already contains it
+                            if clean_path.startswith('iptable-rules/'):
+                                clean_path = clean_path[14:]  # Remove 'iptable-rules/' (14 characters)
+                            script_file = os.path.join(iptables_dir, clean_path)
+                        else:
+                            # PostUp contains just the script name, construct the path
+                            script_file = os.path.join(iptables_dir, script_path.lstrip('./'))
+                        
+                        # If not found, try the subdirectory structure for new configs
+                        if not os.path.exists(script_file):
+                            script_file = os.path.join(iptables_dir, self.Name, f"{script_name}.sh")
+                        
+                        # If still not found, try the old naming convention as fallback
+                        if not os.path.exists(script_file):
+                            script_file = os.path.join(iptables_dir, f"{self.Name}-{script_name}.sh")
+                    
+                    logger.debug(f"Final resolved path: {script_file}")
+                    logger.debug(f"Checking for script: {script_file}")
                     if os.path.exists(script_file):
+                        logger.debug(f"Found script: {script_file}")
                         with open(script_file, 'r') as f:
                             scripts_backup[f"{script_key}_script"] = f.read()
+                    else:
+                        logger.debug(f"Script not found: {script_file}")
 
             # Save iptables scripts content if any exist
             if scripts_backup:
@@ -1026,11 +1304,11 @@ class Configuration:
             # Return success and backup details
             return True, {
                 'filename': backup_paths['conf_file'],
-                'database': backup_paths['sql_file'],
+                'database': backup_paths['redis_file'],
                 'iptables': backup_paths['iptables_file'] if scripts_backup else None
             }
         except Exception as e:
-            print(f"[WireGate] Backup Error: {str(e)}")
+            logger.error(f"Backup Error: {str(e)}")
             return False, None
 
     def getBackups(self, databaseContent: bool = False) -> list[dict[str, str]]:
@@ -1061,11 +1339,11 @@ class Configuration:
                 }
 
                 # Add database info if exists
-                sql_file = f.replace(".conf", ".sql")
-                if os.path.exists(os.path.join(backup_paths['config_dir'], sql_file)):
+                redis_file = f.replace(".conf", ".redis")
+                if os.path.exists(os.path.join(backup_paths['config_dir'], redis_file)):
                     d['database'] = True
                     if databaseContent:
-                        d['databaseContent'] = open(os.path.join(backup_paths['config_dir'], sql_file), 'r').read()
+                        d['databaseContent'] = open(os.path.join(backup_paths['config_dir'], redis_file), 'r').read()
 
                 # Add iptables scripts info if exists
                 iptables_file = f.replace(".conf", "_iptables.json")
@@ -1107,7 +1385,9 @@ class Configuration:
         # Parse and restore database
         self.__parseConfigurationFile()
         self.__dropDatabase()
-        self.__importDatabase(backup_paths['sql_file'])
+        self.__importDatabase(backup_paths['redis_file'])
+        
+        # Force refresh of peers from database after import
         self.__initPeersList()
 
         # Restore iptables scripts if they exist
@@ -1124,25 +1404,46 @@ class Configuration:
                     'postdown_script': 'postdown'
                 }
 
-                rules_dir = "./iptable-rules"
+                # Use configured iptables rules path instead of hardcoded path
+                rules_dir = DashboardConfig.GetConfig("Server", "iptable_rules_path")[1]
                 os.makedirs(rules_dir, exist_ok=True)
 
                 # Process each script
                 for script_key, script_type in script_files.items():
                     if script_key in scripts and scripts[script_key]:  # Check if script exists and is not empty
-                        script_path = os.path.join(rules_dir, f"{self.Name}-{script_type}.sh")
-                        print(f"Restoring {script_key} to {script_path}")  # Debug log
+                        # Determine the correct directory structure based on config name
+                        if self.Name in ['ADMINS', 'MEMBERS', 'GUESTS', 'LANP2P']:
+                            # Use the special directory structure for pregenerated configs
+                            if self.Name == 'ADMINS':
+                                script_subdir = 'Admins'
+                            elif self.Name == 'MEMBERS':
+                                script_subdir = 'Members'
+                            elif self.Name == 'GUESTS':
+                                script_subdir = 'Guest'
+                            elif self.Name == 'LANP2P':
+                                script_subdir = 'LAN-only-users'
+                            
+                            script_dir = os.path.join(rules_dir, script_subdir)
+                            os.makedirs(script_dir, exist_ok=True)
+                            script_path = os.path.join(script_dir, f"{script_type}.sh")
+                        else:
+                            # Use subdirectory structure for all custom configs
+                            script_dir = os.path.join(rules_dir, self.Name)
+                            os.makedirs(script_dir, exist_ok=True)
+                            script_path = os.path.join(script_dir, f"{script_type}.sh")
+                        
+                        logger.debug(f"Restoring {script_key} to {script_path}")
 
                         with open(script_path, 'w') as f:
                             f.write(scripts[script_key])
                         os.chmod(script_path, 0o755)
 
             except Exception as e:
-                print(f"Warning: Failed to restore iptables scripts: {e}")
+                logger.warning(f"Failed to restore iptables scripts: {e}")
                 # Continue execution even if script restoration fails
                 pass
-
         return True
+
 
     def deleteBackup(self, backupFileName: str) -> bool:
         """Enhanced delete method with organized directory structure that handles uploaded backups"""
@@ -1158,12 +1459,12 @@ class Configuration:
             files_to_delete = [
                 # Regular backup files
                 backup_paths['conf_file'],
-                backup_paths['sql_file'],
+                backup_paths['redis_file'],
                 backup_paths['iptables_file'],
 
                 # Handle potential uploaded backup files
                 os.path.join(backup_paths['config_dir'], backupFileName),
-                os.path.join(backup_paths['config_dir'], backupFileName.replace('.conf', '.sql')),
+                os.path.join(backup_paths['config_dir'], backupFileName.replace('.conf', '.redis')),
                 os.path.join(backup_paths['config_dir'], backupFileName.replace('.conf', '_iptables.json'))
             ]
 
@@ -1171,21 +1472,21 @@ class Configuration:
             for file_path in files_to_delete:
                 if os.path.exists(file_path):
                     os.remove(file_path)
-                    print(f"[WireGate] Deleted backup file: {file_path}")
+                    logger.debug(f"Deleted backup file: {file_path}")
 
             # Clean up empty config directory
             try:
                 if os.path.exists(backup_paths['config_dir']):
                     if not os.listdir(backup_paths['config_dir']):
                         os.rmdir(backup_paths['config_dir'])
-                        print(f"[WireGate] Removed empty backup directory: {backup_paths['config_dir']}")
+                        logger.debug(f"Removed empty backup directory: {backup_paths['config_dir']}")
             except OSError as e:
                 # Directory not empty or other OS error, log but continue
-                print(f"[WireGate] Note: Could not remove backup directory: {str(e)}")
+                logger.debug(f"Note: Could not remove backup directory: {str(e)}")
                 pass
 
         except Exception as e:
-            print(f"[WireGate] Error deleting backup files: {str(e)}")
+            logger.error(f"Error deleting backup files: {str(e)}")
             return False
 
         return True
@@ -1216,7 +1517,7 @@ class Configuration:
                         else:
                             setattr(self, key, str(newData[key]))
                         dataChanged = True
-                    print(original[line])
+                    logger.debug(f"Original line: {original[line]}")
         if dataChanged:
 
             if not os.path.exists(
@@ -1265,9 +1566,9 @@ class Configuration:
         if len(self.Address) < 0:
             return False, None
         
-        print(f"[DEBUG] getAvailableIP for {self.Name} (all={all})")
+        logger.debug(f" getAvailableIP for {self.Name} (all={all})")
         address = self.Address.split(',')
-        print(f"[DEBUG] Interface addresses: {address}")
+        logger.debug(f" Interface addresses: {address}")
         
         existedAddress = []
         availableAddress = []
@@ -1281,9 +1582,9 @@ class Configuration:
                     try:
                         ip = ipaddress.ip_address(a.replace(" ", ""))
                         existedAddress.append(ip)
-                        print(f"[DEBUG] Added peer {p.name} ({p.id[:8]}...) IP: {ip} (v{ip.version})")
+                        logger.debug(f" Added peer {p.name} ({p.id[:8]}...) IP: {ip} (v{ip.version})")
                     except ValueError as error:
-                        print(f"[WireGate] Error: {self.Name} peer {p.id} have invalid ip")
+                        logger.error(f"{self.Name} peer {p.id} have invalid ip")
         
         # Collect restricted peer addresses
         for p in self.getRestrictedPeersList():
@@ -1293,19 +1594,19 @@ class Configuration:
                     a, c = i.split('/')
                     ip = ipaddress.ip_address(a.replace(" ", ""))
                     existedAddress.append(ip)
-                    print(f"[DEBUG] Added restricted peer {p.id[:8]}... IP: {ip} (v{ip.version})")
+                    logger.debug(f" Added restricted peer {p.id[:8]}... IP: {ip} (v{ip.version})")
         
         # Add interface addresses to excluded list
         for i in address:
             addressSplit, cidr = i.split('/')
             ip = ipaddress.ip_address(addressSplit.replace(" ", ""))
             existedAddress.append(ip)
-            print(f"[DEBUG] Added interface IP: {ip} (v{ip.version})")
+            logger.debug(f"Added interface IP: {ip} (v{ip.version})")
         
         # Find available addresses in each network
         for i in address:
             network = ipaddress.ip_network(i.replace(" ", ""), False)
-            print(f"[DEBUG] Processing network: {network} (v{network.version})")
+            logger.debug(f"Processing network: {network} (v{network.version})")
             
             count = 0
             ipv6_count = 0
@@ -1319,16 +1620,16 @@ class Configuration:
                     if h.version == 6:
                         ipv6_count += 1
                         if ipv6_count <= 5 or ipv6_count % 50 == 0:  # Log first 5 and then every 50th
-                            print(f"[DEBUG] Available IPv6: {h} (#{ipv6_count})")
+                            logger.debug(f"Available IPv6: {h} (#{ipv6_count})")
                     
                     if not all:
                         if network.version == 6 and count > 255:
-                            print(f"[DEBUG] Reached IPv6 limit (255) for network {network}")
+                            logger.debug(f"Reached IPv6 limit (255) for network {network}")
                             break
             
-            print(f"[DEBUG] Found {count} available IPs in network {network}")
+            logger.debug(f"Found {count} available IPs in network {network}")
             if network.version == 6:
-                print(f"[DEBUG] Found {ipv6_count} available IPv6 addresses")
+                logger.debug(f"Found {ipv6_count} available IPv6 addresses")
         
         # Debug the final results by IP version
         ipv4_addresses = []
@@ -1346,17 +1647,11 @@ class Configuration:
                 else:
                     ipv6_addresses.append(addr)
             except ValueError:
-                print(f"[DEBUG] Invalid IP address in results: {addr}")
+                logger.debug(f"Invalid IP address in results: {addr}")
         
-        print(f"[DEBUG] Total available addresses: {len(availableAddress)}")
-        print(f"[DEBUG] IPv4 addresses: {len(ipv4_addresses)}")
-        print(f"[DEBUG] IPv6 addresses: {len(ipv6_addresses)}")
-        
-        # Print sample of returned addresses
-        if ipv4_addresses:
-            print(f"[DEBUG] Sample IPv4 addresses: {ipv4_addresses[:5]}")
-        if ipv6_addresses:
-            print(f"[DEBUG] Sample IPv6 addresses: {ipv6_addresses[:5]}")
+        logger.debug(f"Total available addresses: {len(availableAddress)}")
+        logger.debug(f"IPv4 addresses: {len(ipv4_addresses)}")
+        logger.debug(f"IPv6 addresses: {len(ipv6_addresses)}")
             
         return True, availableAddress
 
@@ -1380,14 +1675,14 @@ class Configuration:
                 result["recv"] = round(result["recv"] * 1.261, 3)  # Fixed typo in original (01.261)
             
             # Add logging
-            print(f"[DEBUG] Interface {self.Name} (from ip) traffic: in={result['recv']}MB/s, out={result['sent']}MB/s, period={result['sample_period']}s")
+            logger.debug(f" Interface {self.Name} (from ip) traffic: in={result['recv']}MB/s, out={result['sent']}MB/s, period={result['sample_period']}s")
             
             return {
                 "sent": result["recv"],
                 "recv": result["sent"]
             }
         except Exception as e:
-            print(f"[ERROR] Failed to get real-time traffic from ip: {str(e)}")
+            logger.error(f"Failed to get real-time traffic from ip: {str(e)}")
             return {"sent": 0, "recv": 0}
 
     def getRealtimeTrafficFromPeers(self):
@@ -1398,28 +1693,28 @@ class Configuration:
 class Peer:
     def __init__(self, tableData, configuration: Configuration):
         self.configuration = configuration
-        self.id = tableData["id"]
-        self.private_key = tableData["private_key"]
-        self.DNS = tableData["DNS"]
-        self.endpoint_allowed_ip = tableData["endpoint_allowed_ip"]
-        self.name = tableData["name"]
-        self.total_receive = tableData["total_receive"]
-        self.total_sent = tableData["total_sent"]
-        self.total_data = tableData["total_data"]
-        self.endpoint = tableData["endpoint"]
-        self.status = tableData["status"]
-        self.latest_handshake = tableData["latest_handshake"]
-        self.allowed_ip = tableData["allowed_ip"]
-        self.cumu_receive = tableData["cumu_receive"]
-        self.cumu_sent = tableData["cumu_sent"]
-        self.cumu_data = tableData["cumu_data"]
-        self.mtu = tableData["mtu"]
-        self.keepalive = tableData["keepalive"]
-        self.remote_endpoint = tableData["remote_endpoint"]
-        self.preshared_key = tableData["preshared_key"]
-        self.upload_rate_limit = tableData["upload_rate_limit"]
-        self.download_rate_limit = tableData["download_rate_limit"]
-        self.scheduler_type = tableData["scheduler_type"]
+        self.id = tableData.get("id", "")
+        self.private_key = tableData.get("private_key", "")
+        self.DNS = tableData.get("DNS", "")
+        self.endpoint_allowed_ip = tableData.get("endpoint_allowed_ip", "")
+        self.name = tableData.get("name", "")
+        self.total_receive = tableData.get("total_receive", 0)
+        self.total_sent = tableData.get("total_sent", 0)
+        self.total_data = tableData.get("total_data", 0)
+        self.endpoint = tableData.get("endpoint", "N/A")
+        self.status = tableData.get("status", "stopped")
+        self.latest_handshake = tableData.get("latest_handshake", "N/A")
+        self.allowed_ip = tableData.get("allowed_ip", "N/A")
+        self.cumu_receive = tableData.get("cumu_receive", 0)
+        self.cumu_sent = tableData.get("cumu_sent", 0)
+        self.cumu_data = tableData.get("cumu_data", 0)
+        self.mtu = tableData.get("mtu", 1420)
+        self.keepalive = tableData.get("keepalive", 21)
+        self.remote_endpoint = tableData.get("remote_endpoint", "N/A")
+        self.preshared_key = tableData.get("preshared_key", "")
+        self.upload_rate_limit = tableData.get("upload_rate_limit", 0)
+        self.download_rate_limit = tableData.get("download_rate_limit", 0)
+        self.scheduler_type = tableData.get("scheduler_type", "htb")
         self.jobs: list[PeerJob] = []
         self.ShareLink: list[PeerShareLink] = []
         self.getJobs()
@@ -1470,21 +1765,39 @@ class Peer:
                     f.write(preshared_key)
             newAllowedIPs = allowed_ip.replace(" ", "")
 
-            cmd = (
-                    f"{cmd_prefix} set {self.configuration.Name} peer {self.id} allowed-ips {newAllowedIPs} {f' preshared-key {uid}' if pskExist else 'preshared-key /dev/null'}")
-            updateAllowedIp = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+            if cmd_prefix == "awg":
+                result = execute_awg_command(
+                    action='set',
+                    interface=self.configuration.Name,
+                    peer_key=self.id,
+                    allowed_ips=newAllowedIPs,
+                    preshared_key=preshared_key if pskExist else None
+                )
+            else:
+                result = execute_wg_command(
+                    action='set',
+                    interface=self.configuration.Name,
+                    peer_key=self.id,
+                    allowed_ips=newAllowedIPs,
+                    preshared_key=preshared_key if pskExist else None
+                )
+            if not result['success']:
+                return ResponseObject(False, f"Failed to update allowed IPs: {result.get('error', result.get('stderr', 'Unknown error'))}")
 
             if pskExist: os.remove(uid)
 
-            if len(updateAllowedIp.decode().strip("\n")) != 0:
+            if result['stderr'] and len(result['stderr'].strip()) != 0:
                 return ResponseObject(False,
                                       "Update peer failed when updating Allowed IPs")
             
-            cmd = (
-                    f"{cmd_prefix}-quick save {self.configuration.Name}")
-            saveConfig = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT)
+            if cmd_prefix == "awg":
+                result = execute_awg_quick_command('save', self.configuration.Name)
+            else:
+                result = execute_wg_quick_command('save', self.configuration.Name)
+            if not result['success']:
+                return ResponseObject(False, f"Failed to save configuration: {result.get('error', result.get('stderr', 'Unknown error'))}")
 
-            if f"{cmd_prefix} showconf {self.configuration.Name}" not in saveConfig.decode().strip('\n'):
+            if f"{cmd_prefix} showconf {self.configuration.Name}" not in result['stdout'].strip():
                 return ResponseObject(False,
                                       "Update peer failed when saving the configuration")
             self.configuration.db.update_peer(self.id, {
@@ -1547,8 +1860,20 @@ PersistentKeepalive = {str(self.keepalive)}
             "file": peerConfiguration
         }
 
-    def getJobs(self):
-        self.jobs = AllPeerJobs.searchJob(self.configuration.Name, self.id)
+    def getJobs(self, force_refresh=False):
+        logger.debug(f" getJobs called for peer {self.id} in config {self.configuration.Name}")
+        # Only reload if jobs list is empty or we need to refresh
+        if not hasattr(self, 'jobs') or not self.jobs or force_refresh:
+            self.jobs = AllPeerJobs.searchJob(self.configuration.Name, self.id)
+            logger.debug(f" Found {len(self.jobs)} jobs for peer {self.id}")
+            for i, job in enumerate(self.jobs):
+                logger.debug(f"   Job {i+1}: {job.toJson()}")
+        else:
+            logger.debug(f" Using cached jobs for peer {self.id}: {len(self.jobs)} jobs")
+    
+    def refreshJobs(self):
+        """Force refresh jobs from Redis"""
+        self.getJobs(force_refresh=True)
 
     def getShareLink(self):
         self.ShareLink = AllPeerShareLinks.getLink(self.configuration.Name, self.id)
@@ -1564,9 +1889,85 @@ PersistentKeepalive = {str(self.keepalive)}
 
 _, APP_PREFIX = DashboardConfig.GetConfig("Server", "app_prefix")
 
+def cleanup_orphaned_configurations(existing_config_files: set):
+    """
+    Clean up database entries for configurations that no longer have corresponding .conf files.
+    This handles the edge case where Redis data persists but config files don't (e.g., during development).
+    """
+    from .DataBase.DataBaseManager import get_redis_manager
+    
+    try:
+        redis_manager = get_redis_manager()
+        
+        # Get all configuration names from Redis database
+        all_config_keys = redis_manager.get_all_keys()
+        
+        # Extract configuration names from Redis keys
+        db_config_names = set()
+        for key in all_config_keys:
+            # Keys are in format: wiregate:{config_name}:{peer_id}
+            # or wiregate:{config_name}_restrict_access:{peer_id}
+            if key.startswith('wiregate:'):
+                parts = key.split(':')
+                if len(parts) >= 2:
+                    config_name = parts[1]
+                    # Remove _restrict_access suffix if present
+                    if config_name.endswith('_restrict_access'):
+                        config_name = config_name.replace('_restrict_access', '')
+                    db_config_names.add(config_name)
+        
+        # Find orphaned configurations (exist in DB but not in files)
+        orphaned_configs = db_config_names - existing_config_files
+        
+        if orphaned_configs:
+            logger.info(f"Found {len(orphaned_configs)} orphaned configuration(s) in database: {list(orphaned_configs)}")
+            logger.info("Cleaning up orphaned database entries...")
+            
+            for config_name in orphaned_configs:
+                try:
+                    # Delete all keys for this configuration
+                    keys_to_delete = []
+                    for key in all_config_keys:
+                        if key.startswith(f'wiregate:{config_name}:') or key.startswith(f'wiregate:{config_name}_restrict_access:'):
+                            keys_to_delete.append(key)
+                    
+                    if keys_to_delete:
+                        redis_manager.delete_keys(keys_to_delete)
+                        logger.info(f"Cleaned up {len(keys_to_delete)} database entries for orphaned config: {config_name}")
+                
+                except Exception as e:
+                    logger.error(f"Error cleaning up orphaned config {config_name}: {e}")
+            
+            logger.info("Orphaned configuration cleanup completed.")
+        else:
+            logger.info("No orphaned configurations found in database.")
+            
+    except Exception as e:
+        logger.error(f"Error during orphaned configuration cleanup: {e}")
+
 def InitWireguardConfigurationsList(startup: bool = False):
+    # Check for and migrate SQLite databases on startup
+    if startup:
+        logger.info("Checking for SQLite databases to migrate...")
+        if check_and_migrate_sqlite_databases():
+            logger.info("✓ SQLite databases migrated to Redis")
+        else:
+            logger.info("✓ No SQLite databases found to migrate")
+    
     confs = os.listdir(DashboardConfig.GetConfig("Server", "wg_conf_path")[1])
     confs.sort()
+    
+    # Get list of existing configuration files (without .conf extension)
+    existing_config_files = set()
+    for i in confs:
+        if RegexMatch("^(.{1,}).(conf)$", i):
+            existing_config_files.add(i.replace('.conf', ''))
+    
+    # Clean up database entries for configurations that no longer have files
+    if startup:
+        cleanup_orphaned_configurations(existing_config_files)
+    
+    # Load configurations from existing files
     for i in confs:
         if RegexMatch("^(.{1,}).(conf)$", i):
             i = i.replace('.conf', '')
@@ -1579,7 +1980,7 @@ def InitWireguardConfigurationsList(startup: bool = False):
                     Configurations[i] = Configuration(i, startup=startup)
                     # Don't try to call the private method directly
             except Configuration.InvalidConfigurationFileException as e:
-                print(f"{i} have an invalid configuration file.")
+                logger.error(f"{i} have an invalid configuration file.")
 
 def InitRateLimits():
     """Reapply rate limits for all peers across all interfaces"""
@@ -1662,8 +2063,10 @@ class TrafficMonitor:
         """Get raw transfer data using ip command only"""
         try:
             # Use ip -s link show to get interface statistics directly
-            cmd = f"ip -s link show {interface_name}"
-            output = subprocess.check_output(cmd, shell=True, stderr=subprocess.STDOUT, timeout=2)
+            result = execute_ip_command('link_stats', interface_name)
+            if not result['success']:
+                return None
+            output = result['stdout'].encode()
             
             # Parse the output to extract RX/TX bytes
             lines = output.decode("UTF-8").splitlines()
@@ -1701,7 +2104,7 @@ class TrafficMonitor:
                 
         except Exception as e:
             # Log the error
-            print(f"[DEBUG] Could not get interface stats via ip command: {str(e)}")
+            logger.debug(f" Could not get interface stats via ip command: {str(e)}")
         
         # Return empty result if ip command failed
         return {}

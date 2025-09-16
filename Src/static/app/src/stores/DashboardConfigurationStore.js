@@ -20,7 +20,12 @@ export const DashboardConfigurationStore = defineStore('DashboardConfigurationSt
 		ActiveServerConfiguration: undefined,
 		IsElectronApp: false,
 		ShowNavBar: false,
-		Locale: undefined
+		Locale: undefined,
+		loading: {
+			configuration: false,
+			configurations: false,
+			overall: false
+		}
 	}),
 	actions: {
 		initCrossServerConfiguration(){
@@ -59,9 +64,11 @@ export const DashboardConfigurationStore = defineStore('DashboardConfigurationSt
 			localStorage.removeItem('ActiveCrossServerConfiguration')
 		},
 		async getConfiguration(){
+			this.loading.configuration = true;
 			await fetchGet("/api/getDashboardConfiguration", {}, (res) => {
 				if (res.status) this.Configuration = res.data
 			});
+			this.loading.configuration = false;
 		},
 		async signOut(){
 			await fetchGet("/api/signout", {}, () => {

@@ -53,15 +53,15 @@ export default {
                     const currentValue = JSON.parse(this.job.Value || '{}')
                     this.$emit('update:value', JSON.stringify({
                         ...currentValue,
-                        threshold: Number(newValue)
+                        threshold: Number(newValue) || 0
                     }))
                 } catch (e) {
                     this.$emit('update:value', JSON.stringify({
-                        threshold: Number(newValue)
+                        threshold: Number(newValue) || 0
                     }))
                 }
             } else {
-                this.$emit('update:value', String(newValue))
+                this.$emit('update:value', String(newValue || 0))
             }
         }
     },

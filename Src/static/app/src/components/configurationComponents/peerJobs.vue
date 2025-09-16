@@ -25,7 +25,10 @@ export default {
 	},
 	methods:{
 		deleteJob(j){
+			// Remove from frontend state immediately for better UX
 			this.selectedPeer.jobs = this.selectedPeer.jobs.filter(x => x.JobID !== j.JobID);
+			// Emit refresh to update parent component
+			this.$emit('refresh');
 		},
 		addJob(){
 			this.selectedPeer.jobs.unshift(JSON.parse(JSON.stringify({

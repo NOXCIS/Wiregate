@@ -1,62 +1,83 @@
 """
 Peer Job Logger
 """
-import sqlite3, os, uuid
+import os, uuid, json
 from typing import List
+from datetime import datetime
 from ..Logger.Log import Log
 from ..ConfigEnv import (
     CONFIGURATION_PATH
 )
+from ..DataBase.DataBaseManager import get_redis_manager
 
 class PeerJobLogger:
     def __init__(self):
-        self.loggerdb = sqlite3.connect(os.path.join(CONFIGURATION_PATH, 'db', 'wgdashboard_log.db'),
-                                        check_same_thread=False)
-        self.loggerdb.row_factory = sqlite3.Row
+        self.redis_manager = get_redis_manager()
+        self.job_logs_key = "wiregate:job_logs"
+        self.log_counter_key = "wiregate:job_logs:counter"
         self.logs: List[Log] = []
-        self.__createLogDatabase()
+        self.__initialize_redis()
 
-    def __createLogDatabase(self):
-        with self.loggerdb:
-            loggerdbCursor = self.loggerdb.cursor()
-
-            existingTable = loggerdbCursor.execute("SELECT name from sqlite_master where type='table'").fetchall()
-            existingTable = [t['name'] for t in existingTable]
-
-            if "JobLog" not in existingTable:
-                loggerdbCursor.execute(
-                    "CREATE TABLE JobLog (LogID VARCHAR NOT NULL, JobID NOT NULL, LogDate DATETIME DEFAULT (strftime('%Y-%m-%d %H:%M:%S','now', 'localtime')), Status VARCHAR NOT NULL, Message VARCHAR, PRIMARY KEY (LogID))")
-                if self.loggerdb.in_transaction:
-                    self.loggerdb.commit()
+    def __initialize_redis(self):
+        """Initialize Redis with log counter if not exists"""
+        if not self.redis_manager.redis_client.exists(self.log_counter_key):
+            self.redis_manager.redis_client.set(self.log_counter_key, 0)
 
     def log(self, JobID: str, Status: bool = True, Message: str = "") -> bool:
         try:
-            with self.loggerdb:
-                loggerdbCursor = self.loggerdb.cursor()
-                loggerdbCursor.execute(f"INSERT INTO JobLog (LogID, JobID, Status, Message) VALUES (?, ?, ?, ?)",
-                                       (str(uuid.uuid4()), JobID, Status, Message,))
-                if self.loggerdb.in_transaction:
-                    self.loggerdb.commit()
+            log_id = str(uuid.uuid4())
+            log_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            
+            # Prepare log data
+            log_data = {
+                'LogID': log_id,
+                'JobID': JobID,
+                'LogDate': log_date,
+                'Status': str(Status),
+                'Message': Message
+            }
+            
+            # Save to Redis
+            self.redis_manager.redis_client.hset(
+                self.job_logs_key, 
+                log_id, 
+                json.dumps(log_data)
+            )
+            
+            return True
         except Exception as e:
             print(f"[WGDashboard] Peer Job Log Error: {str(e)}")
             return False
-        return True
 
     def getLogs(self, all: bool = False, configName=None) -> list[Log]:
         logs: list[Log] = []
         try:
             from ..Core import AllPeerJobs
             allJobs = AllPeerJobs.getAllJobs(configName)
-            allJobsID = ", ".join([f"'{x.JobID}'" for x in allJobs])
-            with self.loggerdb:
-                loggerdbCursor = self.loggerdb.cursor()
-                table = loggerdbCursor.execute(
-                    f"SELECT * FROM JobLog WHERE JobID IN ({allJobsID}) ORDER BY LogDate DESC").fetchall()
-                self.logs.clear()
-                for l in table:
-                    logs.append(
-                        Log(l["LogID"], l["JobID"], l["LogDate"], l["Status"], l["Message"]))
+            allJobsID = [x.JobID for x in allJobs]
+            
+            # Get all job log keys
+            log_keys = self.redis_manager.redis_client.hkeys(self.job_logs_key)
+            
+            for log_key in log_keys:
+                log_data = self.redis_manager.redis_client.hget(self.job_logs_key, log_key)
+                if log_data:
+                    log_dict = json.loads(log_data)
+                    # Filter by job IDs if configName is specified
+                    if not configName or log_dict.get('JobID') in allJobsID:
+                        logs.append(Log(
+                            log_dict['LogID'], 
+                            log_dict['JobID'], 
+                            log_dict['LogDate'], 
+                            log_dict['Status'] == 'True', 
+                            log_dict['Message']
+                        ))
+            
+            # Sort by date descending
+            logs.sort(key=lambda x: x.LogDate, reverse=True)
+            
         except Exception as e:
+            print(f"[PeerJobLogger] Error getting logs: {e}")
             return logs
         return logs
 

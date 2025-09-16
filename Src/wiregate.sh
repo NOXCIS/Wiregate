@@ -3,8 +3,43 @@
 # Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
 # Under MIT License
 
-#trap "kill $TOP_PID"
+# Set up signal handling for the main script
 export TOP_PID=$$
+trap 'cleanup_and_exit' SIGTERM SIGINT SIGQUIT
+
+# Array to store child process PIDs
+declare -a CHILD_PIDS=()
+
+cleanup_and_exit() {
+    echo "[WIREGATE] Received stop signal. Cleaning up child processes..."
+    
+    # Kill all child processes
+    for pid in "${CHILD_PIDS[@]}"; do
+        if ps -p "$pid" > /dev/null 2>&1; then
+            echo "[WIREGATE] Stopping child process $pid"
+            kill -TERM "$pid" 2>/dev/null || true
+        fi
+    done
+    
+    # Wait a moment for graceful shutdown
+    sleep 2
+    
+    # Force kill any remaining child processes
+    for pid in "${CHILD_PIDS[@]}"; do
+        if ps -p "$pid" > /dev/null 2>&1; then
+            echo "[WIREGATE] Force killing child process $pid"
+            kill -KILL "$pid" 2>/dev/null || true
+        fi
+    done
+    
+    # Clean up any remaining processes
+    pkill -f "tor" 2>/dev/null || true
+    pkill -f "vanguards" 2>/dev/null || true
+    pkill -f "torflux" 2>/dev/null || true
+    
+    echo "[WIREGATE] Cleanup complete. Exiting."
+    exit 0
+}
 heavy_checkmark=$(printf "\xE2\x9C\x94")
 heavy_crossmark=$(printf "\xE2\x9C\x97")
 PID_FILE=./dashboard.pid
@@ -189,7 +224,13 @@ generate_vanguard_tor_ctrl_pass() {
 run_tor_flux() {
     # Start both Tor processes
     { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> "$log_dir/tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
+    local tor_pid1=$!
     { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> "$log_dir/dns_tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
+    local tor_pid2=$!
+    
+    # Store Tor PIDs for cleanup
+    echo "$tor_pid1" > "$log_dir/tor_pid1.txt" 2>/dev/null || true
+    echo "$tor_pid2" > "$log_dir/tor_pid2.txt" 2>/dev/null || true
 
     start_time=$(date +%s)
     retries=0
@@ -234,7 +275,13 @@ run_tor_flux() {
 
             # Restart Tor processes and capture their PIDs
             { date; tor -f /etc/tor/torrc; printf "\n\n"; } >> "$log_dir/tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
+            tor_pid1=$!
             { date; tor -f /etc/tor/dnstorrc; printf "\n\n"; } >> "$log_dir/dns_tor_startup_log_$(date +'%Y-%m-%d_%H-%M-%S').txt" &
+            tor_pid2=$!
+            
+            # Update stored PIDs
+            echo "$tor_pid1" > "$log_dir/tor_pid1.txt" 2>/dev/null || true
+            echo "$tor_pid2" > "$log_dir/tor_pid2.txt" 2>/dev/null || true
 
             start_time=$(date +%s)
             retries=0
@@ -259,6 +306,8 @@ run_tor_flux() {
         printf "%s\n" "$dashes"
         echo "[TOR] Sending Signal for New Circuits..."
         ./torflux &
+        local torflux_pid=$!
+        CHILD_PIDS+=("$torflux_pid")
         printf "%s\n" "$dashes"
         echo "[TOR] New circuit in $sleep_time seconds..."
     done
@@ -333,38 +382,76 @@ dashboard_start() {
     printf "%s\n" "$equals"
     # Start the dashboard executable in the background and capture its PID
     ./wiregate &
-    echo $! > "$PID_FILE"
-
+    local wiregate_pid=$!
+    echo "$wiregate_pid" > "$PID_FILE"
+    CHILD_PIDS+=("$wiregate_pid")
+    echo "[WIREGATE] Started wiregate process with PID: $wiregate_pid"
 }
 dashboard_stop () {
     printf "%s\n" "$equals"  
     echo "[WIREGATE] Stopping WireGuard Dashboard and Tor."
 
+    # Stop the main wiregate process
     if test -f "$PID_FILE"; then
-        # Kill the process using the PID stored in dashboard.pid
-        sudo kill $(cat "$PID_FILE")
-        # Remove the PID file after stopping the process
+        local pid=$(cat "$PID_FILE")
+        if ps -p "$pid" > /dev/null 2>&1; then
+            echo "[WIREGATE] Stopping main process (PID: $pid)"
+            sudo kill -TERM "$pid" 2>/dev/null || true
+            # Wait for graceful shutdown
+            sleep 2
+            if ps -p "$pid" > /dev/null 2>&1; then
+                echo "[WIREGATE] Force killing main process"
+                sudo kill -KILL "$pid" 2>/dev/null || true
+            fi
+        fi
         rm -f "$PID_FILE"
     else
-        echo "No PID file found. Dashboard may not be running."
+        echo "[WIREGATE] No PID file found. Looking for running processes..."
     fi
-    pkill tor
-    printf "[WIREGATE] Tor EXITED.\n"
+    
+    # Kill any remaining wiregate processes
+    pkill -f "wiregate" 2>/dev/null || true
+    
+    # Stop Tor processes gracefully first
+    echo "[WIREGATE] Stopping Tor processes..."
+    pkill -TERM tor 2>/dev/null || true
+    sleep 2
+    # Force kill any remaining tor processes
+    pkill -KILL tor 2>/dev/null || true
+    
+    # Stop vanguards processes
+    pkill -f "vanguards" 2>/dev/null || true
+    
+    # Stop torflux processes
+    pkill -f "torflux" 2>/dev/null || true
+    
+    printf "[WIREGATE] All processes stopped.\n"
+    printf "%s\n" "$equals"
     exit 0
 }
 stop_wiregate() {
 	if test -f "$PID_FILE"; then
         dashboard_stop
     else
-        # Find the PID(s) of all running 'dashboard' processes
+        # Find the PID(s) of all running 'wiregate' processes
         PIDS=$(ps aux | grep "[.]\/wiregate" | awk '{print $2}')
         
         if [ -z "$PIDS" ]; then
-            echo "No running dashboard processes found."
+            echo "[WIREGATE] No running wiregate processes found."
         else
-            # Kill all running 'dashboard' processes by their PID
-            echo "$PIDS" | xargs sudo kill
+            echo "[WIREGATE] Found running wiregate processes: $PIDS"
+            # Kill all running 'wiregate' processes by their PID
+            echo "$PIDS" | xargs sudo kill -TERM 2>/dev/null || true
+            sleep 2
+            # Force kill if still running
+            echo "$PIDS" | xargs sudo kill -KILL 2>/dev/null || true
         fi
+        
+        # Clean up any remaining processes
+        pkill -f "wiregate" 2>/dev/null || true
+        pkill -f "tor" 2>/dev/null || true
+        pkill -f "vanguards" 2>/dev/null || true
+        pkill -f "torflux" 2>/dev/null || true
     fi
 }
 init_tor_vanguards() {
@@ -468,6 +555,8 @@ init_tor_vanguards() {
         printf "%s\n" "$dashes"
         export VANGUARD_CTRL_PORT=9051
         ./vanguards --one_shot_vanguards &
+        local vanguards_pid1=$!
+        CHILD_PIDS+=("$vanguards_pid1")
         sleep 5  # Short delay between runs
         printf "%s\n" "$dashes"
         # Run vanguards for the second control port (9054)
@@ -475,6 +564,8 @@ init_tor_vanguards() {
         printf "%s\n" "$dashes"
         export VANGUARD_CTRL_PORT=9054
         ./vanguards --one_shot_vanguards &
+        local vanguards_pid2=$!
+        CHILD_PIDS+=("$vanguards_pid2")
         
         printf "%s\n" "$dashes"
         sleep 3600  # Sleep for 1 hour before updating Vanguards again

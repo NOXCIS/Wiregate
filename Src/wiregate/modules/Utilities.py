@@ -1,5 +1,6 @@
 import re, ipaddress
 import subprocess
+from .SecureCommand import execute_wg_command, execute_secure_command
 
 
 def strToBool(value: str) -> bool:
@@ -33,7 +34,7 @@ def get_backup_paths(config_name: str, backup_timestamp: str = None) -> dict:
             'base_dir': backup_dir,
             'config_dir': config_backup_dir,
             'conf_file': os.path.join(config_backup_dir, f'{config_name}_{backup_timestamp}.conf'),
-            'sql_file': os.path.join(config_backup_dir, f'{config_name}_{backup_timestamp}.sql'),
+            'redis_file': os.path.join(config_backup_dir, f'{config_name}_{backup_timestamp}.redis'),
             'iptables_file': os.path.join(config_backup_dir, f'{config_name}_{backup_timestamp}_iptables.json')
         }
     return {
@@ -101,18 +102,23 @@ def ValidateDNSAddress(addresses) -> tuple[bool, str]:
 
 def GenerateWireguardPublicKey(privateKey: str) -> tuple[bool, str] | tuple[bool, None]:
     try:
-        publicKey = subprocess.check_output(f"wg pubkey", input=privateKey.encode(), shell=True,
-                                            stderr=subprocess.STDOUT)
-        return True, publicKey.decode().strip('\n')
-    except subprocess.CalledProcessError:
+        # Use secure command execution with stdin input
+        result = execute_secure_command('wg', ['pubkey'], stdin_input=privateKey)
+        if result['success']:
+            return True, result['stdout'].strip('\n')
+        else:
+            return False, None
+    except Exception:
         return False, None
     
 def GenerateWireguardPrivateKey() -> tuple[bool, str] | tuple[bool, None]:
     try:
-        publicKey = subprocess.check_output(f"wg genkey", shell=True,
-                                            stderr=subprocess.STDOUT)
-        return True, publicKey.decode().strip('\n')
-    except subprocess.CalledProcessError:
+        result = execute_wg_command('genkey')
+        if result['success']:
+            return True, result['stdout'].strip('\n')
+        else:
+            return False, None
+    except Exception:
         return False, None
     
 

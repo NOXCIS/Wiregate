@@ -1,7 +1,7 @@
 from datetime import datetime   
 class PeerJob:
     def __init__(self, JobID: str, Configuration: str, Peer: str,
-                 Field: str, Operator: str, Value: str, CreationDate: datetime, ExpireDate: datetime, Action: str):
+                 Field: str, Operator: str, Value: str, CreationDate: str, ExpireDate: str, Action: str):
         self.Action = Action
         self.ExpireDate = ExpireDate
         self.CreationDate = CreationDate

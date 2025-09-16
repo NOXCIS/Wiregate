@@ -15,7 +15,8 @@
 
 from wiregate.dashboard import app, app_ip, app_port
 from wiregate.modules.Core import InitWireguardConfigurationsList, InitRateLimits
-from wiregate.dashboard import startThreads
+from wiregate.dashboard import startThreads, stopThreads
+from wiregate.modules.DataBase.DataBaseManager import check_and_migrate_sqlite_databases
 import logging
 import uvicorn
 import sys
@@ -23,14 +24,56 @@ import time
 import argparse
 import configparser
 import os
+import signal
+import atexit
 from asgiref.wsgi import WsgiToAsgi
     
 
 from datetime import datetime
 date = datetime.today().strftime('%Y_%m_%d_%H_%M_%S')
 
+# Global variable to track if we're shutting down
+shutdown_requested = False
+
+def signal_handler(signum, frame):
+    """Handle shutdown signals gracefully"""
+    global shutdown_requested
+    if shutdown_requested:
+        print(f"\n[WIREGATE] Force shutdown requested (signal {signum})")
+        sys.exit(1)
+    
+    print(f"\n[WIREGATE] Received signal {signum}. Initiating graceful shutdown...")
+    shutdown_requested = True
+    
+    # Stop threads and cleanup
+    try:
+        stopThreads()
+        print("[WIREGATE] Threads stopped successfully")
+    except Exception as e:
+        print(f"[WIREGATE] Error stopping threads: {e}")
+    
+    # Exit gracefully
+    sys.exit(0)
+
+def cleanup_on_exit():
+    """Cleanup function called on normal exit"""
+    if not shutdown_requested:
+        print("\n[WIREGATE] Normal shutdown requested")
+        try:
+            stopThreads()
+            print("[WIREGATE] Threads stopped successfully")
+        except Exception as e:
+            print(f"[WIREGATE] Error stopping threads: {e}")
 
 if __name__ == "__main__":
+    # Set up signal handlers
+    signal.signal(signal.SIGTERM, signal_handler)
+    signal.signal(signal.SIGINT, signal_handler)
+    signal.signal(signal.SIGQUIT, signal_handler)
+    
+    # Register cleanup function for normal exit
+    atexit.register(cleanup_on_exit)
+    
     # Add argument parser
     parser = argparse.ArgumentParser(description='Wiregate Dashboard Server')
     parser.add_argument('--config', type=str, help='Path to configuration file (defaults to ./db/wsgi.ini)')
@@ -123,6 +166,13 @@ if __name__ == "__main__":
         print(f"\nStarting Wiregate Dashboard with SSL on https://{app_ip}:{app_port}")
     else:
         print(f"\nStarting Wiregate Dashboard on http://{app_ip}:{app_port}")
+    
+    # Check for and migrate any existing SQLite databases to Redis
+    print("Checking for SQLite databases to migrate...")
+    if check_and_migrate_sqlite_databases():
+        print("✓ SQLite databases migrated to Redis")
+    else:
+        print("✓ No SQLite databases found to migrate")
     
     InitWireguardConfigurationsList(startup=True)
     InitRateLimits()

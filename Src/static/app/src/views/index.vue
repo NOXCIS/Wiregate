@@ -6,7 +6,7 @@ import Message from "@/components/messageCentreComponent/message.vue";
 export default {
 	name: "index",
 	components: {Message, Navbar},
-	async setup(){
+	setup(){
 		const dashboardConfigurationStore = DashboardConfigurationStore()
 		return {dashboardConfigurationStore}
 	},
@@ -19,17 +19,15 @@ export default {
 </script>
 
 <template>
-	<div class="container-fluid flex-grow-1 main" :data-bs-theme="this.dashboardConfigurationStore.Configuration.Server.dashboard_theme">
+	<div class="container-fluid flex-grow-1 main" :data-bs-theme="this.dashboardConfigurationStore.Configuration?.Server?.dashboard_theme || 'light'">
 		<div class="row h-100">
 			<Navbar></Navbar>
 			<main class="col-md-9 col-lg-10 overflow-y-scroll mb-0 pt-2">
-				<Suspense>
-					<RouterView v-slot="{Component}">
-						<Transition name="fade2" mode="out-in" appear>
-							<Component :is="Component"></Component>
-						</Transition>
-					</RouterView>
-				</Suspense>
+				<RouterView v-slot="{Component}">
+					<Transition name="fade2" mode="out-in" appear>
+						<Component :is="Component"></Component>
+					</Transition>
+				</RouterView>
 				<div class="messageCentre text-body position-fixed d-flex">
 					<TransitionGroup name="message" tag="div" 
 					                 class="position-relative flex-sm-grow-0 flex-grow-1 d-flex align-items-end ms-sm-auto flex-column gap-2">

@@ -1,0 +1,798 @@
+2025/09/10 23:34:45.965213 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:34:45.965519 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:34:45.965529 Starting traffic-weir...
+2025/09/10 23:34:45.966549 Detected 64-bit rate limit support
+2025/09/10 23:34:45.966569 System supports 64-bit rate limits
+2025/09/10 23:34:45.966574 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:34:45.966578 Using manually selected scheduler type: cake
+2025/09/10 23:34:45.966583 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:34:45.966609 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:34:45.969102 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:34:45.969209 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:34:45.969219 Starting traffic-weir...
+2025/09/10 23:34:45.970039 Detected 64-bit rate limit support
+2025/09/10 23:34:45.970056 System supports 64-bit rate limits
+2025/09/10 23:34:45.970063 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: invalid
+2025/09/10 23:34:45.970068 Using manually selected scheduler type: invalid
+2025/09/10 23:34:45.970072 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:34:45.970087 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:34:45.973307 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:34:45.973432 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:34:45.973443 Starting traffic-weir...
+2025/09/10 23:34:45.974485 Detected 64-bit rate limit support
+2025/09/10 23:34:45.974501 System supports 64-bit rate limits
+2025/09/10 23:34:45.974507 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: htb
+2025/09/10 23:34:45.974512 Using manually selected scheduler type: htb
+2025/09/10 23:34:45.974516 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:34:45.974533 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:34:45.977295 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:34:45.977388 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:34:45.977396 Starting traffic-weir...
+2025/09/10 23:34:45.978238 Detected 64-bit rate limit support
+2025/09/10 23:34:45.978258 System supports 64-bit rate limits
+2025/09/10 23:34:45.978263 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:34:45.978268 Using manually selected scheduler type: cake
+2025/09/10 23:34:45.978272 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:34:45.978290 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:34:45.981028 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:34:45.981174 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:34:45.981185 Starting traffic-weir...
+2025/09/10 23:34:45.982191 Detected 64-bit rate limit support
+2025/09/10 23:34:45.982220 System supports 64-bit rate limits
+2025/09/10 23:34:45.982225 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:34:45.982229 Using manually selected scheduler type: cake
+2025/09/10 23:34:45.982233 Configuration: interface=lo, peer=test_peer, upload-rate=4194303, download-rate=4194303, protocol=wg, remove=true
+2025/09/10 23:34:45.982255 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:34:45.984917 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:34:45.985027 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:34:45.985035 Starting traffic-weir...
+2025/09/10 23:34:45.985044 Nuking all traffic control on interface lo...
+2025/09/10 23:34:45.985491 NOTE: Removing ingress qdisc returned: fork/exec /sbin/tc: no such file or directory
+Output:  (may not exist)
+2025/09/10 23:34:45.985949 NOTE: Removing root qdisc returned: fork/exec /sbin/tc: no such file or directory
+Output:  (may not exist)
+2025/09/10 23:34:45.986362 NOTE: Removing IFB qdisc returned: fork/exec /sbin/tc: no such file or directory
+Output:  (may not exist)
+2025/09/10 23:34:46.026264 NOTE: Removing IFB device returned: exit status 255
+Output: Usage: ip link show [ DEVICE ]
+       ip link set dev DEVICE
+                [ { up | down } ]
+                [ address { LLADDR | factory | random } ]
+                [ mtu MTU ]
+ (may not exist)
+2025/09/10 23:34:46.026298 Successfully nuked all traffic control on interface lo
+2025/09/10 23:34:46.031789 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:34:46.031936 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:34:46.031945 Starting traffic-weir...
+2025/09/10 23:34:46.032911 Detected 64-bit rate limit support
+2025/09/10 23:34:46.032938 System supports 64-bit rate limits
+2025/09/10 23:34:46.032943 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:34:46.032947 Using manually selected scheduler type: cake
+2025/09/10 23:34:46.032951 Configuration: interface=lo, peer=perf_test_peer_1, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:34:46.032966 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:34:46.035096 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:34:46.035192 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:34:46.035200 Starting traffic-weir...
+2025/09/10 23:34:46.036023 Detected 64-bit rate limit support
+2025/09/10 23:34:46.036037 System supports 64-bit rate limits
+2025/09/10 23:34:46.036042 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:34:46.036046 Using manually selected scheduler type: cake
+2025/09/10 23:34:46.036049 Configuration: interface=lo, peer=perf_test_peer_2, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:34:46.036066 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:34:46.038051 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:34:46.038189 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:34:46.038211 Starting traffic-weir...
+2025/09/10 23:34:46.039213 Detected 64-bit rate limit support
+2025/09/10 23:34:46.039236 System supports 64-bit rate limits
+2025/09/10 23:34:46.039240 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:34:46.039245 Using manually selected scheduler type: cake
+2025/09/10 23:34:46.039248 Configuration: interface=lo, peer=perf_test_peer_3, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:34:46.039264 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:34:46.041581 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:34:46.041701 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:34:46.041709 Starting traffic-weir...
+2025/09/10 23:34:46.042715 Detected 64-bit rate limit support
+2025/09/10 23:34:46.042740 System supports 64-bit rate limits
+2025/09/10 23:34:46.042744 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:34:46.042749 Using manually selected scheduler type: cake
+2025/09/10 23:34:46.042753 Configuration: interface=lo, peer=perf_test_peer_4, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:34:46.042770 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:34:46.044808 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:34:46.044938 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:34:46.044954 Starting traffic-weir...
+2025/09/10 23:34:46.046119 Detected 64-bit rate limit support
+2025/09/10 23:34:46.046143 System supports 64-bit rate limits
+2025/09/10 23:34:46.046147 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:34:46.046151 Using manually selected scheduler type: cake
+2025/09/10 23:34:46.046154 Configuration: interface=lo, peer=perf_test_peer_5, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:34:46.046170 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:34:46.048476 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:34:46.048606 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:34:46.048613 Starting traffic-weir...
+2025/09/10 23:34:46.049653 Detected 64-bit rate limit support
+2025/09/10 23:34:46.049673 System supports 64-bit rate limits
+2025/09/10 23:34:46.049677 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:34:46.049682 Using manually selected scheduler type: cake
+2025/09/10 23:34:46.049685 Configuration: interface=lo, peer=perf_test_peer_6, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:34:46.049709 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:34:46.051834 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:34:46.051935 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:34:46.051942 Starting traffic-weir...
+2025/09/10 23:34:46.052808 Detected 64-bit rate limit support
+2025/09/10 23:34:46.052824 System supports 64-bit rate limits
+2025/09/10 23:34:46.052828 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:34:46.052831 Using manually selected scheduler type: cake
+2025/09/10 23:34:46.052834 Configuration: interface=lo, peer=perf_test_peer_7, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:34:46.052853 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:34:46.055293 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:34:46.055427 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:34:46.055437 Starting traffic-weir...
+2025/09/10 23:34:46.056401 Detected 64-bit rate limit support
+2025/09/10 23:34:46.056424 System supports 64-bit rate limits
+2025/09/10 23:34:46.056428 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:34:46.056435 Using manually selected scheduler type: cake
+2025/09/10 23:34:46.056439 Configuration: interface=lo, peer=perf_test_peer_8, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:34:46.056456 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:34:46.058579 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:34:46.058669 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:34:46.058675 Starting traffic-weir...
+2025/09/10 23:34:46.059552 Detected 64-bit rate limit support
+2025/09/10 23:34:46.059566 System supports 64-bit rate limits
+2025/09/10 23:34:46.059570 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:34:46.059573 Using manually selected scheduler type: cake
+2025/09/10 23:34:46.059577 Configuration: interface=lo, peer=perf_test_peer_9, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:34:46.059592 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:34:46.061529 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:34:46.061614 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:34:46.061620 Starting traffic-weir...
+2025/09/10 23:34:46.062667 Detected 64-bit rate limit support
+2025/09/10 23:34:46.062691 System supports 64-bit rate limits
+2025/09/10 23:34:46.062701 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:34:46.062704 Using manually selected scheduler type: cake
+2025/09/10 23:34:46.062706 Configuration: interface=lo, peer=perf_test_peer_10, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:34:46.062721 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:26.522910 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:26.525242 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:26.525259 Starting traffic-weir...
+2025/09/10 23:38:26.526383 Detected 64-bit rate limit support
+2025/09/10 23:38:26.526417 System supports 64-bit rate limits
+2025/09/10 23:38:26.526423 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:38:26.526429 Using manually selected scheduler type: cake
+2025/09/10 23:38:26.526433 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:38:26.526451 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:26.529051 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:26.529180 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:26.529191 Starting traffic-weir...
+2025/09/10 23:38:26.530081 Detected 64-bit rate limit support
+2025/09/10 23:38:26.530104 System supports 64-bit rate limits
+2025/09/10 23:38:26.530112 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: htb
+2025/09/10 23:38:26.530118 Using manually selected scheduler type: htb
+2025/09/10 23:38:26.530123 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:38:26.530141 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:26.532237 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:26.532340 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:26.532352 Starting traffic-weir...
+2025/09/10 23:38:26.533241 Detected 64-bit rate limit support
+2025/09/10 23:38:26.533265 System supports 64-bit rate limits
+2025/09/10 23:38:26.533271 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: hfsc
+2025/09/10 23:38:26.533276 Using manually selected scheduler type: hfsc
+2025/09/10 23:38:26.533280 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:38:26.533296 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:26.535689 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:26.535790 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:26.535798 Starting traffic-weir...
+2025/09/10 23:38:26.536677 Detected 64-bit rate limit support
+2025/09/10 23:38:26.536698 System supports 64-bit rate limits
+2025/09/10 23:38:26.536706 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:38:26.536713 Using manually selected scheduler type: cake
+2025/09/10 23:38:26.536718 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:38:26.536737 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:26.539833 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:26.539936 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:26.539944 Starting traffic-weir...
+2025/09/10 23:38:26.541065 Detected 64-bit rate limit support
+2025/09/10 23:38:26.541112 System supports 64-bit rate limits
+2025/09/10 23:38:26.541125 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:38:26.541137 Using manually selected scheduler type: cake
+2025/09/10 23:38:26.541146 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:38:26.541194 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:26.544375 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:26.544514 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:26.544525 Starting traffic-weir...
+2025/09/10 23:38:26.545781 Detected 64-bit rate limit support
+2025/09/10 23:38:26.545813 System supports 64-bit rate limits
+2025/09/10 23:38:26.545820 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:38:26.545830 Using manually selected scheduler type: cake
+2025/09/10 23:38:26.545835 Configuration: interface=lo, peer=test_peer, upload-rate=4194303, download-rate=4194303, protocol=wg, remove=true
+2025/09/10 23:38:26.545859 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:26.548555 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:26.548684 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:26.548697 Starting traffic-weir...
+2025/09/10 23:38:26.549832 Detected 64-bit rate limit support
+2025/09/10 23:38:26.549864 System supports 64-bit rate limits
+2025/09/10 23:38:26.549875 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:38:26.549884 Using manually selected scheduler type: cake
+2025/09/10 23:38:26.549890 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:38:26.549916 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:26.553130 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:26.553297 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:26.553309 Starting traffic-weir...
+2025/09/10 23:38:26.554433 Detected 64-bit rate limit support
+2025/09/10 23:38:26.554471 System supports 64-bit rate limits
+2025/09/10 23:38:26.554480 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:38:26.554489 Using manually selected scheduler type: cake
+2025/09/10 23:38:26.554494 Configuration: interface=nonexistent_interface, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:38:26.554514 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:26.557408 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:26.557570 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:26.557581 Starting traffic-weir...
+2025/09/10 23:38:26.558806 Detected 64-bit rate limit support
+2025/09/10 23:38:26.558841 System supports 64-bit rate limits
+2025/09/10 23:38:26.558849 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: htb
+2025/09/10 23:38:26.558865 Using manually selected scheduler type: htb
+2025/09/10 23:38:26.558875 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:38:26.558902 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:26.561942 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:26.562058 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:26.562070 Starting traffic-weir...
+2025/09/10 23:38:26.563517 Detected 64-bit rate limit support
+2025/09/10 23:38:26.563541 System supports 64-bit rate limits
+2025/09/10 23:38:26.563552 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: hfsc
+2025/09/10 23:38:26.563561 Using manually selected scheduler type: hfsc
+2025/09/10 23:38:26.563567 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:38:26.563590 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:26.566842 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:26.566978 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:26.566989 Starting traffic-weir...
+2025/09/10 23:38:26.568209 Detected 64-bit rate limit support
+2025/09/10 23:38:26.568244 System supports 64-bit rate limits
+2025/09/10 23:38:26.568252 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:38:26.568259 Using manually selected scheduler type: cake
+2025/09/10 23:38:26.568263 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:38:26.568289 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:26.571295 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:26.571497 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:26.571509 Starting traffic-weir...
+2025/09/10 23:38:26.572669 Detected 64-bit rate limit support
+2025/09/10 23:38:26.572692 System supports 64-bit rate limits
+2025/09/10 23:38:26.572699 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:38:26.572705 Using manually selected scheduler type: cake
+2025/09/10 23:38:26.572710 Configuration: interface=lo, peer=integration_test_peer, upload-rate=5000, download-rate=10000, protocol=wg, remove=false
+2025/09/10 23:38:26.572728 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:26.575413 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:26.575563 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:26.575573 Starting traffic-weir...
+2025/09/10 23:38:26.576705 Detected 64-bit rate limit support
+2025/09/10 23:38:26.576735 System supports 64-bit rate limits
+2025/09/10 23:38:26.576743 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:38:26.576750 Using manually selected scheduler type: cake
+2025/09/10 23:38:26.576755 Configuration: interface=lo, peer=integration_test_peer, upload-rate=4194303, download-rate=4194303, protocol=wg, remove=true
+2025/09/10 23:38:26.576773 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:26.579561 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:26.579683 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:26.579693 Starting traffic-weir...
+2025/09/10 23:38:26.579704 Nuking all traffic control on interface lo...
+2025/09/10 23:38:26.580270 NOTE: Removing ingress qdisc returned: fork/exec /sbin/tc: no such file or directory
+Output:  (may not exist)
+2025/09/10 23:38:26.580934 NOTE: Removing root qdisc returned: fork/exec /sbin/tc: no such file or directory
+Output:  (may not exist)
+2025/09/10 23:38:26.581377 NOTE: Removing IFB qdisc returned: fork/exec /sbin/tc: no such file or directory
+Output:  (may not exist)
+2025/09/10 23:38:26.638853 NOTE: Removing IFB device returned: exit status 255
+Output: Usage: ip link show [ DEVICE ]
+       ip link set dev DEVICE
+                [ { up | down } ]
+                [ address { LLADDR | factory | random } ]
+                [ mtu MTU ]
+ (may not exist)
+2025/09/10 23:38:26.638893 Successfully nuked all traffic control on interface lo
+2025/09/10 23:38:26.641997 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:26.642166 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:26.642176 Starting traffic-weir...
+2025/09/10 23:38:26.643133 Detected 64-bit rate limit support
+2025/09/10 23:38:26.643156 System supports 64-bit rate limits
+2025/09/10 23:38:26.643163 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:38:26.643169 Using manually selected scheduler type: cake
+2025/09/10 23:38:26.643173 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:38:26.643189 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:47.133568 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:47.133731 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:47.133743 Starting traffic-weir...
+2025/09/10 23:38:47.134679 Detected 64-bit rate limit support
+2025/09/10 23:38:47.134699 System supports 64-bit rate limits
+2025/09/10 23:38:47.134706 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:38:47.134711 Using manually selected scheduler type: cake
+2025/09/10 23:38:47.134717 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:38:47.134738 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:47.136980 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:47.137085 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:47.137096 Starting traffic-weir...
+2025/09/10 23:38:47.138454 Detected 64-bit rate limit support
+2025/09/10 23:38:47.138488 System supports 64-bit rate limits
+2025/09/10 23:38:47.138497 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: htb
+2025/09/10 23:38:47.138502 Using manually selected scheduler type: htb
+2025/09/10 23:38:47.138507 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:38:47.138532 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:47.140851 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:47.140951 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:47.140959 Starting traffic-weir...
+2025/09/10 23:38:47.141792 Detected 64-bit rate limit support
+2025/09/10 23:38:47.141810 System supports 64-bit rate limits
+2025/09/10 23:38:47.141815 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: hfsc
+2025/09/10 23:38:47.141820 Using manually selected scheduler type: hfsc
+2025/09/10 23:38:47.141824 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:38:47.141840 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:47.144015 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:47.144130 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:47.144141 Starting traffic-weir...
+2025/09/10 23:38:47.145118 Detected 64-bit rate limit support
+2025/09/10 23:38:47.145137 System supports 64-bit rate limits
+2025/09/10 23:38:47.145146 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:38:47.145154 Using manually selected scheduler type: cake
+2025/09/10 23:38:47.145170 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:38:47.145193 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:47.148380 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:47.148532 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:47.148545 Starting traffic-weir...
+2025/09/10 23:38:47.149623 Detected 64-bit rate limit support
+2025/09/10 23:38:47.149649 System supports 64-bit rate limits
+2025/09/10 23:38:47.149656 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:38:47.149661 Using manually selected scheduler type: cake
+2025/09/10 23:38:47.149666 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:38:47.149682 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:47.152484 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:47.152643 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:47.152655 Starting traffic-weir...
+2025/09/10 23:38:47.153823 Detected 64-bit rate limit support
+2025/09/10 23:38:47.153850 System supports 64-bit rate limits
+2025/09/10 23:38:47.153857 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:38:47.153864 Using manually selected scheduler type: cake
+2025/09/10 23:38:47.153869 Configuration: interface=lo, peer=test_peer, upload-rate=4194303, download-rate=4194303, protocol=wg, remove=true
+2025/09/10 23:38:47.153890 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:47.156742 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:47.156852 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:47.156861 Starting traffic-weir...
+2025/09/10 23:38:47.157685 Detected 64-bit rate limit support
+2025/09/10 23:38:47.157707 System supports 64-bit rate limits
+2025/09/10 23:38:47.157713 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:38:47.157719 Using manually selected scheduler type: cake
+2025/09/10 23:38:47.157723 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:38:47.157750 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:47.160705 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:47.160867 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:47.160880 Starting traffic-weir...
+2025/09/10 23:38:47.162041 Detected 64-bit rate limit support
+2025/09/10 23:38:47.162068 System supports 64-bit rate limits
+2025/09/10 23:38:47.162076 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:38:47.162083 Using manually selected scheduler type: cake
+2025/09/10 23:38:47.162088 Configuration: interface=nonexistent_interface, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:38:47.162115 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:47.165112 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:47.165253 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:47.165265 Starting traffic-weir...
+2025/09/10 23:38:47.166249 Detected 64-bit rate limit support
+2025/09/10 23:38:47.166273 System supports 64-bit rate limits
+2025/09/10 23:38:47.166282 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: htb
+2025/09/10 23:38:47.166288 Using manually selected scheduler type: htb
+2025/09/10 23:38:47.166293 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:38:47.166313 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:47.168862 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:47.168989 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:47.168998 Starting traffic-weir...
+2025/09/10 23:38:47.169883 Detected 64-bit rate limit support
+2025/09/10 23:38:47.169903 System supports 64-bit rate limits
+2025/09/10 23:38:47.169911 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: hfsc
+2025/09/10 23:38:47.169917 Using manually selected scheduler type: hfsc
+2025/09/10 23:38:47.169921 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:38:47.169939 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:47.172367 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:47.172522 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:47.172538 Starting traffic-weir...
+2025/09/10 23:38:47.173611 Detected 64-bit rate limit support
+2025/09/10 23:38:47.173641 System supports 64-bit rate limits
+2025/09/10 23:38:47.173649 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:38:47.173673 Using manually selected scheduler type: cake
+2025/09/10 23:38:47.173678 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:38:47.173701 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:47.176339 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:47.176482 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:47.176494 Starting traffic-weir...
+2025/09/10 23:38:47.177646 Detected 64-bit rate limit support
+2025/09/10 23:38:47.177663 System supports 64-bit rate limits
+2025/09/10 23:38:47.177674 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:38:47.177679 Using manually selected scheduler type: cake
+2025/09/10 23:38:47.177684 Configuration: interface=lo, peer=integration_test_peer, upload-rate=5000, download-rate=10000, protocol=wg, remove=false
+2025/09/10 23:38:47.177707 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:47.180428 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:47.180560 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:47.180572 Starting traffic-weir...
+2025/09/10 23:38:47.181732 Detected 64-bit rate limit support
+2025/09/10 23:38:47.181757 System supports 64-bit rate limits
+2025/09/10 23:38:47.181765 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:38:47.181772 Using manually selected scheduler type: cake
+2025/09/10 23:38:47.181777 Configuration: interface=lo, peer=integration_test_peer, upload-rate=4194303, download-rate=4194303, protocol=wg, remove=true
+2025/09/10 23:38:47.181798 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:38:47.184181 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:47.184287 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:47.184297 Starting traffic-weir...
+2025/09/10 23:38:47.184309 Nuking all traffic control on interface lo...
+2025/09/10 23:38:47.184801 NOTE: Removing ingress qdisc returned: fork/exec /sbin/tc: no such file or directory
+Output:  (may not exist)
+2025/09/10 23:38:47.185302 NOTE: Removing root qdisc returned: fork/exec /sbin/tc: no such file or directory
+Output:  (may not exist)
+2025/09/10 23:38:47.185761 NOTE: Removing IFB qdisc returned: fork/exec /sbin/tc: no such file or directory
+Output:  (may not exist)
+2025/09/10 23:38:47.219574 NOTE: Removing IFB device returned: exit status 255
+Output: Usage: ip link show [ DEVICE ]
+       ip link set dev DEVICE
+                [ { up | down } ]
+                [ address { LLADDR | factory | random } ]
+                [ mtu MTU ]
+ (may not exist)
+2025/09/10 23:38:47.219620 Successfully nuked all traffic control on interface lo
+2025/09/10 23:38:47.222923 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:38:47.223142 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:38:47.223154 Starting traffic-weir...
+2025/09/10 23:38:47.224165 Detected 64-bit rate limit support
+2025/09/10 23:38:47.224190 System supports 64-bit rate limits
+2025/09/10 23:38:47.224197 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:38:47.224203 Using manually selected scheduler type: cake
+2025/09/10 23:38:47.224207 Configuration: interface=lo, peer=test_peer, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:38:47.224224 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/10 23:51:03.578284 Found WireGuard at: /opt/homebrew/bin/wg
+2025/09/10 23:51:03.578689 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/10 23:51:03.578704 Starting traffic-weir...
+2025/09/10 23:51:03.579867 Detected 64-bit rate limit support
+2025/09/10 23:51:03.579888 System supports 64-bit rate limits
+2025/09/10 23:51:03.579906 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/10 23:51:03.579911 Using manually selected scheduler type: cake
+2025/09/10 23:51:03.579914 Configuration: interface=lo, peer=test_peer_12345, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/10 23:51:03.579937 ERROR: tc command not found at /sbin/tc. Please install iproute2.
+2025/09/11 03:51:23.125747 WARNING: WireGuard executable not found: executable not found in PATH or common locations
+2025/09/11 03:51:23.126183 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/11 03:51:23.126267 Starting traffic-weir...
+2025/09/11 03:51:23.127723 Detected 64-bit rate limit support
+2025/09/11 03:51:23.127787 System supports 64-bit rate limits
+2025/09/11 03:51:23.127868 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/11 03:51:23.127912 Using manually selected scheduler type: cake
+2025/09/11 03:51:23.127999 Configuration: interface=lo, peer=test_peer_12345, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/11 03:51:23.128079 Fetching peer information for test_peer_12345...
+2025/09/11 03:51:23.128167 Using provided allowed IPs: [127.0.0.1/32]
+2025/09/11 03:51:23.128239 Checking existing traffic control setup on main interface...
+2025/09/11 03:51:23.128868 No cake qdisc found on lo, setting up...
+2025/09/11 03:51:23.128912 Setting up root CAKE qdisc on lo...
+2025/09/11 03:51:23.130569 ERROR: Failed to set up root qdisc: failed to set up root qdisc on lo: exit status 2
+Output: Error: Specified qdisc kind is unknown.
+2025/09/11 03:57:14.945332 WARNING: WireGuard executable not found: executable not found in PATH or common locations
+2025/09/11 03:57:14.945867 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/11 03:57:14.945934 Starting traffic-weir...
+2025/09/11 03:57:14.947375 Detected 64-bit rate limit support
+2025/09/11 03:57:14.947424 System supports 64-bit rate limits
+2025/09/11 03:57:14.947461 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: htb
+2025/09/11 03:57:14.947523 Using manually selected scheduler type: htb
+2025/09/11 03:57:14.947625 Configuration: interface=lo, peer=test_peer_12345, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/11 03:57:14.947707 Fetching peer information for test_peer_12345...
+2025/09/11 03:57:14.947748 Using provided allowed IPs: [127.0.0.1/32]
+2025/09/11 03:57:14.947824 Checking existing traffic control setup on main interface...
+2025/09/11 03:57:14.948414 No htb qdisc found on lo, setting up...
+2025/09/11 03:57:14.948454 Setting up root HTB qdisc on lo...
+2025/09/11 03:57:14.949023 Successfully set up root qdisc on lo
+2025/09/11 03:57:14.949090 Creating class on device lo with classID 1:f632 and rate 2000 Kbps
+2025/09/11 03:57:14.950229 Successfully created class 1:f632 on device lo
+2025/09/11 03:57:14.950283 Adding filters on device lo for peer 127.0.0.1/32 (upload: 0, download: 2000)
+2025/09/11 03:57:14.950355 Adding download filter for 127.0.0.1 on lo
+2025/09/11 03:57:14.951079 Successfully added download filter for 127.0.0.1 on lo
+2025/09/11 03:57:14.951143 Successfully added all filters for peer 127.0.0.1/32 on device lo
+2025/09/11 03:57:14.951197 Setting up IFB device ifb-lo for interface lo
+2025/09/11 03:57:14.954174 WARNING: IFB not supported, falling back to basic tc shaping
+2025/09/11 03:57:14.954254 Setting up basic tc shaping on lo for IP 127.0.0.1/32 at 1000 Kbps
+2025/09/11 03:57:14.955462 Successfully configured rate limiting for peer test_peer_12345 on interface lo
+2025/09/11 03:57:14.959411 WARNING: WireGuard executable not found: executable not found in PATH or common locations
+2025/09/11 03:57:14.959561 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/11 03:57:14.959629 Starting traffic-weir...
+2025/09/11 03:57:14.960831 Detected 64-bit rate limit support
+2025/09/11 03:57:14.960886 System supports 64-bit rate limits
+2025/09/11 03:57:14.961167 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/11 03:57:14.961208 Using manually selected scheduler type: cake
+2025/09/11 03:57:14.961257 Configuration: interface=lo, peer=test_peer_12345, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/11 03:57:14.961344 Fetching peer information for test_peer_12345...
+2025/09/11 03:57:14.961403 Using provided allowed IPs: [127.0.0.1/32]
+2025/09/11 03:57:14.961449 Checking existing traffic control setup on main interface...
+2025/09/11 03:57:14.962057 No cake qdisc found on lo, setting up...
+2025/09/11 03:57:14.962104 Setting up root CAKE qdisc on lo...
+2025/09/11 03:57:14.963487 ERROR: Failed to set up root qdisc: failed to set up root qdisc on lo: exit status 2
+Output: Error: Specified qdisc kind is unknown.
+2025/09/11 03:58:13.279891 WARNING: WireGuard executable not found: executable not found in PATH or common locations
+2025/09/11 03:58:13.280116 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/11 03:58:13.280188 Starting traffic-weir...
+2025/09/11 03:58:13.281626 Detected 64-bit rate limit support
+2025/09/11 03:58:13.281676 System supports 64-bit rate limits
+2025/09/11 03:58:13.281726 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: htb
+2025/09/11 03:58:13.281802 Using manually selected scheduler type: htb
+2025/09/11 03:58:13.281987 Configuration: interface=lo, peer=test_peer_12345, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/11 03:58:13.282066 Fetching peer information for test_peer_12345...
+2025/09/11 03:58:13.282127 Using provided allowed IPs: [127.0.0.1/32]
+2025/09/11 03:58:13.282271 Checking existing traffic control setup on main interface...
+2025/09/11 03:58:13.282979 No htb qdisc found on lo, setting up...
+2025/09/11 03:58:13.283063 Setting up root HTB qdisc on lo...
+2025/09/11 03:58:13.283868 Successfully set up root qdisc on lo
+2025/09/11 03:58:13.283968 Creating class on device lo with classID 1:f632 and rate 2000 Kbps
+2025/09/11 03:58:13.285402 Successfully created class 1:f632 on device lo
+2025/09/11 03:58:13.285476 Adding filters on device lo for peer 127.0.0.1/32 (upload: 0, download: 2000)
+2025/09/11 03:58:13.285584 Adding download filter for 127.0.0.1 on lo
+2025/09/11 03:58:13.286311 Successfully added download filter for 127.0.0.1 on lo
+2025/09/11 03:58:13.286408 Successfully added all filters for peer 127.0.0.1/32 on device lo
+2025/09/11 03:58:13.286501 Setting up IFB device ifb-lo for interface lo
+2025/09/11 03:58:13.288545 WARNING: IFB not supported, falling back to basic tc shaping
+2025/09/11 03:58:13.288612 Setting up basic tc shaping on lo for IP 127.0.0.1/32 at 1000 Kbps
+2025/09/11 03:58:13.289875 Successfully configured rate limiting for peer test_peer_12345 on interface lo
+2025/09/11 03:58:13.294010 WARNING: WireGuard executable not found: executable not found in PATH or common locations
+2025/09/11 03:58:13.294154 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/11 03:58:13.294267 Starting traffic-weir...
+2025/09/11 03:58:13.295431 Detected 64-bit rate limit support
+2025/09/11 03:58:13.295478 System supports 64-bit rate limits
+2025/09/11 03:58:13.295542 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/11 03:58:13.295642 Using manually selected scheduler type: cake
+2025/09/11 03:58:13.295742 Configuration: interface=lo, peer=test_peer_12345, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/11 03:58:13.295853 Fetching peer information for test_peer_12345...
+2025/09/11 03:58:13.295950 Using provided allowed IPs: [127.0.0.1/32]
+2025/09/11 03:58:13.296011 Checking existing traffic control setup on main interface...
+2025/09/11 03:58:13.296563 No cake qdisc found on lo, setting up...
+2025/09/11 03:58:13.296605 Setting up root CAKE qdisc on lo...
+2025/09/11 03:58:13.297981 CAKE not available, falling back to HTB: exit status 2
+2025/09/11 03:58:13.298722 Successfully set up root qdisc on lo
+2025/09/11 03:58:13.298773 Setting up CAKE rate limiting for IP 127.0.0.1/32 (download: 2000, upload: 1000)
+2025/09/11 03:58:13.299391 CAKE not available, falling back to HTB: exit status 2
+2025/09/11 03:58:13.299910 ERROR: Error setting up CAKE rate limits for peer test_peer_12345: failed to set up HTB qdisc: exit status 2, output: Error: Change operation not supported by specified qdisc.
+2025/09/11 03:59:38.893212 WARNING: WireGuard executable not found: executable not found in PATH or common locations
+2025/09/11 03:59:38.893435 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/11 03:59:38.893525 Starting traffic-weir...
+2025/09/11 03:59:38.895061 Detected 64-bit rate limit support
+2025/09/11 03:59:38.895126 System supports 64-bit rate limits
+2025/09/11 03:59:38.895175 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: htb
+2025/09/11 03:59:38.895272 Using manually selected scheduler type: htb
+2025/09/11 03:59:38.895353 Configuration: interface=lo, peer=test_peer_12345, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/11 03:59:38.895543 Fetching peer information for test_peer_12345...
+2025/09/11 03:59:38.895602 Using provided allowed IPs: [127.0.0.1/32]
+2025/09/11 03:59:38.895691 Checking existing traffic control setup on main interface...
+2025/09/11 03:59:38.896427 No htb qdisc found on lo, setting up...
+2025/09/11 03:59:38.896489 Setting up root HTB qdisc on lo...
+2025/09/11 03:59:38.897281 Successfully set up root qdisc on lo
+2025/09/11 03:59:38.897349 Creating class on device lo with classID 1:f632 and rate 2000 Kbps
+2025/09/11 03:59:38.898527 Successfully created class 1:f632 on device lo
+2025/09/11 03:59:38.898577 Adding filters on device lo for peer 127.0.0.1/32 (upload: 0, download: 2000)
+2025/09/11 03:59:38.898649 Adding download filter for 127.0.0.1 on lo
+2025/09/11 03:59:38.899240 Successfully added download filter for 127.0.0.1 on lo
+2025/09/11 03:59:38.899301 Successfully added all filters for peer 127.0.0.1/32 on device lo
+2025/09/11 03:59:38.899372 Setting up IFB device ifb-lo for interface lo
+2025/09/11 03:59:38.901342 WARNING: IFB not supported, falling back to basic tc shaping
+2025/09/11 03:59:38.901404 Setting up basic tc shaping on lo for IP 127.0.0.1/32 at 1000 Kbps
+2025/09/11 03:59:38.902716 Successfully configured rate limiting for peer test_peer_12345 on interface lo
+2025/09/11 03:59:38.906846 WARNING: WireGuard executable not found: executable not found in PATH or common locations
+2025/09/11 03:59:38.906993 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/11 03:59:38.907070 Starting traffic-weir...
+2025/09/11 03:59:38.908185 Detected 64-bit rate limit support
+2025/09/11 03:59:38.908221 System supports 64-bit rate limits
+2025/09/11 03:59:38.908259 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/11 03:59:38.908326 Using manually selected scheduler type: cake
+2025/09/11 03:59:38.908386 Configuration: interface=lo, peer=test_peer_12345, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/11 03:59:38.908442 Fetching peer information for test_peer_12345...
+2025/09/11 03:59:38.908529 Using provided allowed IPs: [127.0.0.1/32]
+2025/09/11 03:59:38.908683 Checking existing traffic control setup on main interface...
+2025/09/11 03:59:38.909266 No cake qdisc found on lo, setting up...
+2025/09/11 03:59:38.909303 Setting up root CAKE qdisc on lo...
+2025/09/11 03:59:38.910700 CAKE not available, falling back to HTB: exit status 2
+2025/09/11 03:59:38.911334 Successfully set up root qdisc on lo
+2025/09/11 03:59:38.911371 Setting up CAKE rate limiting for IP 127.0.0.1/32 (download: 2000, upload: 1000)
+2025/09/11 03:59:38.911934 CAKE not available, falling back to HTB: exit status 2
+2025/09/11 03:59:38.912870 ERROR: Error setting up CAKE rate limits for peer test_peer_12345: failed to set up HTB qdisc: exit status 2, output: Error: Exclusivity flag on, cannot modify.
+2025/09/11 04:00:34.870317 WARNING: WireGuard executable not found: executable not found in PATH or common locations
+2025/09/11 04:00:34.870583 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/11 04:00:34.870677 Starting traffic-weir...
+2025/09/11 04:00:34.872390 Detected 64-bit rate limit support
+2025/09/11 04:00:34.872468 System supports 64-bit rate limits
+2025/09/11 04:00:34.872584 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: htb
+2025/09/11 04:00:34.872680 Using manually selected scheduler type: htb
+2025/09/11 04:00:34.872765 Configuration: interface=lo, peer=test_peer_12345, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/11 04:00:34.872874 Fetching peer information for test_peer_12345...
+2025/09/11 04:00:34.872993 Using provided allowed IPs: [127.0.0.1/32]
+2025/09/11 04:00:34.873067 Checking existing traffic control setup on main interface...
+2025/09/11 04:00:34.873883 No htb qdisc found on lo, setting up...
+2025/09/11 04:00:34.873948 Setting up root HTB qdisc on lo...
+2025/09/11 04:00:34.874620 Successfully set up root qdisc on lo
+2025/09/11 04:00:34.874667 Creating class on device lo with classID 1:f632 and rate 2000 Kbps
+2025/09/11 04:00:34.875669 Successfully created class 1:f632 on device lo
+2025/09/11 04:00:34.875715 Adding filters on device lo for peer 127.0.0.1/32 (upload: 0, download: 2000)
+2025/09/11 04:00:34.875808 Adding download filter for 127.0.0.1 on lo
+2025/09/11 04:00:34.876510 Successfully added download filter for 127.0.0.1 on lo
+2025/09/11 04:00:34.876575 Successfully added all filters for peer 127.0.0.1/32 on device lo
+2025/09/11 04:00:34.876649 Setting up IFB device ifb-lo for interface lo
+2025/09/11 04:00:34.878543 WARNING: IFB not supported, falling back to basic tc shaping
+2025/09/11 04:00:34.878606 Setting up basic tc shaping on lo for IP 127.0.0.1/32 at 1000 Kbps
+2025/09/11 04:00:34.879817 Successfully configured rate limiting for peer test_peer_12345 on interface lo
+2025/09/11 04:00:34.883806 WARNING: WireGuard executable not found: executable not found in PATH or common locations
+2025/09/11 04:00:34.883919 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/11 04:00:34.884004 Starting traffic-weir...
+2025/09/11 04:00:34.885224 Detected 64-bit rate limit support
+2025/09/11 04:00:34.885279 System supports 64-bit rate limits
+2025/09/11 04:00:34.885414 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/11 04:00:34.885485 Using manually selected scheduler type: cake
+2025/09/11 04:00:34.885579 Configuration: interface=lo, peer=test_peer_12345, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/11 04:00:34.885631 Fetching peer information for test_peer_12345...
+2025/09/11 04:00:34.885709 Using provided allowed IPs: [127.0.0.1/32]
+2025/09/11 04:00:34.885842 Checking existing traffic control setup on main interface...
+2025/09/11 04:00:34.886460 No cake qdisc found on lo, setting up...
+2025/09/11 04:00:34.886514 Setting up root CAKE qdisc on lo...
+2025/09/11 04:00:34.887980 CAKE not available, falling back to HTB: exit status 2
+2025/09/11 04:00:34.888648 Successfully set up root qdisc on lo
+2025/09/11 04:00:34.889678 Successfully added CAKE download filter for 127.0.0.1
+2025/09/11 04:00:34.890236 Successfully added CAKE upload filter for 127.0.0.1
+2025/09/11 04:00:34.890304 Successfully configured CAKE rate limiting for peer test_peer_12345 on interface lo
+2025/09/11 04:00:34.893816 WARNING: WireGuard executable not found: executable not found in PATH or common locations
+2025/09/11 04:00:34.893958 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/11 04:00:34.894055 Starting traffic-weir...
+2025/09/11 04:00:34.895243 Detected 64-bit rate limit support
+2025/09/11 04:00:34.895287 System supports 64-bit rate limits
+2025/09/11 04:00:34.895368 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/11 04:00:34.895567 Using manually selected scheduler type: cake
+2025/09/11 04:00:34.895641 Configuration: interface=lo, peer=test_peer_12345, upload-rate=4194303, download-rate=4194303, protocol=wg, remove=true
+2025/09/11 04:00:34.895791 Fetching peer information for test_peer_12345...
+2025/09/11 04:00:34.895845 Using provided allowed IPs: [127.0.0.1/32]
+2025/09/11 04:00:34.895925 Resetting (removing) rate limits for peer test_peer_12345 on interface lo...
+2025/09/11 04:00:34.896062 Removing CAKE rate limiting for IP 127.0.0.1/32
+2025/09/11 04:00:34.897027 Successfully removed CAKE rate limiting for 127.0.0.1
+2025/09/11 04:00:34.897078 Successfully removed rate limits for peer test_peer_12345 on interface lo
+2025/09/11 04:00:34.900244 WARNING: WireGuard executable not found: executable not found in PATH or common locations
+2025/09/11 04:00:34.900402 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/11 04:00:34.900544 Starting traffic-weir...
+2025/09/11 04:00:34.900608 Nuking all traffic control on interface lo...
+2025/09/11 04:00:34.901460 Successfully removed ingress qdisc from lo
+2025/09/11 04:00:34.902058 Successfully removed root qdisc from lo
+2025/09/11 04:00:34.904498 NOTE: Removing IFB qdisc returned: exit status 1
+Output: Cannot find device "ifb-lo"
+ (may not exist)
+2025/09/11 04:00:34.906713 NOTE: Removing IFB device returned: exit status 1
+Output: Cannot find device "ifb-lo"
+ (may not exist)
+2025/09/11 04:00:34.906780 Successfully nuked all traffic control on interface lo
+2025/09/11 04:00:34.910095 WARNING: WireGuard executable not found: executable not found in PATH or common locations
+2025/09/11 04:00:34.910228 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/11 04:00:34.910332 Starting traffic-weir...
+2025/09/11 04:00:34.911672 Detected 64-bit rate limit support
+2025/09/11 04:00:34.911728 System supports 64-bit rate limits
+2025/09/11 04:00:34.911788 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/11 04:00:34.911879 Using manually selected scheduler type: cake
+2025/09/11 04:00:34.911919 Configuration: interface=lo, peer=test_peer_12345, upload-rate=5000, download-rate=10000, protocol=wg, remove=false
+2025/09/11 04:00:34.912113 Fetching peer information for test_peer_12345...
+2025/09/11 04:00:34.912179 Using provided allowed IPs: [127.0.0.1/32]
+2025/09/11 04:00:34.912271 Checking existing traffic control setup on main interface...
+2025/09/11 04:00:34.912803 No cake qdisc found on lo, setting up...
+2025/09/11 04:00:34.912845 Setting up root CAKE qdisc on lo...
+2025/09/11 04:00:34.914182 CAKE not available, falling back to HTB: exit status 2
+2025/09/11 04:00:34.914848 Successfully set up root qdisc on lo
+2025/09/11 04:00:34.915846 Successfully added CAKE download filter for 127.0.0.1
+2025/09/11 04:00:34.916335 Successfully added CAKE upload filter for 127.0.0.1
+2025/09/11 04:00:34.916385 Successfully configured CAKE rate limiting for peer test_peer_12345 on interface lo
+2025/09/11 04:00:34.920708 WARNING: WireGuard executable not found: executable not found in PATH or common locations
+2025/09/11 04:00:34.920866 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/11 04:00:34.920946 Starting traffic-weir...
+2025/09/11 04:00:34.922135 Detected 64-bit rate limit support
+2025/09/11 04:00:34.922183 System supports 64-bit rate limits
+2025/09/11 04:00:34.922233 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/11 04:00:34.922300 Using manually selected scheduler type: cake
+2025/09/11 04:00:34.922379 Configuration: interface=lo, peer=test_peer_12345, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/11 04:00:34.922427 Fetching peer information for test_peer_12345...
+2025/09/11 04:00:34.922483 Using provided allowed IPs: [::1/128]
+2025/09/11 04:00:34.922595 Checking existing traffic control setup on main interface...
+2025/09/11 04:00:34.923168 No cake qdisc found on lo, setting up...
+2025/09/11 04:00:34.923266 Setting up root CAKE qdisc on lo...
+2025/09/11 04:00:34.924851 CAKE not available, falling back to HTB: exit status 2
+2025/09/11 04:00:34.925468 Successfully set up root qdisc on lo
+2025/09/11 04:00:34.926495 Successfully added CAKE download filter for ::1
+2025/09/11 04:00:34.927074 Successfully added CAKE upload filter for ::1
+2025/09/11 04:00:34.927124 Successfully configured CAKE rate limiting for peer test_peer_12345 on interface lo
+2025/09/11 04:02:51.958191 WARNING: WireGuard executable not found: executable not found in PATH or common locations
+2025/09/11 04:02:51.958427 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/11 04:02:51.958530 Starting traffic-weir...
+2025/09/11 04:02:51.960989 Detected 64-bit rate limit support
+2025/09/11 04:02:51.961066 System supports 64-bit rate limits
+2025/09/11 04:02:51.961182 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: htb
+2025/09/11 04:02:51.961235 Using manually selected scheduler type: htb
+2025/09/11 04:02:51.961356 Configuration: interface=lo, peer=test_peer_12345, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/11 04:02:51.961534 Fetching peer information for test_peer_12345...
+2025/09/11 04:02:51.961615 Using provided allowed IPs: [127.0.0.1/32]
+2025/09/11 04:02:51.961800 Checking existing traffic control setup on main interface...
+2025/09/11 04:02:51.962607 No htb qdisc found on lo, setting up...
+2025/09/11 04:02:51.962662 Setting up root HTB qdisc on lo...
+2025/09/11 04:02:51.963555 Successfully set up root qdisc on lo
+2025/09/11 04:02:51.963605 Creating class on device lo with classID 1:f632 and rate 2000 Kbps
+2025/09/11 04:02:51.964724 Successfully created class 1:f632 on device lo
+2025/09/11 04:02:51.964787 Adding filters on device lo for peer 127.0.0.1/32 (upload: 0, download: 2000)
+2025/09/11 04:02:51.964864 Adding download filter for 127.0.0.1 on lo
+2025/09/11 04:02:51.965508 Successfully added download filter for 127.0.0.1 on lo
+2025/09/11 04:02:51.965585 Successfully added all filters for peer 127.0.0.1/32 on device lo
+2025/09/11 04:02:51.965645 Setting up IFB device ifb-lo for interface lo
+2025/09/11 04:02:51.967797 WARNING: IFB not supported, falling back to basic tc shaping
+2025/09/11 04:02:51.967875 Setting up basic tc shaping on lo for IP 127.0.0.1/32 at 1000 Kbps
+2025/09/11 04:02:51.969145 Successfully configured rate limiting for peer test_peer_12345 on interface lo
+2025/09/11 04:02:51.973248 WARNING: WireGuard executable not found: executable not found in PATH or common locations
+2025/09/11 04:02:51.973371 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/11 04:02:51.973556 Starting traffic-weir...
+2025/09/11 04:02:51.974763 Detected 64-bit rate limit support
+2025/09/11 04:02:51.974806 System supports 64-bit rate limits
+2025/09/11 04:02:51.974849 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/11 04:02:51.974902 Using manually selected scheduler type: cake
+2025/09/11 04:02:51.975065 Configuration: interface=lo, peer=test_peer_12345, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/11 04:02:51.975120 Fetching peer information for test_peer_12345...
+2025/09/11 04:02:51.975159 Using provided allowed IPs: [127.0.0.1/32]
+2025/09/11 04:02:51.975221 Checking existing traffic control setup on main interface...
+2025/09/11 04:02:51.975870 No cake qdisc found on lo, setting up...
+2025/09/11 04:02:51.975933 Setting up root CAKE qdisc on lo...
+2025/09/11 04:02:51.977543 CAKE not available, falling back to HTB: exit status 2
+2025/09/11 04:02:51.978124 Successfully set up root qdisc on lo
+2025/09/11 04:02:51.979264 Successfully added CAKE download filter for 127.0.0.1
+2025/09/11 04:02:51.979793 Successfully added CAKE upload filter for 127.0.0.1
+2025/09/11 04:02:51.979830 Successfully configured CAKE rate limiting for peer test_peer_12345 on interface lo
+2025/09/11 04:02:51.983002 WARNING: WireGuard executable not found: executable not found in PATH or common locations
+2025/09/11 04:02:51.983220 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/11 04:02:51.983328 Starting traffic-weir...
+2025/09/11 04:02:51.984572 Detected 64-bit rate limit support
+2025/09/11 04:02:51.984635 System supports 64-bit rate limits
+2025/09/11 04:02:51.984692 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/11 04:02:51.984735 Using manually selected scheduler type: cake
+2025/09/11 04:02:51.984850 Configuration: interface=lo, peer=test_peer_12345, upload-rate=4194303, download-rate=4194303, protocol=wg, remove=true
+2025/09/11 04:02:51.984958 Fetching peer information for test_peer_12345...
+2025/09/11 04:02:51.985006 Using provided allowed IPs: [127.0.0.1/32]
+2025/09/11 04:02:51.985131 Resetting (removing) rate limits for peer test_peer_12345 on interface lo...
+2025/09/11 04:02:51.985260 Removing CAKE rate limiting for IP 127.0.0.1/32
+2025/09/11 04:02:51.986407 Successfully removed CAKE rate limiting for 127.0.0.1
+2025/09/11 04:02:51.986463 Successfully removed rate limits for peer test_peer_12345 on interface lo
+2025/09/11 04:02:51.989492 WARNING: WireGuard executable not found: executable not found in PATH or common locations
+2025/09/11 04:02:51.989619 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/11 04:02:51.989729 Starting traffic-weir...
+2025/09/11 04:02:51.989803 Nuking all traffic control on interface lo...
+2025/09/11 04:02:51.990549 Successfully removed ingress qdisc from lo
+2025/09/11 04:02:51.991199 Successfully removed root qdisc from lo
+2025/09/11 04:02:51.993425 NOTE: Removing IFB qdisc returned: exit status 1
+Output: Cannot find device "ifb-lo"
+ (may not exist)
+2025/09/11 04:02:51.995362 NOTE: Removing IFB device returned: exit status 1
+Output: Cannot find device "ifb-lo"
+ (may not exist)
+2025/09/11 04:02:51.995420 Successfully nuked all traffic control on interface lo
+2025/09/11 04:02:51.999256 WARNING: WireGuard executable not found: executable not found in PATH or common locations
+2025/09/11 04:02:51.999471 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/11 04:02:51.999543 Starting traffic-weir...
+2025/09/11 04:02:52.000873 Detected 64-bit rate limit support
+2025/09/11 04:02:52.000925 System supports 64-bit rate limits
+2025/09/11 04:02:52.000979 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/11 04:02:52.001108 Using manually selected scheduler type: cake
+2025/09/11 04:02:52.001156 Configuration: interface=lo, peer=test_peer_12345, upload-rate=5000, download-rate=10000, protocol=wg, remove=false
+2025/09/11 04:02:52.001213 Fetching peer information for test_peer_12345...
+2025/09/11 04:02:52.001300 Using provided allowed IPs: [127.0.0.1/32]
+2025/09/11 04:02:52.001433 Checking existing traffic control setup on main interface...
+2025/09/11 04:02:52.002019 No cake qdisc found on lo, setting up...
+2025/09/11 04:02:52.002064 Setting up root CAKE qdisc on lo...
+2025/09/11 04:02:52.003690 CAKE not available, falling back to HTB: exit status 2
+2025/09/11 04:02:52.004407 Successfully set up root qdisc on lo
+2025/09/11 04:02:52.005653 Successfully added CAKE download filter for 127.0.0.1
+2025/09/11 04:02:52.006179 Successfully added CAKE upload filter for 127.0.0.1
+2025/09/11 04:02:52.006242 Successfully configured CAKE rate limiting for peer test_peer_12345 on interface lo
+2025/09/11 04:02:52.010806 WARNING: WireGuard executable not found: executable not found in PATH or common locations
+2025/09/11 04:02:52.010964 WARNING: AmneziaWG executable not found: executable not found in PATH or common locations
+2025/09/11 04:02:52.011047 Starting traffic-weir...
+2025/09/11 04:02:52.012262 Detected 64-bit rate limit support
+2025/09/11 04:02:52.012312 System supports 64-bit rate limits
+2025/09/11 04:02:52.012348 System capabilities: 64-bit rates: true, max rate: 4194303 Kbps, scheduler: cake
+2025/09/11 04:02:52.012402 Using manually selected scheduler type: cake
+2025/09/11 04:02:52.012561 Configuration: interface=lo, peer=test_peer_12345, upload-rate=1000, download-rate=2000, protocol=wg, remove=false
+2025/09/11 04:02:52.012623 Fetching peer information for test_peer_12345...
+2025/09/11 04:02:52.012664 Using provided allowed IPs: [::1/128]
+2025/09/11 04:02:52.012783 Checking existing traffic control setup on main interface...
+2025/09/11 04:02:52.013379 No cake qdisc found on lo, setting up...
+2025/09/11 04:02:52.013433 Setting up root CAKE qdisc on lo...
+2025/09/11 04:02:52.015140 CAKE not available, falling back to HTB: exit status 2
+2025/09/11 04:02:52.015807 Successfully set up root qdisc on lo
+2025/09/11 04:02:52.016823 Successfully added CAKE download filter for ::1
+2025/09/11 04:02:52.017375 Successfully added CAKE upload filter for ::1
+2025/09/11 04:02:52.017435 Successfully configured CAKE rate limiting for peer test_peer_12345 on interface lo

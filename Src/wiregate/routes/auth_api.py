@@ -1,14 +1,17 @@
-import hashlib
 import bcrypt
 import pyotp
 from datetime import datetime
 from ldap3 import Server, Connection, ALL, SUBTREE
 from ldap3.core.exceptions import LDAPException
-from flask import Flask, Blueprint, request, session, make_response, jsonify
+from flask import Flask, Blueprint, request, session, make_response, jsonify, g
 from ..modules.DashboardConfig import DashboardConfig
 from ..modules.App import ResponseObject
 from ..modules.Core import  APP_PREFIX
 from ..modules.App import app
+from ..modules.Security import (
+    security_manager, rate_limit, brute_force_protection, 
+    validate_input, require_authentication
+)
 
 from ..modules.Logger.DashboardLogger import AllDashboardLogger
 auth_blueprint = Blueprint('auth', __name__)
@@ -68,31 +71,13 @@ def auth_req():
         apiKey = d.get('wg-dashboard-apikey')
         apiKeyEnabled = DashboardConfig.GetConfig("Server", "dashboard_api_key")[1]
 
-        def constant_time_compare(val1: str, val2: str) -> bool:
-            """
-            Compare two strings in constant time to prevent timing attacks.
-            """
-            if len(val1) != len(val2):
-                return False
-            result = 0
-            for x, y in zip(val1.encode(), val2.encode()):
-                result |= x ^ y
-            return result == 0
-        
+        # Use the security manager's constant time comparison
         def verify_api_key(provided_key: str, valid_keys: list) -> bool:
             """
             Verify API key in constant time to prevent timing attacks.
             Returns True if the key is valid, False otherwise.
             """
-            if not provided_key or not valid_keys:
-                return False
-                
-            # Use constant time comparison for each key
-            result = False
-            for valid_key in valid_keys:
-                # Using OR operation to maintain constant time
-                result |= constant_time_compare(provided_key, valid_key.Key)
-            return result
+            return security_manager.verify_api_key(provided_key, [key.Key for key in valid_keys])
 
         if apiKey is not None and len(apiKey) > 0 and apiKeyEnabled:
             apiKeyExist = verify_api_key(apiKey, DashboardConfig.DashboardAPIKeys)
@@ -235,52 +220,79 @@ def authenticate_ldap(username, password):
             user_conn.unbind()
 
 @auth_blueprint.post('/authenticate')
+@rate_limit(limit=5, window=300)  # 5 attempts per 5 minutes
+@brute_force_protection(lambda: request.remote_addr)
+@validate_input(required_fields=['username', 'password'])
 def API_AuthenticateLogin():
-    data = request.get_json()
+    data = g.sanitized_data
+    
     if not DashboardConfig.GetConfig("Server", "auth_req")[1]:
         return ResponseObject(True, DashboardConfig.GetConfig("Other", "welcome_session")[1])
+
+    # Validate input
+    username = security_manager.sanitize_input(data['username'], 50)
+    password = data['password']
+    
+    if not username or not password:
+        return ResponseObject(False, "Username and password are required")
 
     # Check if LDAP is enabled
     ldap_enabled = DashboardConfig.GetConfig("LDAP", "enabled")[1]
     
     if ldap_enabled:
-        success, user_data, error = authenticate_ldap(data['username'], data['password'])
+        success, user_data, error = authenticate_ldap(username, password)
         if not success:
             AllDashboardLogger.log(str(request.url), str(request.remote_addr), 
-                                 Message=f"LDAP Login failed: {data['username']} - {error}")
+                                 Message=f"LDAP Login failed: {username} - {error}")
             return ResponseObject(False, error)
             
         # LDAP authentication successful
-        authToken = hashlib.sha256(f"{data['username']}{datetime.now()}".encode()).hexdigest()
+        authToken = security_manager.generate_secure_token()
         session['username'] = authToken
-        session['user_data'] = user_data  # Store user data in session
+        session['user_data'] = user_data
+        session['last_activity'] = datetime.now().timestamp()
         resp = ResponseObject(True, DashboardConfig.GetConfig("Other", "welcome_session")[1])
-        resp.set_cookie("authToken", authToken)
+        resp.set_cookie("authToken", authToken, httponly=True, secure=request.is_secure)
         session.permanent = True
+        
+        # Clear any failed attempts
+        security_manager.clear_failed_attempts(request.remote_addr)
+        
         AllDashboardLogger.log(str(request.url), str(request.remote_addr), 
-                             Message=f"LDAP Login success: {data['username']}")
+                             Message=f"LDAP Login success: {username}")
         return resp
         
     # Continue with existing local authentication if LDAP is not enabled
-    valid = bcrypt.checkpw(data['password'].encode("utf-8"),
+    valid = bcrypt.checkpw(password.encode("utf-8"),
                            DashboardConfig.GetConfig("Account", "password")[1].encode("utf-8"))
     totpEnabled = DashboardConfig.GetConfig("Account", "enable_totp")[1]
     totpValid = False
     if totpEnabled:
-        totpValid = pyotp.TOTP(DashboardConfig.GetConfig("Account", "totp_key")[1]).now() == data['totp']
+        totp_code = data.get('totp', '')
+        if totp_code:
+            totpValid = pyotp.TOTP(DashboardConfig.GetConfig("Account", "totp_key")[1]).now() == totp_code
 
+    # Get configured username for comparison
+    configured_username = DashboardConfig.GetConfig("Account", "username")[1]
+    
     if (valid
-            and data['username'] == DashboardConfig.GetConfig("Account", "username")[1]
+            and username == configured_username
             and ((totpEnabled and totpValid) or not totpEnabled)
     ):
-        authToken = hashlib.sha256(f"{data['username']}{datetime.now()}".encode()).hexdigest()
+        authToken = security_manager.generate_secure_token()
         session['username'] = authToken
+        session['last_activity'] = datetime.now().timestamp()
         resp = ResponseObject(True, DashboardConfig.GetConfig("Other", "welcome_session")[1])
-        resp.set_cookie("authToken", authToken)
+        resp.set_cookie("authToken", authToken, httponly=True, secure=request.is_secure)
         session.permanent = True
-        AllDashboardLogger.log(str(request.url), str(request.remote_addr), Message=f"Login success: {data['username']}")
+        
+        # Clear any failed attempts
+        security_manager.clear_failed_attempts(request.remote_addr)
+        
+        AllDashboardLogger.log(str(request.url), str(request.remote_addr), Message=f"Login success: {username}")
         return resp
-    AllDashboardLogger.log(str(request.url), str(request.remote_addr), Message=f"Login failed: {data['username']}")
+    
+    AllDashboardLogger.log(str(request.url), str(request.remote_addr), Message=f"Login failed: {username}")
     if totpEnabled:
         return ResponseObject(False, "Sorry, your username, password or OTP is incorrect.")
     else:
@@ -288,6 +300,9 @@ def API_AuthenticateLogin():
 
 @auth_blueprint.get('/signout')
 def API_SignOut():
-    resp = ResponseObject(True, "")
-    resp.delete_cookie("authToken")
+    # Clear session data
+    session.clear()
+    
+    resp = ResponseObject(True, "Logged out successfully")
+    resp.delete_cookie("authToken", httponly=True, secure=request.is_secure)
     return resp

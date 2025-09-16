@@ -82,14 +82,23 @@ const peerSearchBar = ref(false)
 
 // Fetch Peer =====================================
 const fetchPeerList = async () => {
+	console.log(`[DEBUG] fetchPeerList called for configuration: ${route.params.id}`);
 	await fetchGet("/api/getWireguardConfigurationInfo", {
 		configurationName: route.params.id
 	}, async (res) => {
+		console.log(`[DEBUG] fetchPeerList response:`, res);
 		if (res.status){
 			configurationInfo.value = res.data.configurationInfo;
 			configurationPeers.value = res.data.configurationPeers;
 			
-			configurationPeers.value.forEach(p => {
+			console.log(`[DEBUG] Received ${configurationPeers.value.length} peers`);
+			configurationPeers.value.forEach((p, index) => {
+				console.log(`[DEBUG] Peer ${index + 1}: ${p.id}, jobs: ${p.jobs ? p.jobs.length : 0}`);
+				if (p.jobs && p.jobs.length > 0) {
+					p.jobs.forEach((job, jobIndex) => {
+						console.log(`[DEBUG]   Job ${jobIndex + 1}:`, job);
+					});
+				}
 				p.restricted = false
 			})
 			res.data.configurationRestrictedPeers.forEach(x => {

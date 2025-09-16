@@ -158,8 +158,12 @@ router.beforeEach(async (to, from, next) => {
 		document.title = "WireGate"
 	}
 	dashboardConfigurationStore.ShowNavBar = false;
-	document.querySelector(".loadingBar").classList.remove("loadingDone")
-	document.querySelector(".loadingBar").classList.add("loading")
+	dashboardConfigurationStore.loading.overall = true;
+	const loadingBar = document.querySelector(".loadingBar");
+	if (loadingBar) {
+		loadingBar.classList.remove("loadingDone");
+		loadingBar.classList.add("loading");
+	}
 	console.log(to.path)
 	if (to.meta.requiresAuth){
 		if (!dashboardConfigurationStore.getActiveCrossServer()){
@@ -192,8 +196,27 @@ router.beforeEach(async (to, from, next) => {
 	}
 });
 
-router.afterEach(() => {
-	document.querySelector(".loadingBar").classList.remove("loading")
-	document.querySelector(".loadingBar").classList.add("loadingDone")
+router.afterEach(async (to) => {
+	// Wait for configuration loading to complete
+	const dashboardConfigurationStore = DashboardConfigurationStore();
+	
+	while (dashboardConfigurationStore.loading.configuration) {
+		await new Promise(resolve => setTimeout(resolve, 50));
+	}
+	
+	dashboardConfigurationStore.loading.overall = false;
+	
+	// For routes that don't have configuration list, complete loading bar after a short delay
+	if (to.name !== 'Configuration List' && to.name !== 'Index') {
+		setTimeout(() => {
+			const loadingBar = document.querySelector(".loadingBar");
+			if (loadingBar) {
+				loadingBar.classList.remove("loading");
+				loadingBar.classList.add("loadingDone");
+			}
+		}, 300);
+	}
+	
+	// Note: Loading bar completion for Configuration List is handled by the component itself
 })
 export default router
