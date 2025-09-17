@@ -124,6 +124,8 @@ export default {
 		},
 		initMatrixRain() {
 			const canvas = document.getElementById('matrix-rain');
+			if (!canvas) return;
+			
 			const ctx = canvas.getContext('2d');
 
 			// Enable crisp text rendering
@@ -210,7 +212,8 @@ export default {
 
 			const initColumns = () => {
 				columns = [];
-				for (let i = 0; i < canvas.width / tileSize; i++) {
+				const columnCount = Math.floor(canvas.width / tileSize);
+				for (let i = 0; i < columnCount; i++) {
 					const colorInfo = getRandomColor();
 					columns.push({
 						x: i * tileSize,
@@ -228,15 +231,29 @@ export default {
 				const dpr = window.devicePixelRatio || 1;
 				const rect = canvas.getBoundingClientRect();
 				
-				canvas.width = rect.width * dpr;
-				canvas.height = rect.height * dpr;
-				canvas.style.width = `${rect.width}px`;
-				canvas.style.height = `${rect.height}px`;
+				// Ensure we have valid dimensions
+				if (rect.width === 0 || rect.height === 0) {
+					// Fallback to window dimensions if canvas rect is not ready
+					canvas.width = window.innerWidth * dpr;
+					canvas.height = window.innerHeight * dpr;
+					canvas.style.width = `${window.innerWidth}px`;
+					canvas.style.height = `${window.innerHeight}px`;
+				} else {
+					canvas.width = rect.width * dpr;
+					canvas.height = rect.height * dpr;
+					canvas.style.width = `${rect.width}px`;
+					canvas.style.height = `${rect.height}px`;
+				}
 				
 				ctx.scale(dpr, dpr);
 			};
 
 			const draw = () => {
+				// Skip drawing if canvas has no dimensions
+				if (canvas.width === 0 || canvas.height === 0) {
+					return;
+				}
+
 				ctx.font = `bold ${fontSize}px ${fontFamily}`;
 				ctx.textAlign = 'center';
 				ctx.textBaseline = 'middle';
@@ -334,33 +351,49 @@ export default {
 				});
 			};
 
-			// Initialize
-			initColumns();
-
-			// Start animation
-			this.matrixInterval = setInterval(draw, config.interval);
-
-			// Handle window resize
-			window.addEventListener('resize', () => {
-				clearInterval(this.matrixInterval);
+			// Initialize canvas size first
+			resizeCanvas();
+			
+			// Wait for next frame to ensure DOM is fully rendered
+			this.$nextTick(() => {
+				// Re-resize canvas to ensure correct dimensions
 				resizeCanvas();
+				
+				// Initialize columns
 				initColumns();
+
+				// Start animation
 				this.matrixInterval = setInterval(draw, config.interval);
 			});
+
+			// Handle window resize with debouncing
+			let resizeTimeout;
+			const handleResize = () => {
+				clearTimeout(resizeTimeout);
+				resizeTimeout = setTimeout(() => {
+					clearInterval(this.matrixInterval);
+					resizeCanvas();
+					initColumns();
+					this.matrixInterval = setInterval(draw, config.interval);
+				}, 100);
+			};
+
+			window.addEventListener('resize', handleResize);
+			
+			// Store resize handler for cleanup
+			this.handleResize = handleResize;
 		},
-		beforeUnmount() {
-			if (this.matrixInterval) {
-				clearInterval(this.matrixInterval);
-			}
+	beforeUnmount() {
+		if (this.matrixInterval) {
+			clearInterval(this.matrixInterval);
+		}
+		if (this.handleResize) {
 			window.removeEventListener('resize', this.handleResize);
 		}
+	}
 	},
 	mounted() {
 		this.initMatrixRain();
-	},
-	beforeUnmount() {
-		// Clean up any intervals when component is destroyed
-		clearInterval(this.matrixInterval);
 	}
 }
 </script>

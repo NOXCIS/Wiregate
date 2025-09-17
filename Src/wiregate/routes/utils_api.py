@@ -157,68 +157,45 @@ def API_getDashboardUpdate():
 
 def get_changelog_for_version(version):
     """Return changelog data for a specific version by fetching from GitHub."""
-    logger.debug(f"get_changelog_for_version called for version: {version}")
     try:
         # URL to the raw changelog file on GitHub
         changelog_url = "https://raw.githubusercontent.com/NOXCIS/Wiregate/refs/heads/main/Docs/CHANGELOG.md"
-        logger.debug(f"Fetching changelog from: {changelog_url}")
         
         # Initialize an empty dictionary to store the parsed changelog
         changelog_map = {}
         
         # Fetch the changelog content
         response = requests.get(changelog_url, timeout=5)
-        logger.debug(f" Response status code: {response.status_code}")
         
         if response.status_code == 200:
             # Parse the content
             current_version = None
             content = response.text.strip().split('\n')
-            logger.debug(f" Raw content length: {len(content)} lines")
-            logger.debug(f" Raw content: {content}")
             
             for line in content:
                 line = line.strip()
                 if not line:
                     continue
-                
-                logger.debug(f" Processing line: '{line}'")
                     
                 # Check if this line defines a version
                 if line.endswith(':'):
                     current_version = line.replace(':', '').strip()
                     changelog_map[current_version] = []
-                    logger.debug(f" Found version: {current_version}")
                 # If this is a changelog item for the current version
                 elif line.startswith('-') and current_version:
                     item = line.replace('-', '', 1).strip()
                     changelog_map[current_version].append(item)
-                    logger.debug(f" Added item to {current_version}: {item}")
-            
-            logger.debug(f" Final changelog map has {len(changelog_map)} versions")
-            logger.debug(f" Final changelog map: {changelog_map}")
-            logger.debug(f" Returning items for version {version}: {changelog_map.get(version, [])}")
             # Return the changelog items for the requested version, or empty list if not found
             return changelog_map.get(version, [])
         else:
             logging.error(f"Failed to fetch changelog: HTTP {response.status_code}")
-            logger.debug(f" HTTP error: {response.status_code}")
             return []
             
     except Exception as e:
         logging.error(f"Error fetching changelog: {str(e)}")
-        logger.debug(f" Exception caught: {str(e)}")
-        # Fallback to hardcoded changelog if fetch fails
-        fallback_map = {
-            "acid-rain-beta-v0.4": [
-                "Initial release of acid-rain-beta",
-                "Added WireGuard configuration management",
-                "Implemented Tor integration",
-                "Added system monitoring features"
-            ],
-        }
-        logger.debug(f" Using fallback changelog: {fallback_map.get(version, [])}")
-        return fallback_map.get(version, [])
+        # Return empty list if fetch fails - no need for hardcoded fallback
+        logger.debug(f"Failed to fetch changelog, returning empty list")
+        return []
 
 # Global cache for update information
 _update_cache = {

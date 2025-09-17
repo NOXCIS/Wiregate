@@ -71,7 +71,7 @@ services:
       #Set Timezone
         - TZ=America/New_York
       #Dashboard Mode (development/production)
-        - DASHBOARD_MODE=development  
+        - DASHBOARD_MODE=production  
       #Redis Database Settings
         - REDIS_HOST=redis
         - REDIS_PORT=6379
@@ -89,7 +89,7 @@ services:
       #WGDashboard Global Settings
       ##########################################################
         - WGD_WELCOME_SESSION=false
-        - WGD_AUTH_REQ=false
+        - WGD_AUTH_REQ=true
         - WGD_USER=admin
         - WGD_PASS=admin
         - WGD_REMOTE_ENDPOINT=192.168.0.4

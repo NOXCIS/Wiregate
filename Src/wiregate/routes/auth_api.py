@@ -106,13 +106,14 @@ def auth_req():
             # Define allowed public endpoints
             public_endpoints = [
                 '/static/',
-                '/validateAuthentication',
-                '/authenticate',
-                '/getDashboardVersion',
-                '/sharePeer/get',
-                '/isTotpEnabled',
-                '/locale',
-                '/handshake'
+                '/api/validateAuthentication',
+                '/api/authenticate',
+                '/api/getDashboardVersion',
+                '/api/getDashboardTheme',
+                '/api/sharePeer/get',
+                '/api/isTotpEnabled',
+                '/api/locale',
+                '/api/handshake'
             ]
             
             # Check if current path is a public endpoint
@@ -434,7 +435,7 @@ def perform_security_startup_checks():
         return False
 
 @auth_blueprint.post('/authenticate')
-@rate_limit(limit=5, window=300)  # 5 attempts per 5 minutes
+@rate_limit(limit=20, window=300)  # 20 attempts per 5 minutes
 @brute_force_protection(lambda: request.remote_addr)
 @validate_input(required_fields=['username', 'password'])
 def API_AuthenticateLogin():

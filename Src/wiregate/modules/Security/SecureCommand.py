@@ -303,8 +303,6 @@ class SecureCommandExecutor:
         cmd_list = [command] + args
         
         try:
-            logger.debug(f"Executing secure command: {' '.join(cmd_list)}")
-            
             # Execute command
             if stdin_input:
                 result = subprocess.run(
@@ -325,9 +323,6 @@ class SecureCommandExecutor:
                     cwd=cwd,
                     shell=False  # Never use shell=True
                 )
-            
-            # Debug logging
-            logger.debug(f"Command result: returncode={result.returncode}, stdout={result.stdout[:100]}, stderr={result.stderr[:100]}")
             
             return {
                 'success': result.returncode == 0,
@@ -390,6 +385,7 @@ class SecureCommandExecutor:
                     args.extend(['allowed-ips', kwargs['allowed_ips']])
                 
                 # Add preshared key if provided
+                temp_file = None
                 if 'preshared_key' in kwargs and kwargs['preshared_key']:
                     # Write preshared key to temporary file
                     import tempfile
@@ -397,14 +393,7 @@ class SecureCommandExecutor:
                         f.write(kwargs['preshared_key'])
                         temp_file = f.name
                     
-                    try:
-                        args.extend(['preshared-key', temp_file])
-                    finally:
-                        # Clean up temp file
-                        try:
-                            os.unlink(temp_file)
-                        except:
-                            pass
+                    args.extend(['preshared-key', temp_file])
                 
                 # Add remove command
                 if 'remove' in kwargs and kwargs['remove']:
@@ -437,7 +426,17 @@ class SecureCommandExecutor:
         else:
             return {'success': False, 'error': f'Unknown WireGuard action: {action}'}
         
-        return self.execute_command('wg', args)
+        # Execute the command and clean up temp file if needed
+        result = self.execute_command('wg', args)
+        
+        # Clean up temporary file if it was created
+        if 'temp_file' in locals() and temp_file:
+            try:
+                os.unlink(temp_file)
+            except:
+                pass
+        
+        return result
     
     def execute_wg_quick_command(self, action: str, interface: str, **kwargs) -> Dict[str, Any]:
         """Execute wg-quick commands safely"""
@@ -624,8 +623,15 @@ def execute_awg_command(action: str, interface: str = None, **kwargs) -> Dict[st
             args.extend(['allowed-ips', kwargs['allowed_ips']])
         
         # Add preshared key
+        temp_file = None
         if 'preshared_key' in kwargs and kwargs['preshared_key']:
-            args.extend(['preshared-key', kwargs['preshared_key']])
+            # Write preshared key to temporary file
+            import tempfile
+            with tempfile.NamedTemporaryFile(mode='w', delete=False) as f:
+                f.write(kwargs['preshared_key'])
+                temp_file = f.name
+            
+            args.extend(['preshared-key', temp_file])
         
         # Handle remove operation
         if kwargs.get('remove', False):
@@ -634,7 +640,17 @@ def execute_awg_command(action: str, interface: str = None, **kwargs) -> Dict[st
     else:
         return {'success': False, 'error': f'Unknown AmneziaWG action: {action}'}
     
-    return secure_executor.execute_command('awg', args)
+    # Execute the command and clean up temp file if needed
+    result = secure_executor.execute_command('awg', args)
+    
+    # Clean up temporary file if it was created
+    if 'temp_file' in locals() and temp_file:
+        try:
+            os.unlink(temp_file)
+        except:
+            pass
+    
+    return result
 
 def execute_file_operation(operation: str, source: str, **kwargs) -> Dict[str, Any]:
     """Convenience function for file operation execution"""

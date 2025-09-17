@@ -550,30 +550,35 @@ class Configuration:
                     with open(uid, "w+") as f:
                         f.write(p['preshared_key'])
                 
-                # Use secure command execution
-                if cmd_prefix == "awg":
-                    result = execute_awg_command(
-                        action='set',
-                        interface=self.Name,
-                        peer_key=p['id'],
-                        allowed_ips=p['allowed_ip'].replace(' ', ''),
-                        preshared_key=p['preshared_key'] if presharedKeyExist else None
-                    )
-                else:
-                    result = execute_wg_command(
-                        action='set',
-                        interface=self.Name,
-                        peer_key=p['id'],
-                        allowed_ips=p['allowed_ip'].replace(' ', ''),
-                        preshared_key=p['preshared_key'] if presharedKeyExist else None
-                    )
-                
-                logger.debug(f"Peer {i+1} result: success={result['success']}, error={result.get('error', 'None')}")
-                if not result['success']:
-                    raise Exception(f"Failed to set peer {i+1}: {result.get('error', result.get('stderr', 'Unknown error'))}")
-                
-                if presharedKeyExist:
-                    os.remove(uid)
+                try:
+                    # Use secure command execution
+                    if cmd_prefix == "awg":
+                        result = execute_awg_command(
+                            action='set',
+                            interface=self.Name,
+                            peer_key=p['id'],
+                            allowed_ips=p['allowed_ip'].replace(' ', ''),
+                            preshared_key=p['preshared_key'] if presharedKeyExist else None
+                        )
+                    else:
+                        result = execute_wg_command(
+                            action='set',
+                            interface=self.Name,
+                            peer_key=p['id'],
+                            allowed_ips=p['allowed_ip'].replace(' ', ''),
+                            preshared_key=p['preshared_key'] if presharedKeyExist else None
+                        )
+                    
+                    logger.debug(f"Peer {i+1} result: success={result['success']}, error={result.get('error', 'None')}")
+                    if not result['success']:
+                        raise Exception(f"Failed to set peer {i+1}: {result.get('error', result.get('stderr', 'Unknown error'))}")
+                finally:
+                    # Always clean up the temporary file
+                    if presharedKeyExist and os.path.exists(uid):
+                        try:
+                            os.remove(uid)
+                        except:
+                            pass
 
                 # Add name comment to config file
                 if 'name_comment' in p and p['name_comment']:
@@ -1763,26 +1768,32 @@ class Peer:
                     f.write(preshared_key)
             newAllowedIPs = allowed_ip.replace(" ", "")
 
-            if cmd_prefix == "awg":
-                result = execute_awg_command(
-                    action='set',
-                    interface=self.configuration.Name,
-                    peer_key=self.id,
-                    allowed_ips=newAllowedIPs,
-                    preshared_key=preshared_key if pskExist else None
-                )
-            else:
-                result = execute_wg_command(
-                    action='set',
-                    interface=self.configuration.Name,
-                    peer_key=self.id,
-                    allowed_ips=newAllowedIPs,
-                    preshared_key=preshared_key if pskExist else None
-                )
-            if not result['success']:
-                return ResponseObject(False, f"Failed to update allowed IPs: {result.get('error', result.get('stderr', 'Unknown error'))}")
-
-            if pskExist: os.remove(uid)
+            try:
+                if cmd_prefix == "awg":
+                    result = execute_awg_command(
+                        action='set',
+                        interface=self.configuration.Name,
+                        peer_key=self.id,
+                        allowed_ips=newAllowedIPs,
+                        preshared_key=preshared_key if pskExist else None
+                    )
+                else:
+                    result = execute_wg_command(
+                        action='set',
+                        interface=self.configuration.Name,
+                        peer_key=self.id,
+                        allowed_ips=newAllowedIPs,
+                        preshared_key=preshared_key if pskExist else None
+                    )
+                if not result['success']:
+                    return ResponseObject(False, f"Failed to update allowed IPs: {result.get('error', result.get('stderr', 'Unknown error'))}")
+            finally:
+                # Always clean up the temporary file
+                if pskExist and os.path.exists(uid):
+                    try:
+                        os.remove(uid)
+                    except:
+                        pass
 
             if result['stderr'] and len(result['stderr'].strip()) != 0:
                 return ResponseObject(False,

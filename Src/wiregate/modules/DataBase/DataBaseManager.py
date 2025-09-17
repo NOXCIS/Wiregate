@@ -127,7 +127,6 @@ class DatabaseManager:
             # Convert all values to strings for Redis
             redis_data = {k: str(v) if v is not None else '' for k, v in data.items()}
             self.redis_client.hset(key, mapping=redis_data)
-            logger.debug(f"Inserted record {record_id} into {table_name}")
             return True
         except Exception as e:
             logger.error(f"Failed to insert record {record_id} into {table_name}: {e}")
@@ -140,11 +139,14 @@ class DatabaseManager:
             if not self.redis_client.exists(key):
                 return False
             
-            # Convert all values to strings for Redis
-            redis_data = {k: str(v) if v is not None else '' for k, v in data.items()}
-            self.redis_client.hset(key, mapping=redis_data)
-            logger.debug(f"Updated record {record_id} in {table_name}")
+            # Update only the specified fields without wiping existing data
+            for field, value in data.items():
+                redis_value = str(value) if value is not None else ''
+                self.redis_client.hset(key, field, redis_value)
+            
             return True
+
+            
         except Exception as e:
             logger.error(f"Failed to update record {record_id} in {table_name}: {e}")
             return False
@@ -154,7 +156,6 @@ class DatabaseManager:
         try:
             key = self.get_key(table_name, record_id)
             result = self.redis_client.delete(key)
-            logger.debug(f"Deleted record {record_id} from {table_name}")
             return result > 0
         except Exception as e:
             logger.error(f"Failed to delete record {record_id} from {table_name}: {e}")
@@ -185,7 +186,6 @@ class DatabaseManager:
                 if data:
                     records.append(self._convert_record_types(data))
             
-            logger.debug(f"Retrieved {len(records)} records from {table_name}")
             return records
         except Exception as e:
             logger.error(f"Failed to get all records from {table_name}: {e}")
@@ -208,7 +208,6 @@ class DatabaseManager:
                 if match:
                     matching_records.append(record)
             
-            logger.debug(f"Found {len(matching_records)} matching records in {table_name}")
             return matching_records
         except Exception as e:
             logger.error(f"Failed to search records in {table_name}: {e}")
@@ -406,7 +405,6 @@ class DatabaseManager:
                 record_id = record_data.get('id')
                 if record_id:
                     self.insert_record(table_name, record_id, record_data)
-                    logger.debug(f"Imported record {record_id} into {table_name}")
                 
         except Exception as e:
             logger.error(f"Failed to parse SQL statement: {e}")
