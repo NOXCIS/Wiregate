@@ -108,11 +108,8 @@ def auth_req():
                 '/static/',
                 '/api/validateAuthentication',
                 '/api/authenticate',
-                '/api/getDashboardVersion',
                 '/api/getDashboardTheme',
                 '/api/sharePeer/get',
-                '/api/isTotpEnabled',
-                '/api/locale',
                 '/api/handshake'
             ]
             

@@ -17,20 +17,12 @@ export default {
 	},
 	async mounted() {
 		let theme = "dark"
-		let totpEnabled = false;
-		let version = undefined;
 		let ldapEnabled = false;
 		
 		if (!this.store.IsElectronApp){
 			await Promise.all([
 				fetchGet("/api/getDashboardTheme", {}, (res) => {
 					theme = res.data
-				}),
-				fetchGet("/api/isTotpEnabled", {}, (res) => {
-					totpEnabled = res.data
-				}),
-				fetchGet("/api/getDashboardVersion", {}, (res) => {
-					version = res.data
 				}),
 				fetchGet("/api/getLDAPSettings", {}, (res) => {
 					ldapEnabled = res.data.enabled;
@@ -41,8 +33,6 @@ export default {
 		
 		// Set the data properties
 		this.theme = theme;
-		this.totpEnabled = totpEnabled;
-		this.version = version;
 		this.ldapEnabled = ldapEnabled;
 	},
 	data(){
@@ -101,11 +91,19 @@ export default {
 							}
 						}
 					}else{
-						this.store.newMessage("Server", response.message, "danger")
-						document.querySelectorAll("input[required]").forEach(x => {
-							x.classList.remove("is-valid")
-							x.classList.add("is-invalid")
-						});
+						// Check if TOTP is required based on error message
+						if (response.message && response.message.includes("TOTP code is required")) {
+							this.totpEnabled = true;
+							// Clear the error message and let user try again with TOTP
+							this.loginError = false;
+							this.loginErrorMessage = "";
+						} else {
+							this.store.newMessage("Server", response.message, "danger")
+							document.querySelectorAll("input[required]").forEach(x => {
+								x.classList.remove("is-valid")
+								x.classList.add("is-invalid")
+							});
+						}
 						this.loading = false
 					}
 					
@@ -497,14 +495,11 @@ export default {
 				</div>
 			</div>
 		</div>
-		<small class="text-muted pb-3 d-block w-100 text-center mt-3">
+		<small class="text-primary pb-3 d-block w-100 text-center mt-3">
 			<a href="https://github.com/NOXCIS/Wiregate" target="_blank" style="color: #4a4a4a;">
 				<strong>WireGate</strong>
 			</a> 
-			Build: <strong>{{ this.version }}</strong> | UI Based On 
-			<a href="https://github.com/donaldzou/WGDashboard" target="_blank" style="color: #4a4a4a;">
-				<strong>WGDashboard</strong>
-			</a>
+			
 		</small>
 		<div class="messageCentre text-body position-absolute end-0 m-3">
 			<TransitionGroup name="message" tag="div" class="position-relative">
