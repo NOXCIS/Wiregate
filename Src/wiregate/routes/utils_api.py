@@ -127,6 +127,24 @@ def API_traceroute_execute():
         return ResponseObject(False, "Please provide ipAddress")
 
 
+@utils_blueprint.get('/getCurrentVersionChangelog')
+def API_getCurrentVersionChangelog():
+    """Get changelog for a specific version"""
+    version = request.args.get('version')
+    if not version:
+        return ResponseObject(False, "Version parameter is required")
+    
+    try:
+        changelog_items = get_changelog_for_version(version)
+        return ResponseObject(True, f"Changelog for {version}", {
+            'changelog': changelog_items,
+            'version': version
+        })
+    except Exception as e:
+        logging.error(f"Failed to get changelog for version {version}: {e}")
+        return ResponseObject(False, f"Failed to get changelog for version {version}")
+
+
 @utils_blueprint.get('/getDashboardUpdate')
 def API_getDashboardUpdate():
     global _update_cache
@@ -177,16 +195,34 @@ def get_changelog_for_version(version):
                 if not line:
                     continue
                     
-                # Check if this line defines a version
-                if line.endswith(':'):
+                # Check if this line defines a version (starts with ## or ends with :)
+                if line.startswith('## '):
+                    current_version = line.replace('## ', '').strip()
+                    changelog_map[current_version] = []
+                elif line.endswith(':'):
                     current_version = line.replace(':', '').strip()
                     changelog_map[current_version] = []
-                # If this is a changelog item for the current version
+                # If this is a changelog item for the current version (starts with -)
                 elif line.startswith('-') and current_version:
                     item = line.replace('-', '', 1).strip()
                     changelog_map[current_version].append(item)
-            # Return the changelog items for the requested version, or empty list if not found
-            return changelog_map.get(version, [])
+            
+            # Return the changelog items for the requested version, or latest if not found
+            result = changelog_map.get(version, [])
+            if result:
+                logging.info(f"Found {len(result)} changelog items for version {version}")
+                return result
+            else:
+                # Fallback: return the latest available version's changelog
+                versions = list(changelog_map.keys())
+                if versions:
+                    latest_version = versions[0]  # Assuming first version is latest
+                    result = changelog_map[latest_version]
+                    logging.info(f"Version {version} not found, showing latest available: {latest_version} with {len(result)} items")
+                    return result
+                else:
+                    logging.warning(f"No versions found in changelog")
+                    return []
         else:
             logging.error(f"Failed to fetch changelog: HTTP {response.status_code}")
             return []
@@ -194,7 +230,7 @@ def get_changelog_for_version(version):
     except Exception as e:
         logging.error(f"Error fetching changelog: {str(e)}")
         # Return empty list if fetch fails - no need for hardcoded fallback
-        logger.debug(f"Failed to fetch changelog, returning empty list")
+        logging.debug(f"Failed to fetch changelog, returning empty list")
         return []
 
 # Global cache for update information
@@ -244,21 +280,29 @@ def _background_update_check():
                     docker_hub_url = f"https://hub.docker.com/r/{docker_hub_repo}/tags?page=1&name={latest_tag}"
                     
                     if latest_tag and latest_tag != DASHBOARD_VERSION:
+                        changelog_items = get_changelog_for_version(latest_tag)
+                        logging.info(f"Update available: {latest_tag} (current: {DASHBOARD_VERSION})")
+                        logging.info(f"Changelog items for {latest_tag}: {len(changelog_items)} items")
                         _update_cache = {
                             'last_check': datetime.now(),
                             'data': {
                                 'url': docker_hub_url,
-                                'changelog': get_changelog_for_version(latest_tag),
+                                'changelog': changelog_items,
                                 'message': f"{latest_tag} is now available for update!"
                             },
                             'error': None
                         }
                     else:
+                        # Even when on latest version, show the latest changelog for user reference
+                        changelog_items = get_changelog_for_version(latest_tag)
+                        logging.info(f"Already on latest version: {DASHBOARD_VERSION}")
+                        logging.info(f"Showing latest changelog for version {latest_tag}: {len(changelog_items)} items")
                         _update_cache = {
                             'last_check': datetime.now(),
                             'data': {
                                 'url': docker_hub_url,
-                                'changelog': get_changelog_for_version(DASHBOARD_VERSION),
+                                'changelog': changelog_items,
+                                'version': latest_tag,
                                 'message': "You're on the latest version"
                             },
                             'error': None

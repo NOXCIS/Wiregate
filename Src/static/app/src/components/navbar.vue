@@ -21,6 +21,8 @@ export default {
 			updateUrl: "",
 			changelogItems: [],
 			showChangelog: false,
+			changelogLoading: false,
+			changelogVersion: null,
 		}
 	},
 	computed: {
@@ -42,6 +44,12 @@ export default {
 			this.checkForUpdates();
 		};
 		window.addEventListener('triggerUpdateCheck', this.updateCheckHandler);
+		
+		// Always fetch changelog for current version on mount
+		// Use a longer delay to ensure the store is fully loaded
+		setTimeout(() => {
+			this.fetchCurrentVersionChangelog();
+		}, 2000);
 	},
 	beforeUnmount() {
 		// Clean up event listener
@@ -66,11 +74,19 @@ export default {
 						if (typeof res.data === 'object' && res.data.url) {
 							this.updateUrl = res.data.url
 							this.changelogItems = res.data.changelog || []
-							console.log("Changelog items:", this.changelogItems);
+							console.log("Changelog items received:", this.changelogItems);
+							console.log("Changelog items count:", this.changelogItems.length);
+							console.log("Changelog items type:", typeof this.changelogItems);
 						} else {
 							this.updateUrl = res.data
+							console.log("No changelog data in response, using simple URL");
 						}
 						console.log("Update URL:", this.updateUrl);
+					} else {
+						// No update available, preserve existing changelog data
+						this.updateAvailable = false
+						console.log("No update available, preserving existing changelog data");
+						// Don't clear changelog items here - keep what we have
 					}
 					this.updateMessage = res.message
 					console.log("Update message:", this.updateMessage);
@@ -93,12 +109,182 @@ export default {
 		},
 		refreshUpdateCheck() {
 			this.updateMessage = "Checking for updates...";
+			// Store current changelog items before update check
+			const currentChangelogItems = [...this.changelogItems];
+			const currentChangelogVersion = this.changelogVersion;
 			this.checkForUpdates();
+			// Restore changelog items if update check doesn't provide new ones
+			setTimeout(() => {
+				if (this.changelogItems.length === 0 && currentChangelogItems.length > 0) {
+					this.changelogItems = currentChangelogItems;
+					this.changelogVersion = currentChangelogVersion;
+					console.log("Restored changelog data after update check");
+				}
+			}, 2000);
 		},
 		toggleChangelog() {
 			console.log("Toggling changelog. Current state:", this.showChangelog);
 			console.log("Current changelog items:", this.changelogItems);
+			console.log("Changelog items length:", this.changelogItems.length);
+			console.log("Changelog items type:", typeof this.changelogItems);
 			this.showChangelog = !this.showChangelog;
+		},
+		fetchCurrentVersionChangelog() {
+			// Fetch changelog for latest version using the existing API
+			console.log("Fetching changelog for latest version using API");
+			this.changelogLoading = true;
+			
+			// Add a small delay to ensure the store is fully loaded
+			setTimeout(() => {
+				// Use the existing update API which already determines the latest Docker tag
+				this.fetchLatestVersionChangelogFromAPI();
+			}, 1000);
+		},
+		fetchLatestVersionChangelogFromAPI() {
+			// Use the existing update API to get the latest version's changelog
+			console.log("Fetching latest version changelog from update API");
+			this.changelogLoading = true;
+			
+			fetchGet("/api/getDashboardUpdate", {}, (res) => {
+				console.log("Update API response for changelog:", res);
+				this.changelogLoading = false;
+				
+				if (res.status && res.data) {
+					// If there's an update available, use that changelog
+					if (typeof res.data === 'object' && res.data.changelog && res.data.changelog.length > 0) {
+						this.changelogItems = res.data.changelog || [];
+						this.changelogVersion = res.data.version || "latest";
+						console.log("Loaded latest changelog from update API:", this.changelogItems.length, "items");
+					} else {
+						// No changelog data from API, fall back to parsing the changelog file
+						console.log("No changelog data from API, falling back to GitHub parsing");
+						this.loadLatestVersionChangelog();
+					}
+				} else {
+					// API failed, fall back to parsing the changelog file
+					console.log("API failed, falling back to GitHub parsing");
+					this.loadLatestVersionChangelog();
+				}
+			}).catch(error => {
+				console.warn("Update API failed, falling back to changelog parsing:", error);
+				this.changelogLoading = false;
+				this.loadLatestVersionChangelog();
+			});
+		},
+		loadLatestVersionChangelog() {
+			// Fallback: Fetch the latest version's changelog from GitHub directly
+			console.log("Loading latest version changelog from GitHub (fallback)");
+			this.changelogLoading = true;
+			
+			// Try to fetch directly from GitHub
+			fetch('https://raw.githubusercontent.com/NOXCIS/Wiregate/refs/heads/main/Docs/CHANGELOG.md')
+				.then(response => response.text())
+				.then(text => {
+					const { changelogItems, version } = this.parseLatestChangelogFromText(text);
+					this.changelogItems = changelogItems;
+					this.changelogVersion = version;
+					this.changelogLoading = false;
+					console.log("Loaded latest changelog from GitHub:", changelogItems.length, "items for version", version);
+				})
+				.catch(error => {
+					console.warn("Failed to fetch changelog from GitHub:", error);
+					this.changelogItems = [];
+					this.changelogLoading = false;
+				});
+		},
+		loadLocalChangelogForCurrentVersion() {
+			// Fallback: Try to fetch from GitHub directly if API fails
+			const currentVersion = this.dashboardConfigurationStore.Configuration.Server.version;
+			console.log("Loading changelog from GitHub for version:", currentVersion);
+			this.changelogLoading = true;
+			
+			// Try to fetch directly from GitHub as fallback
+			fetch('https://raw.githubusercontent.com/NOXCIS/Wiregate/refs/heads/main/Docs/CHANGELOG.md')
+				.then(response => response.text())
+				.then(text => {
+					const changelogItems = this.parseChangelogFromText(text, currentVersion);
+					this.changelogItems = changelogItems;
+					this.changelogLoading = false;
+					console.log("Loaded changelog from GitHub:", changelogItems.length, "items");
+				})
+				.catch(error => {
+					console.warn("Failed to fetch changelog from GitHub:", error);
+					this.changelogItems = [];
+					this.changelogLoading = false;
+				});
+		},
+		parseChangelogFromText(text, version) {
+			// Parse changelog text to extract items for specific version
+			const changelogMap = {};
+			const content = text.trim().split('\n');
+			let currentVersion = null;
+			
+			for (const line of content) {
+				const trimmedLine = line.trim();
+				if (!trimmedLine) continue;
+				
+				// Check if this line defines a version (starts with ## or ends with :)
+				if (trimmedLine.startsWith('## ')) {
+					currentVersion = trimmedLine.replace('## ', '').trim();
+					changelogMap[currentVersion] = [];
+				} else if (trimmedLine.endsWith(':')) {
+					currentVersion = trimmedLine.replace(':', '').trim();
+					changelogMap[currentVersion] = [];
+				} else if (trimmedLine.startsWith('-') && currentVersion) {
+					const item = trimmedLine.replace('-', '', 1).trim();
+					changelogMap[currentVersion].push(item);
+				}
+			}
+			
+			// If exact version not found, try to find the latest version
+			if (changelogMap[version] && changelogMap[version].length > 0) {
+				return changelogMap[version];
+			}
+			
+			// Fallback: return the latest available version's changelog
+			const versions = Object.keys(changelogMap);
+			if (versions.length > 0) {
+				const latestVersion = versions[0]; // Assuming first version is latest
+				console.log(`Version ${version} not found, showing latest available: ${latestVersion}`);
+				this.changelogVersion = latestVersion;
+				return changelogMap[latestVersion] || [];
+			}
+			
+			return [];
+		},
+		parseLatestChangelogFromText(text) {
+			// Parse changelog text to extract the latest version's changelog
+			const changelogMap = {};
+			const content = text.trim().split('\n');
+			let currentVersion = null;
+			
+			for (const line of content) {
+				const trimmedLine = line.trim();
+				if (!trimmedLine) continue;
+				
+				// Check if this line defines a version (starts with ## or ends with :)
+				if (trimmedLine.startsWith('## ')) {
+					currentVersion = trimmedLine.replace('## ', '').trim();
+					changelogMap[currentVersion] = [];
+				} else if (trimmedLine.endsWith(':')) {
+					currentVersion = trimmedLine.replace(':', '').trim();
+					changelogMap[currentVersion] = [];
+				} else if (trimmedLine.startsWith('-') && currentVersion) {
+					const item = trimmedLine.replace('-', '', 1).trim();
+					changelogMap[currentVersion].push(item);
+				}
+			}
+			
+			// Return the first (latest) version's changelog
+			const versions = Object.keys(changelogMap);
+			if (versions.length > 0) {
+				const latestVersion = versions[0]; // First version is latest
+				const changelogItems = changelogMap[latestVersion] || [];
+				console.log(`Found latest version: ${latestVersion} with ${changelogItems.length} items`);
+				return { changelogItems, version: latestVersion };
+			}
+			
+			return { changelogItems: [], version: null };
 		}
 	}
 }
@@ -245,6 +431,34 @@ export default {
 							<div class="d-flex flex-column flex-grow-1">
 								<small><LocaleText :t="this.updateMessage"></LocaleText></small>
 								<small>{{ dashboardConfigurationStore.Configuration.Server.version }}</small>
+								<small class="changelog-toggle text-secondary" 
+									   @click.stop.prevent="toggleChangelog"
+									   style="cursor: pointer;">
+									<i class="bi" :class="showChangelog ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
+									<LocaleText t="View changelog"></LocaleText>
+								</small>
+								<div v-if="showChangelog" class="changelog-container mt-2">
+									<div v-if="changelogLoading" class="text-center py-2">
+										<small class="text-muted">
+											<i class="bi bi-hourglass-split me-1"></i>
+											<LocaleText t="Loading changelog..."></LocaleText>
+										</small>
+									</div>
+									<div v-else-if="changelogItems.length > 0">
+										<div class="text-info mb-2" style="font-size: 0.75rem;">
+											<i class="bi bi-info-circle me-1"></i>
+											<LocaleText t="Latest version changelog:"></LocaleText> {{ changelogVersion }}
+										</div>
+										<ul class="changelog-list">
+											<li v-for="(item, index) in changelogItems" :key="index">
+												{{ item }}
+											</li>
+										</ul>
+									</div>
+									<div v-else class="text-muted text-center py-2">
+										<small><LocaleText t="No changelog available for this version"></LocaleText></small>
+									</div>
+								</div>
 							</div>
 							<button class="btn btn-sm btn-outline-light ms-2" 
 							        @click.stop.prevent="refreshUpdateCheck"
