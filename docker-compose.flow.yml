@@ -42,7 +42,7 @@ services:
   wiregate:
       build:
         context: .
-        dockerfile: Dockerfile.Global
+        dockerfile: Dockerfile
       #image: noxcis/wiregate:chimera
       container_name: wiregate
       hostname: wiregate

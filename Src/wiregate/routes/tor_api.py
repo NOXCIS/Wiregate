@@ -271,7 +271,7 @@ def API_control_tor_process():
             except ImportError:
                 # Fallback to subprocess if SecureCommand is not available
                 import subprocess
-                result = subprocess.run(['./torflux', '-config', config_type, '-action', action], 
+                result = subprocess.run(['/WireGate/restricted_shell.sh', './torflux', '-config', config_type, '-action', action], 
                             capture_output=True, text=True)
                 result = {
                     'success': result.returncode == 0,

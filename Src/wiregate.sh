@@ -3,6 +3,14 @@
 # Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
 # Under MIT License
 
+# Use restricted shell for command execution
+export SHELL="/usr/local/bin/restricted_bash"
+
+# Wrapper function to execute commands through restricted shell
+secure_exec() {
+    /WireGate/restricted_shell.sh "$@"
+}
+
 # Set up signal handling for the main script
 export TOP_PID=$$
 trap 'cleanup_and_exit' SIGTERM SIGINT SIGQUIT
@@ -350,12 +358,12 @@ generate_awgd_values() {
         done
 }
 _checkWireguard(){
-	if ! wg -h > /dev/null 2>&1
+	if ! secure_exec wg -h > /dev/null 2>&1
 	then
 		printf "[WIREGATE] %s ${VPN_PROTO_TYPE} is not installed. Please follow instruction on https://www.wireguard.com/install/ to install. \n" "$heavy_crossmark"
 		kill  $TOP_PID
 	fi
-	if ! wg-quick -h > /dev/null 2>&1
+	if ! secure_exec wg-quick -h > /dev/null 2>&1
 	then
 		printf "[WIREGATE] %s ${VPN_PROTO_TYPE} is not installed. Please follow instruction on https://www.wireguard.com/install/ to install. \n" "$heavy_crossmark"
 		kill  $TOP_PID
@@ -617,10 +625,10 @@ start_core() {
 
         # Check if the config file contains AmneziaWG parameters
         if grep -q -E '^\s*(Jc|Jmin|Jmax|S1|S2|H1|H2|H3|H4)\s*=' "$file"; then
-            tool="awg-quick"
+            tool="secure_exec awg-quick"
             echo "Detected AmneziaWG parameters in $file. Using awg-quick for $config_name." >> "$log_file"
         else
-            tool="wg-quick"
+            tool="secure_exec wg-quick"
             echo "No AmneziaWG parameters detected in $file. Using wg-quick for $config_name." >> "$log_file"
         fi
 
@@ -709,8 +717,8 @@ newconf_wgd() {
 wg_config_zones() {
   local index=$1
   local port=$((WGD_PORT_RANGE_STARTPORT + index))
-  local private_key=$(wg genkey)
-  local public_key=$(echo "$private_key" | wg pubkey)
+  local private_key=$(secure_exec wg genkey)
+  local public_key=$(echo "$private_key" | secure_exec wg pubkey)
   
   case $index in
     0)
@@ -788,18 +796,18 @@ make_master_config() {
     # Function to generate a new peer's public key
     generate_public_key() {
         local private_key="$1"
-        echo "$private_key" | wg pubkey
+        echo "$private_key" | secure_exec wg pubkey
     }
 
     # Generate the new peer's private key, public key, and preshared key
-    wg_private_key=$(wg genkey)
+    wg_private_key=$(secure_exec wg genkey)
     if [ -z "$wg_private_key" ]; then
         echo "[Error] Failed to generate ${VPN_PROTO_TYPE} private key."
         return 1
     fi
 
     peer_public_key=$(generate_public_key "$wg_private_key")
-    preshared_key=$(wg genpsk)
+    preshared_key=$(secure_exec wg genpsk)
 
     # Add the peer to the WireGuard config file with the preshared key
     {
@@ -816,7 +824,7 @@ make_master_config() {
         echo "[Error] Failed to extract server private key from configuration."
         return 1
     fi
-    svrpublic_key=$(echo "$server_private_key" | wg pubkey)
+    svrpublic_key=$(echo "$server_private_key" | secure_exec wg pubkey)
 
     # Generate the client config file
     {

@@ -157,7 +157,7 @@ def wg_command_operations(commands: List[tuple]) -> List[dict]:
         command, args, timeout = command_data
         
         try:
-            cmd = ['wg'] + [command] + args
+            cmd = ['/WireGate/restricted_shell.sh', 'wg'] + [command] + args
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
             
             return {

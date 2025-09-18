@@ -140,6 +140,24 @@ const router = createRouter({
 				title: "Share",
 				hideTopNav: true
 			}
+		},
+		{
+			path: '/404',
+			name: 'NotFound',
+			component: () => import('@/views/404.vue'),
+			meta: {
+				title: "Page Not Found",
+				hideTopNav: false
+			}
+		},
+		{
+			path: '/:pathMatch(.*)*',
+			name: 'CatchAll',
+			component: () => import('@/views/404.vue'),
+			meta: {
+				title: "Page Not Found",
+				hideTopNav: false
+			}
 		}
 	]
 });

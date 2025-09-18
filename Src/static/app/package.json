@@ -8,7 +8,11 @@
     "build": "vite build",
     "buildcommitpush": "./build.sh",
     "build electron": "vite build && vite build --mode electron && cd ../../../../WGDashboard-Desktop && electron-builder --mac --win",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "audit": "npm audit --audit-level=moderate",
+    "audit:fix": "npm audit fix",
+    "security:check": "npm audit --audit-level=high && npm outdated",
+    "deps:update": "npm update && npm audit fix"
   },
   "dependencies": {
     "@vuepic/vue-datepicker": "^9.0.1",
@@ -17,6 +21,7 @@
     "animate.css": "^4.1.1",
     "bootstrap": "^5.3.2",
     "bootstrap-icons": "^1.11.3",
+    "chart.js": "4.5.0",
     "cidr-tools": "^7.0.4",
     "dayjs": "^1.11.12",
     "electron-builder": "^24.13.3",

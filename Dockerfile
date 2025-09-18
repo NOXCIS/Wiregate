@@ -1,71 +1,38 @@
-# node: FRONTEND - Vite Builder 
+# node: FRONTEND - Vite + Vue3 Builder with pnpm (Enhanced Security)
+##########################################################
 FROM --platform=${BUILDPLATFORM} node:iron-alpine3.20 AS node
 WORKDIR /static/app
+
+# Install pnpm globally for enhanced security
+RUN npm install -g pnpm
+
 COPY ./Src/static /static
-RUN npm update 
-RUN npm ci && npm run build          
+
+# Use pnpm for secure package management
+ENV CI=true
+RUN pnpm install --frozen-lockfile
+RUN pnpm run build  
 
 
-# builder: WGDashboard & Vanguards Python Binary Build stage
-FROM alpine:latest AS builder
 
-ARG TARGETPLATFORM
-ARG GO_VERSION=1.24.0
-RUN apk add --no-cache \
-    wget \
-    gcc \
-    musl-dev
+# cve: CVE-FREE Base Image
+FROM alpine:latest AS base_cve_patch
 
-# Set GO_ARCH based on TARGETPLATFORM so we download the correct binary.
-RUN set -eux; \
-    case "${TARGETPLATFORM}" in \
-        "linux/amd64") GO_ARCH="amd64" ;; \
-        "linux/arm64") GO_ARCH="arm64" ;; \
-        "linux/arm/v6" | "linux/arm/v7") GO_ARCH="armv6l" ;; \
-        *) echo "unsupported platform: ${TARGETPLATFORM}" && exit 1 ;; \
-    esac; \
-    echo "Downloading Go ${GO_VERSION} for ${GO_ARCH}"; \
-    wget -q https://golang.org/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz; \
-    tar -C /usr/local -xzf go${GO_VERSION}.linux-${GO_ARCH}.tar.gz; \
-    rm go${GO_VERSION}.linux-${GO_ARCH}.tar.gz
+    # Install latest stable version of busybox
+RUN apk update && \
+    apk upgrade busybox && \
+    apk info busybox
 
-# Prepend the new Go binary to PATH.
-ENV PATH="/usr/local/go/bin:${PATH}"
+
+
+
+# binary-builder-deps: Base Image with Python dependencies (RAPID DEVELOPMENT)
+##########################################################
+FROM python:alpine AS base_dependencies
 
 WORKDIR /build
 
-# Create directories for each Go program
-RUN mkdir -p /build/torflux-build /build/traffic_weir
-
-# Copy files into their respective directories
-COPY ./Src/torflux/torflux.go /build/torflux-build/
-COPY ./Src/torflux/go.mod /build/torflux-build/
-COPY ./Src/traffic_weir/traffic-weir.go /build/traffic_weir/
-
-COPY ./Src/traffic_weir/go.mod /build/traffic_weir/
-
-
-# Build each program from its directory
-RUN cd /build/torflux-build && \
-    GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
-    -ldflags="-X main.version=v1.0.0 -s -w" \
-    -o /build/torflux
-
-RUN cd /build/traffic_weir && \
-    GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
-    -ldflags="-X main.version=v1.0.0 -s -w" \
-    -o /build/traffic-weir
-
-
-
-FROM python:alpine AS pybuilder
-WORKDIR /build
-
-COPY ./Src/wiregate /build/wiregate/
-COPY ./Src/wiregate.py .
 COPY ./Src/requirements.txt .
-COPY ./Src/vanguards /build/vanguards/
-COPY ./Src/vanguards.py .
 
 RUN apk add --no-cache \
     py3-virtualenv \
@@ -83,10 +50,83 @@ RUN apk add --no-cache \
     openldap-dev \
     ccache
 
-# Set up a virtual environment and install dependencies
+
+
 RUN     python3 -m venv venv \
         && venv/bin/pip install --upgrade pip \
         && venv/bin/pip install -r requirements.txt
+
+
+
+
+
+
+
+# builder: WGDashboard & Vanguards Python Binary Build stage
+##########################################################
+FROM alpine:latest AS builder
+ARG TARGETPLATFORM
+ARG GO_VERSION=1.24.4
+
+RUN apk add --no-cache \
+    wget \
+    gcc \
+    musl-dev
+
+RUN set -eux; \
+    case "${TARGETPLATFORM}" in \
+        "linux/amd64") GO_ARCH="amd64" ;; \
+        "linux/arm64") GO_ARCH="arm64" ;; \
+        "linux/arm/v6" | "linux/arm/v7") GO_ARCH="armv6l" ;; \
+        *) echo "unsupported platform: ${TARGETPLATFORM}" && exit 1 ;; \
+    esac; \
+    echo "Downloading Go ${GO_VERSION} for ${GO_ARCH}"; \
+    wget -q https://golang.org/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz; \
+    tar -C /usr/local -xzf go${GO_VERSION}.linux-${GO_ARCH}.tar.gz; \
+    rm go${GO_VERSION}.linux-${GO_ARCH}.tar.gz
+
+
+ENV PATH="/usr/local/go/bin:${PATH}"
+
+WORKDIR /build
+
+
+RUN mkdir -p /build/torflux-build /build/traffic_weir
+
+
+COPY ./Src/torflux/torflux.go /build/torflux-build/
+COPY ./Src/torflux/go.mod /build/torflux-build/
+COPY ./Src/traffic_weir/traffic-weir.go /build/traffic_weir/
+COPY ./Src/traffic_weir/go.mod /build/traffic_weir/
+
+
+
+RUN cd /build/torflux-build && \
+    GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
+    -ldflags="-X main.version=v1.0.0 -s -w" \
+    -o /build/torflux
+
+RUN cd /build/traffic_weir && \
+    GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
+    -ldflags="-X main.version=v1.0.0 -s -w" \
+    -o /build/traffic-weir
+
+
+
+FROM base_dependencies AS pybuilder
+WORKDIR /build
+
+# Copy ALL source files together (like the working Dockerfile)
+COPY ./Src/wiregate /build/wiregate/
+COPY ./Src/wiregate.py .
+COPY ./Src/vanguards /build/vanguards/
+COPY ./Src/vanguards.py .
+
+
+
+
+
+
 
 # Use PyInstaller to create standalone binaries with UPX compression
 RUN    venv/bin/pyinstaller \
@@ -105,7 +145,7 @@ RUN    venv/bin/pyinstaller \
 
 
 # Stage 3: Final image
-FROM alpine:latest
+FROM base_cve_patch
 LABEL maintainer="NOXCIS"
 WORKDIR /WireGate
 ENV TZ=UTC
@@ -125,6 +165,19 @@ RUN apk add --no-cache wireguard-tools iptables ip6tables tzdata sudo tor curl &
     rm -rf /tmp/* /var/tmp/* && \
     rm -rf /var/cache/apk/* && \
     rm -rf /build /root/.cache /tmp/* /var/tmp/*
+
+# Copy and setup restricted shell for security hardening
+COPY ./Src/restricted_shell.sh /WireGate/restricted_shell.sh
+RUN chmod +x /WireGate/restricted_shell.sh
+
+# Create restricted root user setup
+RUN echo '#!/bin/bash' > /usr/local/bin/restricted_bash && \
+    echo 'exec /WireGate/restricted_shell.sh bash "$@"' >> /usr/local/bin/restricted_bash && \
+    chmod +x /usr/local/bin/restricted_bash
+
+# Set restricted shell as default for root
+RUN echo '/usr/local/bin/restricted_bash' >> /etc/shells && \
+    sed -i 's|^root:.*|root:x:0:0:root:/root:/usr/local/bin/restricted_bash|' /etc/passwd
 
 
 

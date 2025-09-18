@@ -3,7 +3,7 @@ import socket
 
 
 # Import Enviorment
-DASHBOARD_VERSION = 'casper-beta-v0.1.0'
+DASHBOARD_VERSION = 'sol-beta-v0.2.0'
 DASHBOARD_MODE = None
 CONFIGURATION_PATH = os.getenv('CONFIGURATION_PATH', '.')
 DB_PATH = os.path.join(CONFIGURATION_PATH, 'db')

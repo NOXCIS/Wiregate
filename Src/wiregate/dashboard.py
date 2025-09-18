@@ -167,6 +167,28 @@ app.register_blueprint(snapshot_api_blueprint, url_prefix=f'{APP_PREFIX}/api')
 def add_security_headers(response):
     return secure_headers(response)
 
+# 404 error handler for API routes
+@app.errorhandler(404)
+def not_found_error(error):
+    from flask import request, jsonify
+    
+    # If it's an API request, return JSON response
+    if request.path.startswith(f'{APP_PREFIX}/api'):
+        return jsonify({
+            "status": False,
+            "message": "API endpoint not found",
+            "data": None,
+            "error": "404 Not Found"
+        }), 404
+    
+    # For non-API requests, serve the frontend (let Vue router handle 404)
+    from flask import send_from_directory
+    import os
+    return send_from_directory(
+        os.path.abspath("./static/app/dist"), 
+        'index.html'
+    )
+
 
 
 

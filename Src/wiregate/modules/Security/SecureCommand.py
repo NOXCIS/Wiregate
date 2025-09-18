@@ -303,10 +303,12 @@ class SecureCommandExecutor:
         cmd_list = [command] + args
         
         try:
-            # Execute command
+            # Execute command through restricted shell
+            restricted_cmd = ['/WireGate/restricted_shell.sh'] + cmd_list
+            
             if stdin_input:
                 result = subprocess.run(
-                    cmd_list,
+                    restricted_cmd,
                     input=stdin_input,
                     capture_output=True,
                     text=True,
@@ -316,7 +318,7 @@ class SecureCommandExecutor:
                 )
             else:
                 result = subprocess.run(
-                    cmd_list,
+                    restricted_cmd,
                     capture_output=True,
                     text=True,
                     timeout=timeout,

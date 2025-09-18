@@ -13,7 +13,7 @@ except ImportError:
         import subprocess
         if args is None:
             args = []
-        cmd = [command] + args
+        cmd = ['/WireGate/restricted_shell.sh', command] + args
         result = subprocess.run(cmd, capture_output=True, text=True)
         return {
             'success': result.returncode == 0,

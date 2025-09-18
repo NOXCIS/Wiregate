@@ -2,6 +2,9 @@
 # Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
 # Under MIT License
 
+# Use restricted shell for command execution
+export SHELL="/usr/local/bin/restricted_bash"
+
 # Trap signals and call the stop_service function
 trap 'stop_service' SIGTERM SIGINT SIGQUIT
 
