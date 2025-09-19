@@ -2,6 +2,7 @@
 Peer Job Logger
 """
 import os, uuid, json
+import logging
 from typing import List
 from datetime import datetime
 from ..Logger import Log
@@ -9,6 +10,9 @@ from ..ConfigEnv import (
     CONFIGURATION_PATH
 )
 from ..DataBase import get_redis_manager
+
+# Set up logger
+logger = logging.getLogger(__name__)
 
 class MockRedisClient:
     """Mock Redis client for when Redis is not available"""
@@ -66,7 +70,7 @@ class PeerJobLogger:
                 self.__initialize_redis()
                 self._initialized = True
             except Exception as e:
-                print(f"Warning: Could not connect to Redis: {e}")
+                logger.warning(f"Could not connect to Redis: {e}")
                 # Create a mock redis manager for fallback
                 class MockRedisManager:
                     def __init__(self):
@@ -103,7 +107,7 @@ class PeerJobLogger:
             
             return True
         except Exception as e:
-            print(f"[WGDashboard] Peer Job Log Error: {str(e)}")
+            logger.error(f"Peer Job Log Error: {str(e)}")
             return False
 
     def getLogs(self, all: bool = False, configName=None) -> list[Log]:
@@ -134,7 +138,7 @@ class PeerJobLogger:
             logs.sort(key=lambda x: x.LogDate, reverse=True)
             
         except Exception as e:
-            print(f"[PeerJobLogger] Error getting logs: {e}")
+            logger.error(f"Error getting logs: {e}")
             return logs
         return logs
 

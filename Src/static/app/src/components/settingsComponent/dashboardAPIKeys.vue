@@ -79,9 +79,10 @@ export default {
 			</div>
 		</div>
 		<div class="card-body position-relative d-flex flex-column gap-2" v-if="this.value">
-			<button class="btn bg-primary-subtle text-primary-emphasis border-1 border-primary-subtle rounded-3 shadow-sm"
+			<button id="newApiKeyBtn" class="btn bg-primary-subtle text-primary-emphasis border-1 border-primary-subtle rounded-3 shadow-sm"
 			        @click="this.newDashboardAPIKey = true"
 			        v-if="!this.store.getActiveCrossServer()"
+			        aria-label="Create new API key"
 			>
 				<i class="bi bi-plus-circle-fill me-2"></i>
 				<LocaleText t="API Key"></LocaleText>

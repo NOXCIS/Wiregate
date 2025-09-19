@@ -69,7 +69,7 @@ class PeerJobs:
                 self.__initialize_redis()
                 self._initialized = True
             except Exception as e:
-                print(f"Warning: Could not connect to Redis: {e}")
+                logger.warning(f"Could not connect to Redis: {e}")
                 # Create a mock redis manager for fallback
                 class MockRedisManager:
                     def __init__(self):
@@ -93,7 +93,7 @@ class PeerJobs:
         try:
             # Check Redis connection
             if not self.redis_manager or not self.redis_manager.redis_client:
-                print("[ERROR] Redis connection not available")
+                logger.error("Redis connection not available")
                 return
             
             # Get all job keys
@@ -110,7 +110,7 @@ class PeerJobs:
                         # Validate job data structure
                         required_fields = ['JobID', 'Configuration', 'Peer', 'Field', 'Operator', 'Value', 'Action']
                         if not all(field in job_dict for field in required_fields):
-                            print(f"[WARNING] Skipping malformed job {job_key}: missing required fields")
+                            logger.warning(f"Skipping malformed job {job_key}: missing required fields")
                             continue
                         
                         # Only load non-expired jobs (ExpireDate should be None, empty string, or not present)
@@ -132,13 +132,13 @@ class PeerJobs:
                         else:
                             logger.debug(f" Skipping expired job: {job_key}")
                 except json.JSONDecodeError as e:
-                    print(f"[ERROR] Failed to parse job data for {job_key}: {e}")
+                    logger.error(f"Failed to parse job data for {job_key}: {e}")
                     continue
                 except Exception as e:
-                    print(f"[ERROR] Error processing job {job_key}: {e}")
+                    logger.error(f"Error processing job {job_key}: {e}")
                     continue
         except Exception as e:
-            print(f"[ERROR] Critical error loading jobs: {e}")
+            logger.error(f"Critical error loading jobs: {e}")
             # Don't raise the exception, just log it and continue with empty jobs list
         
         logger.debug(f" __getJobs completed, now have {len(self.Jobs)} jobs")
@@ -314,7 +314,7 @@ class PeerJobs:
                         should_restrict = True
                         break
                 except Exception as e:
-                    print(f"[WARNING] Error parsing schedule {schedule}: {e}")
+                    logger.warning(f"Error parsing schedule {schedule}: {e}")
                     continue
             
             # Get restricted peers directly from Redis
@@ -338,7 +338,7 @@ class PeerJobs:
                     JobLogger.log(job.JobID, s["status"],
                               f"Failed to unrestrict peer {job.Peer}: {s.get('message', 'Unknown error')}")
         except Exception as e:
-            print(f"[ERROR] Error in weekly job {job.JobID}: {e}")
+            logger.error(f"Error in weekly job {job.JobID}: {e}")
             JobLogger.log(job.JobID, False, f"Weekly job execution failed: {str(e)}")
     
     def _runNonWeeklyJob(self, job, configuration):
@@ -346,7 +346,7 @@ class PeerJobs:
         try:
             f, fp = configuration.searchPeer(job.Peer)
             if not f:
-                print(f"[WARNING] Peer {job.Peer} not found in configuration {configuration.Name}")
+                logger.warning(f"Peer {job.Peer} not found in configuration {configuration.Name}")
                 return True  # Delete job if peer doesn't exist
             
             if job.Field in ["total_receive", "total_sent", "total_data"]:
@@ -360,7 +360,7 @@ class PeerJobs:
                         y: float = float(job.Value)
                     runAction: bool = self.__runJob_Compare(x, y, job.Operator)
                 except (ValueError, json.JSONDecodeError) as e:
-                    print(f"[ERROR] Invalid value format for job {job.JobID}: {e}")
+                    logger.error(f"Invalid value format for job {job.JobID}: {e}")
                     return True  # Delete malformed job
             else:
                 try:
@@ -368,7 +368,7 @@ class PeerJobs:
                     y: datetime = datetime.strptime(job.Value, "%Y-%m-%d %H:%M:%S")
                     runAction: bool = self.__runJob_Compare(x, y, job.Operator)
                 except ValueError as e:
-                    print(f"[ERROR] Invalid date format for job {job.JobID}: {e}")
+                    logger.error(f"Invalid date format for job {job.JobID}: {e}")
                     return True  # Delete malformed job
 
             if runAction:
@@ -402,7 +402,7 @@ class PeerJobs:
                 return False  # Keep job
                 
         except Exception as e:
-            print(f"[ERROR] Error in non-weekly job {job.JobID}: {e}")
+            logger.error(f"Error in non-weekly job {job.JobID}: {e}")
             JobLogger.log(job.JobID, False, f"Non-weekly job execution failed: {str(e)}")
             return False  # Keep job for retry
 
@@ -443,7 +443,7 @@ class PeerJobs:
         """Remove jobs older than max_age_days from Redis"""
         try:
             if not self.redis_manager or not self.redis_manager.redis_client:
-                print("[ERROR] Redis connection not available for cleanup")
+                logger.error("Redis connection not available for cleanup")
                 return False, "Redis connection not available"
             
             from datetime import timedelta
@@ -467,7 +467,7 @@ class PeerJobs:
                             logger.debug(f" Removed expired job {job_key} (created: {creation_date})")
                             
                 except Exception as e:
-                    print(f"[WARNING] Error processing job {job_key} during cleanup: {e}")
+                    logger.warning(f"Error processing job {job_key} during cleanup: {e}")
                     continue
             
             # Reload jobs after cleanup
@@ -477,7 +477,7 @@ class PeerJobs:
             return True, f"Removed {removed_count} expired jobs"
             
         except Exception as e:
-            print(f"[ERROR] Error during job cleanup: {e}")
+            logger.error(f"Error during job cleanup: {e}")
             return False, str(e)
 
     def getJobStats(self):
@@ -519,13 +519,13 @@ class PeerJobs:
                         stats["by_configuration"][config] = stats["by_configuration"].get(config, 0) + 1
                         
                 except Exception as e:
-                    print(f"[WARNING] Error processing job {job_key} for stats: {e}")
+                    logger.warning(f"Error processing job {job_key} for stats: {e}")
                     continue
             
             return stats
             
         except Exception as e:
-            print(f"[ERROR] Error getting job stats: {e}")
+            logger.error(f"Error getting job stats: {e}")
             return {"error": str(e)}
 
 

@@ -12,6 +12,9 @@ WireGate offers a RESTful API that allows you to:
 - Integrate with external systems via API keys
 - Manage backups and snapshots
 - Configure authentication and security settings
+- Manage database configuration and migration
+- Monitor database performance and statistics
+- Control caching and data persistence
 
 ## Base URL
 
@@ -101,6 +104,7 @@ The WireGate API is organized into the following categories:
 - [Configuration Management](#configuration-management)
 - [Peer Management](#peer-management)
 - [Dashboard Configuration](#dashboard-configuration)
+- [Database Management](#database-management)
 - [System Status](#system-status)
 - [Authentication & Security](#authentication--security)
 - [Share Management](#share-management)
@@ -609,6 +613,262 @@ Returns the current version of the dashboard.
 **Example Usage:**
 ```bash
 curl -X GET http://localhost:8080/api/getDashboardVersion \
+  -H "Content-Type: application/json"
+```
+
+## Database Management
+
+The Database Management API provides endpoints for managing the hybrid PostgreSQL + Redis database system, including configuration, statistics, migration, and cache management.
+
+### Get Database Configuration
+```
+GET /api/database/config
+```
+Retrieves the current database configuration including PostgreSQL and Redis settings.
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": {
+        "architecture": "hybrid",
+        "redis": {
+            "host": "redis",
+            "port": 6379,
+            "db": 0,
+            "password": "***"
+        },
+        "postgres": {
+            "host": "postgres",
+            "port": 5432,
+            "db": "wiregate",
+            "user": "wiregate_user",
+            "password": "***",
+            "ssl_mode": "disable"
+        },
+        "cache": {
+            "enabled": true,
+            "ttl": 300
+        }
+    }
+}
+```
+
+**Example:**
+```bash
+curl -X GET http://localhost:8080/api/database/config \
+  -H "Content-Type: application/json"
+```
+
+### Update Database Configuration
+```
+POST /api/database/config
+```
+Updates the database configuration settings.
+
+**Request Body:**
+```json
+{
+    "redis": {
+        "host": "redis",
+        "port": 6379,
+        "db": 0,
+        "password": "new_redis_password"
+    },
+    "postgres": {
+        "host": "postgres",
+        "port": 5432,
+        "db": "wiregate",
+        "user": "wiregate_user",
+        "password": "new_postgres_password",
+        "ssl_mode": "disable"
+    },
+    "cache": {
+        "enabled": true,
+        "ttl": 300
+    }
+}
+```
+
+**Response:**
+```json
+{
+    "status": true,
+    "message": "Database configuration updated successfully"
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:8080/api/database/config \
+  -H "Content-Type: application/json" \
+  -d '{
+    "redis": {
+        "host": "redis",
+        "port": 6379,
+        "db": 0,
+        "password": "new_password"
+    },
+    "postgres": {
+        "host": "postgres",
+        "port": 5432,
+        "db": "wiregate",
+        "user": "wiregate_user",
+        "password": "new_password",
+        "ssl_mode": "disable"
+    },
+    "cache": {
+        "enabled": true,
+        "ttl": 300
+    }
+}'
+```
+
+### Get Database Statistics
+```
+GET /api/database/stats
+```
+Retrieves database statistics including connection status, record counts, and performance metrics.
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": {
+        "total_peers": 150,
+        "total_configurations": 5,
+        "redis_connected": true,
+        "postgres_connected": true,
+        "cache_hit_rate": 0.85,
+        "total_queries": 1250,
+        "cache_entries": 45
+    }
+}
+```
+
+**Example:**
+```bash
+curl -X GET http://localhost:8080/api/database/stats \
+  -H "Content-Type: application/json"
+```
+
+### Test Database Connections
+```
+POST /api/database/test
+```
+Tests the database connections with the provided configuration.
+
+**Request Body:**
+```json
+{
+    "redis": {
+        "host": "redis",
+        "port": 6379,
+        "db": 0,
+        "password": "test_password"
+    },
+    "postgres": {
+        "host": "postgres",
+        "port": 5432,
+        "db": "wiregate",
+        "user": "wiregate_user",
+        "password": "test_password",
+        "ssl_mode": "disable"
+    }
+}
+```
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": {
+        "redis": {
+            "connected": true,
+            "response_time": "2ms"
+        },
+        "postgres": {
+            "connected": true,
+            "response_time": "5ms"
+        }
+    }
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:8080/api/database/test \
+  -H "Content-Type: application/json" \
+  -d '{
+    "redis": {
+        "host": "redis",
+        "port": 6379,
+        "db": 0,
+        "password": "test_password"
+    },
+    "postgres": {
+        "host": "postgres",
+        "port": 5432,
+        "db": "wiregate",
+        "user": "wiregate_user",
+        "password": "test_password",
+        "ssl_mode": "disable"
+    }
+}'
+```
+
+### Migrate Database
+```
+POST /api/database/migrate
+```
+Performs database migration between different architectures.
+
+**Request Body:**
+```json
+{
+    "type": "auto"
+}
+```
+
+**Migration Types:**
+- `auto` - Automatic migration (detects current state and migrates accordingly)
+- `redis_to_hybrid` - Migrate from Redis-only to hybrid architecture
+- `hybrid_to_postgres` - Migrate from hybrid to PostgreSQL-only architecture
+- `postgres_to_hybrid` - Migrate from PostgreSQL-only to hybrid architecture
+
+**Response:**
+```json
+{
+    "status": true,
+    "data": {},
+    "message": "Migration auto completed successfully"
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:8080/api/database/migrate \
+  -H "Content-Type: application/json" \
+  -d '{"type": "auto"}'
+```
+
+### Clear Database Cache
+```
+POST /api/database/clear-cache
+```
+Clears all cached data from Redis.
+
+**Response:**
+```json
+{
+    "status": true,
+    "message": "Cleared 45 cache entries"
+}
+```
+
+**Example:**
+```bash
+curl -X POST http://localhost:8080/api/database/clear-cache \
   -H "Content-Type: application/json"
 ```
 

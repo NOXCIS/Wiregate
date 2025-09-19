@@ -962,6 +962,13 @@ def API_addPeers(configName):
                 name = data.get("name", "")
                 private_key = data.get("private_key", "")
 
+                # Validate peer name uniqueness within the configuration
+                if name:
+                    existing_peers = config.getPeers()
+                    for existing_peer in existing_peers:
+                        if existing_peer.name == name:
+                            return ResponseObject(False, f"A peer with the name '{name}' already exists in this configuration")
+
                 for i in allowed_ips:
                     if i not in availableIps[1]:
                         return ResponseObject(False, f"This IP is not available: {i}")

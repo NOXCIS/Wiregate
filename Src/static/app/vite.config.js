@@ -6,6 +6,9 @@ import vue from '@vitejs/plugin-vue'
 import {v1} from "uuid";
 
 export default defineConfig(({mode}) => {
+	// Check if DASHBOARD_MODE is set to 'prod'
+	const isProduction = process.env.DASHBOARD_MODE === 'production';
+	
 	if (mode === 'electron'){
 		return {
 			emptyOutDir: false,
@@ -20,12 +23,12 @@ export default defineConfig(({mode}) => {
 			},
 			build: {
 				target: "es2022",
-				outDir: '../../../../WGDashboard-Desktop',
+				outDir: '../../../../WireGate-Desktop',
 				minify: 'terser',
 				terserOptions: {
 					compress: {
-						drop_console: true,
-						drop_debugger: true
+						drop_console: isProduction,
+						drop_debugger: isProduction
 					}
 				},
 				rollupOptions: {
@@ -61,8 +64,8 @@ export default defineConfig(({mode}) => {
 			minify: 'terser',
 			terserOptions: {
 				compress: {
-					drop_console: false,
-					drop_debugger: false
+					drop_console: isProduction,
+					drop_debugger: isProduction
 				}
 			},
 			rollupOptions: {

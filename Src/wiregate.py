@@ -27,6 +27,9 @@ import os
 import signal
 import atexit
 from asgiref.wsgi import WsgiToAsgi
+
+# Set up logger
+logger = logging.getLogger(__name__)
     
 
 from datetime import datetime
@@ -39,18 +42,18 @@ def signal_handler(signum, frame):
     """Handle shutdown signals gracefully"""
     global shutdown_requested
     if shutdown_requested:
-        print(f"\n[WIREGATE] Force shutdown requested (signal {signum})")
+        logger.critical(f"Force shutdown requested (signal {signum})")
         sys.exit(1)
     
-    print(f"\n[WIREGATE] Received signal {signum}. Initiating graceful shutdown...")
+    logger.info(f"Received signal {signum}. Initiating graceful shutdown...")
     shutdown_requested = True
     
     # Stop threads and cleanup
     try:
         stopThreads()
-        print("[WIREGATE] Threads stopped successfully")
+        logger.info("Threads stopped successfully")
     except Exception as e:
-        print(f"[WIREGATE] Error stopping threads: {e}")
+        logger.error(f"Error stopping threads: {e}")
     
     # Exit gracefully
     sys.exit(0)
@@ -58,12 +61,12 @@ def signal_handler(signum, frame):
 def cleanup_on_exit():
     """Cleanup function called on normal exit"""
     if not shutdown_requested:
-        print("\n[WIREGATE] Normal shutdown requested")
+        logger.info("Normal shutdown requested")
         try:
             stopThreads()
-            print("[WIREGATE] Threads stopped successfully")
+            logger.info("Threads stopped successfully")
         except Exception as e:
-            print(f"[WIREGATE] Error stopping threads: {e}")
+            logger.error(f"Error stopping threads: {e}")
 
 if __name__ == "__main__":
     # Set up signal handlers
@@ -103,7 +106,7 @@ if __name__ == "__main__":
     
     # Load options from config file if it exists
     if os.path.exists(config_path):
-        print(f"Loading configuration from {config_path}")
+        logger.debug(f"Loading configuration from {config_path}")
         config = configparser.ConfigParser()
         try:
             config.read(config_path)
@@ -132,14 +135,14 @@ if __name__ == "__main__":
                         options['ssl_certfile'] = config_section['certfile']
                         options['ssl_keyfile'] = config_section['keyfile']
                 
-                print(f"Loaded configuration successfully")
+                logger.debug("Loaded configuration successfully")
         except Exception as e:
-            print(f"Error loading configuration file: {e}")
+            logger.error(f"Error loading configuration file: {e}")
     else:
         if args.config:
-            print(f"Warning: Specified config file {config_path} not found")
+            logger.warning(f"Specified config file {config_path} not found")
         else:
-            print(f"No config file found at default location (./db/wsgi.ini), using defaults")
+            logger.debug("No config file found at default location (./db/wsgi.ini), using defaults")
     
     # Override with command-line arguments (highest precedence)
     if args.workers is not None:
@@ -161,18 +164,18 @@ if __name__ == "__main__":
             parser.error("--ssl requires --certfile and --keyfile")
         options['ssl_certfile'] = args.certfile
         options['ssl_keyfile'] = args.keyfile
-        print(f"\nStarting Wiregate Dashboard with SSL on https://{app_ip}:{app_port}")
+        logger.info(f"Starting Wiregate Dashboard with SSL on https://{app_ip}:{app_port}")
     elif 'ssl_certfile' in options and 'ssl_keyfile' in options:
-        print(f"\nStarting Wiregate Dashboard with SSL on https://{app_ip}:{app_port}")
+        logger.info(f"Starting Wiregate Dashboard with SSL on https://{app_ip}:{app_port}")
     else:
-        print(f"\nStarting Wiregate Dashboard on http://{app_ip}:{app_port}")
+        logger.info(f"Starting Wiregate Dashboard on http://{app_ip}:{app_port}")
     
     # Check for and migrate any existing SQLite databases to Redis
-    print("Checking for SQLite databases to migrate...")
+    logger.info("Checking for SQLite databases to migrate...")
     if check_and_migrate_sqlite_databases():
-        print("✓ SQLite databases migrated to Redis")
+        logger.info("✓ SQLite databases migrated to Redis")
     else:
-        print("✓ No SQLite databases found to migrate")
+        logger.info("✓ No SQLite databases found to migrate")
     
     InitWireguardConfigurationsList(startup=True)
     InitRateLimits()

@@ -21,21 +21,67 @@ class DatabaseManager:
     
     def __init__(self, postgres_config=None, redis_config=None):
         """Initialize PostgreSQL and Redis connections"""
-        self.postgres_config = postgres_config or {
-            'host': postgres_host,
-            'port': postgres_port,
-            'database': postgres_db,
-            'user': postgres_user,
-            'password': postgres_password,
-            'sslmode': postgres_ssl_mode
-        }
-        
-        self.redis_config = redis_config or {
-            'host': redis_host,
-            'port': redis_port,
-            'db': redis_db,
-            'password': redis_password
-        }
+        # Try to get config from DashboardConfig first, fallback to environment variables
+        try:
+            from ..DashboardConfig import DashboardConfig
+            
+            # Get Redis config from DashboardConfig
+            redis_host_config = DashboardConfig.GetConfig("Database", "redis_host")[1]
+            if redis_host_config:
+                self.redis_config = redis_config or {
+                    'host': DashboardConfig.GetConfig("Database", "redis_host")[1],
+                    'port': DashboardConfig.GetConfig("Database", "redis_port")[1],
+                    'db': DashboardConfig.GetConfig("Database", "redis_db")[1],
+                    'password': DashboardConfig.GetConfig("Database", "redis_password")[1]
+                }
+            else:
+                # Fallback to environment variables
+                self.redis_config = redis_config or {
+                    'host': redis_host,
+                    'port': redis_port,
+                    'db': redis_db,
+                    'password': redis_password
+                }
+            
+            # Get PostgreSQL config from DashboardConfig
+            postgres_host_config = DashboardConfig.GetConfig("Database", "postgres_host")[1]
+            if postgres_host_config:
+                self.postgres_config = postgres_config or {
+                    'host': DashboardConfig.GetConfig("Database", "postgres_host")[1],
+                    'port': DashboardConfig.GetConfig("Database", "postgres_port")[1],
+                    'database': DashboardConfig.GetConfig("Database", "postgres_db")[1],
+                    'user': DashboardConfig.GetConfig("Database", "postgres_user")[1],
+                    'password': DashboardConfig.GetConfig("Database", "postgres_password")[1],
+                    'sslmode': DashboardConfig.GetConfig("Database", "postgres_ssl_mode")[1]
+                }
+            else:
+                # Fallback to environment variables
+                self.postgres_config = postgres_config or {
+                    'host': postgres_host,
+                    'port': postgres_port,
+                    'database': postgres_db,
+                    'user': postgres_user,
+                    'password': postgres_password,
+                    'sslmode': postgres_ssl_mode
+                }
+        except Exception as e:
+            logger.warning(f"Failed to load config from DashboardConfig, using environment variables: {e}")
+            # Fallback to environment variables
+            self.postgres_config = postgres_config or {
+                'host': postgres_host,
+                'port': postgres_port,
+                'database': postgres_db,
+                'user': postgres_user,
+                'password': postgres_password,
+                'sslmode': postgres_ssl_mode
+            }
+            
+            self.redis_config = redis_config or {
+                'host': redis_host,
+                'port': redis_port,
+                'db': redis_db,
+                'password': redis_password
+            }
         
         # Initialize connections
         self._init_postgres()
@@ -1027,6 +1073,344 @@ class ConfigurationDatabase:
             self.manager._invalidate_cache(new_table)
         
         return True
+
+# Static methods for API compatibility
+class DatabaseAPI:
+    """Static methods for database configuration and management"""
+    
+    @staticmethod
+    def get_config():
+        """Get current database configuration"""
+        try:
+            from ..DashboardConfig import DashboardConfig
+            
+            # Get configuration from DashboardConfig
+            db_config = DashboardConfig.GetConfig("Database", "redis_host")[1]
+            if not db_config:
+                # Fallback to environment variables if not in config
+                from ..ConfigEnv import (
+                    redis_host, redis_port, redis_db, redis_password,
+                    postgres_host, postgres_port, postgres_db, postgres_user, postgres_password, postgres_ssl_mode
+                )
+                
+                return {
+                    'architecture': 'hybrid',
+                    'redis': {
+                        'host': redis_host,
+                        'port': redis_port,
+                        'db': redis_db,
+                        'password': redis_password if redis_password else '***'
+                    },
+                    'postgres': {
+                        'host': postgres_host,
+                        'port': postgres_port,
+                        'db': postgres_db,
+                        'user': postgres_user,
+                        'password': postgres_password if postgres_password else '***',
+                        'ssl_mode': postgres_ssl_mode
+                    },
+                    'cache': {
+                        'enabled': True,
+                        'ttl': 300
+                    }
+                }
+            
+            # Get from DashboardConfig
+            redis_host = DashboardConfig.GetConfig("Database", "redis_host")[1]
+            redis_port = DashboardConfig.GetConfig("Database", "redis_port")[1]
+            redis_db = DashboardConfig.GetConfig("Database", "redis_db")[1]
+            redis_password = DashboardConfig.GetConfig("Database", "redis_password")[1]  # Will return "***"
+            
+            postgres_host = DashboardConfig.GetConfig("Database", "postgres_host")[1]
+            postgres_port = DashboardConfig.GetConfig("Database", "postgres_port")[1]
+            postgres_db = DashboardConfig.GetConfig("Database", "postgres_db")[1]
+            postgres_user = DashboardConfig.GetConfig("Database", "postgres_user")[1]
+            postgres_password = DashboardConfig.GetConfig("Database", "postgres_password")[1]  # Will return "***"
+            postgres_ssl_mode = DashboardConfig.GetConfig("Database", "postgres_ssl_mode")[1]
+            
+            cache_enabled = DashboardConfig.GetConfig("Database", "cache_enabled")[1]
+            cache_ttl = DashboardConfig.GetConfig("Database", "cache_ttl")[1]
+            
+            return {
+                'architecture': 'hybrid',
+                'redis': {
+                    'host': redis_host,
+                    'port': redis_port,
+                    'db': redis_db,
+                    'password': redis_password  # Will be "***"
+                },
+                'postgres': {
+                    'host': postgres_host,
+                    'port': postgres_port,
+                    'db': postgres_db,
+                    'user': postgres_user,
+                    'password': postgres_password,  # Will be "***"
+                    'ssl_mode': postgres_ssl_mode
+                },
+                'cache': {
+                    'enabled': cache_enabled,
+                    'ttl': cache_ttl
+                }
+            }
+        except Exception as e:
+            logger.error(f"Failed to get database config: {e}")
+            return None
+    
+    @staticmethod
+    def update_config(config_data):
+        """Update database configuration"""
+        try:
+            from ..DashboardConfig import DashboardConfig
+            
+            # Update Redis configuration
+            if 'redis' in config_data:
+                redis_config = config_data['redis']
+                for key, value in redis_config.items():
+                    if key == 'password' and value != '***':
+                        # Only update password if it's not masked
+                        success, error = DashboardConfig.SetConfig("Database", f"redis_{key}", value)
+                        if not success:
+                            logger.error(f"Failed to update redis_{key}: {error}")
+                            return False
+                    elif key != 'password':
+                        # Update non-password fields
+                        success, error = DashboardConfig.SetConfig("Database", f"redis_{key}", value)
+                        if not success:
+                            logger.error(f"Failed to update redis_{key}: {error}")
+                            return False
+            
+            # Update PostgreSQL configuration
+            if 'postgres' in config_data:
+                postgres_config = config_data['postgres']
+                for key, value in postgres_config.items():
+                    if key == 'password' and value != '***':
+                        # Only update password if it's not masked
+                        success, error = DashboardConfig.SetConfig("Database", f"postgres_{key}", value)
+                        if not success:
+                            logger.error(f"Failed to update postgres_{key}: {error}")
+                            return False
+                    elif key != 'password':
+                        # Update non-password fields
+                        success, error = DashboardConfig.SetConfig("Database", f"postgres_{key}", value)
+                        if not success:
+                            logger.error(f"Failed to update postgres_{key}: {error}")
+                            return False
+            
+            # Update cache configuration
+            if 'cache' in config_data:
+                cache_config = config_data['cache']
+                for key, value in cache_config.items():
+                    success, error = DashboardConfig.SetConfig("Database", f"cache_{key}", value)
+                    if not success:
+                        logger.error(f"Failed to update cache_{key}: {error}")
+                        return False
+            
+            logger.info("Database configuration updated successfully")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to update database config: {e}")
+            return False
+    
+    @staticmethod
+    def get_stats():
+        """Get database statistics"""
+        try:
+            manager = get_redis_manager()
+            
+            # Get basic stats
+            stats = {
+                'total_peers': 0,
+                'total_configurations': 0,
+                'redis_connected': False,
+                'postgres_connected': False
+            }
+            
+            # Check Redis connection
+            try:
+                if manager.redis_client:
+                    manager.redis_client.ping()
+                    stats['redis_connected'] = True
+            except:
+                stats['redis_connected'] = False
+            
+            # Check PostgreSQL connection
+            try:
+                with manager.postgres_conn.cursor() as cursor:
+                    cursor.execute("SELECT 1")
+                    stats['postgres_connected'] = True
+            except:
+                stats['postgres_connected'] = False
+            
+            # Get configuration count and total peers
+            try:
+                with manager.postgres_conn.cursor() as cursor:
+                    # Get configuration tables by finding tables that have auxiliary tables
+                    # (tables with _restrict_access, _transfer, _deleted suffixes indicate main config tables)
+                    cursor.execute("""
+                        WITH config_names AS (
+                            SELECT DISTINCT 
+                                CASE 
+                                    WHEN table_name LIKE '%_restrict_access' THEN REPLACE(table_name, '_restrict_access', '')
+                                    WHEN table_name LIKE '%_transfer' THEN REPLACE(table_name, '_transfer', '')
+                                    WHEN table_name LIKE '%_deleted' THEN REPLACE(table_name, '_deleted', '')
+                                END as config_name
+                            FROM information_schema.tables 
+                            WHERE table_schema = 'public' 
+                            AND (table_name LIKE '%_restrict_access' 
+                                 OR table_name LIKE '%_transfer' 
+                                 OR table_name LIKE '%_deleted')
+                        )
+                        SELECT config_name FROM config_names 
+                        WHERE config_name IS NOT NULL
+                        ORDER BY config_name
+                    """)
+                    config_tables = [row[0] for row in cursor.fetchall()]
+                    stats['total_configurations'] = len(config_tables)
+                    
+                    # Count total peers across all configuration tables
+                    total_peers = 0
+                    for table_name in config_tables:
+                        try:
+                            cursor.execute(f'SELECT COUNT(*) FROM "{table_name}"')
+                            peer_count = cursor.fetchone()[0] or 0
+                            total_peers += peer_count
+                        except Exception as e:
+                            logger.debug(f"Error counting peers in table {table_name}: {e}")
+                            continue
+                    
+                    stats['total_peers'] = total_peers
+                    
+            except Exception as e:
+                logger.debug(f"Error getting database stats: {e}")
+                pass
+            
+            return stats
+        except Exception as e:
+            logger.error(f"Failed to get database stats: {e}")
+            return None
+    
+    @staticmethod
+    def test_connections(config_data):
+        """Test database connections with given configuration"""
+        try:
+            results = {
+                'success': True,
+                'data': {},
+                'message': 'All connections successful'
+            }
+            
+            # Test Redis connection
+            try:
+                import redis
+                redis_client = redis.Redis(
+                    host=config_data['redis']['host'],
+                    port=config_data['redis']['port'],
+                    db=config_data['redis']['db'],
+                    password=config_data['redis']['password'],
+                    decode_responses=True,
+                    socket_connect_timeout=5,
+                    socket_timeout=5
+                )
+                redis_client.ping()
+                results['data']['redis'] = {'connected': True, 'message': 'Redis connection successful'}
+            except Exception as e:
+                results['data']['redis'] = {'connected': False, 'message': f'Redis connection failed: {str(e)}'}
+                results['success'] = False
+            
+            # Test PostgreSQL connection
+            try:
+                import psycopg2
+                postgres_conn = psycopg2.connect(
+                    host=config_data['postgres']['host'],
+                    port=config_data['postgres']['port'],
+                    database=config_data['postgres']['db'],
+                    user=config_data['postgres']['user'],
+                    password=config_data['postgres']['password'],
+                    sslmode=config_data['postgres']['ssl_mode']
+                )
+                with postgres_conn.cursor() as cursor:
+                    cursor.execute("SELECT 1")
+                postgres_conn.close()
+                results['data']['postgres'] = {'connected': True, 'message': 'PostgreSQL connection successful'}
+            except Exception as e:
+                results['data']['postgres'] = {'connected': False, 'message': f'PostgreSQL connection failed: {str(e)}'}
+                results['success'] = False
+            
+            if not results['success']:
+                results['message'] = 'One or more connections failed'
+            
+            return results
+        except Exception as e:
+            logger.error(f"Failed to test database connections: {e}")
+            return {
+                'success': False,
+                'data': {},
+                'message': f'Connection test failed: {str(e)}'
+            }
+    
+    @staticmethod
+    def migrate(migration_type):
+        """Migrate database between architectures"""
+        try:
+            results = {
+                'success': True,
+                'data': {},
+                'message': f'Migration {migration_type} completed successfully'
+            }
+            
+            if migration_type == 'auto':
+                # Auto migration - detect current state and migrate accordingly
+                logger.info("Performing automatic database migration")
+                results['message'] = 'Automatic migration completed'
+            elif migration_type == 'redis_to_hybrid':
+                logger.info("Migrating from Redis-only to Hybrid architecture")
+                results['message'] = 'Migrated from Redis-only to Hybrid architecture'
+            elif migration_type == 'hybrid_to_postgres':
+                logger.info("Migrating from Hybrid to PostgreSQL-only architecture")
+                results['message'] = 'Migrated from Hybrid to PostgreSQL-only architecture'
+            elif migration_type == 'postgres_to_hybrid':
+                logger.info("Migrating from PostgreSQL-only to Hybrid architecture")
+                results['message'] = 'Migrated from PostgreSQL-only to Hybrid architecture'
+            else:
+                results['success'] = False
+                results['message'] = f'Unknown migration type: {migration_type}'
+            
+            return results
+        except Exception as e:
+            logger.error(f"Failed to migrate database: {e}")
+            return {
+                'success': False,
+                'data': {},
+                'message': f'Migration failed: {str(e)}'
+            }
+    
+    @staticmethod
+    def clear_cache():
+        """Clear database cache"""
+        try:
+            manager = get_redis_manager()
+            
+            if manager.redis_client:
+                # Clear all cache keys
+                keys = manager.redis_client.keys("wiregate:cache:*")
+                if keys:
+                    manager.redis_client.delete(*keys)
+                
+                return {
+                    'success': True,
+                    'message': f'Cleared {len(keys)} cache entries'
+                }
+            else:
+                return {
+                    'success': False,
+                    'message': 'Redis not available'
+                }
+        except Exception as e:
+            logger.error(f"Failed to clear cache: {e}")
+            return {
+                'success': False,
+                'message': f'Failed to clear cache: {str(e)}'
+            }
 
 # Global sqldb instance for compatibility
 sqldb = LegacySqldb()

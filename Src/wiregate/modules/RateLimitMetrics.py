@@ -4,9 +4,13 @@ Provides metrics collection and monitoring for distributed rate limiting
 """
 import time
 import json
+import logging
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
 from ..modules.DistributedRateLimitConfig import distributed_rate_limit_config
+
+# Set up logger
+logger = logging.getLogger(__name__)
 
 class RateLimitMetrics:
     """Metrics collection for rate limiting"""
@@ -40,7 +44,7 @@ class RateLimitMetrics:
             self.redis_client.expire(metrics_key, 3600)  # Keep for 1 hour
             
         except Exception as e:
-            print(f"Metrics recording error: {e}")
+            logger.error(f"Metrics recording error: {e}")
     
     def get_metrics_summary(self, time_window: int = 3600) -> Dict[str, Any]:
         """Get metrics summary for the specified time window"""
@@ -144,7 +148,7 @@ class RateLimitMetrics:
             ]
             
         except Exception as e:
-            print(f"Top limited identifiers error: {e}")
+            logger.error(f"Top limited identifiers error: {e}")
             return []
     
     def cleanup_old_metrics(self) -> int:
@@ -173,7 +177,7 @@ class RateLimitMetrics:
             return cleaned_count
             
         except Exception as e:
-            print(f"Metrics cleanup error: {e}")
+            logger.error(f"Metrics cleanup error: {e}")
             return 0
     
     def get_health_status(self) -> Dict[str, Any]:

@@ -1,4 +1,5 @@
 import threading
+import logging
 
 from typing import Any
 from json import JSONEncoder
@@ -7,6 +8,9 @@ from flask.json.provider import DefaultJSONProvider
 
 
 import time
+
+# Set up logger
+logger = logging.getLogger(__name__)
 
 from .modules.App import (
     app
@@ -144,6 +148,14 @@ except ImportError:
     from flask import Blueprint
     snapshot_api_blueprint = Blueprint('snapshot_api', __name__)
 
+# Import database_api with fallback
+try:
+    from .routes.database_api import database_blueprint
+except ImportError:
+    # Create a dummy blueprint if database_api is not available
+    from flask import Blueprint
+    database_blueprint = Blueprint('database', __name__)
+
 
 
 
@@ -161,6 +173,7 @@ app.register_blueprint(auth_blueprint, url_prefix=f'{APP_PREFIX}/api')
 app.register_blueprint(utils_blueprint, url_prefix=f'{APP_PREFIX}/api')
 app.register_blueprint(locale_blueprint, url_prefix=f'{APP_PREFIX}/api')
 app.register_blueprint(snapshot_api_blueprint, url_prefix=f'{APP_PREFIX}/api')
+app.register_blueprint(database_blueprint, url_prefix=f'{APP_PREFIX}/api')
 
 # Add security headers to all responses
 @app.after_request
@@ -195,7 +208,7 @@ def not_found_error(error):
 
 def backGroundThread():
     global Configurations
-    print(f"[WireGate] Background Thread #1 Started", flush=True)
+    logger.info("Background Thread #1 Started")
     time.sleep(10)
     
     # Counter for update checks (check every 360 iterations = 1 hour)
@@ -212,7 +225,7 @@ def backGroundThread():
                         c.getPeersList()
                         c.getRestrictedPeersList()
                     except Exception as e:
-                        print(f"[WireGate] Background Thread #1 Error: {str(e)}", flush=True)
+                        logger.error(f"Background Thread #1 Error: {str(e)}")
             
             # Check for updates every hour (360 iterations * 10 seconds = 3600 seconds)
             # This will only run after the initial update check is triggered from the frontend
@@ -221,9 +234,9 @@ def backGroundThread():
                 try:
                     from .routes.utils_api import _background_update_check
                     _background_update_check()
-                    print(f"[WireGate] Update check completed", flush=True)
+                    logger.debug("Update check completed")
                 except Exception as e:
-                    print(f"[WireGate] Update check error: {str(e)}", flush=True)
+                    logger.error(f"Update check error: {str(e)}")
                 update_check_counter = 0  # Reset counter
                 
         time.sleep(10)
@@ -231,7 +244,7 @@ def backGroundThread():
 
 def peerJobScheduleBackgroundThread():
     with app.app_context():
-        print(f"[WireGate] Background Thread #2 Started", flush=True)
+        logger.info("Background Thread #2 Started")
         time.sleep(10)
         while True:
             AllPeerJobs.runJob()
@@ -243,11 +256,11 @@ def peerJobScheduleBackgroundThread():
 def startThreads():
     # Start thread pool for I/O operations
     thread_pool.start_pool()
-    print("[WireGate] Thread pool started with 20 workers")
+    logger.info("Thread pool started with 20 workers")
     
     # Start process pool for CPU-intensive operations
     process_pool.start_pool()
-    print("[WireGate] Process pool started with 4 workers")
+    logger.info("Process pool started with 4 workers")
     
     bgThread = threading.Thread(target=backGroundThread)
     bgThread.daemon = True
@@ -262,15 +275,15 @@ def stopThreads():
     """Stop thread pool and process pool, cleanup resources"""
     try:
         thread_pool.stop_pool()
-        print("[WireGate] Thread pool stopped")
+        logger.info("Thread pool stopped")
     except Exception as e:
-        print(f"[WireGate] Error stopping thread pool: {e}")
+        logger.error(f"Error stopping thread pool: {e}")
     
     try:
         process_pool.stop_pool()
-        print("[WireGate] Process pool stopped")
+        logger.info("Process pool stopped")
     except Exception as e:
-        print(f"[WireGate] Error stopping process pool: {e}")
+        logger.error(f"Error stopping process pool: {e}")
 
 
 

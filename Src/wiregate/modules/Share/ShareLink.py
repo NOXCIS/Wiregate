@@ -28,15 +28,18 @@ class PeerShareLink:
 class PeerShareLinks:
     def __init__(self):
         self.Links: list[PeerShareLink] = []
+        # Check if table exists using PostgreSQL syntax
         existingTables = sqlSelect(
-            "SELECT name FROM sqlite_master WHERE type='table' and name = 'PeerShareLinks'").fetchall()
+            "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'PeerShareLinks'").fetchall()
         if len(existingTables) == 0:
             sqlUpdate(
                 """
-                    CREATE TABLE PeerShareLinks (
-                        ShareID VARCHAR NOT NULL PRIMARY KEY, Configuration VARCHAR NOT NULL, Peer VARCHAR NOT NULL,
-                        ExpireDate DATETIME,
-                        SharedDate DATETIME DEFAULT (datetime('now', 'localtime'))
+                    CREATE TABLE IF NOT EXISTS PeerShareLinks (
+                        ShareID VARCHAR NOT NULL PRIMARY KEY, 
+                        Configuration VARCHAR NOT NULL, 
+                        Peer VARCHAR NOT NULL,
+                        ExpireDate TIMESTAMP,
+                        SharedDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
                 """
             )
@@ -45,7 +48,7 @@ class PeerShareLinks:
     def __getSharedLinks(self):
         self.Links.clear()
         allLinks = sqlSelect(
-            "SELECT * FROM PeerShareLinks WHERE ExpireDate IS NULL OR ExpireDate > datetime('now', 'localtime')").fetchall()
+            "SELECT * FROM PeerShareLinks WHERE ExpireDate IS NULL OR ExpireDate > CURRENT_TIMESTAMP").fetchall()
         for link in allLinks:
             self.Links.append(PeerShareLink(*link))
 
@@ -62,9 +65,9 @@ class PeerShareLinks:
             newShareID = str(uuid.uuid4())
             if len(self.getLink(Configuration, Peer)) > 0:
                 sqlUpdate(
-                    "UPDATE PeerShareLinks SET ExpireDate = datetime('now', 'localtime') WHERE Configuration = ? AND Peer = ?",
+                    "UPDATE PeerShareLinks SET ExpireDate = CURRENT_TIMESTAMP WHERE Configuration = %s AND Peer = %s",
                     (Configuration, Peer,))
-            sqlUpdate("INSERT INTO PeerShareLinks (ShareID, Configuration, Peer, ExpireDate) VALUES (?, ?, ?, ?)",
+            sqlUpdate("INSERT INTO PeerShareLinks (ShareID, Configuration, Peer, ExpireDate) VALUES (%s, %s, %s, %s)",
                       (newShareID, Configuration, Peer, ExpireDate,))
             self.__getSharedLinks()
         except Exception as e:
@@ -72,7 +75,7 @@ class PeerShareLinks:
         return True, newShareID
 
     def updateLinkExpireDate(self, ShareID, ExpireDate: datetime = None) -> tuple[bool, str]:
-        sqlUpdate("UPDATE PeerShareLinks SET ExpireDate = ? WHERE ShareID = ?;", (ExpireDate, ShareID,))
+        sqlUpdate("UPDATE PeerShareLinks SET ExpireDate = %s WHERE ShareID = %s;", (ExpireDate, ShareID,))
         self.__getSharedLinks()
         return True, ""
 

@@ -8,15 +8,12 @@ resources:
 - postgres-secret.yaml
 - postgres-deployment.yaml
 # Redis (Distributed Caching)
-- redis-configmap.yaml
-- redis-secret.yaml
-- redis-deployment.yaml
 - redis-cluster-statefulset.yaml
+- redis-secret.yaml
 # WireGate (Clustered Application)
 - wiregate-configmap.yaml
 - wiregate-secret.yaml
 - wiregate-serviceaccount.yaml
-- wiregate-deployment.yaml
 - wiregate-cluster-deployment.yaml
 # Load Balancer
 - nginx-loadbalancer.yaml
@@ -29,6 +26,17 @@ resources:
 commonLabels:
   app.kubernetes.io/name: wiregate
   app.kubernetes.io/version: "1.0.0"
-  app.kubernetes.io/component: vpn-gateway
+  app.kubernetes.io/component: vpn-gateway-cluster
 
 namespace: wiregate
+
+# Patches for cluster configuration
+patchesStrategicMerge:
+- |-
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: wiregate-cluster
+    namespace: wiregate
+  spec:
+    replicas: 5  # Override default replicas for cluster

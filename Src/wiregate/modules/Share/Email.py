@@ -1,11 +1,15 @@
 import os.path
 import smtplib
+import logging
 from email import encoders
 from email.header import Header
 from email.mime.base import MIMEBase
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formataddr
+
+# Set up logger
+logger = logging.getLogger(__name__)
 
 
 
@@ -37,7 +41,7 @@ class EmailSender:
         return self.DashboardConfig.GetConfig("Email", "send_from")[1]
 
     def ready(self):
-        print(self.Server())
+        logger.debug(f"Email server: {self.Server()}")
         return len(self.Server()) > 0 and len(self.Port()) > 0 and len(self.Encryption()) > 0 and len(self.Username()) > 0 and len(self.Password()) > 0
 
     def send(self, receiver, subject, body, includeAttachment=False, attachmentName="", attachmentData=None):

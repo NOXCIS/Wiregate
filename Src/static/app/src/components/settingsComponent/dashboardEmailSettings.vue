@@ -79,7 +79,8 @@ const sendTestEmail = async () => {
 							</label>
 							<input id="server" 
 							       v-model="store.Configuration.Email.server"
-							       type="text" class="form-control">
+							       type="text" class="form-control"
+							       autocomplete="url">
 						</div>
 					</div>
 					<div class="col-12 col-lg-4">
@@ -91,7 +92,8 @@ const sendTestEmail = async () => {
 							</label>
 							<input id="port"
 							       v-model="store.Configuration.Email.port"
-							       type="text" class="form-control">
+							       type="text" class="form-control"
+							       autocomplete="off">
 						</div>
 					</div>
 					<div class="col-12 col-lg-4">
@@ -122,7 +124,8 @@ const sendTestEmail = async () => {
 							</label>
 							<input id="username"
 							       v-model="store.Configuration.Email.username"
-							       type="text" class="form-control">
+							       type="text" class="form-control"
+							       autocomplete="username">
 						</div>
 					</div>
 					<div class="col-12 col-lg-4">
@@ -134,7 +137,8 @@ const sendTestEmail = async () => {
 							</label>
 							<input id="email_password"
 							       v-model="store.Configuration.Email.email_password"
-							       type="password" class="form-control">
+							       type="password" class="form-control"
+							       autocomplete="off">
 						</div>
 					</div>
 					<div class="col-12 col-lg-4">
@@ -146,7 +150,8 @@ const sendTestEmail = async () => {
 							</label>
 							<input id="send_from"
 							       v-model="store.Configuration.Email.send_from"
-							       type="text" class="form-control">
+							       type="text" class="form-control"
+							       autocomplete="email">
 						</div>
 					</div>
 				</div>

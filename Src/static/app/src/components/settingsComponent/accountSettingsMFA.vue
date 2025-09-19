@@ -56,8 +56,9 @@ export default {
 					<LocaleText t="Disabled" v-else></LocaleText>
 				</label>
 		</div>
-		<button class="btn bg-warning-subtle text-warning-emphasis border-1 border-warning-subtle ms-auto rounded-3 shadow-sm" 
-		        v-if="this.status" @click="this.resetMFA()">
+		<button id="mfaToggleBtn" class="btn bg-warning-subtle text-warning-emphasis border-1 border-warning-subtle ms-auto rounded-3 shadow-sm" 
+		        v-if="this.status" @click="this.resetMFA()"
+		        aria-label="Reset or setup MFA">
 			<i class="bi bi-shield-lock-fill me-2"></i>
 			<LocaleText t="Reset" v-if='this.store.Configuration.Account["totp_verified"]'></LocaleText>
 			<LocaleText t="Setup" v-else></LocaleText>

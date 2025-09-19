@@ -79,7 +79,7 @@ export default {
 				<input type="text" class="form-control mb-2" :id="'app_port_' + this.uuid" v-model="this.app_port">
 			</div>
 		</div>
-		<button class="btn btn-success btn-sm fw-bold rounded-3">
+		<button id="updateDashboardSettingsBtn" class="btn btn-success btn-sm fw-bold rounded-3" aria-label="Update dashboard settings and restart">
 			<i class="bi bi-floppy-fill me-2"></i>Update Dashboard Settings & Restart
 		</button>
 	</div>

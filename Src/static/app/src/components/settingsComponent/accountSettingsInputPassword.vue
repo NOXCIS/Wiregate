@@ -126,8 +126,11 @@ export default {
 			</div>
 		</div>
 		<button 
+			id="updatePasswordBtn"
 			:disabled="!this.passwordValid"
-			class="ms-auto btn bg-success-subtle text-success-emphasis border-1 border-success-subtle rounded-3 shadow-sm" @click="this.useValidation()">
+			class="ms-auto btn bg-success-subtle text-success-emphasis border-1 border-success-subtle rounded-3 shadow-sm" 
+			@click="this.useValidation()"
+			aria-label="Update password">
 			<i class="bi bi-save2-fill me-2"></i>
 			<LocaleText t="Update Password"></LocaleText>
 		</button>

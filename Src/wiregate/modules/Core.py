@@ -385,25 +385,23 @@ class Configuration:
         return changed
 
     def __cleanup_master_keys_in_dev_mode(self):
-        """Clean up master key entries from database in development mode"""
-        from .ConfigEnv import DASHBOARD_MODE
-        if DASHBOARD_MODE == 'development':
-            try:
-                # Get all peers from database
-                all_peers = self.db.get_peers()
-                for peer in all_peers:
-                    # Check if this is a master key peer (has IP 10.0.0.254/32)
-                    if peer.get('allowed_ip') == '10.0.0.254/32' or '10.0.0.254/32' in str(peer.get('allowed_ip', '')):
-                        logger.info(f"Removing old master key peer from database: {peer.get('id', 'unknown')[:8]}...")
-                        self.db.delete_peer(peer.get('id'))
-            except Exception as e:
-                logger.error(f"Error cleaning up master keys in development mode: {e}")
+        """Clean up master key entries from database in all modes"""
+        try:
+            # Get all peers from database
+            all_peers = self.db.get_peers()
+            for peer in all_peers:
+                # Check if this is a master key peer (has IP 10.0.0.254/32)
+                if peer.get('allowed_ip') == '10.0.0.254/32' or '10.0.0.254/32' in str(peer.get('allowed_ip', '')):
+                    logger.info(f"Removing old master key peer from database: {peer.get('id', 'unknown')[:8]}...")
+                    self.db.delete_peer(peer.get('id'))
+        except Exception as e:
+            logger.error(f"Error cleaning up master keys: {e}")
 
     def __getPeers(self):
         if self.configurationFileChanged():
             self.Peers = []
             
-            # Clean up master keys in development mode before processing config file
+            # Clean up master keys before processing config file
             self.__cleanup_master_keys_in_dev_mode()
             
             with open(os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], f'{self.Name}.conf'),
@@ -494,6 +492,13 @@ class Configuration:
         interface_address = self.get_iface_address()
         cmd_prefix = self.get_iface_proto()
         try:
+            # Validate peer names for uniqueness within this configuration
+            existing_peer_names = {peer.name for peer in self.Peers}
+            for peer in peers:
+                if peer.get('name') and peer['name'] in existing_peer_names:
+                    raise ValueError(f"A peer with the name '{peer['name']}' already exists in this configuration")
+                existing_peer_names.add(peer.get('name', ''))
+            
             # First, handle database updates and wg commands
             for i in peers:
                 # Split addresses into v4 and v6

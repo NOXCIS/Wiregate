@@ -3,10 +3,14 @@ import tempfile
 import io
 import os
 import json
+import logging
 import py7zr
 from datetime import datetime
 
 from ...modules.DashboardConfig import DashboardConfig
+
+# Set up logger
+logger = logging.getLogger(__name__)
 
 
 
@@ -36,7 +40,7 @@ class ArchiveUtils:
             return checksums, combined.hexdigest()
 
         except Exception as e:
-            print(f"Error calculating checksums: {str(e)}")
+            logger.error(f"Error calculating checksums: {str(e)}")
             raise
 
     @staticmethod
@@ -47,7 +51,7 @@ class ArchiveUtils:
         """
         try:
             # Calculate checksums
-            print("Calculating checksums...")
+            logger.debug("Calculating checksums...")
             file_checksums, combined_checksum = ArchiveUtils.calculate_checksums(files_dict)
 
             # Create manifest
@@ -58,12 +62,12 @@ class ArchiveUtils:
                 'version': DashboardConfig.GetConfig("Server", "version")[1]
             }
 
-            print(f"Combined checksum: {combined_checksum}")
+            logger.debug(f"Combined checksum: {combined_checksum}")
 
             # Add manifest to files
             files_dict['wiregate_manifest.json'] = json.dumps(manifest, indent=2)
 
-            print("Creating 7z archive in memory...")
+            logger.debug("Creating 7z archive in memory...")
             # Create archive in memory
             with tempfile.TemporaryDirectory() as temp_dir:
                 # Write files
@@ -85,12 +89,12 @@ class ArchiveUtils:
                     archive.writeall(temp_dir, arcname='.')
 
                 archive_data = archive_buffer.getvalue()
-                print(f"Archive created successfully, size: {len(archive_data)} bytes")
+                logger.debug(f"Archive created successfully, size: {len(archive_data)} bytes")
 
                 return archive_data, file_checksums, combined_checksum
 
         except Exception as e:
-            print(f"Error creating archive: {str(e)}, {type(e)}")
+            logger.error(f"Error creating archive: {str(e)}, {type(e)}")
             raise
 
     @staticmethod
@@ -134,7 +138,7 @@ class ArchiveUtils:
                 return False, "Checksums missing from manifest", {}
 
             # Verify individual file checksums
-            print("Verifying individual file checksums...")
+            logger.debug("Verifying individual file checksums...")
             current_checksums = {}
             for filename, content in extracted_files.items():
                 if filename == 'wiregate_manifest.json':
@@ -149,7 +153,7 @@ class ArchiveUtils:
                 current_checksums[filename] = calculated_hash
 
             # Verify combined checksum
-            print("Verifying combined checksum...")
+            logger.debug("Verifying combined checksum...")
             combined = hashlib.sha256()
             for filename, checksum in sorted(current_checksums.items()):
                 combined.update(f"{filename}:{checksum}".encode('utf-8'))
@@ -157,13 +161,13 @@ class ArchiveUtils:
             if combined.hexdigest() != manifest['combined_checksum']:
                 return False, "Combined checksum verification failed", {}
 
-            print("All checksums verified successfully")
+            logger.debug("All checksums verified successfully")
 
             # Remove manifest from extracted files
             del extracted_files['wiregate_manifest.json']
             return True, "", extracted_files
 
         except Exception as e:
-            print(f"Error verifying archive: {str(e)}, {type(e)}")
+            logger.error(f"Error verifying archive: {str(e)}, {type(e)}")
             return False, f"Error verifying archive: {str(e)}", {}
 

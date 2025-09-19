@@ -50,9 +50,10 @@ export default {
 		</small>
 		<div class="d-flex gap-2">
 			<div class="dropdown w-100">
-				<button class="btn bg-primary-subtle text-primary-emphasis dropdown-toggle w-100 rounded-3" 
+				<button id="languageDropdownBtn" class="btn bg-primary-subtle text-primary-emphasis dropdown-toggle w-100 rounded-3" 
 				        :disabled="!this.languages"
-				        type="button" data-bs-toggle="dropdown" aria-expanded="false">
+				        type="button" data-bs-toggle="dropdown" aria-expanded="false"
+				        aria-label="Select language">
 					<LocaleText t="Loading..." v-if="!this.languages"></LocaleText>
 					<span v-else>
 						{{ currentLanguage?.lang_name_localized }}

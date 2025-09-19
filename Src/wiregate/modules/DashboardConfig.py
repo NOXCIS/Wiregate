@@ -27,7 +27,17 @@ from .ConfigEnv import (
     wgd_peer_endpoint_allowed_ip,
     wgd_keep_alive,
     wgd_mtu,
-    wgd_remote_endpoint
+    wgd_remote_endpoint,
+    redis_host,
+    redis_port,
+    redis_db,
+    redis_password,
+    postgres_host,
+    postgres_port,
+    postgres_db,
+    postgres_user,
+    postgres_password,
+    postgres_ssl_mode
 )
 
 class DashboardAPIKey:
@@ -82,7 +92,18 @@ class DashboardConfig:
                 "welcome_session": wgd_welcome
             },
             "Database": {
-                "type": "sqlite"
+                "redis_host": redis_host,
+                "redis_port": redis_port,
+                "redis_db": redis_db,
+                "redis_password": redis_password,
+                "postgres_host": postgres_host,
+                "postgres_port": postgres_port,
+                "postgres_db": postgres_db,
+                "postgres_user": postgres_user,
+                "postgres_password": postgres_password,
+                "postgres_ssl_mode": postgres_ssl_mode,
+                "cache_enabled": True,
+                "cache_ttl": 300
             },
             "Email":{
                 "server": "",
@@ -127,14 +148,14 @@ class DashboardConfig:
 
     def __createAPIKeyTable(self):
         existingTable = sqlSelect(
-            "SELECT name FROM sqlite_master WHERE type='table' AND name = 'DashboardAPIKeys'").fetchall()
+            "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'DashboardAPIKeys'").fetchall()
         if len(existingTable) == 0:
             sqlUpdate(
-                "CREATE TABLE DashboardAPIKeys (Key VARCHAR NOT NULL PRIMARY KEY, CreatedAt DATETIME NOT NULL DEFAULT (datetime('now', 'localtime')), ExpiredAt VARCHAR)")
+                "CREATE TABLE IF NOT EXISTS DashboardAPIKeys (Key VARCHAR NOT NULL PRIMARY KEY, CreatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, ExpiredAt VARCHAR)")
 
     def __getAPIKeys(self) -> list[DashboardAPIKey]:
         keys = sqlSelect(
-            "SELECT * FROM DashboardAPIKeys WHERE ExpiredAt IS NULL OR ExpiredAt > datetime('now', 'localtime') ORDER BY CreatedAt DESC").fetchall()
+            "SELECT * FROM DashboardAPIKeys WHERE ExpiredAt IS NULL OR ExpiredAt > CURRENT_TIMESTAMP ORDER BY CreatedAt DESC").fetchall()
         fKeys = []
         for k in keys:
             fKeys.append(DashboardAPIKey(*k))
@@ -142,12 +163,12 @@ class DashboardConfig:
 
     def createAPIKeys(self, ExpiredAt=None):
         newKey = secrets.token_urlsafe(32)
-        sqlUpdate('INSERT INTO DashboardAPIKeys (Key, ExpiredAt) VALUES (?, ?)', (newKey, ExpiredAt,))
+        sqlUpdate('INSERT INTO DashboardAPIKeys (Key, ExpiredAt) VALUES (%s, %s)', (newKey, ExpiredAt,))
 
         self.DashboardAPIKeys = self.__getAPIKeys()
 
     def deleteAPIKey(self, key):
-        sqlUpdate("UPDATE DashboardAPIKeys SET ExpiredAt = datetime('now', 'localtime') WHERE Key = ?", (key,))
+        sqlUpdate("UPDATE DashboardAPIKeys SET ExpiredAt = CURRENT_TIMESTAMP WHERE Key = %s", (key,))
         self.DashboardAPIKeys = self.__getAPIKeys()
 
     def __configValidation(self, key, value: Any) -> tuple[bool, str]:
@@ -172,6 +193,15 @@ class DashboardConfig:
                     return False, "Current password does not match."
                 if value["newPassword"] != value["repeatNewPassword"]:
                     return False, "New passwords does not match"
+        # Database password validation
+        if key in ["redis_password", "postgres_password"]:
+            if isinstance(value, dict) and "currentPassword" in value:
+                # Password change validation
+                current_password = self.GetConfig("Database", key)[1]
+                if not self.__checkPassword(value["currentPassword"], current_password.encode("utf-8")):
+                    return False, "Current password does not match."
+                if value["newPassword"] != value["repeatNewPassword"]:
+                    return False, "New passwords do not match."
         return True, ""
 
     def generatePassword(self, plainTextPassword: str):
@@ -193,6 +223,15 @@ class DashboardConfig:
             if not init:
                 value = self.generatePassword(value["newPassword"]).decode("utf-8")
             else:
+                value = self.generatePassword(value).decode("utf-8")
+        
+        # Handle database password hashing
+        if section == "Database" and key in ["redis_password", "postgres_password"]:
+            if not init and isinstance(value, dict) and "newPassword" in value:
+                # Password change - hash the new password
+                value = self.generatePassword(value["newPassword"]).decode("utf-8")
+            elif init:
+                # Initial setup - hash the password
                 value = self.generatePassword(value).decode("utf-8")
 
         if section == "Server" and key == "wg_conf_path":
@@ -232,16 +271,30 @@ class DashboardConfig:
         if key not in self.__config[section]:
             return False, None
 
-        if self.__config[section][key] in ["1", "yes", "true", "on"]:
-            return True, True
-
-        if self.__config[section][key] in ["0", "no", "false", "off"]:
-            return True, False
+        value = self.__config[section][key]
+        
+        # Handle boolean values - but only for actual boolean fields
+        if key in ["enable_totp", "totp_verified", "auth_req", "cache_enabled"]:
+            if value in ["1", "yes", "true", "on"]:
+                return True, True
+            if value in ["0", "no", "false", "off"]:
+                return True, False
 
         if section == "WireGuardConfiguration" and key == "autostart":
-            return True, list(filter(lambda x: len(x) > 0, self.__config[section][key].split("||")))
+            return True, list(filter(lambda x: len(x) > 0, value.split("||")))
+        
+        # Mask database passwords when retrieving
+        if section == "Database" and key in ["redis_password", "postgres_password"]:
+            return True, "***"  # Always return masked password
 
-        return True, self.__config[section][key]
+        # Handle numeric values for database configuration
+        if section == "Database" and key in ["redis_port", "redis_db", "postgres_port", "cache_ttl"]:
+            try:
+                return True, int(value)
+            except (ValueError, TypeError):
+                return True, value
+
+        return True, value
 
     def toJson(self) -> dict[str, dict[Any, Any]]:
         the_dict = {}

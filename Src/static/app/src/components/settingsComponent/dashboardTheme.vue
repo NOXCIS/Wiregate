@@ -34,15 +34,17 @@ export default {
 			</strong>
 		</small>
 		<div class="d-flex gap-1">
-			<button class="btn bg-primary-subtle text-primary-emphasis flex-grow-1"
+			<button id="themeLightBtn" class="btn bg-primary-subtle text-primary-emphasis flex-grow-1"
 			        @click="this.switchTheme('light')"
-			        :class="{active: this.dashboardConfigurationStore.Configuration.Server.dashboard_theme === 'light'}">
+			        :class="{active: this.dashboardConfigurationStore.Configuration.Server.dashboard_theme === 'light'}"
+			        aria-label="Switch to light theme">
 				<i class="bi bi-sun-fill me-2"></i>
 				<LocaleText t="Light"></LocaleText>
 			</button>
-			<button class="btn bg-primary-subtle text-primary-emphasis flex-grow-1"
+			<button id="themeDarkBtn" class="btn bg-primary-subtle text-primary-emphasis flex-grow-1"
 			        @click="this.switchTheme('dark')"
-			        :class="{active: this.dashboardConfigurationStore.Configuration.Server.dashboard_theme === 'dark'}">
+			        :class="{active: this.dashboardConfigurationStore.Configuration.Server.dashboard_theme === 'dark'}"
+			        aria-label="Switch to dark theme">
 				<i class="bi bi-moon-fill me-2"></i>
 				<LocaleText t="Dark"></LocaleText>
 			</button>

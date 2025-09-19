@@ -1,0 +1,152 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wiregate-env-cluster
+  namespace: wiregate
+  labels:
+    app: wiregate-env-cluster
+spec:
+  replicas: 3  # Scale to your needs
+  selector:
+    matchLabels:
+      app: wiregate-env-cluster
+  template:
+    metadata:
+      labels:
+        app: wiregate-env-cluster
+    spec:
+      serviceAccountName: wiregate
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+      - name: wiregate
+        image: noxcis/wiregate:chimera
+        ports:
+        - containerPort: 80
+          name: http
+        - containerPort: 44333
+          name: wireguard-main
+          protocol: UDP
+        - containerPort: 4430
+          name: wireguard-zone1
+          protocol: UDP
+        - containerPort: 4431
+          name: wireguard-zone2
+          protocol: UDP
+        - containerPort: 4432
+          name: wireguard-zone3
+          protocol: UDP
+        - containerPort: 4433
+          name: wireguard-zone4
+          protocol: UDP
+        # Use environment variables from ConfigMap and Secret
+        envFrom:
+        - configMapRef:
+            name: wiregate-config-env
+        - secretRef:
+            name: wiregate-secret-env
+        # Override Redis host for clustering (each instance gets its own Redis)
+        env:
+        - name: REDIS_HOST
+          value: "redis-cluster-$(POD_NAME | sed 's/.*-//')"
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        volumeMounts:
+        - name: ssl-certs
+          mountPath: /WireGate/SSL_CERT
+        - name: dnscrypt-config
+          mountPath: /WireGate/dnscrypt
+        - name: tor-config
+          mountPath: /etc/tor/
+        - name: logs
+          mountPath: /WireGate/log/
+        - name: master-key
+          mountPath: /WireGate/master-key
+        - name: iptable-rules
+          mountPath: /WireGate/iptable-rules/
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "100m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        securityContext:
+          privileged: true
+          capabilities:
+            add:
+            - NET_ADMIN
+            - SYS_MODULE
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 30
+          periodSeconds: 30
+          timeoutSeconds: 10
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 80
+          initialDelaySeconds: 10
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+      volumes:
+      - name: ssl-certs
+        configMap:
+          name: ssl-certs
+          optional: true
+      - name: dnscrypt-config
+        configMap:
+          name: dnscrypt-config
+          optional: true
+      - name: tor-config
+        configMap:
+          name: tor-config
+          optional: true
+      - name: logs
+        emptyDir: {}
+      - name: master-key
+        emptyDir: {}
+      - name: iptable-rules
+        emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: wiregate-env-cluster
+  namespace: wiregate
+  labels:
+    app: wiregate-env-cluster
+spec:
+  selector:
+    app: wiregate-env-cluster
+  ports:
+  - port: 80
+    targetPort: 80
+    name: http
+  - port: 44333
+    targetPort: 44333
+    name: wireguard-main
+    protocol: UDP
+  - port: 4430
+    targetPort: 4430
+    name: wireguard-zone1
+    protocol: UDP
+  - port: 4431
+    targetPort: 4431
+    name: wireguard-zone2
+    protocol: UDP
+  - port: 4432
+    targetPort: 4432
+    name: wireguard-zone3
+    protocol: UDP
+  - port: 4433
+    targetPort: 4433
+    name: wireguard-zone4
+    protocol: UDP
+  type: LoadBalancer

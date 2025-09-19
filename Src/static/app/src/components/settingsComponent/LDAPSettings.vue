@@ -1,5 +1,6 @@
 <template>
-	<div class="ldap-settings">
+	<form data-form-type="other" autocomplete="off">
+		<div class="ldap-settings">
 		<div class="form-check form-switch mb-3">
 			<input class="form-check-input" type="checkbox" v-model="settings.enabled" id="ldapEnabled">
 			<label class="form-check-label" for="ldapEnabled">
@@ -9,19 +10,19 @@
 
 		<div v-if="settings.enabled" class="ldap-config">
 			<div class="row g-3">
-				<div class="col-md-8">
-					<label class="form-label">
-						<LocaleText t="LDAP Server"></LocaleText>
-					</label>
-					<input type="text" class="form-control" v-model="settings.server" placeholder="ldap.example.com">
-				</div>
+			<div class="col-md-8">
+				<label for="ldapServer" class="form-label">
+					<LocaleText t="LDAP Server"></LocaleText>
+				</label>
+				<input type="text" class="form-control" id="ldapServer" name="ldapServer" v-model="settings.server" placeholder="ldap.example.com" autocomplete="url">
+			</div>
 
-				<div class="col-md-4">
-					<label class="form-label">
-						<LocaleText t="Port"></LocaleText>
-					</label>
-					<input type="number" class="form-control" v-model="settings.port" placeholder="389">
-				</div>
+			<div class="col-md-4">
+				<label for="ldapPort" class="form-label">
+					<LocaleText t="Port"></LocaleText>
+				</label>
+				<input type="number" class="form-control" id="ldapPort" name="ldapPort" v-model="settings.port" placeholder="389">
+			</div>
 
 				<div class="col-12">
 					<div class="form-check form-switch">
@@ -32,51 +33,51 @@
 					</div>
 				</div>
 
-				<div class="col-12">
-					<label class="form-label">
-						<LocaleText t="Domain"></LocaleText>
-					</label>
-					<input type="text" class="form-control" v-model="settings.domain" placeholder="example.com">
-				</div>
+			<div class="col-12">
+				<label for="ldapDomain" class="form-label">
+					<LocaleText t="Domain"></LocaleText>
+				</label>
+				<input type="text" class="form-control" id="ldapDomain" name="ldapDomain" v-model="settings.domain" placeholder="example.com" autocomplete="off">
+			</div>
 
-				<div class="col-12">
-					<label class="form-label">
-						<LocaleText t="Bind DN"></LocaleText>
-					</label>
-					<input type="text" class="form-control" v-model="settings.bind_dn" 
-						   placeholder="CN=Service Account,OU=Users,DC=example,DC=com">
-				</div>
+			<div class="col-12">
+				<label for="ldapBindDn" class="form-label">
+					<LocaleText t="Bind DN"></LocaleText>
+				</label>
+				<input type="text" class="form-control" id="ldapBindDn" name="ldapBindDn" v-model="settings.bind_dn" 
+					   placeholder="CN=Service Account,OU=Users,DC=example,DC=com" autocomplete="off">
+			</div>
 
-				<div class="col-12">
-					<label class="form-label">
-						<LocaleText t="Bind Password"></LocaleText>
-					</label>
-					<input type="password" class="form-control" v-model="settings.bind_password">
-				</div>
+			<div class="col-12">
+				<label for="ldapBindPassword" class="form-label">
+					<LocaleText t="Bind Password"></LocaleText>
+				</label>
+				<input type="password" class="form-control" id="ldapBindPassword" name="ldapBindPassword" v-model="settings.bind_password" autocomplete="off">
+			</div>
 
-				<div class="col-12">
-					<label class="form-label">
-						<LocaleText t="Search Base"></LocaleText>
-					</label>
-					<input type="text" class="form-control" v-model="settings.search_base" 
-						   placeholder="DC=example,DC=com">
-				</div>
+			<div class="col-12">
+				<label for="ldapSearchBase" class="form-label">
+					<LocaleText t="Search Base"></LocaleText>
+				</label>
+				<input type="text" class="form-control" id="ldapSearchBase" name="ldapSearchBase" v-model="settings.search_base" 
+					   placeholder="DC=example,DC=com" autocomplete="off">
+			</div>
 
-				<div class="col-12">
-					<label class="form-label">
-						<LocaleText t="Username Attribute"></LocaleText>
-					</label>
-					<input type="text" class="form-control" v-model="settings.attr_username" 
-						   placeholder="sAMAccountName">
-				</div>
+			<div class="col-12">
+				<label for="ldapAttrUsername" class="form-label">
+					<LocaleText t="Username Attribute"></LocaleText>
+				</label>
+				<input type="text" class="form-control" id="ldapAttrUsername" name="ldapAttrUsername" v-model="settings.attr_username" 
+					   placeholder="sAMAccountName" autocomplete="off">
+			</div>
 
-				<div class="col-12">
-					<label class="form-label">
-						<LocaleText t="Search Filter"></LocaleText>
-					</label>
-					<input type="text" class="form-control" v-model="settings.search_filter" 
-						   placeholder="(sAMAccountName=%s)">
-				</div>
+			<div class="col-12">
+				<label for="ldapSearchFilter" class="form-label">
+					<LocaleText t="Search Filter"></LocaleText>
+				</label>
+				<input type="text" class="form-control" id="ldapSearchFilter" name="ldapSearchFilter" v-model="settings.search_filter" 
+					   placeholder="(sAMAccountName=%s)" autocomplete="off">
+			</div>
 
 				<div class="col-12">
 					<div class="form-check form-switch">
@@ -87,25 +88,26 @@
 					</div>
 				</div>
 
-				<div class="col-12" v-if="settings.require_group">
-					<label class="form-label">
-						<LocaleText t="Group DN"></LocaleText>
-					</label>
-					<input type="text" class="form-control" v-model="settings.group_dn" 
-						   placeholder="CN=WireGate Users,OU=Groups,DC=example,DC=com">
-				</div>
+			<div class="col-12" v-if="settings.require_group">
+				<label for="ldapGroupDn" class="form-label">
+					<LocaleText t="Group DN"></LocaleText>
+				</label>
+				<input type="text" class="form-control" id="ldapGroupDn" name="ldapGroupDn" v-model="settings.group_dn" 
+					   placeholder="CN=WireGate Users,OU=Groups,DC=example,DC=com" autocomplete="off">
+			</div>
 
-				<div class="col-12 d-flex gap-2">
-					<button class="btn btn-secondary" @click="testConnection" :disabled="testing">
-						{{ testing ? 'Testing...' : 'Test Connection' }}
-					</button>
-					<button class="btn btn-primary" @click="saveSettings" :disabled="saving">
-						{{ saving ? 'Saving...' : 'Save Settings' }}
-					</button>
-				</div>
+			<div class="col-12 d-flex gap-2">
+				<button id="testLdapConnectionBtn" class="btn btn-secondary" @click="testConnection" :disabled="testing" aria-label="Test LDAP connection">
+					{{ testing ? 'Testing...' : 'Test Connection' }}
+				</button>
+				<button id="saveLdapSettingsBtn" class="btn btn-primary" @click="saveSettings" :disabled="saving" aria-label="Save LDAP settings">
+					{{ saving ? 'Saving...' : 'Save Settings' }}
+				</button>
+			</div>
 			</div>
 		</div>
 	</div>
+	</form>
 </template>
 
 <script>

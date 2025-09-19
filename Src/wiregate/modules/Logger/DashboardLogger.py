@@ -5,6 +5,9 @@ import os, uuid, threading, logging, json
 from ...modules.ConfigEnv import CONFIGURATION_PATH
 from ..DataBase import get_redis_manager
 
+# Set up logger
+logger = logging.getLogger(__name__)
+
 class MockRedisClient:
     """Mock Redis client for when Redis is not available"""
     def __init__(self):
@@ -61,7 +64,7 @@ class DashboardLogger:
                 self.__initialize_redis()
                 self._initialized = True
             except Exception as e:
-                print(f"Warning: Could not connect to Redis: {e}")
+                logger.warning(f"Could not connect to Redis: {e}")
                 # Create a mock redis manager for fallback
                 class MockRedisManager:
                     def __init__(self):
@@ -105,7 +108,7 @@ class DashboardLogger:
             
             return True
         except Exception as e:
-            print(f"[WireGate] Access Log Error: {str(e)}")
+            logger.error(f"Access Log Error: {str(e)}")
             return False
         
 

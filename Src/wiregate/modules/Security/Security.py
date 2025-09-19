@@ -8,10 +8,14 @@ import hmac
 import secrets
 import re
 import os
+import logging
 from typing import Dict, List, Optional, Tuple
 from functools import wraps
 from flask import request, jsonify, session, g
 from datetime import datetime, timedelta
+
+# Set up logger
+logger = logging.getLogger(__name__)
 try:
     import redis
 except ImportError:
@@ -151,7 +155,7 @@ class SecurityManager:
             
         except Exception as e:
             # If Redis fails, allow the request but log the error
-            print(f"Rate limiting error: {e}")
+            logger.error(f"Rate limiting error: {e}")
             return False, {}
     
     def is_distributed_rate_limited(self, identifier: str, limit: int = None, window: int = None, 
@@ -245,7 +249,7 @@ class SecurityManager:
             }
             
         except Exception as e:
-            print(f"Distributed rate limiting error: {e}")
+            logger.error(f"Distributed rate limiting error: {e}")
             return False, {}
     
     def get_rate_limit_status(self, identifier: str) -> Dict:
@@ -278,7 +282,7 @@ class SecurityManager:
             }
             
         except Exception as e:
-            print(f"Rate limit status error: {e}")
+            logger.error(f"Rate limit status error: {e}")
             return {'status': 'error', 'error': str(e)}
     
     def reset_rate_limit(self, identifier: str) -> bool:
@@ -295,7 +299,7 @@ class SecurityManager:
             self.redis_client.delete(*keys)
             return True
         except Exception as e:
-            print(f"Rate limit reset error: {e}")
+            logger.error(f"Rate limit reset error: {e}")
             return False
     
     def check_brute_force(self, identifier: str) -> Tuple[bool, Dict]:
@@ -332,7 +336,7 @@ class SecurityManager:
             return False, {'attempts': attempts, 'locked_until': None}
             
         except Exception as e:
-            print(f"Brute force check error: {e}")
+            logger.error(f"Brute force check error: {e}")
             return False, {'attempts': 0, 'locked_until': None}
     
     def record_failed_attempt(self, identifier: str) -> None:
@@ -356,7 +360,7 @@ class SecurityManager:
                 self.redis_client.set(lockout_key, lockout_until, ex=BRUTE_FORCE_LOCKOUT_TIME)
                 
         except Exception as e:
-            print(f"Failed to record brute force attempt: {e}")
+            logger.error(f"Failed to record brute force attempt: {e}")
     
     def clear_failed_attempts(self, identifier: str) -> None:
         """Clear failed attempts for successful authentication"""
@@ -366,7 +370,7 @@ class SecurityManager:
         try:
             self.redis_client.delete(f"brute_force:{identifier}", f"brute_force_lockout:{identifier}")
         except Exception as e:
-            print(f"Failed to clear brute force attempts: {e}")
+            logger.error(f"Failed to clear brute force attempts: {e}")
     
     def validate_path(self, file_path: str, base_path: str = None) -> Tuple[bool, str]:
         """Validate file path to prevent path traversal attacks"""

@@ -6,6 +6,7 @@ import {fetchPost, fetchGet} from "@/utilities/fetch.js";
 import {DashboardConfigurationStore} from "@/stores/DashboardConfigurationStore.js";
 import UpdateConfigurationName
 	from "@/components/configurationComponents/editConfigurationComponents/updateConfigurationName.vue";
+import CodeEditor from "@/utilities/simple-code-editor/CodeEditor.vue";
 const props = defineProps({
 	configurationInfo: Object
 })
@@ -49,6 +50,15 @@ const updateScript = (type, content) => {
 const editMode = reactive({})
 const editedContent = reactive({})
 
+// Code editor state
+const codeEditor = reactive({
+	show: false,
+	scriptType: '',
+	scriptPath: '',
+	content: '',
+	saving: false
+})
+
 
 const enableEditMode = (path, content) => {
     // Initialize edited content with current content when entering edit mode
@@ -77,6 +87,43 @@ const saveScript = (type, path, content) => {
 const cancelEdit = (path) => {
     editMode[path] = false
     delete editedContent[path]
+}
+
+// Code editor methods
+const openCodeEditor = (scriptType, scriptPath, content) => {
+    codeEditor.show = true
+    codeEditor.scriptType = scriptType
+    codeEditor.scriptPath = scriptPath
+    codeEditor.content = content
+    codeEditor.saving = false
+}
+
+const closeCodeEditor = () => {
+    codeEditor.show = false
+    codeEditor.scriptType = ''
+    codeEditor.scriptPath = ''
+    codeEditor.content = ''
+    codeEditor.saving = false
+}
+
+const saveCodeEditorContent = () => {
+    if (codeEditor.scriptType && codeEditor.scriptPath) {
+        codeEditor.saving = true
+        fetchPost(`/api/updateConfigTables${codeEditor.scriptType}`, {
+            configurationName: props.configurationInfo.Name,
+            content: codeEditor.content
+        }, (res) => {
+            codeEditor.saving = false
+            if (res.status) {
+                store.newMessage("Server", `${codeEditor.scriptType} script updated successfully`, "success")
+                // Reload script contents
+                loadScriptContents(codeEditor.scriptType)
+                closeCodeEditor()
+            } else {
+                store.newMessage("Server", res.message || `Failed to update ${codeEditor.scriptType} script`, "danger")
+            }
+        })
+    }
 }
 
 // Add click handler for script viewing
@@ -256,7 +303,7 @@ watch(data, () => {
 											<button
 											v-if="!editMode[path]"
 											class="bg-primary-subtle border-primary-subtle btn btn-sm btn-outline-secondary text-primary-subtle"
-											@click="enableEditMode(path, content)"
+											@click="openCodeEditor(key, path, content)"
 											>
 											<i class="bi bi-pencil"></i>
 											</button>
@@ -334,6 +381,48 @@ watch(data, () => {
 				</div>
 			</div>
 		</div>
+		
+		<!-- Code Editor Modal -->
+		<div v-if="codeEditor.show" class="peerSettingContainer w-100 h-100 position-absolute top-0 start-0 overflow-y-scroll">
+			<div class="container d-flex h-100 w-100">
+				<div class="m-auto modal-dialog-centered dashboardModal" style="width: 1000px">
+					<div class="card rounded-3 shadow flex-grow-1">
+						<div class="card-header bg-transparent d-flex align-items-center gap-2 border-0 p-4 pb-0">
+							<h5 class="mb-0">
+								<LocaleText t="Edit Script"></LocaleText> - {{ codeEditor.scriptPath }}
+							</h5>
+							<button type="button" class="btn-close ms-auto" @click="closeCodeEditor"></button>
+						</div>
+						<div class="card-body px-4 d-flex flex-column gap-3">
+							<CodeEditor
+								:readOnly="codeEditor.saving"
+								v-model="codeEditor.content"
+								:theme="store.Configuration.Server.dashboard_theme === 'dark' ? 'github-dark' : 'github'"
+								:languages="[['bash', codeEditor.scriptPath]]"
+								width="100%" 
+								height="600px"
+							/>
+							<div class="d-flex gap-2">
+								<button class="btn bg-secondary-subtle border-secondary-subtle text-secondary-emphasis rounded-3 shadow ms-auto px-3 py-2"
+								        :disabled="codeEditor.saving"
+								        @click="closeCodeEditor">
+									<LocaleText t="Cancel"></LocaleText>
+								</button>
+								<button 
+									@click="saveCodeEditorContent"
+									:disabled="codeEditor.saving"
+									class="btn bg-primary-subtle border-primary-subtle text-primary-emphasis rounded-3 px-3 py-2 shadow"
+								>
+									<i class="bi bi-save-fill me-2"></i>
+									<LocaleText t="Save" v-if="!codeEditor.saving"></LocaleText>
+									<LocaleText t="Saving..." v-else></LocaleText>
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
 	</div>
 </template>
 
@@ -393,4 +482,5 @@ watch(data, () => {
 .resizable-preview::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
 </style>

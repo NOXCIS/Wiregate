@@ -18,6 +18,7 @@ import DashboardSettingsWireguardConfigurationAutostart
 	from "@/components/settingsComponent/dashboardSettingsWireguardConfigurationAutostart.vue";
 import DashboardEmailSettings from "@/components/settingsComponent/dashboardEmailSettings.vue";
 import LDAPSettings from "@/components/settingsComponent/LDAPSettings.vue";
+import DatabaseSettings from "@/components/settingsComponent/DatabaseSettings.vue";
 
 export default {
 	name: "settings",
@@ -34,7 +35,8 @@ export default {
 		DashboardTheme,
 		DashboardSettingsInputWireguardConfigurationPath,
 		AccountSettingsInputPassword, AccountSettingsInputUsername, PeersDefaultSettingsInput,
-		LDAPSettings
+		LDAPSettings,
+		DatabaseSettings
 	},
 	setup(){
 		const dashboardConfigurationStore = DashboardConfigurationStore()
@@ -42,10 +44,10 @@ export default {
 	},
 	data(){
 		return{
-			activeTab: "WGDashboard",
+			activeTab: "Dashboard",
 			tabs: [
 				{
-					id: "WGDashboard",
+					id: "Dashboard",
 					title: "Dashboard Settings"
 				},
 				{
@@ -55,6 +57,10 @@ export default {
 				{
 					id: "WireGuardConfiguration",
 					title: "Configuration Settings"
+				},
+				{
+					id: "Database",
+					title: "Database Settings"
 				}
 			]
 		}
@@ -116,7 +122,10 @@ export default {
 								</div>
 							</div>
 						</div>
-						<div class="d-flex gap-3 flex-column" v-else-if="activeTab === 'WGDashboard'">
+						<div class="d-flex gap-3 flex-column" v-else-if="activeTab === 'Database'">
+							<DatabaseSettings v-if="!this.dashboardConfigurationStore.getActiveCrossServer()"></DatabaseSettings>
+						</div>
+						<div class="d-flex gap-3 flex-column" v-else-if="activeTab === 'Dashboard'">
 							<div class="card rounded-3">
 								<div class="card-header">
 									<h6 class="my-2">

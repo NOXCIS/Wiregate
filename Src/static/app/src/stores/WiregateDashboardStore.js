@@ -2,7 +2,7 @@ import {defineStore} from "pinia";
 import {fetchGet} from "@/utilities/fetch.js";
 
 
-export const wgdashboardStore = defineStore('WGDashboardStore', {
+export const WiregateDashboardStore = defineStore('WiregateDashboardStore', {
 	state: () => ({
 		WireguardConfigurations: undefined,
 		DashboardConfiguration: undefined

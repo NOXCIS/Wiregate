@@ -1,0 +1,125 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: postgres-config
+  namespace: wiregate
+data:
+  postgresql.conf: |
+    # PostgreSQL configuration for WireGate
+    # This file contains PostgreSQL server configuration
+
+    # Connection Settings
+    listen_addresses = '*'
+    port = 5432
+    max_connections = 200
+    superuser_reserved_connections = 3
+
+    # Memory Settings
+    shared_buffers = 256MB
+    effective_cache_size = 512MB
+    work_mem = 8MB
+    maintenance_work_mem = 128MB
+
+    # Checkpoint Settings
+    checkpoint_completion_target = 0.9
+    wal_buffers = 32MB
+    checkpoint_timeout = 5min
+    max_wal_size = 2GB
+    min_wal_size = 160MB
+
+    # Query Tuning
+    random_page_cost = 1.1
+    effective_io_concurrency = 200
+
+    # Logging
+    log_destination = 'stderr'
+    logging_collector = on
+    log_directory = 'pg_log'
+    log_filename = 'postgresql-%Y-%m-%d_%H%M%S.log'
+    log_rotation_age = 1d
+    log_rotation_size = 10MB
+    log_min_duration_statement = 1000
+    log_line_prefix = '%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h '
+
+    # Locale and Formatting
+    datestyle = 'iso, mdy'
+    timezone = 'UTC'
+    lc_messages = 'en_US.utf8'
+    lc_monetary = 'en_US.utf8'
+    lc_numeric = 'en_US.utf8'
+    lc_time = 'en_US.utf8'
+    default_text_search_config = 'pg_catalog.english'
+
+    # Security
+    ssl = off
+    password_encryption = scram-sha-256
+
+    # Performance
+    shared_preload_libraries = ''
+    dynamic_shared_memory_type = posix
+
+    # Autovacuum
+    autovacuum = on
+    autovacuum_max_workers = 3
+    autovacuum_naptime = 1min
+    autovacuum_vacuum_threshold = 50
+    autovacuum_analyze_threshold = 50
+    autovacuum_vacuum_scale_factor = 0.2
+    autovacuum_analyze_scale_factor = 0.1
+    autovacuum_freeze_max_age = 200000000
+    autovacuum_multixact_freeze_max_age = 400000000
+    autovacuum_vacuum_cost_delay = 20ms
+    autovacuum_vacuum_cost_limit = 200
+
+    # Client Connection Defaults
+    default_transaction_isolation = 'read committed'
+    default_transaction_read_only = off
+    default_transaction_deferrable = off
+    session_replication_role = 'origin'
+    statement_timeout = 0
+    lock_timeout = 0
+    idle_in_transaction_session_timeout = 0
+    vacuum_freeze_min_age = 50000000
+    vacuum_freeze_table_age = 150000000
+    vacuum_multixact_freeze_min_age = 5000000
+    vacuum_multixact_freeze_table_age = 150000000
+
+  init.sql: |
+    -- PostgreSQL initialization script for WireGate
+    -- This script runs when the PostgreSQL container is first created
+
+    -- Create the wiregate database if it doesn't exist
+    -- (This is handled by the POSTGRES_DB environment variable)
+
+    -- Create extensions that might be useful
+    CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+    CREATE EXTENSION IF NOT EXISTS "pg_trgm";
+
+    -- Create a migrations table to track database migrations
+    CREATE TABLE IF NOT EXISTS wiregate_migrations (
+        migration_type VARCHAR PRIMARY KEY,
+        completed BOOLEAN NOT NULL DEFAULT FALSE,
+        timestamp TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        source_path TEXT,
+        version VARCHAR NOT NULL DEFAULT '1.0'
+    );
+
+    -- Create indexes for better performance
+    CREATE INDEX IF NOT EXISTS idx_wiregate_migrations_timestamp ON wiregate_migrations(timestamp);
+    CREATE INDEX IF NOT EXISTS idx_wiregate_migrations_completed ON wiregate_migrations(completed);
+
+    -- Grant necessary permissions
+    GRANT ALL PRIVILEGES ON DATABASE wiregate TO wiregate_user;
+    GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA public TO wiregate_user;
+    GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA public TO wiregate_user;
+    GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA public TO wiregate_user;
+
+    -- Set default privileges for future objects
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO wiregate_user;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO wiregate_user;
+    ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON FUNCTIONS TO wiregate_user;
+
+    -- Log the initialization
+    INSERT INTO wiregate_migrations (migration_type, completed, source_path, version) 
+    VALUES ('database_initialization', TRUE, 'init.sql', '1.0')
+    ON CONFLICT (migration_type) DO NOTHING;

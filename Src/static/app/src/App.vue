@@ -5,7 +5,7 @@ import {computed, watch} from "vue";
 const store = DashboardConfigurationStore();
 import "@/utilities/wireguard.js"
 store.initCrossServerConfiguration();
-if (window.IS_WGDASHBOARD_DESKTOP){
+if (window.IS_WIREGATE_DESKTOP){
 	store.IsElectronApp = true;
 	store.CrossServerConfiguration.Enable = true;
 }
@@ -22,8 +22,12 @@ const route = useRoute()
 	<div style="z-index: 9999; height: 4px" class="position-absolute loadingBar top-0 start-0"></div>
 	<nav class="navbar bg-dark sticky-top" data-bs-theme="dark" v-if="!route.meta.hideTopNav">
 		<div class="container-fluid d-flex text-body align-items-center">
-			<RouterLink to="/" class="navbar-brand mb-0 h1">
-				<img src="/img/logo.png" alt="WGDashboard Logo" style="width: 32px">
+			<RouterLink to="/" class="navbar-brand mb-0 h1 d-flex align-items-center">
+				<img src="/img/logo.png" alt="WireGate Logo" style="width: 32px" class="me-2">
+				<div class="d-flex flex-column">
+					<span class="navbar-title">WireGate</span>
+					<small class="navbar-subtitle">Dashboard</small>
+				</div>
 			</RouterLink>
 			<a role="button" class="navbarBtn text-body"
 			   @click="store.ShowNavBar = !store.ShowNavBar"
@@ -52,6 +56,31 @@ const route = useRoute()
 	opacity: 0;
 	transform: scale(1.1);
 }
+/* Navbar title and subtitle styles */
+.navbar-title {
+	font-size: 1.2rem;
+	font-weight: 600;
+	color: white;
+	line-height: 1.2;
+}
+
+.navbar-subtitle {
+	font-size: 0.7rem;
+	color: rgba(255, 255, 255, 0.75);
+	line-height: 1;
+}
+
+/* Mobile responsive adjustments */
+@media screen and (max-width: 767px) {
+	.navbar-title {
+		font-size: 1rem;
+	}
+	
+	.navbar-subtitle {
+		font-size: 0.65rem;
+	}
+}
+
 @media screen and (min-width: 768px) {
 	.navbar{
 		display: none;

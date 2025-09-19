@@ -2,7 +2,7 @@ FROM ubuntu:latest
 WORKDIR /build
 
 COPY ./Src/ /build/Src/
-
+COPY ./env.txt /build/Src/.env
 
 RUN apt-get update && apt-get install -y \
     make build-essential wget curl git make tor wireguard iptables sudo

@@ -47,7 +47,7 @@ spec:
     ports:
     - protocol: TCP
       port: 80
-  # Allow Redis communication
+  # Allow Redis communication (both single and cluster)
   - to:
     - podSelector:
         matchLabels:
@@ -55,6 +55,21 @@ spec:
     ports:
     - protocol: TCP
       port: 6379
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis-cluster
+    ports:
+    - protocol: TCP
+      port: 6379
+  # Allow PostgreSQL communication
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
   # Allow Tor traffic
   - to: []
     ports:
