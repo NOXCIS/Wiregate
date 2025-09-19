@@ -51,3 +51,9 @@ sol-beta-v0.2.0:
   - Command Execution Hardending via Restricted Shell
   - Minor Theme Changes
   - Added 404 page.
+
+
+sol-beta-v2.0.0:
+  - DO NOT USE IN PROD IS BETA
+  - Bug Fixes
+  - You need a Redis & Postgress container to run.
