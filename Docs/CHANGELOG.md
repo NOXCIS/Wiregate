@@ -57,3 +57,8 @@ sol-beta-v2.0.0:
   - DO NOT USE IN PROD IS BETA
   - Bug Fixes
   - You need a Redis & Postgress container to run.
+
+sol-beta-v2.1.0:
+  - DO NOT USE IN PROD IS BETA
+  - More Bug Fixes
+  - You need a Redis & Postgress container to run.
