@@ -3,25 +3,66 @@ import json
 import os
 import re
 import sqlite3
+import psycopg2
+import psycopg2.extras
 from typing import Dict, List, Any, Optional, Union
 from datetime import datetime
 import logging
-from ..ConfigEnv import redis_host, redis_port, redis_db, redis_password
+from ..ConfigEnv import (
+    redis_host, redis_port, redis_db, redis_password,
+    postgres_host, postgres_port, postgres_db, postgres_user, postgres_password, postgres_ssl_mode
+)
 
 # Configure logging
 logger = logging.getLogger('wiregate')
 
 class DatabaseManager:
-    """Redis-based database manager for WireGate"""
+    """PostgreSQL primary database with Redis cache layer for WireGate"""
     
-    def __init__(self, host='localhost', port=6379, db=0, password=None):
+    def __init__(self, postgres_config=None, redis_config=None):
+        """Initialize PostgreSQL and Redis connections"""
+        self.postgres_config = postgres_config or {
+            'host': postgres_host,
+            'port': postgres_port,
+            'database': postgres_db,
+            'user': postgres_user,
+            'password': postgres_password,
+            'sslmode': postgres_ssl_mode
+        }
+        
+        self.redis_config = redis_config or {
+            'host': redis_host,
+            'port': redis_port,
+            'db': redis_db,
+            'password': redis_password
+        }
+        
+        # Initialize connections
+        self._init_postgres()
+        self._init_redis()
+        
+        # Cache settings
+        self.cache_ttl = 300  # 5 minutes default TTL
+        self.cache_enabled = True
+        
+    def _init_postgres(self):
+        """Initialize PostgreSQL connection"""
+        try:
+            self.postgres_conn = psycopg2.connect(**self.postgres_config)
+            self.postgres_conn.autocommit = True
+            logger.info("Successfully connected to PostgreSQL")
+        except Exception as e:
+            logger.error(f"Failed to connect to PostgreSQL: {e}")
+            raise
+    
+    def _init_redis(self):
         """Initialize Redis connection"""
         try:
             self.redis_client = redis.Redis(
-                host=host,
-                port=port,
-                db=db,
-                password=password,
+                host=self.redis_config['host'],
+                port=self.redis_config['port'],
+                db=self.redis_config['db'],
+                password=self.redis_config['password'],
                 decode_responses=True,
                 socket_connect_timeout=5,
                 socket_timeout=5
@@ -31,273 +72,463 @@ class DatabaseManager:
             logger.info("Successfully connected to Redis")
         except Exception as e:
             logger.error(f"Failed to connect to Redis: {e}")
-            raise
+            # Continue without Redis if it fails
+            self.redis_client = None
+            self.cache_enabled = False
     
-    def get_key(self, table_name: str, record_id: str = None) -> str:
-        """Generate Redis key for table or record"""
+    def get_cache_key(self, table_name: str, record_id: str = None) -> str:
+        """Generate Redis cache key for table or record"""
         if record_id:
-            return f"wiregate:{table_name}:{record_id}"
-        return f"wiregate:{table_name}"
+            return f"wiregate:cache:{table_name}:{record_id}"
+        return f"wiregate:cache:{table_name}"
+    
+    def _get_from_cache(self, cache_key: str) -> Optional[Dict[str, Any]]:
+        """Get data from Redis cache"""
+        if not self.cache_enabled or not self.redis_client:
+            return None
+        
+        try:
+            cached_data = self.redis_client.get(cache_key)
+            if cached_data:
+                return json.loads(cached_data)
+        except Exception as e:
+            logger.debug(f"Cache read error for key {cache_key}: {e}")
+        return None
+    
+    def _set_cache(self, cache_key: str, data: Dict[str, Any], ttl: int = None) -> bool:
+        """Set data in Redis cache"""
+        if not self.cache_enabled or not self.redis_client:
+            return False
+        
+        try:
+            ttl = ttl or self.cache_ttl
+            self.redis_client.setex(cache_key, ttl, json.dumps(data))
+            return True
+        except Exception as e:
+            logger.debug(f"Cache write error for key {cache_key}: {e}")
+            return False
+    
+    def _invalidate_cache(self, table_name: str, record_id: str = None) -> bool:
+        """Invalidate cache entries for a table or specific record"""
+        if not self.cache_enabled or not self.redis_client:
+            return False
+        
+        try:
+            if record_id:
+                # Invalidate specific record
+                cache_key = self.get_cache_key(table_name, record_id)
+                self.redis_client.delete(cache_key)
+            else:
+                # Invalidate all records for table
+                pattern = f"wiregate:cache:{table_name}:*"
+                keys = self.redis_client.keys(pattern)
+                if keys:
+                    self.redis_client.delete(*keys)
+            return True
+        except Exception as e:
+            logger.debug(f"Cache invalidation error for {table_name}:{record_id}: {e}")
+            return False
+    
+    def _serialize_data_for_db(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Serialize data for database storage (convert lists to JSON strings)"""
+        serialized_data = data.copy()
+        if 'traffic' in serialized_data and isinstance(serialized_data['traffic'], list):
+            serialized_data['traffic'] = json.dumps(serialized_data['traffic'])
+        return serialized_data
+    
+    def _deserialize_data_from_db(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Deserialize data from database (convert JSON strings back to lists)"""
+        deserialized_data = data.copy()
+        if 'traffic' in deserialized_data and isinstance(deserialized_data['traffic'], str):
+            try:
+                deserialized_data['traffic'] = json.loads(deserialized_data['traffic'])
+            except (json.JSONDecodeError, TypeError):
+                deserialized_data['traffic'] = []
+        return deserialized_data
     
     def get_all_keys(self) -> List[str]:
-        """Get all keys in the database"""
+        """Get all table names from PostgreSQL"""
         try:
-            return self.redis_client.keys("wiregate:*")
-        except redis.exceptions.ResponseError as e:
-            if "unknown command 'KEYS'" in str(e):
-                # Fallback: use SCAN if KEYS is disabled
-                keys = []
-                cursor = 0
-                while True:
-                    cursor, batch_keys = self.redis_client.scan(cursor, match="wiregate:*", count=100)
-                    keys.extend(batch_keys)
-                    if cursor == 0:
-                        break
-                return keys
-            else:
-                raise
+            with self.postgres_conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT table_name 
+                    FROM information_schema.tables 
+                    WHERE table_schema = 'public' 
+                    AND table_name LIKE 'wiregate_%'
+                """)
+                tables = [row[0] for row in cursor.fetchall()]
+                return tables
+        except Exception as e:
+            logger.error(f"Failed to get table names: {e}")
+            return []
     
     def delete_keys(self, keys: List[str]) -> int:
-        """Delete multiple keys from Redis"""
+        """Delete multiple tables from PostgreSQL"""
         if not keys:
             return 0
         try:
-            return self.redis_client.delete(*keys)
+            deleted_count = 0
+            with self.postgres_conn.cursor() as cursor:
+                for table_name in keys:
+                    cursor.execute(f"DROP TABLE IF EXISTS {table_name} CASCADE")
+                    deleted_count += 1
+            return deleted_count
         except Exception as e:
-            logger.error(f"Error deleting keys: {e}")
+            logger.error(f"Error deleting tables: {e}")
             return 0
     
     def get_table_keys(self, table_name: str) -> List[str]:
-        """Get all keys for a table"""
-        pattern = f"wiregate:{table_name}:*"
+        """Get all record IDs for a table"""
         try:
-            return self.redis_client.keys(pattern)
-        except redis.exceptions.ResponseError as e:
-            if "unknown command 'KEYS'" in str(e):
-                # Fallback: use SCAN if KEYS is disabled
-                keys = []
-                cursor = 0
-                while True:
-                    cursor, partial_keys = self.redis_client.scan(cursor, match=pattern, count=100)
-                    keys.extend(partial_keys)
-                    if cursor == 0:
-                        break
-                return keys
-            else:
-                raise
+            with self.postgres_conn.cursor() as cursor:
+                cursor.execute(f"SELECT id FROM {table_name}")
+                return [row[0] for row in cursor.fetchall()]
+        except Exception as e:
+            logger.error(f"Failed to get table keys for {table_name}: {e}")
+            return []
     
     def create_table(self, table_name: str, schema: Dict[str, str]) -> bool:
-        """Create a table (Redis doesn't have tables, but we can store schema)"""
+        """Create a table in PostgreSQL"""
         try:
-            schema_key = f"wiregate:schemas:{table_name}"
-            self.redis_client.hset(schema_key, mapping=schema)
-            logger.info(f"Created table schema for {table_name}")
-            return True
+            with self.postgres_conn.cursor() as cursor:
+                # Build CREATE TABLE statement
+                columns = []
+                for col_name, col_type in schema.items():
+                    if col_name == 'id':
+                        columns.append(f'"{col_name}" VARCHAR PRIMARY KEY')
+                    else:
+                        # Convert Redis types to PostgreSQL types
+                        if 'INT' in col_type.upper():
+                            pg_type = 'INTEGER'
+                        elif 'FLOAT' in col_type.upper() or 'REAL' in col_type.upper():
+                            pg_type = 'REAL'
+                        elif 'DATETIME' in col_type.upper():
+                            pg_type = 'TIMESTAMP'
+                        else:
+                            pg_type = 'TEXT'
+                        
+                        columns.append(f'"{col_name}" {pg_type}')
+                
+                create_sql = f'CREATE TABLE IF NOT EXISTS "{table_name}" ({", ".join(columns)})'
+                cursor.execute(create_sql)
+                
+                # Invalidate cache for this table
+                self._invalidate_cache(table_name)
+                
+                logger.info(f"Created table {table_name}")
+                return True
         except Exception as e:
             logger.error(f"Failed to create table {table_name}: {e}")
             return False
     
     def table_exists(self, table_name: str) -> bool:
-        """Check if table exists"""
-        schema_key = f"wiregate:schemas:{table_name}"
-        return self.redis_client.exists(schema_key) > 0
+        """Check if table exists in PostgreSQL"""
+        try:
+            with self.postgres_conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_schema = 'public' 
+                        AND table_name = %s
+                    )
+                """, (table_name,))
+                return cursor.fetchone()[0]
+        except Exception as e:
+            logger.error(f"Failed to check if table {table_name} exists: {e}")
+            return False
     
     def drop_table(self, table_name: str) -> bool:
-        """Drop a table (delete all records and schema)"""
+        """Drop a table from PostgreSQL"""
         try:
-            # Delete all records
-            keys = self.get_table_keys(table_name)
-            if keys:
-                self.redis_client.delete(*keys)
-            
-            # Delete schema
-            schema_key = f"wiregate:schemas:{table_name}"
-            self.redis_client.delete(schema_key)
-            
-            logger.info(f"Dropped table {table_name}")
-            return True
+            with self.postgres_conn.cursor() as cursor:
+                cursor.execute(f'DROP TABLE IF EXISTS "{table_name}" CASCADE')
+                
+                # Invalidate cache for this table
+                self._invalidate_cache(table_name)
+                
+                logger.info(f"Dropped table {table_name}")
+                return True
         except Exception as e:
             logger.error(f"Failed to drop table {table_name}: {e}")
             return False
     
     def insert_record(self, table_name: str, record_id: str, data: Dict[str, Any]) -> bool:
-        """Insert a record"""
+        """Insert a record into PostgreSQL and cache in Redis"""
         try:
-            key = self.get_key(table_name, record_id)
-            # Convert all values to strings for Redis
-            redis_data = {k: str(v) if v is not None else '' for k, v in data.items()}
-            self.redis_client.hset(key, mapping=redis_data)
-            return True
+            with self.postgres_conn.cursor() as cursor:
+                # Serialize data for database storage
+                serialized_data = self._serialize_data_for_db(data)
+                
+                # Prepare data for PostgreSQL
+                columns = list(serialized_data.keys())
+                values = list(serialized_data.values())
+                placeholders = ['%s'] * len(values)
+                
+                # Insert into PostgreSQL
+                insert_sql = f'''
+                    INSERT INTO "{table_name}" ({", ".join([f'"{col}"' for col in columns])})
+                    VALUES ({", ".join(placeholders)})
+                    ON CONFLICT (id) DO UPDATE SET
+                    {", ".join([f'"{col}" = EXCLUDED."{col}"' for col in columns if col != 'id'])}
+                '''
+                cursor.execute(insert_sql, values)
+                
+                # Cache in Redis (use original data, not serialized)
+                cache_key = self.get_cache_key(table_name, record_id)
+                self._set_cache(cache_key, data)
+                
+                return True
         except Exception as e:
             logger.error(f"Failed to insert record {record_id} into {table_name}: {e}")
             return False
     
     def update_record(self, table_name: str, record_id: str, data: Dict[str, Any]) -> bool:
-        """Update a record"""
+        """Update a record in PostgreSQL and cache in Redis"""
         try:
-            key = self.get_key(table_name, record_id)
-            if not self.redis_client.exists(key):
-                return False
-            
-            # Update only the specified fields without wiping existing data
-            for field, value in data.items():
-                redis_value = str(value) if value is not None else ''
-                self.redis_client.hset(key, field, redis_value)
-            
-            return True
-
-            
+            with self.postgres_conn.cursor() as cursor:
+                # Serialize data for database storage
+                serialized_data = self._serialize_data_for_db(data)
+                
+                # Build UPDATE statement
+                set_clauses = []
+                values = []
+                for field, value in serialized_data.items():
+                    set_clauses.append(f'"{field}" = %s')
+                    values.append(value)
+                
+                values.append(record_id)  # Add record_id for WHERE clause
+                
+                update_sql = f'''
+                    UPDATE "{table_name}" 
+                    SET {", ".join(set_clauses)}
+                    WHERE "id" = %s
+                '''
+                cursor.execute(update_sql, values)
+                
+                # Invalidate cache for this record
+                self._invalidate_cache(table_name, record_id)
+                
+                return True
         except Exception as e:
             logger.error(f"Failed to update record {record_id} in {table_name}: {e}")
             return False
     
     def delete_record(self, table_name: str, record_id: str) -> bool:
-        """Delete a record"""
+        """Delete a record from PostgreSQL and invalidate cache"""
         try:
-            key = self.get_key(table_name, record_id)
-            result = self.redis_client.delete(key)
-            return result > 0
+            with self.postgres_conn.cursor() as cursor:
+                delete_sql = f'DELETE FROM "{table_name}" WHERE "id" = %s'
+                cursor.execute(delete_sql, (record_id,))
+                
+                # Invalidate cache for this record
+                self._invalidate_cache(table_name, record_id)
+                
+                return cursor.rowcount > 0
         except Exception as e:
             logger.error(f"Failed to delete record {record_id} from {table_name}: {e}")
             return False
     
     def get_record(self, table_name: str, record_id: str) -> Optional[Dict[str, Any]]:
-        """Get a single record"""
+        """Get a single record from cache first, then PostgreSQL"""
         try:
-            key = self.get_key(table_name, record_id)
-            data = self.redis_client.hgetall(key)
-            if not data:
-                return None
+            # Try cache first
+            cache_key = self.get_cache_key(table_name, record_id)
+            cached_data = self._get_from_cache(cache_key)
+            if cached_data:
+                return cached_data
             
-            # Convert string values back to appropriate types
-            return self._convert_record_types(data)
+            # If not in cache, get from PostgreSQL
+            with self.postgres_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                cursor.execute(f'SELECT * FROM "{table_name}" WHERE "id" = %s', (record_id,))
+                row = cursor.fetchone()
+                
+                if row:
+                    # Convert to dict, deserialize, and cache
+                    data = dict(row)
+                    deserialized_data = self._deserialize_data_from_db(data)
+                    self._set_cache(cache_key, deserialized_data)
+                    return deserialized_data
+                
+                return None
         except Exception as e:
             logger.error(f"Failed to get record {record_id} from {table_name}: {e}")
             return None
     
     def get_all_records(self, table_name: str) -> List[Dict[str, Any]]:
-        """Get all records from a table"""
+        """Get all records from a table (PostgreSQL with optional caching)"""
         try:
-            keys = self.get_table_keys(table_name)
-            records = []
-            
-            for key in keys:
-                data = self.redis_client.hgetall(key)
-                if data:
-                    records.append(self._convert_record_types(data))
-            
-            return records
+            with self.postgres_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                cursor.execute(f'SELECT * FROM "{table_name}"')
+                rows = cursor.fetchall()
+                
+                records = []
+                for row in rows:
+                    data = dict(row)
+                    deserialized_data = self._deserialize_data_from_db(data)
+                    records.append(deserialized_data)
+                    
+                    # Cache individual records
+                    record_id = deserialized_data.get('id')
+                    if record_id:
+                        cache_key = self.get_cache_key(table_name, record_id)
+                        self._set_cache(cache_key, deserialized_data)
+                
+                return records
         except Exception as e:
             logger.error(f"Failed to get all records from {table_name}: {e}")
-            # Return empty list instead of raising exception to prevent startup failures
             return []
     
     def search_records(self, table_name: str, conditions: Dict[str, Any]) -> List[Dict[str, Any]]:
-        """Search records based on conditions"""
+        """Search records based on conditions using PostgreSQL"""
         try:
-            all_records = self.get_all_records(table_name)
-            matching_records = []
-            
-            for record in all_records:
-                match = True
+            with self.postgres_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                # Build WHERE clause
+                where_clauses = []
+                values = []
                 for field, value in conditions.items():
-                    if field not in record or str(record[field]) != str(value):
-                        match = False
-                        break
+                    where_clauses.append(f'"{field}" = %s')
+                    values.append(value)
                 
-                if match:
-                    matching_records.append(record)
-            
-            return matching_records
+                where_sql = ' AND '.join(where_clauses) if where_clauses else '1=1'
+                search_sql = f'SELECT * FROM "{table_name}" WHERE {where_sql}'
+                
+                cursor.execute(search_sql, values)
+                rows = cursor.fetchall()
+                
+                records = []
+                for row in rows:
+                    data = dict(row)
+                    deserialized_data = self._deserialize_data_from_db(data)
+                    records.append(deserialized_data)
+                    
+                    # Cache individual records
+                    record_id = deserialized_data.get('id')
+                    if record_id:
+                        cache_key = self.get_cache_key(table_name, record_id)
+                        self._set_cache(cache_key, deserialized_data)
+                
+                return records
         except Exception as e:
             logger.error(f"Failed to search records in {table_name}: {e}")
             return []
     
-    def _convert_record_types(self, data: Dict[str, str]) -> Dict[str, Any]:
-        """Convert Redis string values back to appropriate Python types"""
-        converted = {}
-        
-        for key, value in data.items():
-            if value == '' or value is None:
-                converted[key] = None
-            elif value.lower() in ['true', 'false']:
-                converted[key] = value.lower() == 'true'
-            elif value.isdigit():
-                converted[key] = int(value)
-            elif self._is_float(value):
-                converted[key] = float(value)
-            else:
-                converted[key] = value
-        
-        return converted
-    
-    def _is_float(self, value: str) -> bool:
-        """Check if string can be converted to float"""
+    def close_connections(self):
+        """Close database connections"""
         try:
-            float(value)
-            return True
-        except ValueError:
-            return False
+            if hasattr(self, 'postgres_conn'):
+                self.postgres_conn.close()
+            if hasattr(self, 'redis_client') and self.redis_client:
+                self.redis_client.close()
+        except Exception as e:
+            logger.error(f"Error closing connections: {e}")
+    
+    def __del__(self):
+        """Cleanup connections on object destruction"""
+        self.close_connections()
+    
+    def _ensure_migrations_table(self):
+        """Ensure migrations tracking table exists"""
+        try:
+            with self.postgres_conn.cursor() as cursor:
+                cursor.execute("""
+                    CREATE TABLE IF NOT EXISTS wiregate_migrations (
+                        migration_type VARCHAR PRIMARY KEY,
+                        completed BOOLEAN NOT NULL DEFAULT FALSE,
+                        timestamp TIMESTAMP NOT NULL,
+                        source_path TEXT,
+                        version VARCHAR NOT NULL DEFAULT '1.0'
+                    )
+                """)
+        except Exception as e:
+            logger.error(f"Failed to create migrations table: {e}")
+            raise
     
     def set_migration_flag(self, migration_type: str, source_path: str = None) -> bool:
-        """Set migration flag to track completed migrations"""
+        """Set migration flag to track completed migrations in PostgreSQL"""
         try:
-            migration_key = f"wiregate:migration:{migration_type}"
-            migration_data = {
-                'completed': True,
-                'timestamp': str(datetime.now()),
-                'source_path': source_path or '',
-                'version': '1.0'
-            }
-            self.redis_client.hset(migration_key, mapping=migration_data)
-            logger.info(f"Set migration flag for {migration_type}")
-            return True
+            # Ensure migrations table exists
+            self._ensure_migrations_table()
+            
+            with self.postgres_conn.cursor() as cursor:
+                migration_data = {
+                    'migration_type': migration_type,
+                    'completed': True,
+                    'timestamp': datetime.now(),
+                    'source_path': source_path or '',
+                    'version': '1.0'
+                }
+                
+                cursor.execute("""
+                    INSERT INTO wiregate_migrations (migration_type, completed, timestamp, source_path, version)
+                    VALUES (%(migration_type)s, %(completed)s, %(timestamp)s, %(source_path)s, %(version)s)
+                    ON CONFLICT (migration_type) DO UPDATE SET
+                    completed = EXCLUDED.completed,
+                    timestamp = EXCLUDED.timestamp,
+                    source_path = EXCLUDED.source_path,
+                    version = EXCLUDED.version
+                """, migration_data)
+                
+                logger.info(f"Set migration flag for {migration_type}")
+                return True
         except Exception as e:
             logger.error(f"Failed to set migration flag for {migration_type}: {e}")
             return False
     
     def is_migration_completed(self, migration_type: str) -> bool:
-        """Check if migration has been completed"""
+        """Check if migration has been completed in PostgreSQL"""
         try:
-            migration_key = f"wiregate:migration:{migration_type}"
-            return self.redis_client.exists(migration_key) > 0
+            with self.postgres_conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT completed FROM wiregate_migrations 
+                    WHERE migration_type = %s
+                """, (migration_type,))
+                result = cursor.fetchone()
+                return result[0] if result else False
         except Exception as e:
             logger.error(f"Failed to check migration status for {migration_type}: {e}")
             return False
     
     def get_migration_info(self, migration_type: str) -> Optional[Dict[str, Any]]:
-        """Get migration information"""
+        """Get migration information from PostgreSQL"""
         try:
-            migration_key = f"wiregate:migration:{migration_type}"
-            data = self.redis_client.hgetall(migration_key)
-            if data:
-                return self._convert_record_types(data)
-            return None
+            with self.postgres_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT * FROM wiregate_migrations 
+                    WHERE migration_type = %s
+                """, (migration_type,))
+                row = cursor.fetchone()
+                return dict(row) if row else None
         except Exception as e:
             logger.error(f"Failed to get migration info for {migration_type}: {e}")
             return None
     
     def reset_migration_flag(self, migration_type: str) -> bool:
-        """Reset migration flag to allow re-migration"""
+        """Reset migration flag to allow re-migration in PostgreSQL"""
         try:
-            migration_key = f"wiregate:migration:{migration_type}"
-            result = self.redis_client.delete(migration_key)
-            if result > 0:
-                logger.info(f"Reset migration flag for {migration_type}")
-                return True
-            else:
-                logger.warning(f"Migration flag for {migration_type} was not found")
-                return False
+            with self.postgres_conn.cursor() as cursor:
+                cursor.execute("""
+                    DELETE FROM wiregate_migrations 
+                    WHERE migration_type = %s
+                """, (migration_type,))
+                
+                if cursor.rowcount > 0:
+                    logger.info(f"Reset migration flag for {migration_type}")
+                    return True
+                else:
+                    logger.warning(f"Migration flag for {migration_type} was not found")
+                    return False
         except Exception as e:
             logger.error(f"Failed to reset migration flag for {migration_type}: {e}")
             return False
     
     def list_migration_flags(self) -> List[str]:
-        """List all migration flags"""
+        """List all migration flags from PostgreSQL"""
         try:
-            pattern = "wiregate:migration:*"
-            keys = self.redis_client.keys(pattern)
-            return [key.replace("wiregate:migration:", "") for key in keys]
+            with self.postgres_conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT migration_type FROM wiregate_migrations
+                """)
+                return [row[0] for row in cursor.fetchall()]
         except Exception as e:
             logger.error(f"Failed to list migration flags: {e}")
             return []
@@ -311,9 +542,18 @@ class DatabaseManager:
             for record in records:
                 # Convert record to SQL INSERT statement
                 columns = list(record.keys())
-                values = [f"'{record[col]}'" if record[col] is not None else 'NULL' for col in columns]
+                values = []
+                for col in columns:
+                    if record[col] is None:
+                        values.append('NULL')
+                    elif isinstance(record[col], str):
+                        # Escape single quotes in strings
+                        escaped_value = record[col].replace("'", "''")
+                        values.append(f"'{escaped_value}'")
+                    else:
+                        values.append(f"'{record[col]}'")
                 
-                sql = f"INSERT INTO \"{table_name}\" ({', '.join(columns)}) VALUES ({', '.join(values)});"
+                sql = f"INSERT INTO \"{table_name}\" ({', '.join([f'\"{col}\"' for col in columns])}) VALUES ({', '.join(values)});"
                 sql_statements.append(sql)
             
             return sql_statements
@@ -322,12 +562,16 @@ class DatabaseManager:
             return []
     
     def import_sql_statements(self, sql_statements: List[str]) -> bool:
-        """Import SQL statements (for migration from SQLite)"""
+        """Import SQL statements into PostgreSQL"""
         try:
-            for sql in sql_statements:
-                if sql.strip().startswith('INSERT INTO'):
-                    # Parse INSERT statement
-                    self._parse_and_insert_sql(sql)
+            with self.postgres_conn.cursor() as cursor:
+                for sql in sql_statements:
+                    if sql.strip().startswith('INSERT INTO'):
+                        try:
+                            cursor.execute(sql)
+                        except Exception as e:
+                            logger.warning(f"Failed to execute SQL statement: {sql[:100]}... Error: {e}")
+                            continue
             
             logger.info(f"Imported {len(sql_statements)} SQL statements")
             return True
@@ -335,301 +579,38 @@ class DatabaseManager:
             logger.error(f"Failed to import SQL statements: {e}")
             return False
     
-    def _parse_and_insert_sql(self, sql: str):
-        """Parse SQL INSERT statement and insert into Redis"""
-        try:
-            import re
-            
-            # Extract table name
-            table_match = re.search(r'INSERT INTO "?(\w+)"?', sql)
-            if not table_match:
-                return
-            
-            table_name = table_match.group(1)
-            
-            # Extract column names
-            columns_match = re.search(r'INSERT INTO "?\w+"?\s*\(([^)]+)\)', sql)
-            if not columns_match:
-                return
-            
-            columns_str = columns_match.group(1)
-            columns = [col.strip().strip('"') for col in columns_str.split(',')]
-            
-            # Extract VALUES clause
-            values_match = re.search(r'VALUES\s*\((.*)\)', sql, re.IGNORECASE)
-            if not values_match:
-                return
-            
-            values_str = values_match.group(1)
-            
-            # Parse values (handle quoted strings properly)
-            values = []
-            current_value = ""
-            in_quotes = False
-            quote_char = None
-            paren_count = 0
-            
-            for char in values_str:
-                if char in ["'", '"'] and not in_quotes:
-                    in_quotes = True
-                    quote_char = char
-                elif char == quote_char and in_quotes:
-                    in_quotes = False
-                    quote_char = None
-                elif char == '(' and not in_quotes:
-                    paren_count += 1
-                elif char == ')' and not in_quotes:
-                    paren_count -= 1
-                elif char == ',' and not in_quotes and paren_count == 0:
-                    values.append(current_value.strip().strip("'").strip('"'))
-                    current_value = ""
-                    continue
-                
-                current_value += char
-            
-            if current_value.strip():
-                values.append(current_value.strip().strip("'").strip('"'))
-            
-            # Map columns to values
-            if values and len(values) == len(columns):
-                record_data = {}
-                for i, column in enumerate(columns):
-                    value = values[i]
-                    # Handle NULL values
-                    if value.upper() == 'NULL':
-                        record_data[column] = None
-                    else:
-                        record_data[column] = value
-                
-                # Use the first column as the record ID (assuming it's the primary key)
-                record_id = record_data.get('id')
-                if record_id:
-                    self.insert_record(table_name, record_id, record_data)
-                
-        except Exception as e:
-            logger.error(f"Failed to parse SQL statement: {e}")
 
 
-# Global Redis instance
-_redis_manager = None
+# Global database manager instance
+_db_manager = None
 
 def get_redis_manager() -> DatabaseManager:
-    """Get or create global Redis manager instance"""
-    global _redis_manager
-    if _redis_manager is None:
-        _redis_manager = DatabaseManager(
-            host=redis_host,
-            port=redis_port,
-            db=redis_db,
-            password=redis_password
-        )
-    return _redis_manager
+    """Get or create global database manager instance (PostgreSQL + Redis cache)"""
+    global _db_manager
+    if _db_manager is None:
+        _db_manager = DatabaseManager()
+    return _db_manager
 
 # Compatibility functions for existing code
-def sqlSelect(query: str, params: tuple = None) -> 'RedisCursor':
+def sqlSelect(query: str, params: tuple = None) -> 'PostgreSQLCursor':
     """SQL SELECT compatibility function"""
-    return RedisCursor(query, params)
+    return PostgreSQLCursor(query, params)
 
 def sqlUpdate(query: str, params: tuple = None) -> bool:
     """SQL UPDATE/INSERT/DELETE compatibility function"""
     manager = get_redis_manager()
     
     try:
-        # Parse query type
-        query_upper = query.upper().strip()
-        
-        if query_upper.startswith('SELECT'):
-            # SELECT queries are handled by RedisCursor
+        with manager.postgres_conn.cursor() as cursor:
+            cursor.execute(query, params)
             return True
-        
-        elif query_upper.startswith('INSERT'):
-            return _handle_insert(query, params, manager)
-        
-        elif query_upper.startswith('UPDATE'):
-            return _handle_update(query, params, manager)
-        
-        elif query_upper.startswith('DELETE'):
-            return _handle_delete(query, params, manager)
-        
-        elif query_upper.startswith('CREATE TABLE'):
-            return _handle_create_table(query, manager)
-        
-        elif query_upper.startswith('DROP TABLE'):
-            return _handle_drop_table(query, manager)
-        
-        elif query_upper.startswith('ALTER TABLE'):
-            return _handle_alter_table(query, manager)
-        
-        else:
-            logger.warning(f"Unsupported query type: {query}")
-            return False
-            
     except Exception as e:
         logger.error(f"Failed to execute query: {query}, Error: {e}")
         return False
 
-def _handle_insert(query: str, params: tuple, manager: DatabaseManager) -> bool:
-    """Handle INSERT queries"""
-    import re
-    
-    # Extract table name
-    table_match = re.search(r'INSERT INTO [\'"]?(\w+)[\'"]?', query, re.IGNORECASE)
-    if not table_match:
-        return False
-    
-    table_name = table_match.group(1)
-    
-    # Extract column names and values
-    if 'VALUES' in query.upper():
-        values_match = re.search(r'VALUES\s*\((.*)\)', query, re.IGNORECASE)
-        if values_match and params:
-            # Map parameters to column names (simplified)
-            columns = ['id', 'private_key', 'DNS', 'endpoint_allowed_ip', 'name', 
-                      'total_receive', 'total_sent', 'total_data', 'endpoint', 
-                      'status', 'latest_handshake', 'allowed_ip', 'cumu_receive', 
-                      'cumu_sent', 'cumu_data', 'mtu', 'keepalive', 'remote_endpoint', 
-                      'preshared_key', 'address_v4', 'address_v6', 'upload_rate_limit', 
-                      'download_rate_limit', 'scheduler_type']
-            
-            record_data = {}
-            for i, value in enumerate(params):
-                if i < len(columns):
-                    record_data[columns[i]] = value
-            
-            record_id = record_data.get('id', str(len(manager.get_all_records(table_name)) + 1))
-            return manager.insert_record(table_name, record_id, record_data)
-    
-    return False
 
-def _handle_update(query: str, params: tuple, manager: DatabaseManager) -> bool:
-    """Handle UPDATE queries"""
-    import re
-    
-    # Extract table name
-    table_match = re.search(r'UPDATE [\'"]?(\w+)[\'"]?', query, re.IGNORECASE)
-    if not table_match:
-        return False
-    
-    table_name = table_match.group(1)
-    
-    # Extract WHERE clause
-    where_match = re.search(r'WHERE\s+(\w+)\s*=\s*\?', query, re.IGNORECASE)
-    if where_match and params:
-        field_name = where_match.group(1)
-        record_id = params[-1]  # Assuming the last parameter is the ID
-        
-        # Extract SET clause
-        set_match = re.search(r'SET\s+(.*?)\s+WHERE', query, re.IGNORECASE | re.DOTALL)
-        if set_match:
-            set_clause = set_match.group(1)
-            # Parse SET clause to get field-value pairs
-            updates = {}
-            set_parts = set_clause.split(',')
-            
-            for i, part in enumerate(set_parts):
-                if '= ?' in part:
-                    field = part.split('=')[0].strip()
-                    if i < len(params) - 1:  # Exclude the WHERE parameter
-                        updates[field] = params[i]
-            
-            return manager.update_record(table_name, record_id, updates)
-    
-    return False
-
-def _handle_delete(query: str, params: tuple, manager: DatabaseManager) -> bool:
-    """Handle DELETE queries"""
-    import re
-    
-    # Extract table name
-    table_match = re.search(r'DELETE FROM [\'"]?(\w+)[\'"]?', query, re.IGNORECASE)
-    if not table_match:
-        return False
-    
-    table_name = table_match.group(1)
-    
-    # Extract WHERE clause
-    where_match = re.search(r'WHERE\s+(\w+)\s*=\s*\?', query, re.IGNORECASE)
-    if where_match and params:
-        record_id = params[0]
-        return manager.delete_record(table_name, record_id)
-    
-    return False
-
-def _handle_create_table(query: str, manager: DatabaseManager) -> bool:
-    """Handle CREATE TABLE queries"""
-    import re
-    
-    # Extract table name
-    table_match = re.search(r'CREATE TABLE [\'"]?(\w+)[\'"]?', query, re.IGNORECASE)
-    if not table_match:
-        return False
-    
-    table_name = table_match.group(1)
-    
-    # For Redis, we just need to create a schema entry
-    # This is a simplified implementation
-    schema = {
-        'created_at': str(datetime.now()),
-        'type': 'table'
-    }
-    
-    return manager.create_table(table_name, schema)
-
-def _handle_drop_table(query: str, manager: DatabaseManager) -> bool:
-    """Handle DROP TABLE queries"""
-    import re
-    
-    # Extract table name
-    table_match = re.search(r'DROP TABLE [\'"]?(\w+)[\'"]?', query, re.IGNORECASE)
-    if not table_match:
-        return False
-    
-    table_name = table_match.group(1)
-    return manager.drop_table(table_name)
-
-def _handle_alter_table(query: str, manager: DatabaseManager) -> bool:
-    """Handle ALTER TABLE queries for Redis compatibility"""
-    try:
-        # Parse ALTER TABLE query
-        query_upper = query.upper().strip()
-        
-        # Extract table name
-        if 'ALTER TABLE' in query_upper:
-            parts = query.split()
-            table_index = parts.index('TABLE') + 1
-            if table_index < len(parts):
-                table_name = parts[table_index].strip('`"\'')
-            else:
-                logger.error(f"Could not extract table name from ALTER TABLE query: {query}")
-                return False
-        
-        # Handle ADD COLUMN
-        if 'ADD COLUMN' in query_upper:
-            # Extract column name and type
-            add_column_match = re.search(r'ADD\s+COLUMN\s+(\w+)\s+(\w+)', query_upper)
-            if add_column_match:
-                column_name = add_column_match.group(1)
-                column_type = add_column_match.group(2)
-                
-                logger.info(f"Adding column {column_name} to table {table_name}")
-                # For Redis, we don't need to alter the schema as fields are added dynamically
-                # The migration function will handle adding default values to existing records
-                return True
-            else:
-                logger.warning(f"Could not parse ADD COLUMN from query: {query}")
-                return False
-        
-        # Handle other ALTER TABLE operations
-        else:
-            logger.info(f"ALTER TABLE operation not supported in Redis: {query}")
-            return True  # Return True to avoid errors, but log the unsupported operation
-            
-    except Exception as e:
-        logger.error(f"Error handling ALTER TABLE query: {query}, Error: {e}")
-        return False
-
-class RedisCursor:
-    """Cursor-like object for Redis queries to maintain compatibility"""
+class PostgreSQLCursor:
+    """Cursor-like object for PostgreSQL queries to maintain compatibility"""
     
     def __init__(self, query: str, params: tuple = None):
         self.query = query
@@ -643,49 +624,35 @@ class RedisCursor:
         manager = get_redis_manager()
         
         try:
-            query_upper = self.query.upper().strip()
-            
-            if 'SELECT' in query_upper:
-                if 'FROM' in query_upper:
-                    # Extract table name
-                    import re
-                    table_match = re.search(r'FROM [\'"]?(\w+)[\'"]?', self.query, re.IGNORECASE)
-                    if table_match:
-                        table_name = table_match.group(1)
-                        
-                        # Handle WHERE clause
-                        where_match = re.search(r'WHERE\s+(\w+)\s*=\s*\?', self.query, re.IGNORECASE)
-                        if where_match and self.params:
-                            field_name = where_match.group(1)
-                            field_value = self.params[0]
-                            self.results = manager.search_records(table_name, {field_name: field_value})
-                        else:
-                            self.results = manager.get_all_records(table_name)
-            
-            # Convert results to dict-like objects for compatibility
-            converted_results = []
-            for result in self.results:
-                # Create a dict-like object that supports both attribute and key access
-                class DictLikeRecord:
-                    def __init__(self, data):
-                        for key, value in data.items():
-                            setattr(self, key, value)
-                    
-                    def __getitem__(self, key):
-                        return getattr(self, key)
-                    
-                    def __contains__(self, key):
-                        return hasattr(self, key)
-                    
-                    def keys(self):
-                        return [attr for attr in dir(self) if not attr.startswith('_')]
-                    
-                    def get(self, key, default=None):
-                        return getattr(self, key, default)
+            with manager.postgres_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                cursor.execute(self.query, self.params)
+                rows = cursor.fetchall()
                 
-                record = DictLikeRecord(result)
-                converted_results.append(record)
-            self.results = converted_results
+                # Convert results to dict-like objects for compatibility
+                converted_results = []
+                for row in rows:
+                    # Create a dict-like object that supports both attribute and key access
+                    class DictLikeRecord:
+                        def __init__(self, data):
+                            for key, value in data.items():
+                                setattr(self, key, value)
+                        
+                        def __getitem__(self, key):
+                            return getattr(self, key)
+                        
+                        def __contains__(self, key):
+                            return hasattr(self, key)
+                        
+                        def keys(self):
+                            return [attr for attr in dir(self) if not attr.startswith('_')]
+                        
+                        def get(self, key, default=None):
+                            return getattr(self, key, default)
+                    
+                    record = DictLikeRecord(dict(row))
+                    converted_results.append(record)
+                
+                self.results = converted_results
             
         except Exception as e:
             logger.error(f"Failed to execute query: {self.query}, Error: {e}")
@@ -711,22 +678,15 @@ class RedisCursor:
 
 # Legacy compatibility - maintain the old sqldb reference
 class LegacySqldb:
-    """Legacy SQLite database compatibility"""
+    """Legacy SQLite database compatibility using PostgreSQL"""
     
     def iterdump(self):
         """Iterate over SQL dump statements"""
         manager = get_redis_manager()
         
         try:
-            # Get all table names
-            pattern = "wiregate:*"
-            keys = manager.redis_client.keys(pattern)
-            tables = set()
-            
-            for key in keys:
-                if ':schemas:' not in key:
-                    table_name = key.split(':')[1]
-                    tables.add(table_name)
+            # Get all table names from PostgreSQL
+            tables = manager.get_all_keys()
             
             # Generate SQL dump statements
             for table_name in tables:
@@ -757,38 +717,41 @@ class ConfigurationDatabase:
         
         for table in tables:
             self.manager.drop_table(table)
+            # Invalidate cache for this table
+            self.manager._invalidate_cache(table)
     
     def create_database(self, db_name=None):
         """Create database tables for this configuration"""
         if db_name is None:
             db_name = self.configuration_name
         
-        # Define table schemas
+        # Define table schemas for PostgreSQL
         main_table_schema = {
-            'id': 'VARCHAR NOT NULL',
-            'private_key': 'VARCHAR NULL',
-            'DNS': 'VARCHAR NULL',
-            'endpoint_allowed_ip': 'VARCHAR NULL',
-            'name': 'VARCHAR NULL',
-            'total_receive': 'FLOAT NULL',
-            'total_sent': 'FLOAT NULL',
-            'total_data': 'FLOAT NULL',
-            'endpoint': 'VARCHAR NULL',
-            'status': 'VARCHAR NULL',
-            'latest_handshake': 'VARCHAR NULL',
-            'allowed_ip': 'VARCHAR NULL',
-            'cumu_receive': 'FLOAT NULL',
-            'cumu_sent': 'FLOAT NULL',
-            'cumu_data': 'FLOAT NULL',
-            'mtu': 'INT NULL',
-            'keepalive': 'INT NULL',
-            'remote_endpoint': 'VARCHAR NULL',
-            'preshared_key': 'VARCHAR NULL',
-            'address_v4': 'VARCHAR NULL',
-            'address_v6': 'VARCHAR NULL',
+            'id': 'VARCHAR PRIMARY KEY',
+            'private_key': 'TEXT',
+            'DNS': 'TEXT',
+            'endpoint_allowed_ip': 'TEXT',
+            'name': 'TEXT',
+            'total_receive': 'REAL',
+            'total_sent': 'REAL',
+            'total_data': 'REAL',
+            'endpoint': 'TEXT',
+            'status': 'TEXT',
+            'latest_handshake': 'TEXT',
+            'allowed_ip': 'TEXT',
+            'cumu_receive': 'REAL',
+            'cumu_sent': 'REAL',
+            'cumu_data': 'REAL',
+            'traffic': 'TEXT',
+            'mtu': 'INTEGER',
+            'keepalive': 'INTEGER',
+            'remote_endpoint': 'TEXT',
+            'preshared_key': 'TEXT',
+            'address_v4': 'TEXT',
+            'address_v6': 'TEXT',
             'upload_rate_limit': 'INTEGER DEFAULT 0',
             'download_rate_limit': 'INTEGER DEFAULT 0',
-            'scheduler_type': 'TEXT'
+            'scheduler_type': 'TEXT DEFAULT \'htb\''
         }
         
         # Create main table
@@ -799,14 +762,14 @@ class ConfigurationDatabase:
         
         # Create transfer table
         transfer_schema = {
-            'id': 'VARCHAR NOT NULL',
-            'total_receive': 'FLOAT NULL',
-            'total_sent': 'FLOAT NULL',
-            'total_data': 'FLOAT NULL',
-            'cumu_receive': 'FLOAT NULL',
-            'cumu_sent': 'FLOAT NULL',
-            'cumu_data': 'FLOAT NULL',
-            'time': 'DATETIME'
+            'id': 'VARCHAR PRIMARY KEY',
+            'total_receive': 'REAL',
+            'total_sent': 'REAL',
+            'total_data': 'REAL',
+            'cumu_receive': 'REAL',
+            'cumu_sent': 'REAL',
+            'cumu_data': 'REAL',
+            'time': 'TIMESTAMP'
         }
         self.manager.create_table(f"{db_name}_transfer", transfer_schema)
         
@@ -821,13 +784,14 @@ class ConfigurationDatabase:
             f"{self.configuration_name}_deleted"
         ]
         
-        # Define new fields with their default values
+        # Define new fields with their default values and SQL types
         new_fields = {
-            'address_v4': None,
-            'address_v6': None,
-            'upload_rate_limit': 0,
-            'download_rate_limit': 0,
-            'scheduler_type': 'htb'
+            'traffic': {'default': '[]', 'type': 'TEXT'},
+            'address_v4': {'default': None, 'type': 'TEXT'},
+            'address_v6': {'default': None, 'type': 'TEXT'},
+            'upload_rate_limit': {'default': 0, 'type': 'INTEGER DEFAULT 0'},
+            'download_rate_limit': {'default': 0, 'type': 'INTEGER DEFAULT 0'},
+            'scheduler_type': {'default': 'htb', 'type': 'TEXT DEFAULT \'htb\''}
         }
         
         for table in tables:
@@ -837,30 +801,31 @@ class ConfigurationDatabase:
             
             logger.info(f"Migrating table {table}...")
             
-            # Get all existing records in this table
             try:
-                records = self.manager.get_all_records(table)
-                updated_count = 0
-                
-                for record_data in records:
-                    record_id = record_data.get('id')
-                    if not record_id:
-                        continue
-                    # Check if record needs migration
-                    needs_update = False
-                    update_data = {}
+                with self.manager.postgres_conn.cursor() as cursor:
+                    # Add missing columns
+                    for field, field_info in new_fields.items():
+                        try:
+                            cursor.execute(f'ALTER TABLE "{table}" ADD COLUMN IF NOT EXISTS "{field}" {field_info["type"]}')
+                            logger.debug(f"Added column {field} to table {table}")
+                        except Exception as e:
+                            logger.warning(f"Could not add column {field} to table {table}: {e}")
                     
-                    for field, default_value in new_fields.items():
-                        if field not in record_data or record_data[field] is None:
-                            update_data[field] = default_value
-                            needs_update = True
+                    # Update existing records with default values
+                    updated_count = 0
+                    for field, field_info in new_fields.items():
+                        if field_info['default'] is not None:
+                            cursor.execute(f'''
+                                UPDATE "{table}" 
+                                SET "{field}" = %s 
+                                WHERE "{field}" IS NULL
+                            ''', (field_info['default'],))
+                            updated_count += cursor.rowcount
                     
-                    # Update record if needed
-                    if needs_update:
-                        self.manager.update_record(table, record_id, update_data)
-                        updated_count += 1
-                
-                logger.info(f"Migration completed for table {table}: {updated_count} records updated")
+                    # Invalidate cache for this table
+                    self.manager._invalidate_cache(table)
+                    
+                    logger.info(f"Migration completed for table {table}: {updated_count} records updated")
                 
             except Exception as e:
                 logger.error(f"Error migrating table {table}: {e}")
@@ -929,16 +894,25 @@ class ConfigurationDatabase:
         """Insert a new peer"""
         peer_id = peer_data.get('id')
         if peer_id:
-            return self.manager.insert_record(self.configuration_name, peer_id, peer_data)
+            result = self.manager.insert_record(self.configuration_name, peer_id, peer_data)
+            # Invalidate cache for this peer
+            self.manager._invalidate_cache(self.configuration_name, peer_id)
+            return result
         return False
     
     def update_peer(self, peer_id: str, peer_data: dict):
         """Update a peer"""
-        return self.manager.update_record(self.configuration_name, peer_id, peer_data)
+        result = self.manager.update_record(self.configuration_name, peer_id, peer_data)
+        # Invalidate cache for this peer
+        self.manager._invalidate_cache(self.configuration_name, peer_id)
+        return result
     
     def delete_peer(self, peer_id: str):
         """Delete a peer"""
-        return self.manager.delete_record(self.configuration_name, peer_id)
+        result = self.manager.delete_record(self.configuration_name, peer_id)
+        # Invalidate cache for this peer
+        self.manager._invalidate_cache(self.configuration_name, peer_id)
+        return result
     
     def move_peer_to_restricted(self, peer_id: str):
         """Move peer to restricted access table"""
@@ -948,6 +922,9 @@ class ConfigurationDatabase:
             self.manager.insert_record(f"{self.configuration_name}_restrict_access", peer_id, peer_data)
             # Delete from main table
             self.manager.delete_record(self.configuration_name, peer_id)
+            # Invalidate cache for both tables
+            self.manager._invalidate_cache(self.configuration_name, peer_id)
+            self.manager._invalidate_cache(f"{self.configuration_name}_restrict_access", peer_id)
             return True
         return False
     
@@ -959,6 +936,9 @@ class ConfigurationDatabase:
             self.manager.insert_record(self.configuration_name, peer_id, peer_data)
             # Delete from restricted table
             self.manager.delete_record(f"{self.configuration_name}_restrict_access", peer_id)
+            # Invalidate cache for both tables
+            self.manager._invalidate_cache(self.configuration_name, peer_id)
+            self.manager._invalidate_cache(f"{self.configuration_name}_restrict_access", peer_id)
             return True
         return False
     
@@ -968,7 +948,10 @@ class ConfigurationDatabase:
             'latest_handshake': handshake_time,
             'status': status
         }
-        return self.manager.update_record(self.configuration_name, peer_id, updates)
+        result = self.manager.update_record(self.configuration_name, peer_id, updates)
+        # Invalidate cache for this peer
+        self.manager._invalidate_cache(self.configuration_name, peer_id)
+        return result
     
     def update_peer_transfer(self, peer_id: str, total_receive: float, total_sent: float, total_data: float):
         """Update peer transfer data"""
@@ -977,12 +960,18 @@ class ConfigurationDatabase:
             'total_sent': total_sent,
             'total_data': total_data
         }
-        return self.manager.update_record(self.configuration_name, peer_id, updates)
+        result = self.manager.update_record(self.configuration_name, peer_id, updates)
+        # Invalidate cache for this peer
+        self.manager._invalidate_cache(self.configuration_name, peer_id)
+        return result
     
     def update_peer_endpoint(self, peer_id: str, endpoint: str):
         """Update peer endpoint"""
         updates = {'endpoint': endpoint}
-        return self.manager.update_record(self.configuration_name, peer_id, updates)
+        result = self.manager.update_record(self.configuration_name, peer_id, updates)
+        # Invalidate cache for this peer
+        self.manager._invalidate_cache(self.configuration_name, peer_id)
+        return result
     
     def reset_peer_data_usage(self, peer_id: str, reset_type: str):
         """Reset peer data usage"""
@@ -1008,7 +997,10 @@ class ConfigurationDatabase:
         else:
             return False
         
-        return self.manager.update_record(self.configuration_name, peer_id, updates)
+        result = self.manager.update_record(self.configuration_name, peer_id, updates)
+        # Invalidate cache for this peer
+        self.manager._invalidate_cache(self.configuration_name, peer_id)
+        return result
     
     def copy_database_to(self, new_configuration_name: str):
         """Copy database to new configuration name"""
@@ -1030,38 +1022,41 @@ class ConfigurationDatabase:
                 record_id = record.get('id')
                 if record_id:
                     self.manager.insert_record(new_table, record_id, record)
+            
+            # Invalidate cache for the new table
+            self.manager._invalidate_cache(new_table)
         
         return True
 
 # Global sqldb instance for compatibility
 sqldb = LegacySqldb()
 
-# Initialize Redis connection on module import
+# Initialize database manager on module import
 try:
     get_redis_manager()
-    logger.info("Redis database manager initialized successfully")
+    logger.info("PostgreSQL + Redis database manager initialized successfully")
 except Exception as e:
-    logger.error(f"Failed to initialize Redis database manager: {e}")
+    logger.error(f"Failed to initialize database manager: {e}")
     # Fallback to a no-op implementation
     class NoOpManager:
         def __getattr__(self, name):
             return lambda *args, **kwargs: None
     
-    _redis_manager = NoOpManager()
+    _db_manager = NoOpManager()
 
-# SQLite to Redis Migration Functions
-def migrate_sqlite_to_redis():
-    """Migrate any existing SQLite databases to Redis"""
+# SQLite to PostgreSQL Migration Functions
+def migrate_sqlite_to_postgres():
+    """Migrate any existing SQLite databases to PostgreSQL"""
     logger.info("Checking for SQLite databases to migrate...")
     
-    # Get Redis manager to check migration status
+    # Get database manager to check migration status
     try:
-        redis_manager = get_redis_manager()
+        db_manager = get_redis_manager()
         
         # Check if migration has already been completed
-        if redis_manager.is_migration_completed('sqlite_to_redis'):
-            migration_info = redis_manager.get_migration_info('sqlite_to_redis')
-            logger.info(f"SQLite to Redis migration already completed at {migration_info.get('timestamp', 'unknown time')}")
+        if db_manager.is_migration_completed('sqlite_to_postgres'):
+            migration_info = db_manager.get_migration_info('sqlite_to_postgres')
+            logger.info(f"SQLite to PostgreSQL migration already completed at {migration_info.get('timestamp', 'unknown time')}")
             return 0
             
     except Exception as e:
@@ -1106,7 +1101,7 @@ def migrate_sqlite_to_redis():
     for sqlite_path in found_databases:
         try:
             logger.info(f"Migrating SQLite database: {sqlite_path}")
-            if migrate_sqlite_file_to_redis(sqlite_path):
+            if migrate_sqlite_file_to_postgres(sqlite_path):
                 migrated_count += 1
                 logger.info(f"Successfully migrated {sqlite_path}")
             else:
@@ -1117,9 +1112,9 @@ def migrate_sqlite_to_redis():
     # Set migration flag if any databases were migrated
     if migrated_count > 0:
         try:
-            redis_manager = get_redis_manager()
-            redis_manager.set_migration_flag('sqlite_to_redis', f"{migrated_count} databases")
-            logger.info(f"Migration completed: {migrated_count} SQLite databases migrated to Redis")
+            db_manager = get_redis_manager()
+            db_manager.set_migration_flag('sqlite_to_postgres', f"{migrated_count} databases")
+            logger.info(f"Migration completed: {migrated_count} SQLite databases migrated to PostgreSQL")
         except Exception as e:
             logger.error(f"Failed to set migration flag: {e}")
     else:
@@ -1127,19 +1122,19 @@ def migrate_sqlite_to_redis():
     
     return migrated_count
 
-def migrate_sqlite_file_to_redis(sqlite_path: str) -> bool:
-    """Migrate a specific SQLite file to Redis"""
+def migrate_sqlite_file_to_postgres(sqlite_path: str) -> bool:
+    """Migrate a specific SQLite file to PostgreSQL"""
     try:
-        # Get Redis manager to check if this specific file has been migrated
-        redis_manager = get_redis_manager()
+        # Get database manager to check if this specific file has been migrated
+        db_manager = get_redis_manager()
         
         # Create a unique migration key for this specific file
         file_basename = os.path.basename(sqlite_path)
         migration_key = f"sqlite_file_{file_basename}"
         
         # Check if this specific file has already been migrated
-        if redis_manager.is_migration_completed(migration_key):
-            migration_info = redis_manager.get_migration_info(migration_key)
+        if db_manager.is_migration_completed(migration_key):
+            migration_info = db_manager.get_migration_info(migration_key)
             logger.info(f"SQLite file {sqlite_path} already migrated at {migration_info.get('timestamp', 'unknown time')}")
             return True
         
@@ -1180,9 +1175,9 @@ def migrate_sqlite_file_to_redis(sqlite_path: str) -> bool:
                     else:
                         schema[col_name] = 'VARCHAR'
                 
-                # Create table in Redis if it doesn't exist
-                if not redis_manager.table_exists(table_name):
-                    redis_manager.create_table(table_name, schema)
+                # Create table in PostgreSQL if it doesn't exist
+                if not db_manager.table_exists(table_name):
+                    db_manager.create_table(table_name, schema)
                 
                 # Migrate data
                 sqlite_cursor.execute(f"SELECT * FROM {table_name}")
@@ -1209,8 +1204,8 @@ def migrate_sqlite_file_to_redis(sqlite_path: str) -> bool:
                     # Use first column as ID (assuming it's the primary key)
                     record_id = str(record_data[columns[0][1]])
                     
-                    # Insert into Redis
-                    redis_manager.insert_record(table_name, record_id, record_data)
+                    # Insert into PostgreSQL
+                    db_manager.insert_record(table_name, record_id, record_data)
                 
                 migrated_tables += 1
                 total_records += len(rows)
@@ -1225,7 +1220,7 @@ def migrate_sqlite_file_to_redis(sqlite_path: str) -> bool:
         if migrated_tables > 0:
             # Set migration flag for this specific file
             try:
-                redis_manager.set_migration_flag(migration_key, sqlite_path)
+                db_manager.set_migration_flag(migration_key, sqlite_path)
                 logger.info(f"Set migration flag for {sqlite_path}")
             except Exception as e:
                 logger.warning(f"Failed to set migration flag for {sqlite_path}: {e}")
@@ -1252,19 +1247,19 @@ def migrate_sqlite_file_to_redis(sqlite_path: str) -> bool:
 def check_and_migrate_sqlite_databases():
     """Check for and migrate SQLite databases during startup"""
     try:
-        # Only run migration if Redis is available
-        redis_manager = get_redis_manager()
-        if redis_manager is None:
-            logger.warning("Redis not available, skipping SQLite migration")
+        # Only run migration if PostgreSQL is available
+        db_manager = get_redis_manager()
+        if db_manager is None:
+            logger.warning("Database manager not available, skipping SQLite migration")
             return False
         
-        # Test Redis connection
-        redis_manager.redis_client.ping()
+        # Test PostgreSQL connection
+        db_manager.postgres_conn.cursor().execute("SELECT 1")
         
         # Check if migration has already been completed
-        if redis_manager.is_migration_completed('sqlite_to_redis'):
-            migration_info = redis_manager.get_migration_info('sqlite_to_redis')
-            logger.info(f"SQLite to Redis migration already completed at {migration_info.get('timestamp', 'unknown time')}")
+        if db_manager.is_migration_completed('sqlite_to_postgres'):
+            migration_info = db_manager.get_migration_info('sqlite_to_postgres')
+            logger.info(f"SQLite to PostgreSQL migration already completed at {migration_info.get('timestamp', 'unknown time')}")
             return True
         
         # Check for development mode - skip migration if in development
@@ -1274,7 +1269,7 @@ def check_and_migrate_sqlite_databases():
             return False
         
         # Run migration
-        migrated_count = migrate_sqlite_to_redis()
+        migrated_count = migrate_sqlite_to_postgres()
         return migrated_count > 0
         
     except Exception as e:
@@ -1284,18 +1279,18 @@ def check_and_migrate_sqlite_databases():
 def reset_sqlite_migration_flags():
     """Reset all SQLite migration flags to allow re-migration"""
     try:
-        redis_manager = get_redis_manager()
-        if redis_manager is None:
-            logger.warning("Redis not available, cannot reset migration flags")
+        db_manager = get_redis_manager()
+        if db_manager is None:
+            logger.warning("Database manager not available, cannot reset migration flags")
             return False
         
         # Get all migration flags
-        migration_flags = redis_manager.list_migration_flags()
+        migration_flags = db_manager.list_migration_flags()
         reset_count = 0
         
         for flag in migration_flags:
-            if flag.startswith('sqlite') or flag == 'sqlite_to_redis':
-                if redis_manager.reset_migration_flag(flag):
+            if flag.startswith('sqlite') or flag == 'sqlite_to_postgres':
+                if db_manager.reset_migration_flag(flag):
                     reset_count += 1
         
         logger.info(f"Reset {reset_count} SQLite migration flags")
@@ -1308,15 +1303,15 @@ def reset_sqlite_migration_flags():
 def get_migration_status():
     """Get current migration status"""
     try:
-        redis_manager = get_redis_manager()
-        if redis_manager is None:
-            return {"error": "Redis not available"}
+        db_manager = get_redis_manager()
+        if db_manager is None:
+            return {"error": "Database manager not available"}
         
-        migration_flags = redis_manager.list_migration_flags()
+        migration_flags = db_manager.list_migration_flags()
         status = {}
         
         for flag in migration_flags:
-            info = redis_manager.get_migration_info(flag)
+            info = db_manager.get_migration_info(flag)
             if info:
                 status[flag] = {
                     'completed': info.get('completed', False),

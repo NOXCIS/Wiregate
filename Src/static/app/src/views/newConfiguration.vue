@@ -97,20 +97,58 @@ export default {
       this.newConfiguration.PresharedKey = wg.presharedKey;
     },
     generateRandomValues() {
-      this.newConfiguration.Jc = Math.floor(Math.random() * 8) + 3;
-      this.newConfiguration.Jmin = Math.floor(Math.random() * 50);
-      this.newConfiguration.Jmax = Math.floor(Math.random() * (1280 - this.newConfiguration.Jmin)) + this.newConfiguration.Jmin + 1;
+      // Use cryptographically secure random number generation
+      this.newConfiguration.Jc = this.secureRandomInt(3, 10); // 3 to 10 inclusive
+      this.newConfiguration.Jmin = this.secureRandomInt(50, 500);
+      this.newConfiguration.Jmax = this.secureRandomInt(this.newConfiguration.Jmin + 1, 1000);
+      
       do {
-        this.newConfiguration.S1 = Math.floor(Math.random() * 136) + 15;
+        this.newConfiguration.S1 = this.secureRandomInt(15, 150);
       } while (this.newConfiguration.S1 + 56 === this.newConfiguration.S2);
+      
       do {
-        this.newConfiguration.S2 = Math.floor(Math.random() * 136) + 15;
+        this.newConfiguration.S2 = this.secureRandomInt(15, 150);
       } while (this.newConfiguration.S1 + 56 === this.newConfiguration.S2);
+      
       let hValues = new Set();
       while (hValues.size < 4) {
-        hValues.add(Math.floor(Math.random() * (2147483647 - 5 + 1)) + 5);
+        hValues.add(this.secureRandomInt(5, 2147483647));
       }
       [this.newConfiguration.H1, this.newConfiguration.H2, this.newConfiguration.H3, this.newConfiguration.H4] = [...hValues];
+    },
+    
+    // Cryptographically secure random number generator
+    secureRandomInt(min, max) {
+      if (min > max) {
+        throw new Error('min must be less than or equal to max');
+      }
+      
+      // Calculate the range
+      const range = max - min + 1;
+      
+      // Calculate the number of bytes needed
+      const bytesNeeded = Math.ceil(Math.log2(range) / 8);
+      
+      // Generate random bytes
+      const randomBytes = new Uint8Array(bytesNeeded);
+      window.crypto.getRandomValues(randomBytes);
+      
+      // Convert to integer
+      let randomValue = 0;
+      for (let i = 0; i < bytesNeeded; i++) {
+        randomValue = (randomValue << 8) + randomBytes[i];
+      }
+      
+      // Ensure the value is within the range
+      const maxValue = Math.pow(2, bytesNeeded * 8) - 1;
+      const threshold = maxValue - (maxValue % range);
+      
+      // Reject values that would cause bias
+      if (randomValue >= threshold) {
+        return this.secureRandomInt(min, max);
+      }
+      
+      return min + (randomValue % range);
     },
     validateHValues() {
       let hValues = [

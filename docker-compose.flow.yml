@@ -25,6 +25,8 @@ services:
     hostname: redis
     restart: unless-stopped
     command: redis-server /usr/local/etc/redis/redis.conf
+    environment:
+      - REDIS_PASSWORD=wiregate_redis_password
     volumes:
       #- redis_data:/data
       - ./configs/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
@@ -33,11 +35,39 @@ services:
         ipv4_address: 10.2.0.4
         ipv6_address: 2001:db8:abc::4
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "redis-cli", "-a", "wiregate_redis_password", "ping"]
       interval: 10s
       timeout: 5s
       retries: 3
       start_period: 10s
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: wiregate-postgres
+    hostname: postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: wiregate
+      POSTGRES_USER: wiregate_user
+      POSTGRES_PASSWORD: wiregate_postgres_password
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./configs/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./configs/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.5
+        ipv6_address: 2001:db8:abc::5
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wiregate_user -d wiregate"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    command: >
+      postgres
+      -c config_file=/etc/postgresql/postgresql.conf
 
   wiregate:
       build:
@@ -52,6 +82,11 @@ services:
       devices:
         - /dev/net/tun:/dev/net/tun  
       restart: unless-stopped
+      depends_on:
+        postgres:
+          condition: service_healthy
+        redis:
+          condition: service_healthy
       volumes:
         - /lib/modules:/lib/modules:ro 
         - pf_conf:/WireGate/iptable-rules/
@@ -77,6 +112,13 @@ services:
         - REDIS_PORT=6379
         - REDIS_DB=0
         - REDIS_PASSWORD=wiregate_redis_password
+      #PostgreSQL Database Settings
+        - POSTGRES_HOST=postgres
+        - POSTGRES_PORT=5432
+        - POSTGRES_DB=wiregate
+        - POSTGRES_USER=wiregate_user
+        - POSTGRES_PASSWORD=wiregate_postgres_password
+        - POSTGRES_SSL_MODE=disable
 
       #Tor Settings
       ##########################################################
@@ -123,4 +165,5 @@ volumes:
     #conf:
     pf_conf:
     #redis_data:
+    postgres_data:
   

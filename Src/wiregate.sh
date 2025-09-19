@@ -307,7 +307,9 @@ run_tor_flux() {
 
     # Main loop for periodic circuit renewal
     while true; do
-        sleep_time=$(( RANDOM % 600 + 142 ))
+        # Use cryptographically secure random for sleep time
+        sleep_time=$(od -An -N2 -tu2 /dev/urandom | tr -d ' ')
+        sleep_time=$(( (sleep_time % 600) + 142 ))
         printf "%s\n" "$dashes"
         printf "%s\n" "$dashes"
         sleep "$sleep_time"
@@ -321,24 +323,28 @@ run_tor_flux() {
     done
 }
 generate_awgd_values() {
-        # Random generator for a range
-        rand_range() {
+        # Cryptographically secure random generator for a range
+        secure_rand_range() {
             local min=$1
             local max=$2
-            echo $((RANDOM % (max - min + 1) + min))
+            local range=$((max - min + 1))
+            local bytes_needed=4  # Use 4 bytes for good entropy
+            local random_bytes=$(od -An -N$bytes_needed -tu4 /dev/urandom | tr -d ' ')
+            local random_value=$((random_bytes % range))
+            echo $((min + random_value))
         }
 
         # Generate WGD_JC (1 ≤ Jc ≤ 128; recommended 3 to 10)
-        export WGD_JC=$(rand_range 3 10)
+        export WGD_JC=$(secure_rand_range 3 10)
 
             # Generate WGD_JMIN and WGD_JMAX (Jmin < Jmax; Jmax ≤ 1280; recommended Jmin=50, Jmax=1000)
-            export WGD_JMIN=$(rand_range 50 500)
-            export WGD_JMAX=$(rand_range $((WGD_JMIN + 1)) 1000)
+            export WGD_JMIN=$(secure_rand_range 50 500)
+            export WGD_JMAX=$(secure_rand_range $((WGD_JMIN + 1)) 1000)
 
         # Generate WGD_S1 and WGD_S2 (S1 < 1280, S2 < 1280; S1 + 56 ≠ S2; recommended 15 ≤ S1, S2 ≤ 150)
         while :; do
-            S1=$(rand_range 15 150)
-            S2=$(rand_range 15 150)
+            S1=$(secure_rand_range 15 150)
+            S2=$(secure_rand_range 15 150)
             [ $((S1 + 56)) -ne $S2 ] && break
         done
         export WGD_S1=$S1
@@ -348,7 +354,7 @@ generate_awgd_values() {
         declare -A unique_hashes
         for h in H1 H2 H3 H4; do
             while :; do
-            val=$(rand_range 5 2147483647)
+            val=$(secure_rand_range 5 2147483647)
             if [[ -z ${unique_hashes[$val]} ]]; then
                 unique_hashes[$val]=1
                 export "WGD_$h=$val"
@@ -673,24 +679,28 @@ set_proxy () {
 	MEMpostdown="./iptable-rules/Members/${postType}down.sh"
 }
 generate_awgd_values() {
-        # Random generator for a range
-        rand_range() {
+        # Cryptographically secure random generator for a range
+        secure_rand_range() {
             local min=$1
             local max=$2
-            echo $((RANDOM % (max - min + 1) + min))
+            local range=$((max - min + 1))
+            local bytes_needed=4  # Use 4 bytes for good entropy
+            local random_bytes=$(od -An -N$bytes_needed -tu4 /dev/urandom | tr -d ' ')
+            local random_value=$((random_bytes % range))
+            echo $((min + random_value))
         }
 
         # Generate WGD_JC (1 ≤ Jc ≤ 128; recommended 3 to 10)
-        export WGD_JC=$(rand_range 3 10)
+        export WGD_JC=$(secure_rand_range 3 10)
 
             # Generate WGD_JMIN and WGD_JMAX (Jmin < Jmax; Jmax ≤ 1280; recommended Jmin=50, Jmax=1000)
-            export WGD_JMIN=$(rand_range 50 500)
-            export WGD_JMAX=$(rand_range $((WGD_JMIN + 1)) 1000)
+            export WGD_JMIN=$(secure_rand_range 50 500)
+            export WGD_JMAX=$(secure_rand_range $((WGD_JMIN + 1)) 1000)
 
         # Generate WGD_S1 and WGD_S2 (S1 < 1280, S2 < 1280; S1 + 56 ≠ S2; recommended 15 ≤ S1, S2 ≤ 150)
         while :; do
-            S1=$(rand_range 15 150)
-            S2=$(rand_range 15 150)
+            S1=$(secure_rand_range 15 150)
+            S2=$(secure_rand_range 15 150)
             [ $((S1 + 56)) -ne $S2 ] && break
         done
         export WGD_S1=$S1
@@ -700,7 +710,7 @@ generate_awgd_values() {
         declare -A unique_hashes
         for h in H1 H2 H3 H4; do
             while :; do
-            val=$(rand_range 5 2147483647)
+            val=$(secure_rand_range 5 2147483647)
             if [[ -z ${unique_hashes[$val]} ]]; then
                 unique_hashes[$val]=1
                 export "WGD_$h=$val"

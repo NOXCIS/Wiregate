@@ -1,4 +1,4 @@
-import random, shutil, configparser, psutil
+import shutil, configparser, psutil
 import os, subprocess, uuid, datetime, time
 import ipaddress, json, re
 import logging
@@ -462,8 +462,8 @@ class Configuration:
                                     "cumu_sent": 0,
                                     "cumu_data": 0,
                                     "traffic": [],
-                                    "mtu": DashboardConfig.GetConfig("Peers", "peer_mtu")[1],
-                                    "keepalive": DashboardConfig.GetConfig("Peers", "peer_keep_alive")[1],
+                                    "mtu": int(DashboardConfig.GetConfig("Peers", "peer_mtu")[1]),
+                                    "keepalive": int(DashboardConfig.GetConfig("Peers", "peer_keep_alive")[1]),
                                     "remote_endpoint": DashboardConfig.GetConfig("Peers", "remote_endpoint")[1],
                                     "preshared_key": i["PresharedKey"] if "PresharedKey" in i.keys() else "",
                                     "address_v4": ','.join(addr_v4) if addr_v4 else None,
@@ -542,8 +542,8 @@ class Configuration:
             for i, p in enumerate(peers):
                 logger.debug(f"Adding peer {i+1}/{len(peers)}: {p['id'][:8]}...")
                 presharedKeyExist = len(p['preshared_key']) > 0
-                rd = random.Random()
-                uid = str(uuid.UUID(int=rd.getrandbits(128), version=4))
+                # Use cryptographically secure random for UUID generation
+                uid = str(uuid.uuid4())
 
                 # Handle wg command securely
                 if presharedKeyExist:
@@ -657,8 +657,8 @@ class Configuration:
                     
                     try:
                         if presharedKeyExist:
-                            rd = random.Random()
-                            uid = str(uuid.UUID(int=rd.getrandbits(128), version=4))
+                            # Use cryptographically secure random for UUID generation
+                            uid = str(uuid.uuid4())
                             with open(uid, "w+") as f:
                                 f.write(p['preshared_key'])
 
@@ -1711,6 +1711,7 @@ class Peer:
         self.cumu_receive = tableData.get("cumu_receive", 0)
         self.cumu_sent = tableData.get("cumu_sent", 0)
         self.cumu_data = tableData.get("cumu_data", 0)
+        self.traffic = tableData.get("traffic", [])
         self.mtu = tableData.get("mtu", 1420)
         self.keepalive = tableData.get("keepalive", 21)
         self.remote_endpoint = tableData.get("remote_endpoint", "N/A")
@@ -1759,8 +1760,8 @@ class Peer:
             if not pubKey[0] or pubKey[1] != self.id:
                 return ResponseObject(False, "Private key does not match with the public key")
         try:
-            rd = random.Random()
-            uid = str(uuid.UUID(int=rd.getrandbits(128), version=4))
+            # Use cryptographically secure random for UUID generation
+            uid = str(uuid.uuid4())
             pskExist = len(preshared_key) > 0
 
             if pskExist:
@@ -1955,13 +1956,8 @@ def cleanup_orphaned_configurations(existing_config_files: set):
         logger.error(f"Error during orphaned configuration cleanup: {e}")
 
 def InitWireguardConfigurationsList(startup: bool = False):
-    # Check for and migrate SQLite databases on startup
-    if startup:
-        logger.info("Checking for SQLite databases to migrate...")
-        if check_and_migrate_sqlite_databases():
-            logger.info("✓ SQLite databases migrated to Redis")
-        else:
-            logger.info("✓ No SQLite databases found to migrate")
+    # Database migrations are now handled in the main application startup
+    # This function focuses on configuration initialization
     
     confs = os.listdir(DashboardConfig.GetConfig("Server", "wg_conf_path")[1])
     confs.sort()

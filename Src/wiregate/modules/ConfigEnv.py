@@ -47,6 +47,14 @@ redis_port = int(os.getenv('REDIS_PORT', '6379'))
 redis_db = int(os.getenv('REDIS_DB', '0'))
 redis_password = os.getenv('REDIS_PASSWORD')
 
+# PostgreSQL Database Settings
+postgres_host = os.getenv('POSTGRES_HOST', 'localhost')
+postgres_port = int(os.getenv('POSTGRES_PORT', '5432'))
+postgres_db = os.getenv('POSTGRES_DB', 'wiregate')
+postgres_user = os.getenv('POSTGRES_USER', 'wiregate_user')
+postgres_password = os.getenv('POSTGRES_PASSWORD', 'wiregate_postgres_password')
+postgres_ssl_mode = os.getenv('POSTGRES_SSL_MODE', 'disable')
+
 # Security Settings
 DASHBOARD_MODE = os.getenv('DASHBOARD_MODE', 'development')  # development, production
 ALLOWED_ORIGINS = os.getenv('ALLOWED_ORIGINS', '*').split(',') if os.getenv('ALLOWED_ORIGINS') else ['*']

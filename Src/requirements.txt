@@ -16,4 +16,7 @@ uvicorn
 asgiref
 pyinstaller
 redis
+psycopg2-binary
+sqlalchemy
+cryptography
 
