@@ -964,7 +964,7 @@ def API_addPeers(configName):
 
                 # Validate peer name uniqueness within the configuration
                 if name:
-                    existing_peers = config.getPeers()
+                    existing_peers = config.getPeersList()
                     for existing_peer in existing_peers:
                         if existing_peer.name == name:
                             return ResponseObject(False, f"A peer with the name '{name}' already exists in this configuration")

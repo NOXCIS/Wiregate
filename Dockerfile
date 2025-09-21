@@ -66,7 +66,7 @@ RUN     python3 -m venv venv \
 ##########################################################
 FROM alpine:latest AS builder
 ARG TARGETPLATFORM
-ARG GO_VERSION=1.24.4
+ARG GO_VERSION=1.24.6
 
 RUN apk add --no-cache \
     wget \

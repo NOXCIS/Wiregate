@@ -1,0 +1,53 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: wiregate-env
+  namespace: wiregate
+data:
+  # Add your environment variables here (non-sensitive only)
+  # Copy from your .env file but exclude passwords/secrets
+  POSTGRES_DB: "wiregate"
+  POSTGRES_USER: "wiregate_user"
+  REDIS_USER: "wiregate_user"
+  DASHBOARD_MODE: "development"   # development, production
+  ALLOWED_ORIGINS: "*"
+  MAX_REQUEST_SIZE: "16777216"     # 16MB default
+  RATE_LIMIT_REQUESTS: "100"       # requests per minute
+  RATE_LIMIT_WINDOW: "60"          # seconds
+  BRUTE_FORCE_MAX_ATTEMPTS: "5"    # max failed attempts
+  BRUTE_FORCE_LOCKOUT_TIME: "900"  # 15 minutes
+  SESSION_TIMEOUT: "3600"          # 1 hour
+  SECURE_SESSION: "true"
+  REDIS_HOST: "redis"
+  REDIS_PORT: "6379"
+  REDIS_DB: "0"
+  REDIS_PASSWORD: "wiregate_redis_password"
+  POSTGRES_HOST: "postgres"
+  POSTGRES_PORT: "5432"
+  POSTGRES_DB: "wiregate"
+  POSTGRES_USER: "wiregate_user"
+  POSTGRES_PASSWORD: "wiregate_postgres_password"
+  POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+  POSTGRES_SSL_MODE: "disable"
+  AMNEZIA_WG: "true"
+  TZ: "America/New_York"
+  WGD_TOR_PROXY: "true"          #Enable Tor
+  WGD_TOR_EXIT_NODES: "{ch}"     #Ex. {gb},{fr}
+  WGD_TOR_DNS_EXIT_NODES: "{us}"
+  WGD_TOR_BRIDGES: "false"        #Enable Tor Bridges
+  WGD_TOR_PLUGIN: "snowflake"    #OPTIONS webtunnel, obfs4, snowflake
+  WGD_TOR_DNSCRYPT: "false"
+  WGD_CONF_PATH: "/etc/wireguard"
+  WGD_WELCOME_SESSION: "false"
+  WGD_AUTH_REQ: "false"
+  WGD_USER: "admin"
+  WGD_PASS: "admin"
+  WGD_REMOTE_ENDPOINT: "192.168.0.4"
+  WGD_REMOTE_ENDPOINT_PORT: "80"
+  WGD_PEER_ENDPOINT_ALLOWED_IP: "0.0.0.0/0, ::/0"
+  WGD_KEEP_ALIVE: "21"
+  WGD_MTU: "1420"
+  WGD_PORT_RANGE_STARTPORT: "4430"
+  WGD_DNS: "1.1.1.1"
+  WGD_IPTABLES_DNS: "1.1.1.1"
+  # Add other non-sensitive env vars

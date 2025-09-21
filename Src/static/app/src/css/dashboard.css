@@ -195,6 +195,43 @@
     top: -1px;
 }
 
+
+[data-bs-theme="light"] .tor-logo {
+    /* Use CSS mask to apply exact color #220337 */
+    background-color: #220337;
+    mask: url('/img/tor.svg') no-repeat center;
+    mask-size: contain;
+    -webkit-mask: url('/img/tor.svg') no-repeat center;
+    -webkit-mask-size: contain;
+    background-image: none;
+    display: inline-block;
+    vertical-align: middle;
+    width: 25px;
+    height: 25px;
+    margin-right: 0.5rem;
+    position: relative;
+    top: -1px;
+}
+
+/* Tor logo white when nav link is active */
+.nav-link.active .tor-logo {
+    background-color: white !important;
+}
+
+[data-bs-theme="light"] .nav-link.active .tor-logo {
+    background-color: white !important;
+}
+
+/* Improve changelog version text contrast in light theme */
+[data-bs-theme="light"] .changelog-container .text-info {
+    color: #2c3e50 !important; /* Dark blue-gray for better contrast */
+}
+
+[data-bs-theme="light"] .changelog-container .text-info i {
+    color: #2c3e50 !important; /* Match the icon color to the text */
+}
+
+
 .amneziawgBg {
     background: linear-gradient(90deg, rgba(145,199,193,1) 0%, rgba(107,95,161,1) 50%, rgba(227,142,65,1) 100%);
 }
@@ -441,8 +478,7 @@
     width: 100%;
     height: 100%;
     background: linear-gradient(234deg, var(--brandColor3) 0%, var(--brandColor7) 100%);
-    animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards,
-               gradientShift 4s ease-in-out infinite;
+    animation: slideInRight 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
     opacity: 1;
     z-index: -1;
 }
@@ -456,17 +492,6 @@
     }
 }
 
-@keyframes gradientShift {
-    0% {
-        background: linear-gradient(234deg, var(--brandColor4) 0%, var(--brandColor6) 100%);
-    }
-    50% {
-        background: linear-gradient(234deg, var(--brandColor7) 0%, var(--brandColor3) 100%);
-    }
-    100% {
-        background: linear-gradient(234deg, var(--brandColor3) 0%, var(--brandColor7) 100%);
-    }
-}
 
 [data-bs-theme="dark"] .awg-header {
     background: rgb(145,199,193);
@@ -694,7 +719,7 @@ a:-webkit-any-link,
 
 .info h6 {
     line-break: anywhere;
-    transition: all 0.4s cubic-bezier(0.96, -0.07, 0.34, 1.0);
+    transition: opacity 0.2s ease-out;
     opacity: 1;
 }
 
@@ -1512,28 +1537,24 @@ pre.index-alert {
 
 .fade-enter-active,
 .fade-leave-active {
-    transition: all 0.5s cubic-bezier(0.42, 0, 0.22, 1.0);
+    transition: opacity 0.2s ease-out;
 }
 
 .fade-enter-from,
 .fade-leave-to {
-    transform: translateY(40px);
     opacity: 0;
 }
 
 .fade2-enter-active,
 .fade2-leave-active {
-    transition: all 0.3s cubic-bezier(0.82, 0.58, 0.17, 1);
+    transition: opacity 0.2s ease-out;
 }
 
 .fade2-enter-from{
-    transform: translateY(-30px);
     opacity: 0;
 }
 
 .fade2-leave-to {
-    transform: translateY(30px);
-    filter: blur(3px);
     opacity: 0;
 }
 
@@ -1596,17 +1617,12 @@ pre.index-alert {
 .list-move, /* apply transition to moving elements */
 .list-enter-active,
 .list-leave-active {
-    transition: all 0.5s ease-in-out;
+    transition: opacity 0.2s ease-out;
 }
-
-/*.list-leave-active{*/
-/*    position: absolute !important;*/
-/*}*/
 
 .list-enter-from,
 .list-leave-to {
     opacity: 0;
-    transform: scale(1.1);
 }
 
 /* ensure leaving items are taken out of layout flow so that moving

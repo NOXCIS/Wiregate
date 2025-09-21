@@ -1,0 +1,45 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: wiregate
+  namespace: wiregate
+  labels:
+    app: wiregate
+spec:
+  type: LoadBalancer  # Or NodePort if LoadBalancer not available
+  ports:
+  - name: wireguard
+    port: 44333
+    targetPort: 44333
+    protocol: UDP
+    nodePort: 30333  # If using NodePort
+  - name: zone-4430
+    port: 4430
+    targetPort: 4430
+    protocol: UDP
+    nodePort: 30430
+  - name: zone-4431
+    port: 4431
+    targetPort: 4431
+    protocol: UDP
+    nodePort: 30431
+  - name: zone-4432
+    port: 4432
+    targetPort: 4432
+    protocol: UDP
+    nodePort: 30432
+  - name: zone-4433
+    port: 4433
+    targetPort: 4433
+    protocol: UDP
+    nodePort: 30433
+  - name: http
+    port: 8000
+    targetPort: 80
+    protocol: TCP
+    nodePort: 30080
+  selector:
+    app: wiregate
+  # If using LoadBalancer, you might want to specify loadBalancerIP
+  # loadBalancerIP: "YOUR_EXTERNAL_IP"
+  

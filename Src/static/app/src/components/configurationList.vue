@@ -146,7 +146,7 @@ export default {
 				</div>
 			</div>
 			
-			<TransitionGroup name="fade" tag="div" class="d-flex flex-column gap-3 mb-4">
+			<TransitionGroup name="list" tag="div" class="d-flex flex-column gap-3 mb-4">
 				<!-- Loading skeleton -->
 				<div v-if="!this.configurationLoaded" class="d-flex flex-column gap-3">
 					<div v-for="n in 3" :key="'skeleton-' + n" class="card skeleton-card">
@@ -172,7 +172,6 @@ export default {
 					<LocaleText t="You don't have any Configurations yet. Please check the configuration folder or change it in Settings. By default the folder is /etc/wireguard."></LocaleText>
 				</p>
 				<ConfigurationCard v-for="(c, index) in configurations"
-				                   :delay="index*0.05 + 's'"
 				                   v-else-if="this.configurationLoaded"
 				                   :key="c.Name" :c="c"></ConfigurationCard>
 			</TransitionGroup>
@@ -188,48 +187,32 @@ export default {
 }
 
 .skeleton-card {
-	background: linear-gradient(90deg, 
-		rgba(255, 255, 255, 0.1) 25%, 
-		rgba(255, 255, 255, 0.2) 50%, 
-		rgba(255, 255, 255, 0.1) 75%);
-	background-size: 200% 100%;
-	animation: skeleton-loading 1.5s infinite;
+	background: rgba(255, 255, 255, 0.1);
 	border: 1px solid rgba(255, 255, 255, 0.1);
+	animation: skeleton-pulse 2s ease-in-out infinite;
 }
 
 .skeleton-line {
-	background: linear-gradient(90deg, 
-		rgba(255, 255, 255, 0.1) 25%, 
-		rgba(255, 255, 255, 0.2) 50%, 
-		rgba(255, 255, 255, 0.1) 75%);
-	background-size: 200% 100%;
-	animation: skeleton-loading 1.5s infinite;
+	background: rgba(255, 255, 255, 0.1);
 	border-radius: 4px;
+	animation: skeleton-pulse 2s ease-in-out infinite;
 }
 
-@keyframes skeleton-loading {
-	0% {
-		background-position: -200% 0;
+@keyframes skeleton-pulse {
+	0%, 100% {
+		opacity: 0.4;
 	}
-	100% {
-		background-position: 200% 0;
+	50% {
+		opacity: 0.8;
 	}
 }
 
 [data-bs-theme="dark"] .skeleton-card {
-	background: linear-gradient(90deg, 
-		rgba(255, 255, 255, 0.05) 25%, 
-		rgba(255, 255, 255, 0.1) 50%, 
-		rgba(255, 255, 255, 0.05) 75%);
-	background-size: 200% 100%;
+	background: rgba(255, 255, 255, 0.05);
 	border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 [data-bs-theme="dark"] .skeleton-line {
-	background: linear-gradient(90deg, 
-		rgba(255, 255, 255, 0.05) 25%, 
-		rgba(255, 255, 255, 0.1) 50%, 
-		rgba(255, 255, 255, 0.05) 75%);
-	background-size: 200% 100%;
+	background: rgba(255, 255, 255, 0.05);
 }
 </style>

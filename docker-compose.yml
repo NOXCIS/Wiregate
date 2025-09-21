@@ -28,7 +28,7 @@ services:
     env_file:
       - ./.env
     volumes:
-      #- redis_data:/data
+      - redis_data:/data
       - ./configs/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
     networks:
       private_network:
@@ -67,10 +67,8 @@ services:
       -c config_file=/etc/postgresql/postgresql.conf
 
   wiregate:
-      build:
-        context: .
-        dockerfile: Dockerfile
-      #image: noxcis/wiregate:chimera
+      
+      image: noxcis/wiregate:sol-beta-v2.1.0
       container_name: wiregate
       hostname: wiregate
       cap_add:
@@ -87,8 +85,8 @@ services:
       volumes:
         - /lib/modules:/lib/modules:ro 
         - pf_conf:/WireGate/iptable-rules/
-        #- conf:/etc/wireguard 
-        #- db:/WireGate/db
+        - conf:/etc/wireguard 
+        - db:/WireGate/db
         - ./configs/ssl:/WireGate/SSL_CERT
         - ./configs/dnscrypt:/WireGate/dnscrypt
         - ./configs/tor:/etc/tor/
@@ -113,9 +111,9 @@ services:
 
 
 volumes:
-    #db:
-    #conf:
+    db:
+    conf:
     pf_conf:
-    #redis_data:
+    redis_data:
     postgres_data:
   

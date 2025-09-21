@@ -21,67 +21,22 @@ class DatabaseManager:
     
     def __init__(self, postgres_config=None, redis_config=None):
         """Initialize PostgreSQL and Redis connections"""
-        # Try to get config from DashboardConfig first, fallback to environment variables
-        try:
-            from ..DashboardConfig import DashboardConfig
-            
-            # Get Redis config from DashboardConfig
-            redis_host_config = DashboardConfig.GetConfig("Database", "redis_host")[1]
-            if redis_host_config:
-                self.redis_config = redis_config or {
-                    'host': DashboardConfig.GetConfig("Database", "redis_host")[1],
-                    'port': DashboardConfig.GetConfig("Database", "redis_port")[1],
-                    'db': DashboardConfig.GetConfig("Database", "redis_db")[1],
-                    'password': DashboardConfig.GetConfig("Database", "redis_password")[1]
-                }
-            else:
-                # Fallback to environment variables
-                self.redis_config = redis_config or {
-                    'host': redis_host,
-                    'port': redis_port,
-                    'db': redis_db,
-                    'password': redis_password
-                }
-            
-            # Get PostgreSQL config from DashboardConfig
-            postgres_host_config = DashboardConfig.GetConfig("Database", "postgres_host")[1]
-            if postgres_host_config:
-                self.postgres_config = postgres_config or {
-                    'host': DashboardConfig.GetConfig("Database", "postgres_host")[1],
-                    'port': DashboardConfig.GetConfig("Database", "postgres_port")[1],
-                    'database': DashboardConfig.GetConfig("Database", "postgres_db")[1],
-                    'user': DashboardConfig.GetConfig("Database", "postgres_user")[1],
-                    'password': DashboardConfig.GetConfig("Database", "postgres_password")[1],
-                    'sslmode': DashboardConfig.GetConfig("Database", "postgres_ssl_mode")[1]
-                }
-            else:
-                # Fallback to environment variables
-                self.postgres_config = postgres_config or {
-                    'host': postgres_host,
-                    'port': postgres_port,
-                    'database': postgres_db,
-                    'user': postgres_user,
-                    'password': postgres_password,
-                    'sslmode': postgres_ssl_mode
-                }
-        except Exception as e:
-            logger.warning(f"Failed to load config from DashboardConfig, using environment variables: {e}")
-            # Fallback to environment variables
-            self.postgres_config = postgres_config or {
-                'host': postgres_host,
-                'port': postgres_port,
-                'database': postgres_db,
-                'user': postgres_user,
-                'password': postgres_password,
-                'sslmode': postgres_ssl_mode
-            }
-            
-            self.redis_config = redis_config or {
-                'host': redis_host,
-                'port': redis_port,
-                'db': redis_db,
-                'password': redis_password
-            }
+        # Use provided config or fallback to environment variables
+        # Avoid circular import by not importing DashboardConfig here
+        self.postgres_config = postgres_config or {
+            'host': postgres_host,
+            'port': postgres_port,
+            'database': postgres_db,
+            'user': postgres_user,
+            'password': postgres_password,
+            'sslmode': postgres_ssl_mode
+        }
+        self.redis_config = redis_config or {
+            'host': redis_host,
+            'port': redis_port,
+            'db': redis_db,
+            'password': redis_password
+        }
         
         # Initialize connections
         self._init_postgres()

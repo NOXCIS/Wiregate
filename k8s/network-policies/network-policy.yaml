@@ -1,0 +1,59 @@
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: wiregate-network-policy
+  namespace: wiregate
+spec:
+  podSelector:
+    matchLabels:
+      app: wiregate
+  policyTypes:
+  - Ingress
+  - Egress
+  ingress:
+  - from:
+    - podSelector:
+        matchLabels:
+          app: wiregate
+    - podSelector:
+        matchLabels:
+          app: redis
+    - podSelector:
+        matchLabels:
+          app: postgres
+  - ports:
+    - protocol: UDP
+      port: 44333
+    - protocol: UDP
+      port: 4430
+    - protocol: UDP
+      port: 4431
+    - protocol: UDP
+      port: 4432
+    - protocol: UDP
+      port: 4433
+    - protocol: TCP
+      port: 80
+  egress:
+  - to:
+    - podSelector:
+        matchLabels:
+          app: redis
+    ports:
+    - protocol: TCP
+      port: 6379
+  - to:
+    - podSelector:
+        matchLabels:
+          app: postgres
+    ports:
+    - protocol: TCP
+      port: 5432
+  - to:
+    - namespaceSelector: {}
+    ports:
+    - protocol: UDP
+      port: 53  # DNS
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0  # Allow outbound internet for VPN

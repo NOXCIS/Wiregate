@@ -112,7 +112,4 @@ export default {
 </template>
 
 <style scoped>
-.fade-enter-active{
-	transition-delay: v-bind(delay) !important;
-}
 </style>

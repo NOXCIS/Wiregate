@@ -11,21 +11,21 @@ data:
     # Connection Settings
     listen_addresses = '*'
     port = 5432
-    max_connections = 200
+    max_connections = 100
     superuser_reserved_connections = 3
 
     # Memory Settings
-    shared_buffers = 256MB
-    effective_cache_size = 512MB
-    work_mem = 8MB
-    maintenance_work_mem = 128MB
+    shared_buffers = 128MB
+    effective_cache_size = 256MB
+    work_mem = 4MB
+    maintenance_work_mem = 64MB
 
     # Checkpoint Settings
     checkpoint_completion_target = 0.9
-    wal_buffers = 32MB
+    wal_buffers = 16MB
     checkpoint_timeout = 5min
-    max_wal_size = 2GB
-    min_wal_size = 160MB
+    max_wal_size = 1GB
+    min_wal_size = 80MB
 
     # Query Tuning
     random_page_cost = 1.1
@@ -52,6 +52,11 @@ data:
 
     # Security
     ssl = off
+    #ssl_cert_file = '/var/lib/postgresql/server.crt'
+    #ssl_key_file = '/var/lib/postgresql/server.key'
+    #ssl_ca_file = ''
+    #ssl_ciphers = 'HIGH:MEDIUM:+3DES:!aNULL'
+    #ssl_prefer_server_ciphers = on
     password_encryption = scram-sha-256
 
     # Performance
@@ -84,6 +89,7 @@ data:
     vacuum_multixact_freeze_min_age = 5000000
     vacuum_multixact_freeze_table_age = 150000000
 
+    
   init.sql: |
     -- PostgreSQL initialization script for WireGate
     -- This script runs when the PostgreSQL container is first created

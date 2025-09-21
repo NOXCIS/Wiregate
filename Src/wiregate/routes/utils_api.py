@@ -207,22 +207,27 @@ def get_changelog_for_version(version):
                     item = line.replace('-', '', 1).strip()
                     changelog_map[current_version].append(item)
             
-            # Return the changelog items for the requested version, or latest if not found
+            # Handle "latest" version request
+            if version == "latest":
+                versions = list(changelog_map.keys())
+                if versions:
+                    latest_version = versions[0]  # Assuming first version is latest
+                    result = changelog_map[latest_version]
+                    logging.info(f"Requested latest version, showing: {latest_version} with {len(result)} items")
+                    return result
+                else:
+                    logging.warning(f"No versions found in changelog")
+                    return []
+            
+            # Return the changelog items for the requested version only
             result = changelog_map.get(version, [])
             if result:
                 logging.info(f"Found {len(result)} changelog items for version {version}")
                 return result
             else:
-                # Fallback: return the latest available version's changelog
-                versions = list(changelog_map.keys())
-                if versions:
-                    latest_version = versions[0]  # Assuming first version is latest
-                    result = changelog_map[latest_version]
-                    logging.info(f"Version {version} not found, showing latest available: {latest_version} with {len(result)} items")
-                    return result
-                else:
-                    logging.warning(f"No versions found in changelog")
-                    return []
+                # No changelog available for this specific version
+                logging.info(f"No changelog found for version {version}")
+                return []
         else:
             logging.error(f"Failed to fetch changelog: HTTP {response.status_code}")
             return []
@@ -279,8 +284,10 @@ def _background_update_check():
                     
                     docker_hub_url = f"https://hub.docker.com/r/{docker_hub_repo}/tags?page=1&name={latest_tag}"
                     
+                    # Always fetch changelog for the latest version, regardless of update status
+                    changelog_items = get_changelog_for_version(latest_tag)
+                    
                     if latest_tag and latest_tag != DASHBOARD_VERSION:
-                        changelog_items = get_changelog_for_version(latest_tag)
                         logging.info(f"Update available: {latest_tag} (current: {DASHBOARD_VERSION})")
                         logging.info(f"Changelog items for {latest_tag}: {len(changelog_items)} items")
                         _update_cache = {
@@ -288,13 +295,13 @@ def _background_update_check():
                             'data': {
                                 'url': docker_hub_url,
                                 'changelog': changelog_items,
+                                'version': latest_tag,
                                 'message': f"{latest_tag} is now available for update!"
                             },
                             'error': None
                         }
                     else:
                         # Even when on latest version, show the latest changelog for user reference
-                        changelog_items = get_changelog_for_version(latest_tag)
                         logging.info(f"Already on latest version: {DASHBOARD_VERSION}")
                         logging.info(f"Showing latest changelog for version {latest_tag}: {len(changelog_items)} items")
                         _update_cache = {
@@ -310,10 +317,24 @@ def _background_update_check():
         
     except Exception as e:
         logging.warning(f"Background update check failed: {e}")
-        _update_cache = {
-            'last_check': datetime.now(),
-            'data': None,
-            'error': str(e)
-        }
+        # Even if update check fails, try to fetch changelog as fallback
+        try:
+            changelog_items = get_changelog_for_version("latest")
+            _update_cache = {
+                'last_check': datetime.now(),
+                'data': {
+                    'changelog': changelog_items,
+                    'version': "latest",
+                    'message': "Update check failed, but showing latest changelog"
+                },
+                'error': str(e)
+            }
+        except Exception as changelog_error:
+            logging.warning(f"Failed to fetch changelog as fallback: {changelog_error}")
+            _update_cache = {
+                'last_check': datetime.now(),
+                'data': None,
+                'error': str(e)
+            }
 
 # Background update checking is now handled by the main dashboard thread system

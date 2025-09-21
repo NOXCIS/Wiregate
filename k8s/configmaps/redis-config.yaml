@@ -1,0 +1,60 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: redis-config
+  namespace: wiregate
+data:
+  redis.conf: |
+    # Redis configuration for WireGate
+    # This file contains Redis server configuration
+
+    # Network
+    bind 0.0.0.0
+    port 6379
+    protected-mode yes
+
+    # Authentication
+    requirepass wiregate_redis_password
+
+    # Persistence
+    save 900 1
+    save 300 10
+    save 60 10000
+
+    # Append Only File
+    appendonly yes
+    appendfsync everysec
+    no-appendfsync-on-rewrite no
+    auto-aof-rewrite-percentage 100
+    auto-aof-rewrite-min-size 64mb
+
+    # Memory management
+    maxmemory 256mb
+    maxmemory-policy allkeys-lru
+
+    # Logging
+    loglevel notice
+    logfile ""
+
+    # Performance
+    tcp-keepalive 300
+    timeout 0
+
+    # Security
+    rename-command FLUSHDB ""
+    rename-command FLUSHALL ""
+    # Note: KEYS command is needed for WireGate database operations
+    # rename-command KEYS ""
+    rename-command CONFIG ""
+
+    # Client output buffer limits
+    client-output-buffer-limit normal 0 0 0
+    client-output-buffer-limit replica 256mb 64mb 60
+    client-output-buffer-limit pubsub 32mb 8mb 60
+
+    # Slow log
+    slowlog-log-slower-than 10000
+    slowlog-max-len 128
+
+    # Latency monitoring
+    latency-monitor-threshold 100

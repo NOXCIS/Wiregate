@@ -184,8 +184,29 @@ if __name__ == "__main__":
     # Convert Flask WSGI app to ASGI for Uvicorn compatibility
     asgi_app = WsgiToAsgi(app)
     
+    # Wrap the app with lifespan support to avoid ASGI warning
+    class LifespanWrapper:
+        def __init__(self, app):
+            self.app = app
+            
+        async def __call__(self, scope, receive, send):
+            if scope["type"] == "lifespan":
+                while True:
+                    message = await receive()
+                    if message["type"] == "lifespan.startup":
+                        await send({"type": "lifespan.startup.complete"})
+                    elif message["type"] == "lifespan.shutdown":
+                        await send({"type": "lifespan.shutdown.complete"})
+                        break
+            else:
+                # Delegate to the WSGI app
+                await self.app(scope, receive, send)
+    
+    # Create the final ASGI app
+    final_app = LifespanWrapper(asgi_app)
+    
     # Remove workers option to avoid Uvicorn warning/crash
     if 'workers' in options:
         del options['workers']
     # Start Uvicorn server
-    uvicorn.run(asgi_app, **options)
+    uvicorn.run(final_app, **options)

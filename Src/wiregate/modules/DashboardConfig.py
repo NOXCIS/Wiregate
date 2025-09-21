@@ -151,7 +151,7 @@ class DashboardConfig:
             "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'DashboardAPIKeys'").fetchall()
         if len(existingTable) == 0:
             sqlUpdate(
-                "CREATE TABLE IF NOT EXISTS DashboardAPIKeys (Key VARCHAR NOT NULL PRIMARY KEY, CreatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, ExpiredAt VARCHAR)")
+                "CREATE TABLE IF NOT EXISTS DashboardAPIKeys (Key VARCHAR NOT NULL PRIMARY KEY, CreatedAt TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP, ExpiredAt TIMESTAMP)")
 
     def __getAPIKeys(self) -> list[DashboardAPIKey]:
         keys = sqlSelect(

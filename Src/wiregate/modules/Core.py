@@ -384,25 +384,9 @@ class Configuration:
         self.__configFileModifiedTime = mt
         return changed
 
-    def __cleanup_master_keys_in_dev_mode(self):
-        """Clean up master key entries from database in all modes"""
-        try:
-            # Get all peers from database
-            all_peers = self.db.get_peers()
-            for peer in all_peers:
-                # Check if this is a master key peer (has IP 10.0.0.254/32)
-                if peer.get('allowed_ip') == '10.0.0.254/32' or '10.0.0.254/32' in str(peer.get('allowed_ip', '')):
-                    logger.info(f"Removing old master key peer from database: {peer.get('id', 'unknown')[:8]}...")
-                    self.db.delete_peer(peer.get('id'))
-        except Exception as e:
-            logger.error(f"Error cleaning up master keys: {e}")
-
     def __getPeers(self):
         if self.configurationFileChanged():
             self.Peers = []
-            
-            # Clean up master keys before processing config file
-            self.__cleanup_master_keys_in_dev_mode()
             
             with open(os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], f'{self.Name}.conf'),
                       'r') as configFile:
@@ -413,7 +397,17 @@ class Configuration:
                     peerStarts = content.index("[Peer]")
                     content = content[peerStarts:]
                     for i in content:
-                        if not RegexMatch("#(.*)", i) and not RegexMatch(";(.*)", i):
+                        # Handle #Name# comments first, before skipping other comments
+                        if RegexMatch("#Name# = (.*)", i):
+                            split = re.split(r'\s*=\s*', i, maxsplit=1)
+                            if len(split) == 2:
+                                # Only set name if we have a valid peer object
+                                if pCounter >= 0 and pCounter < len(p):
+                                    p[pCounter]["name"] = split[1]
+                                    logger.debug(f"Found name comment: {split[1]} for peer {pCounter}")
+                                else:
+                                    logger.warning(f"Found name comment but no valid peer object exists: {split[1]}")
+                        elif not RegexMatch("#(.*)", i) and not RegexMatch(";(.*)", i):
                             if i == "[Peer]":
                                 pCounter += 1
                                 p.append({})
@@ -423,11 +417,6 @@ class Configuration:
                                     split = re.split(r'\s*=\s*', i, maxsplit=1)
                                     if len(split) == 2:
                                         p[pCounter][split[0]] = split[1]
-
-                        if RegexMatch("#Name# = (.*)", i):
-                            split = re.split(r'\s*=\s*', i, maxsplit=1)
-                            if len(split) == 2:
-                                p[pCounter]["name"] = split[1]
 
                     for i in p:
                         if "PublicKey" in i.keys():
@@ -470,6 +459,7 @@ class Configuration:
                                     "download_rate_limit": 0,
                                     "scheduler_type": "htb"
                                 }
+                                logger.debug(f"Inserting peer with name '{newPeer['name']}' and IP '{newPeer['allowed_ip']}'")
                                 self.db.insert_peer(newPeer)
                                 self.Peers.append(Peer(newPeer, self))
                             else:
@@ -477,6 +467,7 @@ class Configuration:
                                 update_data = {"allowed_ip": i.get("AllowedIPs", "N/A")}
                                 if i.get("name"):
                                     update_data["name"] = i.get("name")
+                                    logger.debug(f"Updating peer {i['PublicKey'][:8]}... with name '{i.get('name')}'")
                                 self.db.update_peer(i['PublicKey'], update_data)
                                 self.Peers.append(Peer(checkIfExist, self))
                 except Exception as e:

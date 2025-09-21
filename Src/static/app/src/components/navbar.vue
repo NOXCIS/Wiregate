@@ -422,17 +422,24 @@ export default {
 										{{ dashboardConfigurationStore.Configuration.Server.version }}
 									</small>
 									<small v-if="changelogItems.length > 0" 
-										   class="changelog-toggle text-secondary" 
+										   class="changelog-toggle" 
 										   @click.stop.prevent="toggleChangelog">
 										<i class="bi" :class="showChangelog ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
 										<LocaleText t="View changelog"></LocaleText>
 									</small>
 									<div v-if="showChangelog" class="changelog-container mt-2">
-										<ul class="changelog-list">
+										<div v-if="changelogItems.length > 0" class="text-info mb-2" style="font-size: 0.75rem;">
+											<i class="bi bi-info-circle me-1"></i>
+											<LocaleText t="Changelog for version:"></LocaleText> {{ changelogVersion || 'latest' }}
+										</div>
+										<ul v-if="changelogItems.length > 0" class="changelog-list">
 											<li v-for="(item, index) in changelogItems" :key="index">
 												{{ item }}
 											</li>
 										</ul>
+										<div v-else class="text-muted text-center py-2">
+											<small><LocaleText t="NO CHANGE LOG AVAILABLE"></LocaleText></small>
+										</div>
 									</div>
 								</div>
 								<button class="btn btn-sm btn-outline-light ms-2" 
@@ -443,11 +450,11 @@ export default {
 							</div>
 						</a>
 						<div v-else class="nav-link text-muted rounded-3 d-flex align-items-center">
-							<i class="bi bi-check-circle me-2"></i>
+							
 							<div class="d-flex flex-column flex-grow-1">
 								<small><LocaleText :t="this.updateMessage"></LocaleText></small>
 								<small>{{ dashboardConfigurationStore.Configuration.Server.version }}</small>
-								<small class="changelog-toggle text-secondary" 
+								<small class="changelog-toggle" 
 									   @click.stop.prevent="toggleChangelog"
 									   style="cursor: pointer;">
 									<i class="bi" :class="showChangelog ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
@@ -463,7 +470,7 @@ export default {
 									<div v-else-if="changelogItems.length > 0">
 										<div class="text-info mb-2" style="font-size: 0.75rem;">
 											<i class="bi bi-info-circle me-1"></i>
-											<LocaleText t="Latest version changelog:"></LocaleText> {{ changelogVersion }}
+											<LocaleText t="Changelog for version:"></LocaleText> {{ changelogVersion || 'latest' }}
 										</div>
 										<ul class="changelog-list">
 											<li v-for="(item, index) in changelogItems" :key="index">
@@ -472,7 +479,7 @@ export default {
 										</ul>
 									</div>
 									<div v-else class="text-muted text-center py-2">
-										<small><LocaleText t="No changelog available for this version"></LocaleText></small>
+										<small><LocaleText t="NO CHANGE LOG AVAILABLE"></LocaleText></small>
 									</div>
 								</div>
 							</div>
@@ -625,7 +632,7 @@ export default {
 
 .changelog-toggle {
 	cursor: pointer;
-	color: var(--bs-primary);
+	color: #ffc107 !important;
 	margin-top: 5px;
 }
 

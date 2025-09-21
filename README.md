@@ -81,6 +81,7 @@ Give a ⭐ if this project helped you!
 	- [Quick Install](#via-quick-installer) 
 	- [Docker Compose](#install-full-stack-via-docker-compose) 
 	- [Docker Compose Standalone](#install-standalone-via-docker-compose) 
+	- [Kubernetes](#install-via-kubernetes)
 - [Additional Resourses](#additional-resourses)
 - [Acknowledgements](#acknowledgements)
 - [Contributing](#contributing)
@@ -468,6 +469,61 @@ While connected to WireGate Admins Zone:
 *The **password** & **username** are randomly generated and **provided in the final output** if not set manually.*
 
 *Clients under the **members** zone **cannot** access the **WireGuard, Pihole, or Adguard** dashboards.*
+
+### Install via Kubernetes
+
+Wiregate can be deployed on Kubernetes clusters for scalable, production-ready VPN solutions.
+
+#### Quick Start
+
+```bash
+# Navigate to the k8s directory
+cd k8s
+
+# Run the automated deployment script
+./deploy.sh
+
+# Choose your deployment type:
+# 1) Single instance (default) - Good for testing
+# 2) Clustered deployment - Shared PostgreSQL + distributed Redis
+# 3) Environment-based deployment - Uses k8.env file
+# 4) Environment-based clustered deployment - Uses k8.env + clustering
+```
+
+#### Access the Dashboard
+
+```bash
+# Port-forward to access dashboard (Docker Desktop users)
+kubectl port-forward -n wiregate service/wiregate 8000:80
+
+# Open http://localhost:8000 in your browser
+# Default credentials: admin/admin
+```
+
+#### Documentation
+
+- **[Kubernetes README](k8s/README.md)** - Complete Kubernetes deployment guide
+- **[Docker Desktop Guide](k8s/DOCKER_DESKTOP_GUIDE.md)** - Docker Desktop specific instructions
+- **[Troubleshooting Guide](k8s/TROUBLESHOOTING.md)** - Common issues and solutions
+- **[Cluster Deployment](k8s/CLUSTER_DEPLOYMENT.md)** - High availability setup
+- **[Environment Configuration](k8s/ENV_DEPLOYMENT.md)** - Using k8.env for configuration
+
+#### Features
+
+- **Single Instance**: Simple deployment for testing and small deployments
+- **Clustered**: High availability with shared PostgreSQL and distributed Redis
+- **Environment-based**: Configuration management via k8.env file
+- **Load Balancing**: Nginx load balancer for traffic distribution
+- **Auto-scaling**: Horizontal pod autoscaling support
+- **Monitoring**: Built-in health checks and metrics
+- **Robust Deployment**: Automatic handling of common issues (PostgreSQL ownership, Nginx config, Redis initialization)
+
+#### Requirements
+
+- Kubernetes cluster (v1.19+)
+- `kubectl` configured
+- `kustomize` (installed automatically by script)
+- Cluster with support for privileged containers and host networking
 
   
   

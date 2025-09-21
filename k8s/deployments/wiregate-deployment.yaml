@@ -1,0 +1,139 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: wiregate
+  namespace: wiregate
+  labels:
+    app: wiregate
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: wiregate
+  template:
+    metadata:
+      labels:
+        app: wiregate
+    spec:
+      dnsPolicy: ClusterFirst
+      initContainers:
+      - name: wait-for-postgres
+        image: busybox:1.35
+        command: ['sh', '-c', 'until nc -z postgres 5432; do echo waiting for postgres; sleep 2; done']
+      - name: wait-for-redis
+        image: busybox:1.35
+        command: ['sh', '-c', 'until nc -z redis 6379; do echo waiting for redis; sleep 2; done']
+      - name: setup-iptables-scripts
+        image: busybox:1.35
+        command: ['sh', '-c', 'mkdir -p /tmp/iptable-rules && cp -r /WireGate/iptable-rules/Admins /WireGate/iptable-rules/Guest /WireGate/iptable-rules/Members /WireGate/iptable-rules/LAN-only-users /tmp/iptable-rules/ && chmod -R +x /tmp/iptable-rules/']
+        volumeMounts:
+        - name: iptables-admins
+          mountPath: /WireGate/iptable-rules/Admins/
+        - name: iptables-guest
+          mountPath: /WireGate/iptable-rules/Guest/
+        - name: iptables-members
+          mountPath: /WireGate/iptable-rules/Members/
+        - name: iptables-lan
+          mountPath: /WireGate/iptable-rules/LAN-only-users/
+        - name: iptables-scripts
+          mountPath: /tmp/iptable-rules
+      containers:
+      - name: wiregate
+        image: noxcis/wiregate:sol-beta-v2.1.4
+        ports:
+        - containerPort: 44333
+          protocol: UDP
+        - containerPort: 4430
+          protocol: UDP
+        - containerPort: 4431
+          protocol: UDP
+        - containerPort: 4432
+          protocol: UDP
+        - containerPort: 4433
+          protocol: UDP
+        - containerPort: 80
+          protocol: TCP
+        envFrom:
+        - configMapRef:
+            name: wiregate-env
+        - secretRef:
+            name: wiregate-secrets
+        securityContext:
+          runAsUser: 0
+          runAsGroup: 0
+          capabilities:
+            add:
+            - NET_ADMIN
+            - SYS_MODULE
+            - SYS_ADMIN
+          privileged: true
+          allowPrivilegeEscalation: true
+        volumeMounts:
+        - name: dev-tun
+          mountPath: /dev/net/tun
+        - name: lib-modules
+          mountPath: /lib/modules
+          readOnly: true
+        - name: iptables-scripts
+          mountPath: /WireGate/iptable-rules/
+        - name: conf
+          mountPath: /etc/wireguard
+        - name: db
+          mountPath: /WireGate/db
+        - name: ssl-certs
+          mountPath: /WireGate/SSL_CERT
+        - name: dnscrypt
+          mountPath: /WireGate/dnscrypt
+        - name: tor
+          mountPath: /etc/tor/
+        - name: logs
+          mountPath: /WireGate/log/
+        - name: master-key
+          mountPath: /WireGate/master-key
+        - name: wsgi-config
+          mountPath: /WireGate/config/wsgi.ini
+          subPath: wsgi.ini
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      volumes:
+      - name: dev-tun
+        hostPath:
+          path: /dev/net/tun
+          type: CharDevice
+      - name: lib-modules
+        hostPath:
+          path: /lib/modules
+          type: Directory
+      - name: iptables-admins
+        configMap:
+          name: iptables-admins
+      - name: iptables-guest
+        configMap:
+          name: iptables-guest
+      - name: iptables-members
+        configMap:
+          name: iptables-members
+      - name: iptables-lan
+        configMap:
+          name: iptables-lan
+      - name: iptables-scripts
+        emptyDir: {}
+      - name: conf
+        persistentVolumeClaim:
+          claimName: wiregate-conf-pvc
+      - name: db
+        persistentVolumeClaim:
+          claimName: wiregate-db-pvc
+      - name: ssl-certs
+        emptyDir: {}
+      - name: dnscrypt
+        emptyDir: {}
+      - name: tor
+        emptyDir: {}
+      - name: logs
+        emptyDir: {}
+      - name: master-key
+        emptyDir: {}
+      - name: wsgi-config
+        configMap:
+          name: wsgi-config
