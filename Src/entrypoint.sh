@@ -2,8 +2,7 @@
 # Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
 # Under MIT License
 
-# Use restricted shell for command execution
-export SHELL="/usr/local/bin/restricted_bash"
+# Use direct command execution (no restricted shell needed in scratch image)
 
 # Trap signals and call the stop_service function
 trap 'stop_service' SIGTERM SIGINT SIGQUIT

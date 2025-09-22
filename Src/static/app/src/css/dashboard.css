@@ -216,10 +216,20 @@
 /* Tor logo white when nav link is active */
 .nav-link.active .tor-logo {
     background-color: white !important;
+    mask: url('/img/tor.svg') no-repeat center;
+    mask-size: contain;
+    -webkit-mask: url('/img/tor.svg') no-repeat center;
+    -webkit-mask-size: contain;
+    background-image: none;
 }
 
 [data-bs-theme="light"] .nav-link.active .tor-logo {
     background-color: white !important;
+    mask: url('/img/tor.svg') no-repeat center;
+    mask-size: contain;
+    -webkit-mask: url('/img/tor.svg') no-repeat center;
+    -webkit-mask-size: contain;
+    background-image: none;
 }
 
 /* Improve changelog version text contrast in light theme */

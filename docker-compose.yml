@@ -67,8 +67,10 @@ services:
       -c config_file=/etc/postgresql/postgresql.conf
 
   wiregate:
-      
-      image: noxcis/wiregate:sol-beta-v2.1.0
+      build:
+        context: .
+        dockerfile: Dockerfile
+      #image: noxcis/wiregate:sol-beta-v2.1.4
       container_name: wiregate
       hostname: wiregate
       cap_add:
@@ -95,9 +97,9 @@ services:
       env_file:
         - ./.env
       ports:
-        - 44333:44333/udp
-        - "4430-4433:4430-4433/udp" #UDP Interface Listen Ports For Zones
-        - 8000:80/tcp #Comment Out for full network lockdown, I.E only Accessible via VPN conttenction at http://wire.gate using config in generated master-key folder
+        #- 44333:44333/udp
+        #- "4430-4433:4430-4433/udp" #UDP Interface Listen Ports For Zones
+        - 8080:80/tcp #Comment Out for full network lockdown, I.E only Accessible via VPN conttenction at http://wire.gate using config in generated master-key folder
       sysctls:        #Otherwise access the dashboard @ your-sever-ip/domain:6060
         - net.ipv4.ip_forward=1
         - net.ipv4.conf.all.src_valid_mark=1

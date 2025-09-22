@@ -39,7 +39,7 @@ spec:
           mountPath: /tmp/iptable-rules
       containers:
       - name: wiregate
-        image: noxcis/wiregate:sol-beta-v2.1.4
+        image: noxcis/wiregate:sol-beta-v2.3.1
         ports:
         - containerPort: 44333
           protocol: UDP

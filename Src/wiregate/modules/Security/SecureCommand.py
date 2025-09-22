@@ -117,6 +117,10 @@ class SecureCommandExecutor:
         'traffic-weir': {
             'allowed_args': ['-interface', '-peer', '-upload-rate', '-download-rate', '-protocol', '-scheduler', '-allowed-ips', '--interface', '--peer', '--upload-rate', '--download-rate', '--protocol', '--scheduler', '--allowed-ips', '--remove'],
             'max_args': 15
+        },
+        'torflux': {
+            'allowed_args': ['-config', '-action'],
+            'max_args': 5
         }
     }
     
@@ -303,8 +307,8 @@ class SecureCommandExecutor:
         cmd_list = [command] + args
         
         try:
-            # Execute command through restricted shell
-            restricted_cmd = ['/WireGate/restricted_shell.sh'] + cmd_list
+            # Execute command directly (no restricted shell needed in scratch image)
+            restricted_cmd = cmd_list
             
             if stdin_input:
                 result = subprocess.run(

@@ -3,12 +3,9 @@
 # Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
 # Under MIT License
 
-# Use restricted shell for command execution
-export SHELL="/usr/local/bin/restricted_bash"
-
-# Wrapper function to execute commands through restricted shell
+# Execute commands directly (no restricted shell needed in scratch image)
 secure_exec() {
-    /WireGate/restricted_shell.sh "$@"
+    "$@"
 }
 
 # Set up signal handling for the main script
@@ -53,7 +50,8 @@ heavy_crossmark=$(printf "\xE2\x9C\x97")
 PID_FILE=./dashboard.pid
 TORRC_PATH="/etc/tor/torrc"
 DNS_TORRC_PATH="/etc/tor/dnstorrc"
-INET_ADDR="$(hostname -i | awk '{print $1}')"
+# Get IPv4 address instead of IPv6
+INET_ADDR="$(ip addr show eth0 | grep 'inet ' | awk '{print $2}' | cut -d'/' -f1)"
 dashes='------------------------------------------------------------'
 equals='============================================================'
 log_dir="./log"
@@ -90,7 +88,7 @@ get_obfs4_bridges() {
     
     printf "[TOR] Fetching obfs4 bridges from Tor's BridgeDB...\n"
     
-    response=$(curl -s "$BRIDGEDB_URL")
+    response=$(wget -qO- "$BRIDGEDB_URL")
     bridges=$(echo "$response" | sed -n 's/.*\(obfs4 [^<]*\)<br\/>.*/\1/p' | sed 's/&#43;/+/g')
     
     if [[ $response == *"obfs4"* ]]; then
@@ -105,7 +103,7 @@ get_webtunnel_bridges() {
     
     printf "[TOR] Fetching WebTunnel bridges from Tor's BridgeDB...\n"
 
-    response=$(curl -s "$BRIDGEDB_URL")
+    response=$(wget -qO- "$BRIDGEDB_URL")
     bridges=$(echo "$response" | sed -n 's/.*\(webtunnel [^<]*\)<br\/>.*/\1/p')
     
     if [[ $response == *"webtunnel"* ]]; then
@@ -523,21 +521,41 @@ init_tor_vanguards() {
             # Display the loading bars with updated progress
             printf "%s\n" "$dashes"
             printf "[TOR-VANGUARDS] Main Tor: ["
-            printf "%0.s#" $(seq 1 $main_filled_length)
+            # Create filled bar using while loop
+            i=1
+            while [ $i -le $main_filled_length ]; do
+                printf "#"
+                i=$((i + 1))
+            done
             
             # Only print "-" if not fully bootstrapped
             if [ "$main_bootstrapped_percent" -lt 100 ]; then
-                printf "%0.s-" $(seq 1 $main_empty_length)
+                # Create empty bar using while loop
+                i=1
+                while [ $i -le $main_empty_length ]; do
+                    printf "-"
+                    i=$((i + 1))
+                done
             fi
             
             printf "] %s%%\n" "$main_bootstrapped_percent"
             
             printf "[TOR-VANGUARDS] DNS Tor: ["
-            printf "%0.s#" $(seq 1 $dns_filled_length)
+            # Create filled bar using while loop
+            i=1
+            while [ $i -le $dns_filled_length ]; do
+                printf "#"
+                i=$((i + 1))
+            done
             
             # Only print "-" if not fully bootstrapped
             if [ "$dns_bootstrapped_percent" -lt 100 ]; then
-                printf "%0.s-" $(seq 1 $dns_empty_length)
+                # Create empty bar using while loop
+                i=1
+                while [ $i -le $dns_empty_length ]; do
+                    printf "-"
+                    i=$((i + 1))
+                done
             fi
             
             printf "] %s%%\n" "$dns_bootstrapped_percent"
