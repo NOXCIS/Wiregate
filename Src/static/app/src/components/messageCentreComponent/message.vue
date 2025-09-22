@@ -46,7 +46,7 @@ export default {
 			'text-bg-danger': this.message.type === 'danger', 
 			'text-bg-success': this.message.type === 'success',
 			'text-bg-warning': this.message.type === 'warning'}"
-			class="card-header pos">
+			class="card-header">
 			<Transition name="zoom" mode="out-in">
 				<div class="d-flex" v-if="!dismiss">
 					<small class="fw-bold d-block" style="text-transform: uppercase">
@@ -86,5 +86,42 @@ export default {
 		}
 	}
 	
+	/* Message type header styling */
+	.card-header {
+		border: none !important;
+		padding: 0.75rem 1rem;
+	}
+	
+	/* Ensure proper contrast for message types */
+	.text-bg-danger {
+		background-color: #dc3545 !important;
+		color: #ffffff !important;
+	}
+	
+	.text-bg-success {
+		background-color: #198754 !important;
+		color: #ffffff !important;
+	}
+	
+	.text-bg-warning {
+		background-color: #ffc107 !important;
+		color: #000000 !important;
+	}
+	
+	/* Dark theme adjustments */
+	[data-bs-theme="dark"] .text-bg-danger {
+		background-color: #dc3545 !important;
+		color: #ffffff !important;
+	}
+	
+	[data-bs-theme="dark"] .text-bg-success {
+		background-color: #198754 !important;
+		color: #ffffff !important;
+	}
+	
+	[data-bs-theme="dark"] .text-bg-warning {
+		background-color: #ffc107 !important;
+		color: #000000 !important;
+	}
 	
 </style>

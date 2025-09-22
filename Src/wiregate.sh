@@ -3,9 +3,9 @@
 # Copyright(C) 2024 NOXCIS [https://github.com/NOXCIS]
 # Under MIT License
 
-# Execute commands directly (no restricted shell needed in scratch image)
+# Execute commands through restricted shell for security
 secure_exec() {
-    "$@"
+    /WireGate/restricted_shell.sh "$@"
 }
 
 # Set up signal handling for the main script
@@ -22,7 +22,7 @@ cleanup_and_exit() {
     for pid in "${CHILD_PIDS[@]}"; do
         if ps -p "$pid" > /dev/null 2>&1; then
             echo "[WIREGATE] Stopping child process $pid"
-            kill -TERM "$pid" 2>/dev/null || true
+            secure_exec kill -TERM "$pid" 2>/dev/null || true
         fi
     done
     
@@ -33,14 +33,14 @@ cleanup_and_exit() {
     for pid in "${CHILD_PIDS[@]}"; do
         if ps -p "$pid" > /dev/null 2>&1; then
             echo "[WIREGATE] Force killing child process $pid"
-            kill -KILL "$pid" 2>/dev/null || true
+            secure_exec kill -KILL "$pid" 2>/dev/null || true
         fi
     done
     
     # Clean up any remaining processes
-    pkill -f "tor" 2>/dev/null || true
-    pkill -f "vanguards" 2>/dev/null || true
-    pkill -f "torflux" 2>/dev/null || true
+    secure_exec pkill -f "tor" 2>/dev/null || true
+    secure_exec pkill -f "vanguards" 2>/dev/null || true
+    secure_exec pkill -f "torflux" 2>/dev/null || true
     
     echo "[WIREGATE] Cleanup complete. Exiting."
     exit 0
@@ -88,8 +88,8 @@ get_obfs4_bridges() {
     
     printf "[TOR] Fetching obfs4 bridges from Tor's BridgeDB...\n"
     
-    response=$(wget -qO- "$BRIDGEDB_URL")
-    bridges=$(echo "$response" | sed -n 's/.*\(obfs4 [^<]*\)<br\/>.*/\1/p' | sed 's/&#43;/+/g')
+    response=$(secure_exec wget -qO- "$BRIDGEDB_URL")
+    bridges=$(echo "$response" | secure_exec sed -n 's/.*\(obfs4 [^<]*\)<br\/>.*/\1/p' | secure_exec sed 's/&#43;/+/g')
     
     if [[ $response == *"obfs4"* ]]; then
         printf "[TOR] Bridges fetched successfully!\n"
@@ -103,8 +103,8 @@ get_webtunnel_bridges() {
     
     printf "[TOR] Fetching WebTunnel bridges from Tor's BridgeDB...\n"
 
-    response=$(wget -qO- "$BRIDGEDB_URL")
-    bridges=$(echo "$response" | sed -n 's/.*\(webtunnel [^<]*\)<br\/>.*/\1/p')
+    response=$(secure_exec wget -qO- "$BRIDGEDB_URL")
+    bridges=$(echo "$response" | secure_exec sed -n 's/.*\(webtunnel [^<]*\)<br\/>.*/\1/p')
     
     if [[ $response == *"webtunnel"* ]]; then
         printf "[TOR] Bridges fetched successfully!\n"
@@ -117,7 +117,7 @@ make_torrc() {
     printf "%s\n" "$dashes"
     printf "[TOR] Generating torrc to $TORRC_PATH...\n"
     if [ -f "$TORRC_PATH" ]; then
-    rm "$TORRC_PATH" 
+    secure_exec rm "$TORRC_PATH" 
     fi
 
     if [[ "$WGD_TOR_PLUGIN" == "webtunnel" ]]; then
@@ -168,7 +168,7 @@ make_dns_torrc() {
     printf "%s\n" "$dashes"
     printf "[TOR-DNS] Generating DNS-torrc to $DNS_TORRC_PATH...\n"
     if [ -f "$DNS_TORRC_PATH" ]; then
-    rm "$DNS_TORRC_PATH" 
+    secure_exec rm "$DNS_TORRC_PATH" 
     fi
 
     if [[ "$WGD_TOR_PLUGIN" == "webtunnel" ]]; then
@@ -276,7 +276,7 @@ run_tor_flux() {
         elapsed_time=$(( $(date +%s) - start_time ))
         if [ $elapsed_time -ge 300 ]; then
             echo "[TOR] Bootstrap timeout. Restarting Tor processes..."
-            pkill tor >/dev/null 2>&1
+            secure_exec pkill tor >/dev/null 2>&1
             sleep 0.5
 
             # Restart Tor processes and capture their PIDs
@@ -306,7 +306,7 @@ run_tor_flux() {
     # Main loop for periodic circuit renewal
     while true; do
         # Use cryptographically secure random for sleep time
-        sleep_time=$(od -An -N2 -tu2 /dev/urandom | tr -d ' ')
+        sleep_time=$(secure_exec od -An -N2 -tu2 /dev/urandom | secure_exec tr -d ' ')
         sleep_time=$(( (sleep_time % 600) + 142 ))
         printf "%s\n" "$dashes"
         printf "%s\n" "$dashes"
@@ -416,26 +416,26 @@ dashboard_stop () {
                 sudo kill -KILL "$pid" 2>/dev/null || true
             fi
         fi
-        rm -f "$PID_FILE"
+        secure_exec rm -f "$PID_FILE"
     else
         echo "[WIREGATE] No PID file found. Looking for running processes..."
     fi
     
     # Kill any remaining wiregate processes
-    pkill -f "wiregate" 2>/dev/null || true
+    secure_exec pkill -f "wiregate" 2>/dev/null || true
     
     # Stop Tor processes gracefully first
     echo "[WIREGATE] Stopping Tor processes..."
-    pkill -TERM tor 2>/dev/null || true
+    secure_exec pkill -TERM tor 2>/dev/null || true
     sleep 2
     # Force kill any remaining tor processes
-    pkill -KILL tor 2>/dev/null || true
+    secure_exec pkill -KILL tor 2>/dev/null || true
     
     # Stop vanguards processes
-    pkill -f "vanguards" 2>/dev/null || true
+    secure_exec pkill -f "vanguards" 2>/dev/null || true
     
     # Stop torflux processes
-    pkill -f "torflux" 2>/dev/null || true
+    secure_exec pkill -f "torflux" 2>/dev/null || true
     
     printf "[WIREGATE] All processes stopped.\n"
     printf "%s\n" "$equals"
@@ -460,10 +460,10 @@ stop_wiregate() {
         fi
         
         # Clean up any remaining processes
-        pkill -f "wiregate" 2>/dev/null || true
-        pkill -f "tor" 2>/dev/null || true
-        pkill -f "vanguards" 2>/dev/null || true
-        pkill -f "torflux" 2>/dev/null || true
+        secure_exec pkill -f "wiregate" 2>/dev/null || true
+        secure_exec pkill -f "tor" 2>/dev/null || true
+        secure_exec pkill -f "vanguards" 2>/dev/null || true
+        secure_exec pkill -f "torflux" 2>/dev/null || true
     fi
 }
 init_tor_vanguards() {
@@ -616,11 +616,11 @@ start_core() {
 	fi
 	
 	# Re-assign config_files to ensure it includes any newly created configurations
-	local config_files=$(find ${WGD_CONF_PATH} -type f -name "*.conf")
+	local config_files=$(secure_exec find ${WGD_CONF_PATH} -type f -name "*.conf")
 	local iptable_dir="./iptable-rules"
 	# Set file permissions
-	find ${WGD_CONF_PATH} -type f -name "*.conf" -exec chmod 600 {} \;
-	find "$iptable_dir" -type f -name "*.sh" -exec chmod +x {} \;
+	secure_exec find ${WGD_CONF_PATH} -type f -name "*.conf" -exec chmod 600 {} \;
+	secure_exec find "$iptable_dir" -type f -name "*.sh" -exec chmod +x {} \;
 	
 	printf "[WIREGATE] %s Starting ${VPN_PROTO_TYPE} Configurations.\n" "$heavy_checkmark"
 	printf "%s\n" "$equals"
@@ -892,8 +892,8 @@ run_pre_install_setup(){
     sudo chmod -R 755 ${WGD_CONF_PATH}/
 
     # Load HFSC module at container startup and verify
-    modprobe sch_hfsc
-    if lsmod | grep -q sch_hfsc; then
+    secure_exec modprobe sch_hfsc
+    if secure_exec lsmod | secure_exec grep -q sch_hfsc; then
         echo "[TRAFFIC] sch_hfsc module loaded successfully"
     else
         echo "[TRAFFIC] WARNING: Failed to load sch_hfsc module, Kernel may not support it"
@@ -901,17 +901,17 @@ run_pre_install_setup(){
 
 
    # Loop over each .sh file in the directory and its subdirectories
-    find ./iptable-rules/ -type f -name "*.sh" | while read -r file; do
+    secure_exec find ./iptable-rules/ -type f -name "*.sh" | while read -r file; do
         # Check if the file contains the line with DNS_SERVER=${WGD_IPTABLES_DNS}
-        if grep -q "DNS_SERVER=\${WGD_IPTABLES_DNS}" "$file"; then
+        if secure_exec grep -q "DNS_SERVER=\${WGD_IPTABLES_DNS}" "$file"; then
             # Replace the line with the current value of WGD_IPTABLES_DNS
-            sed -i "s|DNS_SERVER=\${WGD_IPTABLES_DNS}|DNS_SERVER=${WGD_IPTABLES_DNS}|" "$file"
+            secure_exec sed -i "s|DNS_SERVER=\${WGD_IPTABLES_DNS}|DNS_SERVER=${WGD_IPTABLES_DNS}|" "$file"
         fi
     done
 
-    mkdir -p /etc/amnezia/amneziawg/
+    secure_exec mkdir -p /etc/amnezia/amneziawg/
     if [[ ! -c /dev/net/tun ]]; then
-    mkdir -p /dev/net && mknod /dev/net/tun c 10 200
+    secure_exec mkdir -p /dev/net && secure_exec mknod /dev/net/tun c 10 200
     fi
 
     exit 0
@@ -919,12 +919,12 @@ run_pre_install_setup(){
 }
 run_pre_start_setup() {
 
-    # Create and set ownership for Tor directories
-	mkdir -p /var/lib/tor /var/log/tor
-	chown -R tor:tor /var/lib/tor/
-	chown -R tor:tor /var/log/tor/
-	chmod 700 /var/lib/tor/
-	chmod 700 /var/log/tor/
+	# Create and set ownership for Tor directories
+	secure_exec mkdir -p /var/lib/tor /var/log/tor
+	secure_exec chown -R tor:tor /var/lib/tor/
+	secure_exec chown -R tor:tor /var/log/tor/
+	secure_exec chmod 700 /var/lib/tor/
+	secure_exec chmod 700 /var/log/tor/
 
     start_core
     generate_vanguard_tor_ctrl_pass

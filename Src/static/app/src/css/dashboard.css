@@ -526,7 +526,9 @@
 
 
 
-
+[data-bs-theme="dark"] .text-bg-success {
+    background-color: #218725 !important;
+}
 
 
 
@@ -538,9 +540,6 @@
     background-color: #000000 !important;
 }
 
-[data-bs-theme="dark"] .card-header {
-    background: #0f0f0f !important;
-}
 
 [data-bs-theme="dark"] .nav-pills .nav-link.active,
 .nav-pills .show > .nav-link {

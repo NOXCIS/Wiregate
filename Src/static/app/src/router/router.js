@@ -151,6 +151,33 @@ const router = createRouter({
 			}
 		},
 		{
+			path: '/401',
+			name: 'Unauthorized',
+			component: () => import('@/views/401.vue'),
+			meta: {
+				title: "Unauthorized",
+				hideTopNav: false
+			}
+		},
+		{
+			path: '/403',
+			name: 'Forbidden',
+			component: () => import('@/views/403.vue'),
+			meta: {
+				title: "Access Forbidden",
+				hideTopNav: false
+			}
+		},
+		{
+			path: '/429',
+			name: 'TooManyRequests',
+			component: () => import('@/views/429.vue'),
+			meta: {
+				title: "Too Many Requests",
+				hideTopNav: false
+			}
+		},
+		{
 			path: '/:pathMatch(.*)*',
 			name: 'CatchAll',
 			component: () => import('@/views/404.vue'),

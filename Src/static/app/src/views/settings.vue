@@ -52,7 +52,7 @@ export default {
 				},
 				{
 					id: "Peers",
-					title: "Peers Settings"
+					title: "Peer Default Settings"
 				},
 				{
 					id: "WireGuardConfiguration",

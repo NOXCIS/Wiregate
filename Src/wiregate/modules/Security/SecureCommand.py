@@ -119,7 +119,7 @@ class SecureCommandExecutor:
             'max_args': 15
         },
         'torflux': {
-            'allowed_args': ['-config', '-action'],
+            'allowed_args': ['-config', '-action', '--help', '-h'],
             'max_args': 5
         }
     }
@@ -307,8 +307,14 @@ class SecureCommandExecutor:
         cmd_list = [command] + args
         
         try:
-            # Execute command directly (no restricted shell needed in scratch image)
-            restricted_cmd = cmd_list
+            # Use restricted shell wrapper for additional security
+            # For relative paths, ensure we're in the correct directory
+            if command.startswith('./'):
+                restricted_cmd = ['/WireGate/restricted_shell.sh'] + cmd_list
+                cwd = '/WireGate'  # Set working directory for relative paths
+            else:
+                restricted_cmd = ['/WireGate/restricted_shell.sh'] + cmd_list
+                cwd = cwd  # Use provided cwd or None
             
             if stdin_input:
                 result = subprocess.run(
@@ -690,3 +696,4 @@ def execute_awk_command(script: str, input_data: str = None) -> Dict[str, Any]:
 def execute_grep_command(pattern: str, file_path: str = None, **kwargs) -> Dict[str, Any]:
     """Convenience function for grep command execution"""
     return secure_executor.execute_grep_command(pattern, file_path, **kwargs)
+

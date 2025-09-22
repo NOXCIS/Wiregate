@@ -110,7 +110,8 @@ def auth_req():
                 '/api/authenticate',
                 '/api/getDashboardTheme',
                 '/api/sharePeer/get',
-                '/api/handshake'
+                '/api/handshake',
+                '/api/locale'
             ]
             
             # Check if current path is a public endpoint

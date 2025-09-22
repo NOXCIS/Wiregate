@@ -273,12 +273,11 @@ class DashboardConfig:
 
         value = self.__config[section][key]
         
-        # Handle boolean values - but only for actual boolean fields
-        if key in ["enable_totp", "totp_verified", "auth_req", "cache_enabled"]:
-            if value in ["1", "yes", "true", "on"]:
-                return True, True
-            if value in ["0", "no", "false", "off"]:
-                return True, False
+        # Handle boolean values - check for common boolean patterns
+        if value in ["1", "yes", "true", "on"]:
+            return True, True
+        if value in ["0", "no", "false", "off"]:
+            return True, False
 
         if section == "WireGuardConfiguration" and key == "autostart":
             return True, list(filter(lambda x: len(x) > 0, value.split("||")))

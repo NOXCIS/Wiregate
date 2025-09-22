@@ -222,6 +222,85 @@ class DatabaseManager:
             logger.error(f"Failed to create table {table_name}: {e}")
             return False
     
+    
+    def get_brute_force_attempts(self, identifier: str) -> Dict[str, Any]:
+        """Get brute force attempts for an identifier"""
+        try:
+            with self.postgres_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT attempts, locked_until, last_attempt 
+                    FROM brute_force_attempts 
+                    WHERE identifier = %s
+                """, (identifier,))
+                result = cursor.fetchone()
+                
+                if result:
+                    return dict(result)
+                return {'attempts': 0, 'locked_until': None, 'last_attempt': None}
+        except Exception as e:
+            logger.error(f"Failed to get brute force attempts: {e}")
+            return {'attempts': 0, 'locked_until': None, 'last_attempt': None}
+    
+    def record_brute_force_attempt(self, identifier: str, max_attempts: int, lockout_time: int) -> bool:
+        """Record a brute force attempt"""
+        try:
+            with self.postgres_conn.cursor() as cursor:
+                # Check if record exists
+                cursor.execute("SELECT attempts FROM brute_force_attempts WHERE identifier = %s", (identifier,))
+                result = cursor.fetchone()
+                
+                if result:
+                    # Update existing record
+                    attempts = result[0] + 1
+                    cursor.execute("""
+                        UPDATE brute_force_attempts 
+                        SET attempts = %s, last_attempt = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+                        WHERE identifier = %s
+                    """, (attempts, identifier))
+                else:
+                    # Insert new record
+                    attempts = 1
+                    cursor.execute("""
+                        INSERT INTO brute_force_attempts (identifier, attempts, last_attempt)
+                        VALUES (%s, %s, CURRENT_TIMESTAMP)
+                    """, (identifier, attempts))
+                
+                # If max attempts reached, set lockout
+                if attempts >= max_attempts:
+                    cursor.execute("""
+                        UPDATE brute_force_attempts 
+                        SET locked_until = CURRENT_TIMESTAMP + INTERVAL '%s seconds'
+                        WHERE identifier = %s
+                    """, (lockout_time, identifier))
+                
+                return True
+        except Exception as e:
+            logger.error(f"Failed to record brute force attempt: {e}")
+            return False
+    
+    def clear_brute_force_attempts(self, identifier: str) -> bool:
+        """Clear brute force attempts for successful authentication"""
+        try:
+            with self.postgres_conn.cursor() as cursor:
+                cursor.execute("DELETE FROM brute_force_attempts WHERE identifier = %s", (identifier,))
+                return True
+        except Exception as e:
+            logger.error(f"Failed to clear brute force attempts: {e}")
+            return False
+    
+    def cleanup_expired_brute_force(self) -> int:
+        """Clean up expired brute force records"""
+        try:
+            with self.postgres_conn.cursor() as cursor:
+                cursor.execute("""
+                    DELETE FROM brute_force_attempts 
+                    WHERE locked_until IS NOT NULL AND locked_until < CURRENT_TIMESTAMP
+                """)
+                return cursor.rowcount
+        except Exception as e:
+            logger.error(f"Failed to cleanup expired brute force records: {e}")
+            return 0
+    
     def table_exists(self, table_name: str) -> bool:
         """Check if table exists in PostgreSQL"""
         try:

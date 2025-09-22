@@ -356,10 +356,11 @@ COPY ./Src/db/wsgi.ini /WireGate/db/wsgi.ini
 RUN chmod +x /WireGate/wiregate.sh /WireGate/entrypoint.sh
 
 # Copy and setup restricted shell for security hardening
-# COPY ./Src/restricted_shell.sh /WireGate/restricted_shell.sh
-# RUN chmod +x /WireGate/restricted_shell.sh
+COPY ./Src/restricted_shell.sh /WireGate/restricted_shell.sh
+RUN chmod +x /WireGate/restricted_shell.sh
 
-# No restricted shell needed - using scratch image with only necessary binaries
+# Note: For minimal scratch container, we use restricted shell directly in code
+# rather than setting it as the default shell
 
 # Copy built frontend assets
 COPY --from=node \

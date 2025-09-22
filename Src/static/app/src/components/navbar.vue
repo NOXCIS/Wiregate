@@ -5,10 +5,11 @@ import {DashboardConfigurationStore} from "@/stores/DashboardConfigurationStore.
 import {fetchGet} from "@/utilities/fetch.js";
 import LocaleText from "@/components/text/localeText.vue";
 import {GetLocale} from "@/utilities/locale.js";
+import ProtocolBadge from "@/components/protocolBadge.vue";
 
 export default {
 	name: "navbar",
-	components: {LocaleText},
+	components: {LocaleText, ProtocolBadge},
 	setup(){
 		const wireguardConfigurationsStore = WireguardConfigurationsStore();
 		const dashboardConfigurationStore = DashboardConfigurationStore();
@@ -50,11 +51,22 @@ export default {
 		setTimeout(() => {
 			this.fetchCurrentVersionChangelog();
 		}, 2000);
+		
+		// Initialize matrix rain effect
+		this.initMatrixRain();
 	},
 	beforeUnmount() {
 		// Clean up event listener
 		if (this.updateCheckHandler) {
 			window.removeEventListener('triggerUpdateCheck', this.updateCheckHandler);
+		}
+		
+		// Clean up matrix rain
+		if (this.matrixInterval) {
+			clearInterval(this.matrixInterval);
+		}
+		if (this.handleResize) {
+			window.removeEventListener('resize', this.handleResize);
 		}
 	},
 	methods: {
@@ -285,6 +297,271 @@ export default {
 			}
 			
 			return { changelogItems: [], version: null };
+		},
+		initMatrixRain() {
+			// Wait for next tick to ensure DOM is ready
+			this.$nextTick(() => {
+				const navBrand = document.querySelector('.nav-brand.matrix-rain-bg');
+				const navBrandMobile = document.querySelector('.nav-brand-mobile.matrix-rain-bg');
+				
+				if (navBrand) {
+					this.createMatrixCanvas(navBrand);
+				}
+				if (navBrandMobile) {
+					this.createMatrixCanvas(navBrandMobile);
+				}
+			});
+		},
+		createMatrixCanvas(container) {
+			// Create canvas element
+			const canvas = document.createElement('canvas');
+			canvas.className = 'matrix-canvas';
+			canvas.style.position = 'absolute';
+			canvas.style.top = '0';
+			canvas.style.left = '0';
+			canvas.style.width = '100%';
+			canvas.style.height = '100%';
+			canvas.style.pointerEvents = 'none';
+			canvas.style.zIndex = '1';
+			canvas.style.opacity = '0.3';
+			
+			// Insert canvas as first child
+			container.insertBefore(canvas, container.firstChild);
+			
+			// Make container relative positioned
+			container.style.position = 'relative';
+			container.style.overflow = 'hidden';
+			
+			// Ensure content stays above canvas
+			const content = container.querySelector('.position-relative, .d-flex');
+			if (content) {
+				content.style.position = 'relative';
+				content.style.zIndex = '2';
+			}
+			
+			// Initialize matrix animation
+			this.startMatrixAnimation(canvas);
+		},
+		startMatrixAnimation(canvas) {
+			const ctx = canvas.getContext('2d');
+			
+			// Enable crisp text rendering
+			ctx.imageSmoothingEnabled = false;
+			ctx.textRendering = 'geometricPrecision';
+			
+			// Configuration
+			const config = {
+				delay: 0,
+				fadeFactor: 0.15,
+				interval: 120,
+				colors: {
+					primary: '#4cd964',    // Green
+					secondary: '#33ff33',  // Bright green
+					purple: {
+						head: '#b31fff',     // Bright purple head
+						tail: '#7a0cc4'      // Original purple tail
+					},
+					orange: {
+						head: '#ff7b00',     // Bright orange head
+						tail: '#e38e41'      // Original orange tail
+					},
+					cyan: '#00ffff'        // Cyan for easter eggs
+				}
+			};
+			
+			const fontSize = 12;
+			const tileSize = fontSize + 2;
+			const fontFamily = 'Consolas, monospace';
+			let columns = [];
+			
+			const getRandomStackHeight = () => {
+				const maxStackHeight = Math.ceil(canvas.height / tileSize);
+				return Math.floor(Math.random() * (maxStackHeight - 5 + 1)) + 5;
+			};
+			
+			const getRandomText = () => {
+				const easterEggs = ['weir', 'noxis', 'james', 'wireguard', 'amnezia', 'WireGate'];
+				const showEasterEgg = Math.random() < 0.002;
+				
+				if (showEasterEgg) {
+					return {
+						word: easterEggs[Math.floor(Math.random() * easterEggs.length)],
+						isEasterEgg: true,
+						charIndex: 0
+					};
+				}
+				return {
+					char: String.fromCharCode(Math.floor(Math.random() * (126 - 33 + 1)) + 33),
+					isEasterEgg: false
+				};
+			};
+			
+			const getRandomColor = () => {
+				const rand = Math.random();
+				if (rand < 0.7) {
+					return {
+						color: config.colors.primary,
+						glow: '#00ff2d',
+						type: 'green'
+					};
+				} else if (rand < 0.85) {
+					return {
+						color: config.colors.secondary,
+						glow: '#33ff33',
+						type: 'green'
+					};
+				} else if (rand < 0.95) {
+					return {
+						color: config.colors.purple,
+						glow: '#b31fff',
+						type: 'purple'
+					};
+				} else {
+					return {
+						color: config.colors.orange,
+						glow: '#ff7b00',
+						type: 'orange'
+					};
+				}
+			};
+			
+			const initColumns = () => {
+				columns = [];
+				const columnCount = Math.floor(canvas.width / tileSize);
+				for (let i = 0; i < columnCount; i++) {
+					const colorInfo = getRandomColor();
+					columns.push({
+						x: i * tileSize,
+						stackCounter: Math.floor(Math.random() * 30),
+						stackHeight: getRandomStackHeight(),
+						colorInfo: colorInfo,
+						intensity: 0.6 + Math.random() * 0.3,
+						headPos: 0,
+						easterEgg: null
+					});
+				}
+			};
+			
+			const resizeCanvas = () => {
+				const dpr = window.devicePixelRatio || 1;
+				const rect = canvas.getBoundingClientRect();
+				
+				if (rect.width === 0 || rect.height === 0) {
+					return;
+				}
+				
+				canvas.width = rect.width * dpr;
+				canvas.height = rect.height * dpr;
+				canvas.style.width = `${rect.width}px`;
+				canvas.style.height = `${rect.height}px`;
+				
+				ctx.scale(dpr, dpr);
+			};
+			
+			const draw = () => {
+				if (canvas.width === 0 || canvas.height === 0) {
+					return;
+				}
+				
+				ctx.font = `bold ${fontSize}px ${fontFamily}`;
+				ctx.textAlign = 'center';
+				ctx.textBaseline = 'middle';
+				
+				ctx.fillStyle = `rgba(0, 0, 0, ${config.fadeFactor})`;
+				ctx.fillRect(0, 0, canvas.width, canvas.height);
+				
+				columns.forEach(column => {
+					ctx.shadowBlur = 0;
+					
+					const stackProgress = column.stackCounter / column.stackHeight;
+					let opacity = column.intensity * (1 - stackProgress * 0.2);
+					
+					let text;
+					if (column.easterEgg) {
+						text = {
+							char: column.easterEgg.word[column.easterEgg.charIndex],
+							isEasterEgg: true
+						};
+						
+						column.easterEgg.charIndex++;
+						
+						if (column.easterEgg.charIndex >= column.easterEgg.word.length) {
+							column.easterEgg = null;
+						}
+					} else {
+						text = getRandomText();
+						if (text.isEasterEgg) {
+							column.easterEgg = {
+								word: text.word,
+								charIndex: 1
+							};
+							text.char = text.word[0];
+						}
+					}
+					
+					if (text.isEasterEgg) {
+						ctx.shadowBlur = 1;
+						ctx.shadowColor = config.colors.cyan;
+						ctx.fillStyle = `${config.colors.cyan}${Math.floor(opacity * 255).toString(16).padStart(2, '0')}`;
+					} else if (column.colorInfo.type === 'purple' || column.colorInfo.type === 'orange') {
+						column.intensity = 0.7 + Math.sin(Date.now() * 0.003) * 0.2;
+						
+						const colorType = column.colorInfo.type;
+						const headColor = config.colors[colorType].head;
+						const tailColor = config.colors[colorType].tail;
+						
+						const r = parseInt(headColor.slice(1, 3), 16);
+						const g = parseInt(headColor.slice(3, 5), 16);
+						const b = parseInt(headColor.slice(5, 7), 16);
+						
+						ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${opacity * 0.8})`;
+					} else {
+						opacity *= 0.7;
+						ctx.fillStyle = column.colorInfo.color.startsWith('#') ? 
+							`${column.colorInfo.color}${Math.floor(opacity * 255).toString(16).padStart(2, '0')}` : 
+							column.colorInfo.color;
+					}
+					
+					ctx.fillText(
+						text.char,
+						Math.round(column.x + tileSize/2),
+						Math.round(column.stackCounter * tileSize + tileSize/2)
+					);
+					
+					column.stackCounter++;
+					if (column.stackCounter >= column.stackHeight) {
+						column.stackCounter = 0;
+						column.stackHeight = getRandomStackHeight();
+						const newColorInfo = getRandomColor();
+						column.colorInfo = newColorInfo;
+						column.intensity = column.colorInfo.type === 'green' ? 
+							0.6 + Math.random() * 0.3 : 
+							0.7 + Math.random() * 0.2;
+					}
+				});
+			};
+			
+			// Initialize
+			resizeCanvas();
+			initColumns();
+			
+			// Start animation
+			this.matrixInterval = setInterval(draw, config.interval);
+			
+			// Handle resize
+			let resizeTimeout;
+			const handleResize = () => {
+				clearTimeout(resizeTimeout);
+				resizeTimeout = setTimeout(() => {
+					clearInterval(this.matrixInterval);
+					resizeCanvas();
+					initColumns();
+					this.matrixInterval = setInterval(draw, config.interval);
+				}, 100);
+			};
+			
+			window.addEventListener('resize', handleResize);
+			this.handleResize = handleResize;
 		}
 	}
 }
@@ -298,7 +575,7 @@ export default {
 		<nav id="sidebarMenu" class=" bg-body-tertiary sidebar border h-100 rounded-3 shadow overflow-y-scroll" >
 			<div class="sidebar-sticky ">
 				<!-- Desktop/Tablet Logo and Title -->
-				<div class="text-white m-0 py-3 mb-3 nav-brand d-flex flex-wrap align-items-center justify-content-between d-none d-md-flex">
+				<div class="text-white m-0 py-3 mb-3 nav-brand d-flex flex-wrap align-items-center justify-content-between d-none d-md-flex matrix-rain-bg">
 				<div class="position-relative d-flex align-items-center">
 					
 					<div class="responsive-title-container d-flex">
@@ -318,7 +595,7 @@ export default {
 				</div>
 				
 				<!-- Mobile Logo and Title - Hidden, shown in top navbar instead -->
-				<div class="text-white m-0 py-2 mb-2 nav-brand-mobile d-flex align-items-center d-none">
+				<div class="text-white m-0 py-2 mb-2 nav-brand-mobile d-flex align-items-center d-none matrix-rain-bg">
 					<img src="/img/logo.png" alt="WireGate Logo" class="mobile-logo me-2" style="width: 32px; height: 32px;">
 					<div class="d-flex flex-column">
 						<span class="mobile-title">WireGate</span>
@@ -357,7 +634,10 @@ export default {
 						            class="nav-link nav-conf-link rounded-3"
 						            active-class="active">
 							<span class="dot me-2" :class="{active: c.Status}"></span>
-							{{c.Name}}
+							<div class="d-flex align-items-center">
+								<span class="configuration-name">{{c.Name}}</span>
+								<ProtocolBadge :protocol="c.Protocol" :mini="true" class="protocol-badge-small ms-2"></ProtocolBadge>
+							</div>
 						</RouterLink>
 					</li>
 				</ul>
@@ -896,5 +1176,135 @@ export default {
 	.changelog-container {
 		max-height: 100px;
 	}
+}
+
+/* Configuration list styling */
+.nav-conf-link {
+	padding: 0.75rem !important;
+}
+
+.configuration-name {
+	font-weight: 500;
+	font-size: 0.9rem;
+	line-height: 1.2;
+	flex: 1;
+}
+
+.nav-conf-link .d-flex {
+	align-items: center;
+}
+
+.nav-conf-link {
+	display: flex;
+	align-items: center;
+}
+
+.nav-conf-link .dot {
+	margin-left: 0 !important;
+	margin-right: 0.5rem !important;
+	flex-shrink: 0;
+}
+
+.nav-conf-link .badge {
+	font-size: 0.65rem;
+	padding: 0.25rem 0.5rem;
+	line-height: 1;
+}
+
+/* Small protocol badge styling */
+.protocol-badge-small {
+	font-size: 0.5rem !important;
+	padding: 0.15rem 0.3rem !important;
+	line-height: 1;
+	flex-shrink: 0;
+}
+
+.protocol-badge-small .badge {
+	font-size: 0.5rem !important;
+	padding: 0.15rem 0.3rem !important;
+	line-height: 1;
+}
+
+/* Responsive adjustments for configuration badges */
+@media screen and (max-width: 768px) {
+	.nav-conf-link {
+		padding: 0.5rem !important;
+	}
+	
+	.configuration-name {
+		font-size: 0.85rem;
+	}
+	
+	.protocol-badge-small {
+		font-size: 0.45rem !important;
+		padding: 0.1rem 0.25rem !important;
+		margin-left: 0.25rem !important;
+	}
+	
+	.protocol-badge-small .badge {
+		font-size: 0.45rem !important;
+		padding: 0.1rem 0.25rem !important;
+	}
+}
+
+@media screen and (min-width: 769px) and (max-width: 991px) {
+	.nav-conf-link {
+		padding: 0.6rem 0.75rem !important;
+	}
+	
+	.configuration-name {
+		font-size: 0.85rem;
+	}
+	
+	.protocol-badge-small {
+		font-size: 0.5rem !important;
+		padding: 0.12rem 0.3rem !important;
+		margin-left: 0.25rem !important;
+	}
+	
+	.protocol-badge-small .badge {
+		font-size: 0.5rem !important;
+		padding: 0.12rem 0.3rem !important;
+	}
+}
+
+/* Matrix Rain Background Effect */
+.matrix-rain-bg {
+	position: relative;
+	overflow: hidden;
+	background: linear-gradient(234deg, #150044 0%, #002e00 100%) !important;
+	animation: matrixGradient 8s ease-in-out infinite;
+}
+
+@keyframes matrixGradient {
+	0% {
+		background: linear-gradient(234deg, #150044 0%, #002e00 100%) !important;
+	}
+	100% {
+		background: linear-gradient(594deg, #150044 0%, #002e00 100%) !important;
+	}
+}
+
+.matrix-canvas {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	pointer-events: none;
+	z-index: 1;
+	opacity: 0.3;
+}
+
+/* Ensure content stays above the matrix effect */
+.matrix-rain-bg > * {
+	position: relative;
+	z-index: 2;
+}
+
+/* Matrix rain for mobile navbar */
+.nav-brand-mobile.matrix-rain-bg {
+	background: linear-gradient(234deg, #150044 0%, #002e00 100%) !important;
+	animation: matrixGradient 8s ease-in-out infinite;
 }
 </style>

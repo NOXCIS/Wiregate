@@ -262,16 +262,16 @@ def API_control_tor_process():
             if not vanguard:
                 log.write("WARNING: VANGUARD environment variable is not set\n")
             
-            # Execute torflux with appropriate action
+            # Execute torflux with appropriate action (same pattern as traffic-weir)
             log.write(f"Executing: ./torflux -config {config_type} -action {action}\n")
-            # Use secure command execution
+            cmd = ['./torflux', '-config', config_type, '-action', action]
             try:
                 from ..modules.Security import execute_secure_command
-                result = execute_secure_command('./torflux', ['-config', config_type, '-action', action])
+                result = execute_secure_command(cmd[0], cmd[1:])
             except ImportError:
-                # Fallback to subprocess if SecureCommand is not available
+                # Fallback to subprocess with restricted shell
                 import subprocess
-                result = subprocess.run(['/WireGate/restricted_shell.sh', './torflux', '-config', config_type, '-action', action], 
+                result = subprocess.run(['/WireGate/restricted_shell.sh'] + cmd, 
                             capture_output=True, text=True)
                 result = {
                     'success': result.returncode == 0,

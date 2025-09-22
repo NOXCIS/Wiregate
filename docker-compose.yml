@@ -69,7 +69,7 @@ services:
   wiregate:
       build:
         context: .
-        dockerfile: Dockerfile
+        dockerfile: sc.Dockerfile
       #image: noxcis/wiregate:sol-beta-v2.1.4
       container_name: wiregate
       hostname: wiregate

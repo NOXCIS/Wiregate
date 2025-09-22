@@ -48,7 +48,7 @@ ALLOWED_COMMANDS() {
         "cut") echo "-d|-f" ;;
         "seq") echo "" ;;
         "tor") echo "-f|--hash-password|--help|-h" ;;
-        "torflux") echo "" ;;
+        "torflux") echo "-config|-action|--help|-h" ;;
         "vanguards") echo "--one_shot_vanguards|--help|-h" ;;
         "traffic-weir") echo "" ;;
         "sh") echo "-c" ;;
@@ -120,7 +120,7 @@ declare -a ALLOWED_COMMANDS_ARRAY=(
     
     # Tor and custom binaries
     ["tor"]="-f|--hash-password"
-    ["torflux"]=""
+    ["torflux"]="-config|-action"
     ["vanguards"]="--one_shot_vanguards"
     ["traffic-weir"]=""
     
@@ -135,12 +135,15 @@ validate_command() {
     local cmd="$1"
     local args="$2"
     
+    # Extract command name from full path for validation
+    local cmd_name=$(basename "$cmd")
+    
     # Get allowed patterns for this command
-    local allowed_patterns=$(ALLOWED_COMMANDS "$cmd")
+    local allowed_patterns=$(ALLOWED_COMMANDS "$cmd_name")
     
     # Check if command is allowed (if function returns empty, command is not allowed)
     if [[ -z "$allowed_patterns" ]]; then
-        echo "ERROR: Command '$cmd' is not allowed in restricted shell" >&2
+        echo "ERROR: Command '$cmd_name' is not allowed in restricted shell" >&2
         return 1
     fi
     

@@ -26,6 +26,7 @@ from ..ConfigEnv import (
     BRUTE_FORCE_LOCKOUT_TIME, SESSION_TIMEOUT, SECURE_SESSION,
     DASHBOARD_MODE, ALLOWED_ORIGINS
 )
+from ..DataBase.DataBaseManager import get_redis_manager
 from ..RateLimitMetrics import rate_limit_metrics
 
 class SecurityManager:
@@ -80,6 +81,26 @@ class SecurityManager:
         
         # Initialize metrics
         rate_limit_metrics.redis_client = self.redis_client
+        
+        # Initialize PostgreSQL database manager for brute force protection
+        try:
+            self.db_manager = get_redis_manager()
+            # Create brute force table if it doesn't exist using existing create_table method
+            brute_force_schema = {
+                'id': 'SERIAL PRIMARY KEY',
+                'identifier': 'VARCHAR(255) NOT NULL',
+                'attempts': 'INTEGER NOT NULL DEFAULT 0',
+                'first_attempt': 'TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP',
+                'last_attempt': 'TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP',
+                'locked_until': 'TIMESTAMP WITH TIME ZONE NULL',
+                'created_at': 'TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP',
+                'updated_at': 'TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP'
+            }
+            self.db_manager.create_table('brute_force_attempts', brute_force_schema)
+            logger.info("PostgreSQL brute force protection initialized")
+        except Exception as e:
+            logger.error(f"Failed to initialize PostgreSQL for brute force protection: {e}")
+            self.db_manager = None
         
         # Security patterns
         self.path_traversal_patterns = [
@@ -304,34 +325,30 @@ class SecurityManager:
     
     def check_brute_force(self, identifier: str) -> Tuple[bool, Dict]:
         """Check if identifier is locked due to brute force attempts"""
-        if self.redis_client is None:
+        if self.db_manager is None:
             return False, {'attempts': 0, 'locked_until': None}
-            
-        key = f"brute_force:{identifier}"
         
         try:
-            attempts = self.redis_client.get(key)
-            if attempts is None:
-                return False, {'attempts': 0, 'locked_until': None}
+            data = self.db_manager.get_brute_force_attempts(identifier)
+            attempts = data.get('attempts', 0)
+            locked_until = data.get('locked_until')
             
-            attempts = int(attempts)
-            if attempts >= BRUTE_FORCE_MAX_ATTEMPTS:
+            if attempts >= BRUTE_FORCE_MAX_ATTEMPTS and locked_until:
                 # Check if lockout period has expired
-                lockout_key = f"brute_force_lockout:{identifier}"
-                lockout_until = self.redis_client.get(lockout_key)
+                from datetime import datetime
+                now = datetime.now(locked_until.tzinfo) if locked_until.tzinfo else datetime.now()
                 
-                if lockout_until:
-                    lockout_until = int(lockout_until)
-                    if time.time() < lockout_until:
-                        return True, {
-                            'attempts': attempts,
-                            'locked_until': lockout_until,
-                            'remaining_time': lockout_until - int(time.time())
-                        }
-                    else:
-                        # Lockout expired, reset attempts
-                        self.redis_client.delete(key, lockout_key)
-                        return False, {'attempts': 0, 'locked_until': None}
+                if now < locked_until:
+                    remaining_time = int((locked_until - now).total_seconds())
+                    return True, {
+                        'attempts': attempts,
+                        'locked_until': int(locked_until.timestamp()),
+                        'remaining_time': remaining_time
+                    }
+                else:
+                    # Lockout expired, clear attempts
+                    self.db_manager.clear_brute_force_attempts(identifier)
+                    return False, {'attempts': 0, 'locked_until': None}
             
             return False, {'attempts': attempts, 'locked_until': None}
             
@@ -341,34 +358,25 @@ class SecurityManager:
     
     def record_failed_attempt(self, identifier: str) -> None:
         """Record a failed authentication attempt"""
-        if self.redis_client is None:
+        if self.db_manager is None:
             return
-            
-        key = f"brute_force:{identifier}"
         
         try:
-            # Increment attempts
-            attempts = self.redis_client.incr(key)
-            
-            # Set expiration
-            self.redis_client.expire(key, BRUTE_FORCE_LOCKOUT_TIME)
-            
-            # If max attempts reached, set lockout
-            if attempts >= BRUTE_FORCE_MAX_ATTEMPTS:
-                lockout_until = int(time.time()) + BRUTE_FORCE_LOCKOUT_TIME
-                lockout_key = f"brute_force_lockout:{identifier}"
-                self.redis_client.set(lockout_key, lockout_until, ex=BRUTE_FORCE_LOCKOUT_TIME)
-                
+            self.db_manager.record_brute_force_attempt(
+                identifier, 
+                BRUTE_FORCE_MAX_ATTEMPTS, 
+                BRUTE_FORCE_LOCKOUT_TIME
+            )
         except Exception as e:
             logger.error(f"Failed to record brute force attempt: {e}")
     
     def clear_failed_attempts(self, identifier: str) -> None:
         """Clear failed attempts for successful authentication"""
-        if self.redis_client is None:
+        if self.db_manager is None:
             return
-            
+        
         try:
-            self.redis_client.delete(f"brute_force:{identifier}", f"brute_force_lockout:{identifier}")
+            self.db_manager.clear_brute_force_attempts(identifier)
         except Exception as e:
             logger.error(f"Failed to clear brute force attempts: {e}")
     
@@ -499,19 +507,25 @@ def rate_limit(limit: int = None, window: int = None, per: str = 'ip', use_distr
                 elif info.get('is_sliding_limited', False):
                     limit_type = "sliding"
                 
-                return jsonify({
-                    'status': False,
-                    'message': f'Rate limit exceeded ({limit_type})',
-                    'data': {
-                        'retry_after': info.get('reset_time', 0) - int(time.time()),
-                        'limit': info.get('limit', 0),
-                        'current_requests': info.get('current_requests', 0),
-                        'remaining_requests': info.get('remaining_requests', 0),
-                        'limit_type': limit_type,
-                        'burst_requests': info.get('burst_requests', 0),
-                        'sliding_requests': info.get('sliding_requests', 0)
-                    }
-                }), 429
+                # For API requests, return JSON response
+                if request.path.startswith('/api/'):
+                    return jsonify({
+                        'status': False,
+                        'message': f'Rate limit exceeded ({limit_type})',
+                        'data': {
+                            'retry_after': info.get('reset_time', 0) - int(time.time()),
+                            'limit': info.get('limit', 0),
+                            'current_requests': info.get('current_requests', 0),
+                            'remaining_requests': info.get('remaining_requests', 0),
+                            'limit_type': limit_type,
+                            'burst_requests': info.get('burst_requests', 0),
+                            'sliding_requests': info.get('sliding_requests', 0)
+                        }
+                    }), 429
+                else:
+                    # For non-API requests, redirect to 429 page
+                    from flask import redirect, url_for
+                    return redirect('/#/429')
             
             return f(*args, **kwargs)
         return decorated_function

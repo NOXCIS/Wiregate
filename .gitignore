@@ -52,8 +52,8 @@ proxy_router/go.sum
 Docs/auth_api.py
 /WireGate_Built
 /build
-/Src/static/app/dist
 Src/appmap.log
 /Src/build
 dashboard.pid
 /Src/configs
+ghcr.sh
