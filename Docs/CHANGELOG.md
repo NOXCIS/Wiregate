@@ -65,7 +65,31 @@ sol-beta-v2.1.0:
 
 sol-beta-v2.1.4:
   - DO NOT USE IN PROD IS BETA
+  - Auth is Broken
   - K8 tested
   - More Bug Fixes
   - You need a Redis & Postgress container to run,
   - Check docker hub for more info.
+
+sol-beta-v2.3.1:
+  - DO NOT USE IN PROD IS BETA
+  - Auth is Broken
+  - K8 tested
+  - Stripped Img down to required tools and libs only
+  - 404 on the busybox
+  - More Bug Fixes
+  - You need a Redis & Postgress container to run,
+  - Check docker hub for more info.
+
+sol-beta-v2.3.2:
+  - DO NOT USE IN PROD IS BETA
+  - Auth Fixed
+  - K8 tested
+  - Stripped Img down to required tools and libs only
+  - 404 on the busybox
+  - More Bug Fixes
+  - You need a Redis & Postgress container to run,
+  - Check docker hub for more info.
+
+
+
