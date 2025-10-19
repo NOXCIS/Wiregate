@@ -43,19 +43,40 @@ if not os.path.isdir(DB_PATH):
 
 
 def ResponseObject(status=True, message=None, data=None):
-    response = make_response({
+    """
+    Flask-compatible response object
+    Returns Flask response for Flask routes, dict for FastAPI routes
+    """
+    response_dict = {
         "status": status,
         "message": message,
         "data": data
-    })
-    response.content_type = "application/json"
-    return response
+    }
+    
+    # Try to detect if we're in Flask context
+    try:
+        from flask import has_request_context
+        if has_request_context():
+            # Flask context - return Flask response
+            response = make_response(response_dict)
+            response.content_type = "application/json"
+            return response
+    except:
+        pass
+    
+    # Not in Flask context or import failed - return dict for FastAPI
+    return response_dict
 
 
-
-
-
-
-
-
-
+def convert_response_object_to_dict(response_obj):
+    """Convert Flask ResponseObject to dict for FastAPI"""
+    if hasattr(response_obj, 'get_json'):
+        return response_obj.get_json()
+    elif isinstance(response_obj, dict):
+        return response_obj
+    else:
+        # Try to get JSON data
+        try:
+            return response_obj.json
+        except:
+            return {"status": False, "message": "Unknown response format", "data": None}

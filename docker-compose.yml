@@ -107,7 +107,7 @@ services:
         - net.ipv6.conf.all.forwarding=1
         - net.ipv6.conf.default.forwarding=1
       healthcheck:
-        test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "--no-check-certificate", "https://localhost:443/api/validateAuthentication", "||", "exit", "1"]
+        test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "--no-check-certificate", "https://localhost:443/api/health", "||", "exit", "1"]
         interval: 30s
         timeout: 10s
         retries: 3

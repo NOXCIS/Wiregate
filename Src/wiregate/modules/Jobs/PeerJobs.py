@@ -238,7 +238,9 @@ class PeerJobs:
             peer_in_restricted = job.Peer in [p.get('id') for p in restricted_peers]
             
             if should_restrict and not peer_in_restricted:
-                s = configuration.restrictPeers([job.Peer]).get_json()
+                result = configuration.restrictPeers([job.Peer])
+                # Handle both dict (FastAPI) and Flask response
+                s = result.get_json() if hasattr(result, 'get_json') else result
                 if s['status'] is True:
                     JobLogger.log(job.JobID, s["status"],
                               f"Peer {job.Peer} from {configuration.Name} is successfully restricted (weekly schedule)")
@@ -246,7 +248,9 @@ class PeerJobs:
                     JobLogger.log(job.JobID, s["status"],
                               f"Failed to restrict peer {job.Peer}: {s.get('message', 'Unknown error')}")
             elif not should_restrict and peer_in_restricted:
-                s = configuration.allowAccessPeers([job.Peer]).get_json()
+                result = configuration.allowAccessPeers([job.Peer])
+                # Handle both dict (FastAPI) and Flask response
+                s = result.get_json() if hasattr(result, 'get_json') else result
                 if s['status'] is True:
                     JobLogger.log(job.JobID, s["status"],
                               f"Peer {job.Peer} from {configuration.Name} is successfully unrestricted (weekly schedule)")
@@ -291,9 +295,13 @@ class PeerJobs:
                 s = {"status": False, "message": "Unknown action"}
                 
                 if job.Action == "restrict":
-                    s = configuration.restrictPeers([fp.id]).get_json()
+                    result = configuration.restrictPeers([fp.id])
+                    # Handle both dict (FastAPI) and Flask response
+                    s = result.get_json() if hasattr(result, 'get_json') else result
                 elif job.Action == "delete":
-                    s = configuration.deletePeers([fp.id]).get_json()
+                    result = configuration.deletePeers([fp.id])
+                    # Handle both dict (FastAPI) and Flask response
+                    s = result.get_json() if hasattr(result, 'get_json') else result
                 elif job.Action == "rate_limit":
                     try:
                         rates = json.loads(job.Value)

@@ -252,7 +252,7 @@ RUN chmod +x /WireGate/wiregate /WireGate/vanguards /WireGate/torflux /WireGate/
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 CMD \
     sh -c 'PORT=$(netstat -tulpn 2>/dev/null | grep ":80 " | head -n1 | awk "{print \$4}" | cut -d: -f2) && \
     [ -n "$PORT" ] && \
-    wget -q --spider http://127.0.0.1:$PORT/'
+    wget -q --spider http://127.0.0.1:$PORT/api/health'
 
 # Set shorter stop timeout for faster container shutdown
 ENV DOCKER_STOP_TIMEOUT=10

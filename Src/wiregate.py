@@ -13,10 +13,8 @@
 # limitations under the License.
 
 
-from wiregate.dashboard import app, app_ip, app_port
-from wiregate.modules.Core import InitWireguardConfigurationsList, InitRateLimits
-from wiregate.dashboard import startThreads, stopThreads
-from wiregate.modules.DataBase import check_and_migrate_sqlite_databases
+from wiregate.modules.DashboardConfig import DashboardConfig
+from wiregate.dashboard import stopThreads
 import logging
 import uvicorn
 import sys
@@ -26,7 +24,6 @@ import configparser
 import os
 import signal
 import atexit
-from asgiref.wsgi import WsgiToAsgi
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -91,6 +88,10 @@ if __name__ == "__main__":
     parser.add_argument('--certfile', type=str, help='Path to SSL certificate file')
     parser.add_argument('--keyfile', type=str, help='Path to SSL private key file')
     args = parser.parse_args()
+    
+    # Get app configuration
+    _, app_ip = DashboardConfig.GetConfig("Server", "app_ip")
+    _, app_port = DashboardConfig.GetConfig("Server", "app_port")
     
     # Default options for Uvicorn
     options = {
@@ -174,47 +175,8 @@ if __name__ == "__main__":
     else:
         logger.info(f"Starting Wiregate Dashboard on http://{app_ip}:{app_port}")
     
-    # Check for and migrate any existing SQLite databases to Redis (only in scale mode)
-    from wiregate.modules.ConfigEnv import DASHBOARD_TYPE
-    if DASHBOARD_TYPE.lower() == 'scale':
-        logger.info("Checking for SQLite databases to migrate...")
-        if check_and_migrate_sqlite_databases():
-            logger.info("✓ SQLite databases migrated to PostgreSQL + Redis")
-        else:
-            logger.info("✓ No SQLite databases found to migrate")
-    else:
-        logger.info(f"✓ Using SQLite database (simple mode: DASHBOARD_TYPE={DASHBOARD_TYPE})")
-    
-    InitWireguardConfigurationsList(startup=True)
-    InitRateLimits()
-    
-    # Start threads before ASGI conversion to avoid conflicts
-    startThreads()
-    
-    # Convert Flask WSGI app to ASGI for Uvicorn compatibility
-    # WsgiToAsgi creates its own thread pool internally, so we don't need to pass one
-    asgi_app = WsgiToAsgi(app)
-    
-    # Simple lifespan wrapper without complex thread management
-    class LifespanWrapper:
-        def __init__(self, app):
-            self.app = app
-            
-        async def __call__(self, scope, receive, send):
-            if scope["type"] == "lifespan":
-                while True:
-                    message = await receive()
-                    if message["type"] == "lifespan.startup":
-                        await send({"type": "lifespan.startup.complete"})
-                    elif message["type"] == "lifespan.shutdown":
-                        await send({"type": "lifespan.shutdown.complete"})
-                        break
-            else:
-                # Delegate to the WSGI app
-                await self.app(scope, receive, send)
-    
-    # Create the final ASGI app
-    final_app = LifespanWrapper(asgi_app)
+    # Import FastAPI app (lifespan events handle all initialization)
+    from wiregate.fastapi_app import fastapi_app as final_app
     
     # Remove workers option to avoid Uvicorn warning/crash
     if 'workers' in options:

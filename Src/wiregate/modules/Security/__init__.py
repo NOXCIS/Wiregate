@@ -28,6 +28,30 @@ from .SecureCommand import (
     execute_grep_command
 )
 
+# FastAPI components
+try:
+    from .fastapi_middleware import (
+        SecurityHeadersMiddleware,
+        RequestLoggingMiddleware,
+        RateLimitMiddleware,
+        SessionMiddleware,
+        configure_cors
+    )
+    from .fastapi_dependencies import (
+        get_security_manager,
+        verify_api_key_dependency,
+        get_current_user,
+        require_authentication as fastapi_require_auth,
+        get_optional_user,
+        check_brute_force,
+        validate_csrf_token
+    )
+    FASTAPI_AVAILABLE = True
+except ImportError as e:
+    import logging
+    logging.getLogger(__name__).warning(f"FastAPI components not available: {e}")
+    FASTAPI_AVAILABLE = False
+
 __all__ = [
     # Security module exports
     'SecurityManager',
@@ -50,5 +74,25 @@ __all__ = [
     'execute_awg_quick_command',
     'execute_ip_command',
     'execute_awk_command',
-    'execute_grep_command'
+    'execute_grep_command',
 ]
+
+# Add FastAPI exports if available
+if FASTAPI_AVAILABLE:
+    __all__.extend([
+        # FastAPI middleware
+        'SecurityHeadersMiddleware',
+        'RequestLoggingMiddleware',
+        'RateLimitMiddleware',
+        'SessionMiddleware',
+        'configure_cors',
+        
+        # FastAPI dependencies
+        'get_security_manager',
+        'verify_api_key_dependency',
+        'get_current_user',
+        'fastapi_require_auth',
+        'get_optional_user',
+        'check_brute_force',
+        'validate_csrf_token',
+    ])

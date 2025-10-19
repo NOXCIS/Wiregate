@@ -1097,8 +1097,8 @@ class Configuration:
                             })
                             total_sent = 0
                             total_receive = 0
-                        _, p = self.searchPeer(data_usage[i][0])
-                        if p.total_receive != total_receive or p.total_sent != total_sent:
+                        found, p = self.searchPeer(data_usage[i][0])
+                        if found and p and hasattr(p, 'total_receive') and hasattr(p, 'total_sent') and (p.total_receive != total_receive or p.total_sent != total_sent):
                             self.db.update_peer_transfer(data_usage[i][0], total_receive, total_sent, total_receive + total_sent)
         except Exception as e:
             logger.error(f"{self.Name} Error: {str(e)} {str(e.__traceback__)}")
@@ -1727,7 +1727,10 @@ class Peer:
     def toJson(self):
         self.getJobs()
         self.getShareLink()
-        return self.__dict__
+        # Create a copy of __dict__ without the configuration reference to avoid circular serialization
+        peer_dict = self.__dict__.copy()
+        peer_dict.pop('configuration', None)  # Remove circular reference
+        return peer_dict
 
     def __repr__(self):
         return str(self.toJson())
