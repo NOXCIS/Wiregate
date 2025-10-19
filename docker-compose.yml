@@ -69,7 +69,7 @@ services:
   wiregate:
       build:
         context: .
-        dockerfile: sc.Dockerfile
+        dockerfile: Dockerfile
       #image: noxcis/wiregate:sol-beta-v2.1.4
       container_name: wiregate
       hostname: wiregate
@@ -99,12 +99,19 @@ services:
       ports:
         #- 44333:44333/udp
         #- "4430-4433:4430-4433/udp" #UDP Interface Listen Ports For Zones
-        - 8080:80/tcp #Comment Out for full network lockdown, I.E only Accessible via VPN conttenction at http://wire.gate using config in generated master-key folder
+        - 8080:80/tcp   # HTTP port
+        - 8443:443/tcp  # HTTPS port for SSL
       sysctls:        #Otherwise access the dashboard @ your-sever-ip/domain:6060
         - net.ipv4.ip_forward=1
         - net.ipv4.conf.all.src_valid_mark=1
         - net.ipv6.conf.all.forwarding=1
         - net.ipv6.conf.default.forwarding=1
+      healthcheck:
+        test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "--no-check-certificate", "https://localhost:443/api/validateAuthentication", "||", "exit", "1"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 30s
       networks:
         private_network:
           ipv4_address: 10.2.0.3

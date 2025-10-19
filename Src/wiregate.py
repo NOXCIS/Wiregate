@@ -48,14 +48,14 @@ def signal_handler(signum, frame):
     logger.info(f"Received signal {signum}. Initiating graceful shutdown...")
     shutdown_requested = True
     
-    # Stop threads and cleanup
+    # Stop threads and cleanup with timeout
     try:
         stopThreads()
         logger.info("Threads stopped successfully")
     except Exception as e:
         logger.error(f"Error stopping threads: {e}")
     
-    # Exit gracefully
+    # Exit immediately after cleanup
     sys.exit(0)
 
 def cleanup_on_exit():
@@ -98,7 +98,11 @@ if __name__ == "__main__":
         'port': int(app_port),
         'log_level': 'info',
         'access_log': True,
-
+        'loop': 'asyncio',
+        'http': 'h11',
+        'lifespan': 'on',
+        'timeout_keep_alive': 5,
+        'timeout_graceful_shutdown': 5,  # Reduced from 30 to 5 seconds
     }
     
     # Try to load from default config file location if not specified
@@ -170,21 +174,28 @@ if __name__ == "__main__":
     else:
         logger.info(f"Starting Wiregate Dashboard on http://{app_ip}:{app_port}")
     
-    # Check for and migrate any existing SQLite databases to Redis
-    logger.info("Checking for SQLite databases to migrate...")
-    if check_and_migrate_sqlite_databases():
-        logger.info("✓ SQLite databases migrated to Redis")
+    # Check for and migrate any existing SQLite databases to Redis (only in scale mode)
+    from wiregate.modules.ConfigEnv import DASHBOARD_TYPE
+    if DASHBOARD_TYPE.lower() == 'scale':
+        logger.info("Checking for SQLite databases to migrate...")
+        if check_and_migrate_sqlite_databases():
+            logger.info("✓ SQLite databases migrated to PostgreSQL + Redis")
+        else:
+            logger.info("✓ No SQLite databases found to migrate")
     else:
-        logger.info("✓ No SQLite databases found to migrate")
+        logger.info(f"✓ Using SQLite database (simple mode: DASHBOARD_TYPE={DASHBOARD_TYPE})")
     
     InitWireguardConfigurationsList(startup=True)
     InitRateLimits()
+    
+    # Start threads before ASGI conversion to avoid conflicts
     startThreads()
     
     # Convert Flask WSGI app to ASGI for Uvicorn compatibility
+    # WsgiToAsgi creates its own thread pool internally, so we don't need to pass one
     asgi_app = WsgiToAsgi(app)
     
-    # Wrap the app with lifespan support to avoid ASGI warning
+    # Simple lifespan wrapper without complex thread management
     class LifespanWrapper:
         def __init__(self, app):
             self.app = app

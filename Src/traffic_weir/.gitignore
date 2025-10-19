@@ -1,0 +1,29 @@
+# Build artifacts
+traffic-weir
+traffic-weir-*
+
+# Log files
+*.log
+
+# Test coverage
+coverage.out
+coverage.html
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Go specific
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out

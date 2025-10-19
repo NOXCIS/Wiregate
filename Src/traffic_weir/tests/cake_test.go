@@ -1,4 +1,4 @@
-package main
+package tests
 
 import (
 	"fmt"
@@ -12,7 +12,7 @@ import (
 // TestCAKESchedulerValidation tests that CAKE scheduler is properly validated
 func TestCAKESchedulerValidation(t *testing.T) {
 	// Test valid CAKE scheduler
-	cmd := exec.Command("./traffic-weir",
+	cmd := exec.Command("/app/traffic-weir",
 		"-interface", "lo",
 		"-peer", "test_peer",
 		"-upload-rate", "1000",
@@ -30,13 +30,21 @@ func TestCAKESchedulerValidation(t *testing.T) {
 
 // TestCAKEVsHTBCommands tests that CAKE uses different commands than HTB
 func TestCAKEVsHTBCommands(t *testing.T) {
+	// Clean up interface before test
+	nukeCmd := exec.Command("/app/traffic-weir", "-interface", "lo", "-nuke")
+	nukeCmd.Run() // Ignore errors
+
 	// This test would need to be run with actual tc commands
 	// For now, we'll test the logic differences
 
 	schedulers := []string{"htb", "hfsc", "cake"}
 
 	for _, scheduler := range schedulers {
-		cmd := exec.Command("./traffic-weir",
+		// Clean up before each scheduler test
+		nukeCmd := exec.Command("/app/traffic-weir", "-interface", "lo", "-nuke")
+		nukeCmd.Run() // Ignore errors
+		
+		cmd := exec.Command("/app/traffic-weir",
 			"-interface", "lo",
 			"-peer", "test_peer",
 			"-upload-rate", "1000",
@@ -83,7 +91,11 @@ func TestCAKEBandwidthCalculation(t *testing.T) {
 
 // TestCAKERateLimitSetup tests CAKE rate limit setup
 func TestCAKERateLimitSetup(t *testing.T) {
-	cmd := exec.Command("./traffic-weir",
+	// Clean up interface before test
+	nukeCmd := exec.Command("/app/traffic-weir", "-interface", "lo", "-nuke")
+	nukeCmd.Run() // Ignore errors
+
+	cmd := exec.Command("/app/traffic-weir",
 		"-interface", "lo",
 		"-peer", "test_peer",
 		"-upload-rate", "1000",
@@ -104,7 +116,7 @@ func TestCAKERateLimitSetup(t *testing.T) {
 
 // TestCAKERateLimitRemoval tests CAKE rate limit removal
 func TestCAKERateLimitRemoval(t *testing.T) {
-	cmd := exec.Command("./traffic-weir",
+	cmd := exec.Command("/app/traffic-weir",
 		"-interface", "lo",
 		"-peer", "test_peer",
 		"-scheduler", "cake",
@@ -124,7 +136,7 @@ func TestCAKERateLimitRemoval(t *testing.T) {
 
 // TestCAKEIPv6Support tests CAKE support for IPv6
 func TestCAKEIPv6Support(t *testing.T) {
-	cmd := exec.Command("./traffic-weir",
+	cmd := exec.Command("/app/traffic-weir",
 		"-interface", "lo",
 		"-peer", "test_peer",
 		"-upload-rate", "1000",
@@ -143,7 +155,7 @@ func TestCAKEIPv6Support(t *testing.T) {
 // TestCAKEErrorHandling tests CAKE error handling
 func TestCAKEErrorHandling(t *testing.T) {
 	// Test with invalid interface
-	cmd := exec.Command("./traffic-weir",
+	cmd := exec.Command("/app/traffic-weir",
 		"-interface", "nonexistent_interface",
 		"-peer", "test_peer",
 		"-upload-rate", "1000",
@@ -169,7 +181,7 @@ func TestCAKEPerformanceCharacteristics(t *testing.T) {
 	schedulers := []string{"htb", "hfsc", "cake"}
 
 	for _, scheduler := range schedulers {
-		cmd := exec.Command("./traffic-weir",
+		cmd := exec.Command("/app/traffic-weir",
 			"-interface", "lo",
 			"-peer", "test_peer",
 			"-upload-rate", "1000",
@@ -196,7 +208,7 @@ func TestCAKEIntegration(t *testing.T) {
 	// Test that CAKE integrates properly with the traffic-weir system
 
 	// Test 1: Basic setup
-	cmd := exec.Command("./traffic-weir",
+	cmd := exec.Command("/app/traffic-weir",
 		"-interface", "lo",
 		"-peer", "integration_test_peer",
 		"-upload-rate", "5000",
@@ -208,7 +220,7 @@ func TestCAKEIntegration(t *testing.T) {
 	t.Logf("CAKE integration setup: %s", string(output))
 
 	// Test 2: Removal
-	cmd = exec.Command("./traffic-weir",
+	cmd = exec.Command("/app/traffic-weir",
 		"-interface", "lo",
 		"-peer", "integration_test_peer",
 		"-scheduler", "cake",
@@ -219,7 +231,7 @@ func TestCAKEIntegration(t *testing.T) {
 	t.Logf("CAKE integration removal: %s", string(output))
 
 	// Test 3: Nuke interface
-	cmd = exec.Command("./traffic-weir",
+	cmd = exec.Command("/app/traffic-weir",
 		"-interface", "lo",
 		"-scheduler", "cake",
 		"-nuke")
@@ -231,7 +243,7 @@ func TestCAKEIntegration(t *testing.T) {
 // TestCAKESystemCapabilities tests system capabilities with CAKE
 func TestCAKESystemCapabilities(t *testing.T) {
 	// Test that CAKE is included in system capabilities
-	cmd := exec.Command("./traffic-weir",
+	cmd := exec.Command("/app/traffic-weir",
 		"-interface", "lo",
 		"-peer", "test_peer",
 		"-upload-rate", "1000",
@@ -250,7 +262,7 @@ func TestCAKESystemCapabilities(t *testing.T) {
 // BenchmarkCAKESetup benchmarks CAKE setup performance
 func BenchmarkCAKESetup(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		cmd := exec.Command("./traffic-weir",
+		cmd := exec.Command("/app/traffic-weir",
 			"-interface", "lo",
 			"-peer", fmt.Sprintf("benchmark_peer_%d", i),
 			"-upload-rate", "1000",
@@ -265,7 +277,7 @@ func BenchmarkCAKESetup(b *testing.B) {
 // BenchmarkCAKERemoval benchmarks CAKE removal performance
 func BenchmarkCAKERemoval(b *testing.B) {
 	for i := 0; i < b.N; i++ {
-		cmd := exec.Command("./traffic-weir",
+		cmd := exec.Command("/app/traffic-weir",
 			"-interface", "lo",
 			"-peer", fmt.Sprintf("benchmark_peer_%d", i),
 			"-scheduler", "cake",
@@ -278,8 +290,8 @@ func BenchmarkCAKERemoval(b *testing.B) {
 
 func TestMain(m *testing.M) {
 	// Check if traffic-weir binary exists
-	if _, err := os.Stat("./traffic-weir"); os.IsNotExist(err) {
-		fmt.Println("traffic-weir binary not found. Please build it first with: go build -o traffic-weir traffic-weir.go")
+	if _, err := os.Stat("/app/traffic-weir"); os.IsNotExist(err) {
+		fmt.Println("traffic-weir binary not found at /app/traffic-weir. Please ensure it's built and available.")
 		os.Exit(1)
 	}
 

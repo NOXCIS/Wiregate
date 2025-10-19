@@ -17,7 +17,6 @@ ALLOWED_COMMANDS() {
         "modprobe") echo "sch_hfsc|amneziawg" ;;
         "lsmod") echo "" ;;
         "ps") echo "aux|-p|-f|--help|-h" ;;
-        "pgrep") echo "-f|--help|-h" ;;
         "pkill") echo "-f|-TERM|-KILL|--help|-h" ;;
         "kill") echo "-TERM|-KILL|--help|-h" ;;
         "chmod") echo "[0-9]+|+x|-x|u+x|g+x|o+x" ;;
@@ -31,7 +30,7 @@ ALLOWED_COMMANDS() {
         "grep") echo "-q|-o|-E|-v|--help|-h" ;;
         "sed") echo "-i|-n|-E" ;;
         "awk") echo "" ;;
-        "curl") echo "-s|-o|-w|--help|-h" ;;
+        "wget") echo "-qO-|--help|-h" ;;
         "netstat") echo "-tulpn|--help|-h" ;;
         "hostname") echo "-i|--help|-h" ;;
         "base64") echo "" ;;
@@ -50,11 +49,11 @@ ALLOWED_COMMANDS() {
         "tor") echo "-f|--hash-password|--help|-h" ;;
         "torflux") echo "-config|-action|--help|-h" ;;
         "vanguards") echo "--one_shot_vanguards|--help|-h" ;;
-        "traffic-weir") echo "" ;;
+        "traffic-weir") echo "-interface|-peer|-upload-rate|-download-rate|-protocol|-scheduler|-allowed-ips|-remove|-nuke|--help|-h" ;;
         "sh") echo "-c" ;;
         "bash") echo "-c" ;;
         "sudo") echo "" ;;
-        *) echo "" ;;
+        *) echo "NOT_ALLOWED" ;;
     esac
 }
 
@@ -79,7 +78,6 @@ declare -a ALLOWED_COMMANDS_ARRAY=(
     ["modprobe"]="sch_hfsc|amneziawg"
     ["lsmod"]=""
     ["ps"]="aux|-p|-f"
-    ["pgrep"]="-f"
     ["pkill"]="-f|-TERM|-KILL"
     ["kill"]="-TERM|-KILL"
     
@@ -99,7 +97,6 @@ declare -a ALLOWED_COMMANDS_ARRAY=(
     ["awk"]=""
     
     # Network utilities
-    ["curl"]="-s|-o|-w"
     ["netstat"]="-tulpn"
     ["hostname"]="-i"
     
@@ -122,7 +119,7 @@ declare -a ALLOWED_COMMANDS_ARRAY=(
     ["tor"]="-f|--hash-password"
     ["torflux"]="-config|-action"
     ["vanguards"]="--one_shot_vanguards"
-    ["traffic-weir"]=""
+    ["traffic-weir"]="-interface|-peer|-upload-rate|-download-rate|-protocol|-scheduler|-allowed-ips|-remove|-nuke"
     
     # System binaries
     ["sh"]="-c"
@@ -141,8 +138,8 @@ validate_command() {
     # Get allowed patterns for this command
     local allowed_patterns=$(ALLOWED_COMMANDS "$cmd_name")
     
-    # Check if command is allowed (if function returns empty, command is not allowed)
-    if [[ -z "$allowed_patterns" ]]; then
+    # Check if command is allowed
+    if [[ "$allowed_patterns" == "NOT_ALLOWED" ]]; then
         echo "ERROR: Command '$cmd_name' is not allowed in restricted shell" >&2
         return 1
     fi

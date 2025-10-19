@@ -202,6 +202,58 @@ def not_found_error(error):
         'index.html'
     )
 
+# 500 error handler for internal server errors
+@app.errorhandler(500)
+def internal_error(error):
+    from flask import request, jsonify
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    logger.error(f"Internal server error: {error}", exc_info=True)
+    
+    # If it's an API request, return JSON response
+    if request.path.startswith(f'{APP_PREFIX}/api'):
+        return jsonify({
+            "status": False,
+            "message": "Internal server error",
+            "data": None,
+            "error": "500 Internal Server Error"
+        }), 500
+    
+    # For non-API requests, serve error page
+    from flask import send_from_directory
+    import os
+    return send_from_directory(
+        os.path.abspath("./static/app/dist"), 
+        'index.html'
+    )
+
+# Generic exception handler
+@app.errorhandler(Exception)
+def handle_exception(error):
+    from flask import request, jsonify
+    import logging
+    
+    logger = logging.getLogger(__name__)
+    logger.error(f"Unhandled exception: {error}", exc_info=True)
+    
+    # If it's an API request, return JSON response
+    if request.path.startswith(f'{APP_PREFIX}/api'):
+        return jsonify({
+            "status": False,
+            "message": "An unexpected error occurred",
+            "data": None,
+            "error": str(error) if DASHBOARD_MODE == 'development' else "Internal Server Error"
+        }), 500
+    
+    # For non-API requests, serve error page
+    from flask import send_from_directory
+    import os
+    return send_from_directory(
+        os.path.abspath("./static/app/dist"), 
+        'index.html'
+    )
+
 
 
 
@@ -258,9 +310,16 @@ def startThreads():
     thread_pool.start_pool()
     logger.info("Thread pool started with 20 workers")
     
-    # Start process pool for CPU-intensive operations
-    process_pool.start_pool()
-    logger.info("Process pool started with 4 workers")
+    # Start process pool for CPU-intensive operations (now using ThreadPoolExecutor)
+    try:
+        process_pool.start_pool()
+        if process_pool.pool is not None:
+            logger.info("Process pool (thread-based) started with workers")
+        else:
+            logger.warning("Process pool is disabled - will run tasks in main thread")
+    except Exception as e:
+        logger.error(f"Failed to start process pool: {e}")
+        logger.warning("Continuing without process pool")
     
     bgThread = threading.Thread(target=backGroundThread)
     bgThread.daemon = True

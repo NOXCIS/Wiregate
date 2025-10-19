@@ -64,11 +64,58 @@ services:
         ipv4_address: 10.2.0.100   
         ipv6_address: 2001:db8:abc::100
 
+  redis:
+    image: redis:7-alpine
+    container_name: wiregate-redis
+    hostname: redis
+    restart: unless-stopped
+    command: redis-server /usr/local/etc/redis/redis.conf
+    env_file:
+      - ./.env
+    volumes:
+      - redis_data:/data
+      - ./configs/redis/redis.conf:/usr/local/etc/redis/redis.conf:ro
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.4
+        ipv6_address: 2001:db8:abc::4
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "wiregate_redis_password", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: wiregate-postgres
+    hostname: postgres
+    restart: unless-stopped
+    env_file:
+      - ./.env
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./configs/postgres/postgresql.conf:/etc/postgresql/postgresql.conf:ro
+      - ./configs/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.5
+        ipv6_address: 2001:db8:abc::5
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U wiregate_user -d wiregate"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    command: >
+      postgres
+      -c config_file=/etc/postgresql/postgresql.conf
+
   wiregate:
       build:
         context: .
         dockerfile: Dockerfile
-      #image: noxcis/wiregate:chimera
+      #image: noxcis/wiregate:sol-beta-v2.1.4
       container_name: wiregate
       hostname: wiregate
       cap_add:
@@ -77,6 +124,11 @@ services:
       devices:
         - /dev/net/tun:/dev/net/tun  
       restart: unless-stopped
+      depends_on:
+        postgres:
+          condition: service_healthy
+        redis:
+          condition: service_healthy
       volumes:
         - /lib/modules:/lib/modules:ro 
         - pf_conf:/WireGate/iptable-rules/
@@ -87,48 +139,24 @@ services:
         - ./configs/tor:/etc/tor/
         - ./configs/logs:/WireGate/log/
         - ./configs/master-key:/WireGate/master-key
-
-      environment:
-      #Config Path Optional
-        #- WGDCONF_PATH=/etc/wireguard
-      #Use Ofuscated Wireguard (AmneziaWG)
-        - AMNEZIA_WG=true
-      #Set Timezone
-        - TZ=America/New_York
-
-      #Tor Settings
-      ##########################################################
-        - WGD_TOR_PROXY=true          #Enable Tor
-        - WGD_TOR_EXIT_NODES={ch}     #Ex. {gb},{fr}
-        - WGD_TOR_DNS_EXIT_NODES={us}
-        - WGD_TOR_BRIDGES=false        #Enable Tor Bridges
-        - WGD_TOR_PLUGIN=snowflake    #OPTIONS webtunnel, obfs4, snowflake
-        - WGD_TOR_DNSCRYPT=false
-      #WGDashboard Global Settings
-      ##########################################################
-        - WGD_WELCOME_SESSION=false
-        - WGD_AUTH_REQ=false
-        - WGD_USER=admin
-        - WGD_PASS=admin
-        - WGD_REMOTE_ENDPOINT=192.168.0.4
-        - WGD_REMOTE_ENDPOINT_PORT=80
-        - WGD_PEER_ENDPOINT_ALLOWED_IP=0.0.0.0/0, ::/0
-        - WGD_KEEP_ALIVE=21
-        - WGD_MTU=1420
-        - WGD_PORT_RANGE_STARTPORT=4430
-      #DNS Setiings (Set To use Containers Above) You can use your own DNS
-      ##########################################################
-        - WGD_DNS=10.2.0.100
-        - WGD_IPTABLES_DNS=10.2.0.100
+      env_file:
+        - ./.env
       ports:
-        - 44333:44333/udp
-        - "4430-4433:4430-4433/udp" #UDP Interface Listen Ports For Zones
-        - 8000:80/tcp #Comment Out for full network lockdown, I.E only Accessible via VPN conttenction at http://wire.gate using config in generated master-key folder
+        #- 44333:44333/udp
+        #- "4430-4433:4430-4433/udp" #UDP Interface Listen Ports For Zones
+        - 8080:80/tcp   # HTTP port
+        - 8443:443/tcp  # HTTPS port for SSL
       sysctls:        #Otherwise access the dashboard @ your-sever-ip/domain:6060
         - net.ipv4.ip_forward=1
         - net.ipv4.conf.all.src_valid_mark=1
         - net.ipv6.conf.all.forwarding=1
         - net.ipv6.conf.default.forwarding=1
+      healthcheck:
+        test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "--no-check-certificate", "https://localhost:443/api/validateAuthentication", "||", "exit", "1"]
+        interval: 30s
+        timeout: 10s
+        retries: 3
+        start_period: 30s
       networks:
         private_network:
           ipv4_address: 10.2.0.3
@@ -139,6 +167,9 @@ volumes:
     db:
     conf:
     pf_conf:
+    redis_data:
+    postgres_data:
+  
     
   
 

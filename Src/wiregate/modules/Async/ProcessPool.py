@@ -1,8 +1,10 @@
 """
 Process Pool for CPU-intensive operations
+Refactored to use ThreadPoolExecutor for PyInstaller compatibility
 """
-import multiprocessing as mp
-from multiprocessing import Pool
+import os
+import sys
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from functools import partial
 import time
 import json
@@ -10,22 +12,27 @@ import hashlib
 import re
 from typing import List, Dict, Any, Optional
 
+# Use ThreadPoolExecutor instead of multiprocessing for PyInstaller compatibility
 class ProcessPoolManager:
     def __init__(self, max_workers=None):
-        self.max_workers = max_workers or mp.cpu_count()
+        import multiprocessing as mp
+        self.max_workers = max_workers or max(4, mp.cpu_count() // 2)  # Use threads, not processes
         self.pool = None
         
     def start_pool(self):
-        """Start the process pool"""
+        """Start the thread pool (using ThreadPoolExecutor for PyInstaller compatibility)"""
         if self.pool is None:
-            self.pool = Pool(processes=self.max_workers)
-            print(f"[ProcessPool] Started with {self.max_workers} workers")
+            try:
+                self.pool = ThreadPoolExecutor(max_workers=self.max_workers)
+                print(f"[ProcessPool] Started thread pool with {self.max_workers} workers")
+            except Exception as e:
+                print(f"[ProcessPool] Warning: Failed to start thread pool: {e}. Continuing without thread pool.")
+                self.pool = None
     
     def stop_pool(self):
         """Stop the process pool"""
         if self.pool:
-            self.pool.close()
-            self.pool.join()
+            self.pool.shutdown(wait=True) # ThreadPoolExecutor doesn't have a direct close/join
             self.pool = None
             print("[ProcessPool] Stopped")
     
@@ -33,13 +40,19 @@ class ProcessPoolManager:
         """Submit a task to the process pool"""
         if self.pool is None:
             self.start_pool()
-        return self.pool.apply_async(func, args, kwargs)
+        if self.pool is None:
+            # If pool still None after start attempt, run in main process
+            return func(*args, **kwargs)
+        return self.pool.submit(func, *args, **kwargs)
     
     def submit_batch(self, func, tasks):
         """Submit multiple tasks at once"""
         if self.pool is None:
             self.start_pool()
-        return [self.pool.apply_async(func, task) for task in tasks]
+        if self.pool is None:
+            # If pool still None after start attempt, run in main process
+            return [func(*task) for task in tasks]
+        return [self.pool.submit(func, *task) for task in tasks]
 
 # WireGate-specific CPU-intensive functions
 def process_peer_config(peer_data):
@@ -180,7 +193,7 @@ def bulk_peer_processing(peers_data):
         tasks = [pool_manager.submit_task(process_peer_config, peer) for peer in peers_data]
         
         # Collect results
-        results = [task.get() for task in tasks]
+        results = [task.result() for task in as_completed(tasks)]
         
         return results
     finally:
@@ -195,7 +208,7 @@ def bulk_peer_validation(peers_data):
         tasks = [pool_manager.submit_task(validate_peer_config, peer) for peer in peers_data]
         
         # Collect results
-        results = [task.get() for task in tasks]
+        results = [task.result() for task in as_completed(tasks)]
         
         return results
     finally:
@@ -210,7 +223,7 @@ def bulk_peer_encryption(peers_data):
         tasks = [pool_manager.submit_task(encrypt_peer_data, peer) for peer in peers_data]
         
         # Collect results
-        results = [task.get() for task in tasks]
+        results = [task.result() for task in as_completed(tasks)]
         
         return results
     finally:
@@ -225,7 +238,7 @@ def bulk_usage_analysis(usage_data_list):
         tasks = [pool_manager.submit_task(analyze_peer_usage, usage_data) for usage_data in usage_data_list]
         
         # Collect results
-        results = [task.get() for task in tasks]
+        results = [task.result() for task in as_completed(tasks)]
         
         return results
     finally:
@@ -240,7 +253,7 @@ def bulk_qr_generation(peer_data_list):
         tasks = [pool_manager.submit_task(generate_peer_qr_codes, [peer_data]) for peer_data in peer_data_list]
         
         # Collect results
-        results = [task.get() for task in tasks]
+        results = [task.result() for task in as_completed(tasks)]
         
         return results
     finally:

@@ -226,6 +226,8 @@ def API_remove_peer_rate_limit():
             return ResponseObject(False, "Could not find peer data in database")
         
         allowed_ips = peer_data.get('allowed_ip')
+        logger.debug(f"Retrieved allowed_ips from database: '{allowed_ips}' (type: {type(allowed_ips)})")
+        logger.debug(f"Allowed IPs repr: {repr(allowed_ips)}")
         if not allowed_ips:
             return ResponseObject(False, "Could not find allowed IPs for peer")
         
@@ -244,13 +246,17 @@ def API_remove_peer_rate_limit():
         # Execute traffic-weir command with remove flag, protocol, scheduler type and allowed IPs
         cmd = [
             '/WireGate/traffic-weir',
-            '--interface', config.Name,
-            '--peer', peer.id,
-            '--protocol', protocol,
-            '--scheduler', scheduler_type,
-            '--allowed-ips', allowed_ips,
-            '--remove'
+            '-interface', config.Name,
+            '-peer', peer.id,
+            '-protocol', protocol,
+            '-scheduler', scheduler_type,
+            '-allowed-ips', allowed_ips,
+            '-remove'
         ]
+        
+        logger.debug(f"Constructed command: {cmd}")
+        logger.debug(f"Command repr: {repr(cmd)}")
+        logger.debug(f"Command string: {' '.join(cmd)}")
         
         result = execute_secure_command(cmd[0], cmd[1:])
         
@@ -366,9 +372,9 @@ def API_nuke_interface():
         # Execute traffic-weir command with nuke flag
         cmd = [
             '/WireGate/traffic-weir',
-            '--interface', config.Name,
-            '--protocol', protocol,
-            '--nuke'
+            '-interface', config.Name,
+            '-protocol', protocol,
+            '-nuke'
         ]
         
         result = execute_secure_command(cmd[0], cmd[1:])

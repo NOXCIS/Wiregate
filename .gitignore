@@ -57,3 +57,4 @@ Src/appmap.log
 dashboard.pid
 /Src/configs
 ghcr.sh
+*.pem

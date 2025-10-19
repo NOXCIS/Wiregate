@@ -28,10 +28,23 @@ class PeerShareLink:
 class PeerShareLinks:
     def __init__(self):
         self.Links: list[PeerShareLink] = []
-        # Check if table exists using PostgreSQL syntax
-        existingTables = sqlSelect(
-            "SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'PeerShareLinks'").fetchall()
-        if len(existingTables) == 0:
+        # Check if table exists using database-agnostic approach
+        from wiregate.modules.DataBase import get_redis_manager
+        manager = get_redis_manager()
+        
+        # Use the appropriate method based on database type
+        if hasattr(manager, 'table_exists'):
+            # PostgreSQL/Redis manager
+            table_exists = manager.table_exists('PeerShareLinks')
+        else:
+            # SQLite manager - check using PRAGMA
+            try:
+                result = sqlSelect("SELECT name FROM sqlite_master WHERE type='table' AND name='PeerShareLinks'").fetchall()
+                table_exists = len(result) > 0
+            except:
+                table_exists = False
+        
+        if not table_exists:
             sqlUpdate(
                 """
                     CREATE TABLE IF NOT EXISTS PeerShareLinks (

@@ -10,11 +10,403 @@ from datetime import datetime
 import logging
 from ..ConfigEnv import (
     redis_host, redis_port, redis_db, redis_password,
-    postgres_host, postgres_port, postgres_db, postgres_user, postgres_password, postgres_ssl_mode
+    postgres_host, postgres_port, postgres_db, postgres_user, postgres_password, postgres_ssl_mode,
+    DASHBOARD_TYPE
 )
 
 # Configure logging
 logger = logging.getLogger('wiregate')
+
+class SQLiteDatabaseManager:
+    """SQLite database manager for simple deployments"""
+    
+    def __init__(self, db_path=None):
+        """Initialize SQLite connection"""
+        if db_path is None:
+            # Default SQLite database path
+            db_path = os.path.join(os.getcwd(), 'db', 'wgdashboard.db')
+        
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        
+        self.db_path = db_path
+        self.conn = None
+        self._init_sqlite()
+        
+    def _init_sqlite(self):
+        """Initialize SQLite connection"""
+        try:
+            self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
+            self.conn.row_factory = sqlite3.Row  # Enable dict-like access
+            logger.info(f"Successfully connected to SQLite database: {self.db_path}")
+        except Exception as e:
+            logger.error(f"Failed to connect to SQLite database: {e}")
+            raise
+    
+    @property
+    def redis_client(self):
+        """Mock Redis client for compatibility - returns None in simple mode"""
+        return None
+    
+    def _serialize_data_for_db(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Serialize data for database storage (convert lists to JSON strings)"""
+        serialized_data = data.copy()
+        if 'traffic' in serialized_data and isinstance(serialized_data['traffic'], list):
+            serialized_data['traffic'] = json.dumps(serialized_data['traffic'])
+        return serialized_data
+    
+    def _deserialize_data_from_db(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """Deserialize data from database (convert JSON strings back to lists)"""
+        deserialized_data = data.copy()
+        if 'traffic' in deserialized_data and isinstance(deserialized_data['traffic'], str):
+            try:
+                deserialized_data['traffic'] = json.loads(deserialized_data['traffic'])
+            except (json.JSONDecodeError, TypeError):
+                deserialized_data['traffic'] = []
+        return deserialized_data
+    
+    def create_table(self, table_name: str, schema: Dict[str, str]) -> bool:
+        """Create a table with the given schema"""
+        try:
+            columns = []
+            for column_name, column_type in schema.items():
+                columns.append(f"{column_name} {column_type}")
+            
+            create_sql = f"CREATE TABLE IF NOT EXISTS {table_name} ({', '.join(columns)})"
+            
+            with self.conn:
+                self.conn.execute(create_sql)
+            logger.debug(f"Created table {table_name}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to create table {table_name}: {e}")
+            return False
+    
+    def insert_record(self, table_name: str, record_id: str, data: Dict[str, Any]) -> bool:
+        """Insert a record into the table"""
+        try:
+            # Ensure the record_id is in the data
+            data['id'] = record_id
+            
+            # Serialize data for database storage
+            serialized_data = self._serialize_data_for_db(data)
+            
+            columns = list(serialized_data.keys())
+            placeholders = ['?' for _ in columns]
+            values = list(serialized_data.values())
+            
+            insert_sql = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(placeholders)})"
+            
+            with self.conn:
+                self.conn.execute(insert_sql, values)
+            return True
+        except Exception as e:
+            logger.error(f"Failed to insert record into {table_name}: {e}")
+            return False
+    
+    def update_record(self, table_name: str, record_id: str, data: Dict[str, Any]) -> bool:
+        """Update a record in the table"""
+        try:
+            # Serialize data for database storage
+            serialized_data = self._serialize_data_for_db(data)
+            
+            set_clauses = [f"{key} = ?" for key in serialized_data.keys()]
+            values = list(serialized_data.values()) + [record_id]
+            
+            update_sql = f"UPDATE {table_name} SET {', '.join(set_clauses)} WHERE id = ?"
+            
+            with self.conn:
+                cursor = self.conn.execute(update_sql, values)
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Failed to update record in {table_name}: {e}")
+            return False
+    
+    def get_record(self, table_name: str, record_id: str) -> Optional[Dict[str, Any]]:
+        """Get a single record by ID"""
+        try:
+            select_sql = f"SELECT * FROM {table_name} WHERE id = ?"
+            cursor = self.conn.execute(select_sql, (record_id,))
+            row = cursor.fetchone()
+            
+            if row:
+                data = dict(row)
+                return self._deserialize_data_from_db(data)
+            return None
+        except Exception as e:
+            logger.error(f"Failed to get record from {table_name}: {e}")
+            return None
+    
+    def get_all_records(self, table_name: str) -> List[Dict[str, Any]]:
+        """Get all records from a table"""
+        try:
+            select_sql = f"SELECT * FROM {table_name}"
+            cursor = self.conn.execute(select_sql)
+            rows = cursor.fetchall()
+            
+            return [self._deserialize_data_from_db(dict(row)) for row in rows]
+        except Exception as e:
+            logger.error(f"Failed to get records from {table_name}: {e}")
+            return []
+    
+    def delete_record(self, table_name: str, record_id: str) -> bool:
+        """Delete a record from the table"""
+        try:
+            delete_sql = f"DELETE FROM {table_name} WHERE id = ?"
+            
+            with self.conn:
+                cursor = self.conn.execute(delete_sql, (record_id,))
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Failed to delete record from {table_name}: {e}")
+            return False
+    
+    def drop_table(self, table_name: str) -> bool:
+        """Drop a table"""
+        try:
+            drop_sql = f"DROP TABLE IF EXISTS {table_name}"
+            
+            with self.conn:
+                self.conn.execute(drop_sql)
+            logger.debug(f"Dropped table {table_name}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to drop table {table_name}: {e}")
+            return False
+    
+    def table_exists(self, table_name: str) -> bool:
+        """Check if table exists in SQLite"""
+        try:
+            cursor = self.conn.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name=?
+            """, (table_name,))
+            result = cursor.fetchone()
+            return result is not None
+        except Exception as e:
+            logger.error(f"Failed to check if table {table_name} exists: {e}")
+            return False
+    
+    def get_all_keys(self) -> List[str]:
+        """Get all table names from SQLite"""
+        try:
+            cursor = self.conn.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name LIKE 'wiregate_%'
+            """)
+            tables = [row[0] for row in cursor.fetchall()]
+            return tables
+        except Exception as e:
+            logger.error(f"Failed to get table names: {e}")
+            return []
+    
+    def _invalidate_cache(self, table_name: str, record_id: str = None) -> bool:
+        """No-op cache invalidation for SQLite (no cache)"""
+        # SQLite doesn't use Redis cache, so this is a no-op
+        return True
+    
+    def dump_table(self, table_name: str) -> List[str]:
+        """Dump table data as SQL INSERT statements (for compatibility)"""
+        try:
+            records = self.get_all_records(table_name)
+            sql_statements = []
+            
+            for record in records:
+                # Convert record to SQL INSERT statement
+                columns = list(record.keys())
+                values = []
+                for col in columns:
+                    if record[col] is None:
+                        values.append('NULL')
+                    elif isinstance(record[col], str):
+                        # Escape single quotes in strings
+                        escaped_value = record[col].replace("'", "''")
+                        values.append(f"'{escaped_value}'")
+                    else:
+                        values.append(f"'{record[col]}'")
+                
+                sql = f"INSERT INTO \"{table_name}\" ({', '.join([f'\"{col}\"' for col in columns])}) VALUES ({', '.join(values)});"
+                sql_statements.append(sql)
+            
+            return sql_statements
+        except Exception as e:
+            logger.error(f"Failed to dump table {table_name}: {e}")
+            return []
+    
+    def import_sql_statements(self, sql_statements: List[str]) -> bool:
+        """Import SQL statements into SQLite"""
+        try:
+            with self.conn:
+                for sql in sql_statements:
+                    if sql.strip().startswith('INSERT INTO'):
+                        try:
+                            self.conn.execute(sql)
+                        except Exception as e:
+                            logger.warning(f"Failed to execute SQL statement: {sql[:100]}... Error: {e}")
+                            continue
+            
+            logger.info(f"Imported {len(sql_statements)} SQL statements")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to import SQL statements: {e}")
+            return False
+    
+    def create_jobs_table(self) -> bool:
+        """Create jobs table in SQLite"""
+        try:
+            schema = {
+                'id': 'VARCHAR PRIMARY KEY',
+                'JobID': 'VARCHAR UNIQUE NOT NULL',
+                'Configuration': 'TEXT NOT NULL',
+                'Peer': 'TEXT NOT NULL',
+                'Field': 'TEXT',
+                'Operator': 'TEXT',
+                'Value': 'TEXT',
+                'CreationDate': 'TIMESTAMP',
+                'ExpireDate': 'TIMESTAMP',
+                'Action': 'TEXT',
+                'created_at': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
+            }
+            return self.create_table('PeerJobs', schema)
+        except Exception as e:
+            logger.error(f"Failed to create jobs table: {e}")
+            return False
+    
+    def create_logs_table(self) -> bool:
+        """Create logs table in SQLite"""
+        try:
+            schema = {
+                'id': 'VARCHAR PRIMARY KEY',
+                'LogID': 'VARCHAR UNIQUE NOT NULL',
+                'JobID': 'VARCHAR NOT NULL',
+                'LogDate': 'TIMESTAMP',
+                'Status': 'BOOLEAN',
+                'Message': 'TEXT',
+                'created_at': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
+            }
+            return self.create_table('PeerJobLogs', schema)
+        except Exception as e:
+            logger.error(f"Failed to create logs table: {e}")
+            return False
+    
+    def _ensure_brute_force_table(self) -> bool:
+        """Ensure brute_force_attempts table exists"""
+        try:
+            schema = {
+                'identifier': 'VARCHAR PRIMARY KEY',
+                'attempts': 'INTEGER DEFAULT 0',
+                'locked_until': 'TIMESTAMP',
+                'last_attempt': 'TIMESTAMP',
+                'updated_at': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
+            }
+            return self.create_table('brute_force_attempts', schema)
+        except Exception as e:
+            logger.error(f"Failed to create brute force table: {e}")
+            return False
+    
+    def get_brute_force_attempts(self, identifier: str) -> Dict[str, Any]:
+        """Get brute force attempts for an identifier from SQLite"""
+        try:
+            self._ensure_brute_force_table()
+            cursor = self.conn.execute("""
+                SELECT attempts, locked_until, last_attempt 
+                FROM brute_force_attempts 
+                WHERE identifier = ?
+            """, (identifier,))
+            result = cursor.fetchone()
+            
+            if result:
+                return {
+                    'attempts': result['attempts'],
+                    'locked_until': result['locked_until'],
+                    'last_attempt': result['last_attempt']
+                }
+            return {'attempts': 0, 'locked_until': None, 'last_attempt': None}
+        except Exception as e:
+            logger.error(f"Failed to get brute force attempts: {e}")
+            return {'attempts': 0, 'locked_until': None, 'last_attempt': None}
+    
+    def record_brute_force_attempt(self, identifier: str, max_attempts: int, lockout_time: int) -> bool:
+        """Record a brute force attempt in SQLite"""
+        try:
+            self._ensure_brute_force_table()
+            cursor = self.conn.cursor()
+            
+            # Check if record exists
+            cursor.execute("SELECT attempts FROM brute_force_attempts WHERE identifier = ?", (identifier,))
+            result = cursor.fetchone()
+            
+            if result:
+                # Update existing record
+                attempts = result[0] + 1
+                cursor.execute("""
+                    UPDATE brute_force_attempts 
+                    SET attempts = ?, last_attempt = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
+                    WHERE identifier = ?
+                """, (attempts, identifier))
+            else:
+                # Insert new record
+                attempts = 1
+                cursor.execute("""
+                    INSERT INTO brute_force_attempts (identifier, attempts, last_attempt)
+                    VALUES (?, ?, CURRENT_TIMESTAMP)
+                """, (identifier, attempts))
+            
+            # If max attempts reached, set lockout
+            if attempts >= max_attempts:
+                cursor.execute("""
+                    UPDATE brute_force_attempts 
+                    SET locked_until = datetime('now', '+' || ? || ' seconds')
+                    WHERE identifier = ?
+                """, (lockout_time, identifier))
+            
+            self.conn.commit()
+            return True
+        except Exception as e:
+            logger.error(f"Failed to record brute force attempt: {e}")
+            return False
+    
+    def clear_brute_force_attempts(self, identifier: str) -> bool:
+        """Clear brute force attempts for successful authentication"""
+        try:
+            self._ensure_brute_force_table()
+            self.conn.execute("DELETE FROM brute_force_attempts WHERE identifier = ?", (identifier,))
+            self.conn.commit()
+            return True
+        except Exception as e:
+            logger.error(f"Failed to clear brute force attempts: {e}")
+            return False
+    
+    def cleanup_expired_brute_force(self) -> int:
+        """Clean up expired brute force records"""
+        try:
+            self._ensure_brute_force_table()
+            cursor = self.conn.cursor()
+            cursor.execute("""
+                DELETE FROM brute_force_attempts 
+                WHERE locked_until IS NOT NULL AND locked_until < CURRENT_TIMESTAMP
+            """)
+            self.conn.commit()
+            return cursor.rowcount
+        except Exception as e:
+            logger.error(f"Failed to cleanup expired brute force records: {e}")
+            return 0
+    
+    def execute_query(self, query: str, params: tuple = None) -> List[Dict[str, Any]]:
+        """Execute a custom query"""
+        try:
+            cursor = self.conn.execute(query, params or ())
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+        except Exception as e:
+            logger.error(f"Failed to execute query: {e}")
+            return []
+    
+    def close(self):
+        """Close the database connection"""
+        if self.conn:
+            self.conn.close()
+            logger.info("SQLite database connection closed")
 
 class DatabaseManager:
     """PostgreSQL primary database with Redis cache layer for WireGate"""
@@ -659,35 +1051,175 @@ class DatabaseManager:
             logger.error(f"Failed to import SQL statements: {e}")
             return False
     
-
+    def create_jobs_table(self) -> bool:
+        """Create jobs table in PostgreSQL"""
+        try:
+            schema = {
+                'id': 'VARCHAR PRIMARY KEY',
+                'JobID': 'VARCHAR UNIQUE NOT NULL',
+                'Configuration': 'TEXT NOT NULL',
+                'Peer': 'TEXT NOT NULL',
+                'Field': 'TEXT',
+                'Operator': 'TEXT',
+                'Value': 'TEXT',
+                'CreationDate': 'TIMESTAMP',
+                'ExpireDate': 'TIMESTAMP',
+                'Action': 'TEXT',
+                'created_at': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
+            }
+            return self.create_table('PeerJobs', schema)
+        except Exception as e:
+            logger.error(f"Failed to create jobs table: {e}")
+            return False
+    
+    def create_logs_table(self) -> bool:
+        """Create logs table in PostgreSQL"""
+        try:
+            schema = {
+                'id': 'VARCHAR PRIMARY KEY',
+                'LogID': 'VARCHAR UNIQUE NOT NULL',
+                'JobID': 'VARCHAR NOT NULL',
+                'LogDate': 'TIMESTAMP',
+                'Status': 'BOOLEAN',
+                'Message': 'TEXT',
+                'created_at': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
+            }
+            return self.create_table('PeerJobLogs', schema)
+        except Exception as e:
+            logger.error(f"Failed to create logs table: {e}")
+            return False
+    
+    def execute_query(self, query: str, params: tuple = None) -> List[Dict[str, Any]]:
+        """Execute a custom query"""
+        try:
+            cursor = self.conn.execute(query, params or ())
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+        except Exception as e:
+            logger.error(f"Failed to execute query: {e}")
+            return []
+    
+    def close(self):
+        """Close the database connection"""
+        if self.conn:
+            self.conn.close()
+            logger.info("SQLite database connection closed")
 
 # Global database manager instance
 _db_manager = None
 
-def get_redis_manager() -> DatabaseManager:
-    """Get or create global database manager instance (PostgreSQL + Redis cache)"""
+def get_redis_manager():
+    """Get or create global database manager instance based on DASHBOARD_TYPE"""
     global _db_manager
     if _db_manager is None:
-        _db_manager = DatabaseManager()
+        if DASHBOARD_TYPE.lower() == 'simple':
+            logger.info("Using SQLite database manager (simple mode)")
+            _db_manager = SQLiteDatabaseManager()
+        else:
+            logger.info("Using PostgreSQL + Redis database manager (scale mode)")
+            _db_manager = DatabaseManager()
     return _db_manager
 
 # Compatibility functions for existing code
-def sqlSelect(query: str, params: tuple = None) -> 'PostgreSQLCursor':
+def sqlSelect(query: str, params: tuple = None):
     """SQL SELECT compatibility function"""
-    return PostgreSQLCursor(query, params)
+    manager = get_redis_manager()
+    if isinstance(manager, SQLiteDatabaseManager):
+        # For SQLite, return a cursor-like object for compatibility
+        return SQLiteCursor(query, params)
+    else:
+        # For PostgreSQL, return cursor
+        return PostgreSQLCursor(query, params)
 
 def sqlUpdate(query: str, params: tuple = None) -> bool:
     """SQL UPDATE/INSERT/DELETE compatibility function"""
     manager = get_redis_manager()
     
-    try:
-        with manager.postgres_conn.cursor() as cursor:
-            cursor.execute(query, params)
+    if isinstance(manager, SQLiteDatabaseManager):
+        # For SQLite, execute query directly
+        try:
+            manager.conn.execute(query, params or ())
+            manager.conn.commit()
             return True
-    except Exception as e:
-        logger.error(f"Failed to execute query: {query}, Error: {e}")
-        return False
+        except Exception as e:
+            logger.error(f"SQLite query execution failed: {e}")
+            return False
+    else:
+        # For PostgreSQL, use existing logic
+        try:
+            with manager.postgres_conn.cursor() as cursor:
+                cursor.execute(query, params)
+                return True
+        except Exception as e:
+            logger.error(f"PostgreSQL query execution failed: {e}")
+            return False
 
+
+class SQLiteCursor:
+    """Cursor-like object for SQLite queries to maintain compatibility"""
+    
+    def __init__(self, query: str, params: tuple = None):
+        self.query = query
+        self.params = params or ()
+        self.results = []
+        self.current_index = 0
+        self._execute_query()
+    
+    def _execute_query(self):
+        """Execute the query and store results"""
+        manager = get_redis_manager()
+        
+        try:
+            # Execute query using SQLite manager
+            raw_results = manager.execute_query(self.query, self.params)
+            
+            # Convert results to dict-like objects for compatibility
+            converted_results = []
+            for row in raw_results:
+                # Create a dict-like object that supports both attribute and key access
+                class DictLikeRecord:
+                    def __init__(self, data):
+                        for key, value in data.items():
+                            setattr(self, key, value)
+                    
+                    def __getitem__(self, key):
+                        return getattr(self, key)
+                    
+                    def __contains__(self, key):
+                        return hasattr(self, key)
+                    
+                    def keys(self):
+                        return [attr for attr in dir(self) if not attr.startswith('_')]
+                    
+                    def get(self, key, default=None):
+                        return getattr(self, key, default)
+                
+                record = DictLikeRecord(row)
+                converted_results.append(record)
+            
+            self.results = converted_results
+            
+        except Exception as e:
+            logger.error(f"Failed to execute SQLite query: {self.query}, Error: {e}")
+            self.results = []
+    
+    def fetchone(self):
+        """Fetch one result"""
+        if self.current_index < len(self.results):
+            result = self.results[self.current_index]
+            self.current_index += 1
+            return result
+        return None
+    
+    def fetchall(self):
+        """Fetch all results"""
+        results = self.results[self.current_index:]
+        self.current_index = len(self.results)
+        return results
+    
+    def __iter__(self):
+        """Make cursor iterable"""
+        return iter(self.results)
 
 class PostgreSQLCursor:
     """Cursor-like object for PostgreSQL queries to maintain compatibility"""
@@ -785,6 +1317,15 @@ class ConfigurationDatabase:
     def __init__(self, configuration_name: str):
         self.configuration_name = configuration_name
         self.manager = get_redis_manager()
+        
+        # Ensure global job and log tables exist
+        try:
+            if not self.manager.table_exists('PeerJobs'):
+                self.manager.create_jobs_table()
+            if not self.manager.table_exists('PeerJobLogs'):
+                self.manager.create_logs_table()
+        except Exception as e:
+            logger.warning(f"Could not create job/log tables: {e}")
     
     def drop_database(self):
         """Drop all tables for this configuration"""
@@ -882,30 +1423,65 @@ class ConfigurationDatabase:
             logger.info(f"Migrating table {table}...")
             
             try:
-                with self.manager.postgres_conn.cursor() as cursor:
-                    # Add missing columns
-                    for field, field_info in new_fields.items():
-                        try:
-                            cursor.execute(f'ALTER TABLE "{table}" ADD COLUMN IF NOT EXISTS "{field}" {field_info["type"]}')
-                            logger.debug(f"Added column {field} to table {table}")
-                        except Exception as e:
-                            logger.warning(f"Could not add column {field} to table {table}: {e}")
-                    
-                    # Update existing records with default values
+                # Get appropriate cursor based on database type
+                if isinstance(self.manager, SQLiteDatabaseManager):
+                    # SQLite - use cursor for proper rowcount tracking
+                    cursor = self.manager.conn.cursor()
                     updated_count = 0
-                    for field, field_info in new_fields.items():
-                        if field_info['default'] is not None:
-                            cursor.execute(f'''
-                                UPDATE "{table}" 
-                                SET "{field}" = %s 
-                                WHERE "{field}" IS NULL
-                            ''', (field_info['default'],))
-                            updated_count += cursor.rowcount
                     
-                    # Invalidate cache for this table
-                    self.manager._invalidate_cache(table)
+                    try:
+                        # Add missing columns
+                        for field, field_info in new_fields.items():
+                            try:
+                                cursor.execute(f'ALTER TABLE "{table}" ADD COLUMN "{field}" {field_info["type"]}')
+                                logger.debug(f"Added column {field} to table {table}")
+                            except Exception as e:
+                                # Column might already exist, which is fine
+                                logger.debug(f"Column {field} might already exist in table {table}: {e}")
+                        
+                        # Update existing records with default values
+                        for field, field_info in new_fields.items():
+                            if field_info['default'] is not None:
+                                cursor.execute(f'''
+                                    UPDATE "{table}" 
+                                    SET "{field}" = ? 
+                                    WHERE "{field}" IS NULL
+                                ''', (field_info['default'],))
+                                updated_count += cursor.rowcount
+                        
+                        # Commit changes for SQLite
+                        cursor.connection.commit()
+                        
+                    finally:
+                        cursor.close()
                     
-                    logger.info(f"Migration completed for table {table}: {updated_count} records updated")
+                else:
+                    # PostgreSQL - use connection context manager
+                    with self.manager.postgres_conn.cursor() as cursor:
+                        updated_count = 0
+                        
+                        # Add missing columns
+                        for field, field_info in new_fields.items():
+                            try:
+                                cursor.execute(f'ALTER TABLE "{table}" ADD COLUMN IF NOT EXISTS "{field}" {field_info["type"]}')
+                                logger.debug(f"Added column {field} to table {table}")
+                            except Exception as e:
+                                logger.warning(f"Could not add column {field} to table {table}: {e}")
+                        
+                        # Update existing records with default values
+                        for field, field_info in new_fields.items():
+                            if field_info['default'] is not None:
+                                cursor.execute(f'''
+                                    UPDATE "{table}" 
+                                    SET "{field}" = %s 
+                                    WHERE "{field}" IS NULL
+                                ''', (field_info['default'],))
+                                updated_count += cursor.rowcount
+                        
+                        # Invalidate cache for this table
+                        self.manager._invalidate_cache(table)
+                
+                logger.info(f"Migration completed for table {table}: {updated_count} records updated")
                 
             except Exception as e:
                 logger.error(f"Error migrating table {table}: {e}")
@@ -1451,14 +2027,25 @@ sqldb = LegacySqldb()
 
 # Initialize database manager on module import
 try:
-    get_redis_manager()
-    logger.info("PostgreSQL + Redis database manager initialized successfully")
+    manager = get_redis_manager()
+    if isinstance(manager, SQLiteDatabaseManager):
+        logger.info("SQLite database manager initialized successfully")
+    else:
+        logger.info("PostgreSQL + Redis database manager initialized successfully")
 except Exception as e:
     logger.error(f"Failed to initialize database manager: {e}")
     # Fallback to a no-op implementation
     class NoOpManager:
         def __getattr__(self, name):
-            return lambda *args, **kwargs: None
+            # Return appropriate defaults for common methods
+            if name in ['get_restricted_peers', 'get_peers', 'get_all_records']:
+                return lambda *args, **kwargs: []
+            elif name in ['search_peer', 'get_peer']:
+                return lambda *args, **kwargs: None
+            elif name in ['insert_peer', 'update_peer', 'delete_peer', 'create_database', 'drop_database', 'migrate_database']:
+                return lambda *args, **kwargs: True
+            else:
+                return lambda *args, **kwargs: None
     
     _db_manager = NoOpManager()
 
@@ -1665,7 +2252,12 @@ def migrate_sqlite_file_to_postgres(sqlite_path: str) -> bool:
 def check_and_migrate_sqlite_databases():
     """Check for and migrate SQLite databases during startup"""
     try:
-        # Only run migration if PostgreSQL is available
+        # Check dashboard type - only run migration in scale mode
+        if DASHBOARD_TYPE.lower() == 'simple':
+            logger.info("Simple mode detected, using SQLite database directly")
+            return False
+        
+        # Only run migration if PostgreSQL is available (scale mode)
         db_manager = get_redis_manager()
         if db_manager is None:
             logger.warning("Database manager not available, skipping SQLite migration")

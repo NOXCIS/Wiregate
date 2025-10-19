@@ -375,8 +375,9 @@ class Configuration:
     def __getRestrictedPeers(self):
         self.RestrictedPeers = []
         restricted = self.db.get_restricted_peers()
-        for i in restricted:
-            self.RestrictedPeers.append(Peer(i, self))
+        if restricted is not None:
+            for i in restricted:
+                self.RestrictedPeers.append(Peer(i, self))
 
     def configurationFileChanged(self):
         mt = os.path.getmtime(os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], f'{self.Name}.conf'))
@@ -476,8 +477,9 @@ class Configuration:
         else:
             self.Peers.clear()
             checkIfExist = self.db.get_peers()
-            for i in checkIfExist:
-                self.Peers.append(Peer(i, self))
+            if checkIfExist is not None:
+                for i in checkIfExist:
+                    self.Peers.append(Peer(i, self))
 
     def addPeers(self, peers: list):
         interface_address = self.get_iface_address()
@@ -638,10 +640,11 @@ class Configuration:
                 # Search in restricted table
                 restricted_peers = self.db.get_restricted_peers()
                 p = None
-                for peer in restricted_peers:
-                    if peer.get('id') == i:
-                        p = peer
-                        break
+                if restricted_peers is not None:
+                    for peer in restricted_peers:
+                        if peer.get('id') == i:
+                            p = peer
+                            break
                 
                 if p is not None:
                     # Move peer from restricted table

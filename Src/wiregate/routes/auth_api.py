@@ -17,6 +17,12 @@ from ..modules.Security import (
 from ..modules.ConfigEnv import SESSION_TIMEOUT
 
 from ..modules.Logger import AllDashboardLogger
+
+def is_safari_webkit():
+    """Detect if the request is from Safari WebKit"""
+    user_agent = request.headers.get('User-Agent', '').lower()
+    return 'safari' in user_agent and 'webkit' in user_agent and 'chrome' not in user_agent
+
 auth_blueprint = Blueprint('auth', __name__)
 
 @app.before_request
@@ -484,8 +490,19 @@ def API_AuthenticateLogin():
         session['last_activity'] = datetime.now().timestamp()
         
         resp = ResponseObject(True, DashboardConfig.GetConfig("Other", "welcome_session")[1])
-        resp.set_cookie("authToken", auth_token, httponly=True, secure=True, max_age=SESSION_TIMEOUT, samesite='Lax')
-        resp.set_cookie("sessionId", session_id, httponly=True, secure=True, max_age=SESSION_TIMEOUT, samesite='Lax')
+        # Safari WebKit compatibility: Adjust cookie settings based on browser and protocol
+        is_secure = request.is_secure if hasattr(request, 'is_secure') else False
+        is_safari = is_safari_webkit()
+        
+        # Safari WebKit is more restrictive with cookies
+        if is_safari and not is_secure:
+            # For Safari over HTTP, use more permissive settings
+            resp.set_cookie("authToken", auth_token, httponly=True, secure=False, max_age=SESSION_TIMEOUT, samesite='Lax')
+            resp.set_cookie("sessionId", session_id, httponly=True, secure=False, max_age=SESSION_TIMEOUT, samesite='Lax')
+        else:
+            # Standard secure settings for other browsers or HTTPS
+            resp.set_cookie("authToken", auth_token, httponly=True, secure=is_secure, max_age=SESSION_TIMEOUT, samesite='Lax')
+            resp.set_cookie("sessionId", session_id, httponly=True, secure=is_secure, max_age=SESSION_TIMEOUT, samesite='Lax')
         session.permanent = True
         
         # Clear any failed attempts
@@ -547,8 +564,19 @@ def API_AuthenticateLogin():
         session['last_activity'] = datetime.now().timestamp()
         
         resp = ResponseObject(True, DashboardConfig.GetConfig("Other", "welcome_session")[1])
-        resp.set_cookie("authToken", auth_token, httponly=True, secure=True, max_age=SESSION_TIMEOUT, samesite='Lax')
-        resp.set_cookie("sessionId", session_id, httponly=True, secure=True, max_age=SESSION_TIMEOUT, samesite='Lax')
+        # Safari WebKit compatibility: Adjust cookie settings based on browser and protocol
+        is_secure = request.is_secure if hasattr(request, 'is_secure') else False
+        is_safari = is_safari_webkit()
+        
+        # Safari WebKit is more restrictive with cookies
+        if is_safari and not is_secure:
+            # For Safari over HTTP, use more permissive settings
+            resp.set_cookie("authToken", auth_token, httponly=True, secure=False, max_age=SESSION_TIMEOUT, samesite='Lax')
+            resp.set_cookie("sessionId", session_id, httponly=True, secure=False, max_age=SESSION_TIMEOUT, samesite='Lax')
+        else:
+            # Standard secure settings for other browsers or HTTPS
+            resp.set_cookie("authToken", auth_token, httponly=True, secure=is_secure, max_age=SESSION_TIMEOUT, samesite='Lax')
+            resp.set_cookie("sessionId", session_id, httponly=True, secure=is_secure, max_age=SESSION_TIMEOUT, samesite='Lax')
         session.permanent = True
         
         # Clear any failed attempts
@@ -569,8 +597,19 @@ def API_SignOut():
     session.clear()
     
     resp = ResponseObject(True, "Logged out successfully")
-    resp.delete_cookie("authToken", httponly=True, secure=True, samesite='Lax')
-    resp.delete_cookie("sessionId", httponly=True, secure=True, samesite='Lax')
+    # Safari WebKit compatibility: Adjust cookie settings based on browser and protocol
+    is_secure = request.is_secure if hasattr(request, 'is_secure') else False
+    is_safari = is_safari_webkit()
+    
+    # Safari WebKit is more restrictive with cookies
+    if is_safari and not is_secure:
+        # For Safari over HTTP, use more permissive settings
+        resp.delete_cookie("authToken", httponly=True, secure=False, samesite='Lax')
+        resp.delete_cookie("sessionId", httponly=True, secure=False, samesite='Lax')
+    else:
+        # Standard secure settings for other browsers or HTTPS
+        resp.delete_cookie("authToken", httponly=True, secure=is_secure, samesite='Lax')
+        resp.delete_cookie("sessionId", httponly=True, secure=is_secure, samesite='Lax')
     return secure_headers(resp)
 
 @auth_blueprint.get('/csrf-token')

@@ -21,21 +21,34 @@ dnscrypt_conf=./dnscrypt/dnscrypt-proxy.toml
 stop_service() {
   printf "%s\n" "$equals"  
   echo "[WIREGATE] Received stop signal. Stopping WireGuard Dashboard and Tor."
+  echo "[WIREGATE] DEBUG: Signal received at $(date)"
+  
+  # Set a timeout for graceful shutdown (10 seconds)
+  timeout=10
+  start_time=$(date +%s)
   
   # Stop the main wiregate process
-  ./wiregate.sh stop
+  echo "[WIREGATE] DEBUG: Starting wiregate.sh stop process"
+  ./wiregate.sh stop &
+  local stop_pid=$!
+  echo "[WIREGATE] DEBUG: Stop process PID: $stop_pid"
   
-  # Kill any remaining tor processes
-  secure_exec pkill -f tor 2>/dev/null || true
+  # Wait for graceful shutdown with timeout
+  while kill -0 "$stop_pid" 2>/dev/null; do
+    current_time=$(date +%s)
+    elapsed=$((current_time - start_time))
+    if [ $elapsed -ge $timeout ]; then
+      echo "[WIREGATE] Graceful shutdown timeout reached after ${elapsed}s. Force killing processes..."
+      kill -KILL "$stop_pid" 2>/dev/null || true
+      break
+    fi
+    sleep 0.1
+  done
   
-  # Kill any remaining wiregate processes
-  secure_exec pkill -f wiregate 2>/dev/null || true
-  
-  # Kill any remaining vanguards processes
-  secure_exec pkill -f vanguards 2>/dev/null || true
-  
-  # Kill any remaining torflux processes
-  secure_exec pkill -f torflux 2>/dev/null || true
+  # Force kill any remaining processes immediately
+  # Since we don't have ps/pgrep, we'll rely on the main stop process
+  # to handle cleanup through the wiregate.sh script
+  # Additional cleanup will be handled by the main process
   
   printf "[WIREGATE] All processes stopped.\n"
   printf "%s\n" "$equals"
@@ -77,7 +90,14 @@ secure_exec chmod u+x wiregate.sh
 
 ./wiregate.sh install
 
-./wiregate.sh start 
+echo "[WIREGATE] DEBUG: Starting main process"
+./wiregate.sh start &
+
+echo "[WIREGATE] DEBUG: Main process started in background, waiting for signal"
+# Keep the script running to handle signals
+while true; do
+    sleep 1
+done 
 
 
 
