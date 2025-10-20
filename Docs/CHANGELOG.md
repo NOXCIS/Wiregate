@@ -97,7 +97,7 @@ sol-beta-v2.5.2
   - Enhanced Security Infrastructure - Comprehensive security middleware stack
   - Async Database Architecture - Full async/await support with PostgreSQL + Redis
   - Thread Pool & Process Pool Optimization - Parallel processing for bulk operations
-  - Bug Fixes (Traffic Shaping)
+  - Bug Fixes (Traffic Shaping) (Unsafe Inline css) (Public keys)
   - Sqlite backwards Compatablitly via DASHBOARD_TYPE=scale  # simple (SQLite) or scale (PostgreSQL + Redis)
 
 
