@@ -91,7 +91,7 @@ sol-beta-v2.3.2:
   - You need a Redis & Postgress container to run,
   - Check docker hub for more info.
 
-sol-beta-v2.5.2
+sol-beta-v2.5.2:
   - DO NOT USE IN PROD IS BETA
   - Complete FastAPI Migration - All Flask routes migrated to FastAPI
   - Enhanced Security Infrastructure - Comprehensive security middleware stack
