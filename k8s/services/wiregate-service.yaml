@@ -38,6 +38,11 @@ spec:
     targetPort: 80
     protocol: TCP
     nodePort: 30080
+  - name: https
+    port: 8443
+    targetPort: 443
+    protocol: TCP
+    nodePort: 30443
   selector:
     app: wiregate
   # If using LoadBalancer, you might want to specify loadBalancerIP

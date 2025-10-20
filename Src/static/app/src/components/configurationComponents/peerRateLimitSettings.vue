@@ -83,6 +83,7 @@
             <select class="form-select" v-model="schedulerType" :disabled="interfaceLocked">
               <option value="htb">HTB (Hierarchical Token Bucket)</option>
               <option value="hfsc">HFSC (Hierarchical Fair Service Curve)</option>
+              <option value="cake">CAKE (Common Applications Kept Enhanced)</option>
             </select>
             <small class="text-muted d-block mt-1" v-if="interfaceLocked">
               <LocaleText t="This interface is locked to"></LocaleText> {{ schedulerType.toUpperCase() }}
@@ -168,6 +169,8 @@ export default {
       // 18,446,744,073,709,551 Kb/s (about 18.4 Petabits/second)
       MAX_HTB_RATE_KBPS: 18446744073709551,
       MAX_HFSC_RATE_KBPS: 18446744073709551,
+      // CAKE has similar theoretical limits but may have practical constraints
+      MAX_CAKE_RATE_KBPS: 18446744073709551,
     }
   },
   async created() {
@@ -238,8 +241,21 @@ export default {
           result = BigInt(Math.floor(val)); // Already in Kb
       }
       
-      // Ensure we don't exceed the maximum
-      const maxRate = BigInt(this.MAX_HTB_RATE_KBPS);
+      // Ensure we don't exceed the maximum based on scheduler type
+      let maxRate;
+      switch (this.schedulerType) {
+        case 'htb':
+          maxRate = BigInt(this.MAX_HTB_RATE_KBPS);
+          break;
+        case 'hfsc':
+          maxRate = BigInt(this.MAX_HFSC_RATE_KBPS);
+          break;
+        case 'cake':
+          maxRate = BigInt(this.MAX_CAKE_RATE_KBPS);
+          break;
+        default:
+          maxRate = BigInt(this.MAX_HTB_RATE_KBPS);
+      }
       return result > maxRate ? Number(maxRate) : Number(result);
     },
     

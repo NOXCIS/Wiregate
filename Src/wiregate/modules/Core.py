@@ -2,6 +2,8 @@ import shutil, configparser, psutil
 import os, subprocess, uuid, datetime, time
 import ipaddress, json, re
 import logging
+import asyncio
+import aiofiles
 
 from datetime import datetime, timedelta
 
@@ -11,9 +13,7 @@ from .DashboardConfig import DashboardConfig
 from .Utilities import (
     StringToBoolean, ValidateIPAddressesWithRange,
     ValidateDNSAddress, RegexMatch, strToBool,
-    GenerateWireguardPublicKey, get_backup_paths
-)
-from .App import (
+    GenerateWireguardPublicKey, get_backup_paths,
     ResponseObject
 )
 
@@ -99,7 +99,12 @@ class Configuration:
                 # Ensure migration happens right after database creation
                 self.db.migrate_database()
 
-            self.__parseConfigurationFile()
+            # Use async parsing if available, otherwise fall back to sync
+            if hasattr(self, '_async_initialized'):
+                # This should not happen in constructor, async parsing is handled in create_async
+                self.__parseConfigurationFileSync()
+            else:
+                self.__parseConfigurationFileSync()
             self.__initPeersList()
 
         else:
@@ -299,9 +304,53 @@ class Configuration:
 
         return [p for p in script_paths if p is not None]
 
-    def __parseConfigurationFile(self):
+    def __parseConfigurationFileSync(self):
+        """Synchronous version of configuration file parsing for use in constructor"""
         with open(self.configPath, 'r') as f:
-            original = [l.rstrip("\n") for l in f.readlines()]
+            content = f.read()
+            original = [l.rstrip("\n") for l in content.splitlines()]
+            try:
+                start = original.index("[Interface]")
+
+                # Clean
+                for i in range(start, len(original)):
+                    if original[i] == "[Peer]":
+                        break
+                    split = re.split(r'\s*=\s*', original[i], maxsplit=1)
+                    if len(split) == 2:
+                        key = split[0]
+                        if key in dir(self):
+                            if isinstance(getattr(self, key), bool):
+                                setattr(self, key, False)
+                            else:
+                                setattr(self, key, "")
+
+                # Set
+                for i in range(start, len(original)):
+                    if original[i] == "[Peer]":
+                        break
+                    split = re.split(r'\s*=\s*', original[i], maxsplit=1)
+                    if len(split) == 2:
+                        key = split[0]
+                        value = split[1]
+                        if key in dir(self):
+                            if isinstance(getattr(self, key), bool):
+                                setattr(self, key, value.lower() in ['true', '1', 'yes', 'on'])
+                            elif isinstance(getattr(self, key), int):
+                                try:
+                                    setattr(self, key, int(value))
+                                except ValueError:
+                                    pass
+                            else:
+                                setattr(self, key, value)
+
+            except ValueError:
+                pass
+
+    async def __parseConfigurationFile(self):
+        async with aiofiles.open(self.configPath, 'r') as f:
+            content = await f.read()
+            original = [l.rstrip("\n") for l in content.splitlines()]
             try:
                 start = original.index("[Interface]")
 
@@ -375,8 +424,9 @@ class Configuration:
     def __getRestrictedPeers(self):
         self.RestrictedPeers = []
         restricted = self.db.get_restricted_peers()
-        for i in restricted:
-            self.RestrictedPeers.append(Peer(i, self))
+        if restricted is not None:
+            for i in restricted:
+                self.RestrictedPeers.append(Peer(i, self))
 
     def configurationFileChanged(self):
         mt = os.path.getmtime(os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], f'{self.Name}.conf'))
@@ -476,8 +526,9 @@ class Configuration:
         else:
             self.Peers.clear()
             checkIfExist = self.db.get_peers()
-            for i in checkIfExist:
-                self.Peers.append(Peer(i, self))
+            if checkIfExist is not None:
+                for i in checkIfExist:
+                    self.Peers.append(Peer(i, self))
 
     def addPeers(self, peers: list):
         interface_address = self.get_iface_address()
@@ -614,6 +665,150 @@ class Configuration:
             logger.error(f"Error in addPeers: {str(e)}")
             return False
 
+    async def addPeersAsync(self, peers: list):
+        """Async version of addPeers with bulk database operations for better performance"""
+        interface_address = self.get_iface_address()
+        cmd_prefix = self.get_iface_proto()
+        try:
+            # Validate peer names for uniqueness within this configuration
+            existing_peer_names = {peer.name for peer in self.Peers}
+            for peer in peers:
+                if peer.get('name') and peer['name'] in existing_peer_names:
+                    raise ValueError(f"A peer with the name '{peer['name']}' already exists in this configuration")
+                existing_peer_names.add(peer.get('name', ''))
+            
+            # Prepare all peer data for bulk database insertion
+            peers_data = []
+            for i in peers:
+                # Split addresses into v4 and v6
+                addr_v4 = []
+                addr_v6 = []
+                if 'allowed_ip' in i:
+                    for addr in i['allowed_ip'].split(','):
+                        addr = addr.strip()
+                        if ':' in addr:  # IPv6
+                            addr_v6.append(addr)
+                        else:  # IPv4
+                            addr_v4.append(addr)
+
+                newPeer = {
+                    "id": i['id'],
+                    "private_key": i['private_key'],
+                    "DNS": i['DNS'],
+                    "endpoint_allowed_ip": i['endpoint_allowed_ip'],
+                    "name": i['name'],
+                    "total_receive": 0,
+                    "total_sent": 0,
+                    "total_data": 0,
+                    "endpoint": "N/A",
+                    "status": "stopped",
+                    "latest_handshake": "N/A",
+                    "allowed_ip": i.get("allowed_ip", "N/A"),
+                    "cumu_receive": 0,
+                    "cumu_sent": 0,
+                    "cumu_data": 0,
+                    "traffic": [],
+                    "mtu": i['mtu'],
+                    "keepalive": i['keepalive'],
+                    "remote_endpoint": DashboardConfig.GetConfig("Peers", "remote_endpoint")[1],
+                    "preshared_key": i["preshared_key"],
+                    "address_v4": ','.join(addr_v4) if addr_v4 else None,
+                    "address_v6": ','.join(addr_v6) if addr_v6 else None,
+                    "upload_rate_limit": 0,
+                    "download_rate_limit": 0,
+                    "scheduler_type": "htb"  # Add default scheduler type
+                }
+                peers_data.append(newPeer)
+
+            # Bulk insert all peers into database
+            if hasattr(self.db, 'bulk_insert_peers'):
+                await self.db.bulk_insert_peers(peers_data)
+            else:
+                # Fallback to individual inserts
+                for peer_data in peers_data:
+                    self.db.insert_peer(peer_data)
+
+            # Handle wg commands and config file updates (these still need to be sequential)
+            config_path = f"/etc/wireguard/{self.Name}.conf"
+            for i, p in enumerate(peers):
+                logger.debug(f"Adding peer {i+1}/{len(peers)}: {p['id'][:8]}...")
+                presharedKeyExist = len(p['preshared_key']) > 0
+                # Use cryptographically secure random for UUID generation
+                uid = str(uuid.uuid4())
+
+                # Handle wg command securely
+                if presharedKeyExist:
+                    with open(uid, "w+") as f:
+                        f.write(p['preshared_key'])
+                
+                try:
+                    # Use secure command execution
+                    if cmd_prefix == "awg":
+                        result = execute_awg_command(
+                            action='set',
+                            interface=self.Name,
+                            peer_key=p['id'],
+                            allowed_ips=p['allowed_ip'].replace(' ', ''),
+                            preshared_key=p['preshared_key'] if presharedKeyExist else None
+                        )
+                    else:
+                        result = execute_wg_command(
+                            action='set',
+                            interface=self.Name,
+                            peer_key=p['id'],
+                            allowed_ips=p['allowed_ip'].replace(' ', ''),
+                            preshared_key=p['preshared_key'] if presharedKeyExist else None
+                        )
+                    
+                    logger.debug(f"Peer {i+1} result: success={result['success']}, error={result.get('error', 'None')}")
+                    if not result['success']:
+                        raise Exception(f"Failed to set peer {i+1}: {result.get('error', result.get('stderr', 'Unknown error'))}")
+                finally:
+                    # Always clean up the temporary file
+                    if presharedKeyExist and os.path.exists(uid):
+                        try:
+                            os.remove(uid)
+                        except:
+                            pass
+
+                # Add name comment to config file
+                if 'name_comment' in p and p['name_comment']:
+                    with open(config_path, 'r') as f:
+                        config_lines = f.readlines()
+
+                    # Find the [Peer] section for this peer
+                    peer_index = -1
+                    for idx, line in enumerate(config_lines):
+                        if line.strip() == '[Peer]':
+                            next_lines = config_lines[idx:idx + 5]  # Look at next few lines
+                            for next_line in next_lines:
+                                if f"PublicKey = {p['id']}" in next_line:
+                                    peer_index = idx
+                                    break
+
+                    # Insert name comment if we found the peer section
+                    if peer_index != -1:
+                        config_lines.insert(peer_index + 1, p['name_comment'] + '\n')
+                        with open(config_path, 'w') as f:
+                            f.writelines(config_lines)
+
+            # Save and patch
+            if cmd_prefix == "awg":
+                result = execute_awg_quick_command('save', self.Name)
+            else:
+                result = execute_wg_quick_command('save', self.Name)
+            if not result['success']:
+                raise Exception(f"Failed to save configuration: {result.get('error', result.get('stderr', 'Unknown error'))}")
+            try_patch = self.patch_iface_address(interface_address)
+            if try_patch:
+                return try_patch
+
+            self.getPeersList()
+            return True
+        except Exception as e:
+            logger.error(f"Error in addPeersAsync: {str(e)}")
+            return False
+
     def searchPeer(self, publicKey):
         # Check main peers first
         for i in self.Peers:
@@ -638,10 +833,11 @@ class Configuration:
                 # Search in restricted table
                 restricted_peers = self.db.get_restricted_peers()
                 p = None
-                for peer in restricted_peers:
-                    if peer.get('id') == i:
-                        p = peer
-                        break
+                if restricted_peers is not None:
+                    for peer in restricted_peers:
+                        if peer.get('id') == i:
+                            p = peer
+                            break
                 
                 if p is not None:
                     # Move peer from restricted table
@@ -707,6 +903,91 @@ class Configuration:
         except Exception as e:
             logger.error(f"Error in allowAccessPeers: {str(e)}")
             return ResponseObject(False, f"Internal error: {str(e)}")
+
+    async def allowAccessPeersAsync(self, listOfPublicKeys):
+        """Async version of allowAccessPeers with bulk database operations for better performance"""
+        try:
+            if not self.getStatus():
+                self.toggleConfiguration()
+            interface_address = self.get_iface_address()
+            cmd_prefix = self.get_iface_proto()
+            
+            # Use bulk operation to move peers from restricted table
+            if hasattr(self.db, 'bulk_move_peers_from_restricted'):
+                await self.db.bulk_move_peers_from_restricted(listOfPublicKeys)
+            else:
+                # Fallback to individual moves
+                for i in listOfPublicKeys:
+                    if not self.db.move_peer_from_restricted(i):
+                        return ResponseObject(False, f"Failed to move peer {i} from restricted table")
+            
+            # Get all peer data for wg commands
+            restricted_peers = self.db.get_restricted_peers()
+            peers_to_process = []
+            if restricted_peers is not None:
+                for peer in restricted_peers:
+                    if peer.get('id') in listOfPublicKeys:
+                        peers_to_process.append(peer)
+            
+            # Process wg commands for each peer
+            for p in peers_to_process:
+                presharedKeyExist = len(p.get('preshared_key', '')) > 0
+                uid = None
+                
+                try:
+                    if presharedKeyExist:
+                        # Use cryptographically secure random for UUID generation
+                        uid = str(uuid.uuid4())
+                        with open(uid, "w+") as f:
+                            f.write(p['preshared_key'])
+
+                    # Use secure command execution with protocol check
+                    if cmd_prefix == "awg":
+                        result = execute_awg_command(
+                            action='set',
+                            interface=self.Name,
+                            peer_key=p['id'],
+                            allowed_ips=p['allowed_ip'].replace(' ', ''),
+                            preshared_key=p['preshared_key'] if presharedKeyExist else None
+                        )
+                    else:
+                        result = execute_wg_command(
+                            action='set',
+                            interface=self.Name,
+                            peer_key=p['id'],
+                            allowed_ips=p['allowed_ip'].replace(' ', ''),
+                            preshared_key=p['preshared_key'] if presharedKeyExist else None
+                        )
+                    
+                    if not result['success']:
+                        logger.error(f"Failed to set peer {p['id']}: {result.get('error', result.get('stderr', 'Unknown error'))}")
+                        return ResponseObject(False, f"Failed to set peer {p['id']}: {result.get('error', result.get('stderr', 'Unknown error'))}")
+                        
+                finally:
+                    # Always clean up the temporary file
+                    if presharedKeyExist and uid and os.path.exists(uid):
+                        try:
+                            os.remove(uid)
+                        except:
+                            pass
+
+            # Save and patch
+            if cmd_prefix == "awg":
+                result = execute_awg_quick_command('save', self.Name)
+            else:
+                result = execute_wg_quick_command('save', self.Name)
+            if not result['success']:
+                return ResponseObject(False, f"Failed to save configuration: {result.get('error', result.get('stderr', 'Unknown error'))}")
+            
+            try_patch = self.patch_iface_address(interface_address)
+            if try_patch:
+                return try_patch
+
+            self.getPeersList()
+            return ResponseObject(True, "All peers have been allowed access successfully")
+        except Exception as e:
+            logger.error(f"Error in allowAccessPeersAsync: {str(e)}")
+            return ResponseObject(False, f"Error allowing access to peers: {str(e)}")
 
     def restrictPeers(self, listOfPublicKeys):
         numOfRestrictedPeers = 0
@@ -1094,8 +1375,8 @@ class Configuration:
                             })
                             total_sent = 0
                             total_receive = 0
-                        _, p = self.searchPeer(data_usage[i][0])
-                        if p.total_receive != total_receive or p.total_sent != total_sent:
+                        found, p = self.searchPeer(data_usage[i][0])
+                        if found and p and hasattr(p, 'total_receive') and hasattr(p, 'total_sent') and (p.total_receive != total_receive or p.total_sent != total_sent):
                             self.db.update_peer_transfer(data_usage[i][0], total_receive, total_sent, total_receive + total_sent)
         except Exception as e:
             logger.error(f"{self.Name} Error: {str(e)} {str(e.__traceback__)}")
@@ -1193,7 +1474,7 @@ class Configuration:
                         return False, result.get('error', result.get('stderr', 'Unknown error'))
             except subprocess.CalledProcessError as exc:
                 return False, str(exc.output.strip().decode("utf-8"))
-        self.__parseConfigurationFile()
+        self.__parseConfigurationFileSync()
         self.getStatus()
         return True, None
 
@@ -1382,7 +1663,7 @@ class Configuration:
             return False
 
         # Parse and restore database
-        self.__parseConfigurationFile()
+        self.__parseConfigurationFileSync()
         self.__dropDatabase()
         self.__importDatabase(backup_paths['redis_file'])
         
@@ -1536,6 +1817,114 @@ class Configuration:
             return False, msg
         return True, ""
 
+    @classmethod
+    async def create_async(cls, name: str, data: dict = None, backup: dict = None, startup: bool = False):
+        """Async factory method for Configuration with async file parsing"""
+        instance = cls.__new__(cls)
+        instance.__parser: configparser.ConfigParser = configparser.ConfigParser(strict=False)
+        instance.__parser.optionxform = str
+        instance.__configFileModifiedTime = None
+
+        instance.Status: bool = False
+        instance.Name: str = ""
+        instance.PrivateKey: str = ""
+        instance.PublicKey: str = ""
+        instance.ListenPort: str = ""
+        instance.Address: str = ""
+        instance.DNS: str = ""
+        instance.Table: str = ""
+        instance.Jc: str = ""
+        instance.Jmin: str = ""
+        instance.Jmax: str = ""
+        instance.S1: str = ""
+        instance.S2: str = ""
+        instance.H1: str = ""
+        instance.H2: str = ""
+        instance.H3: str = ""
+        instance.H4: str = ""
+        instance.MTU: str = ""
+        instance.PreUp: str = ""
+        instance.PostUp: str = ""
+        instance.PreDown: str = ""
+        instance.PostDown: str = ""
+        instance.SaveConfig: bool = True
+        instance.Name = name
+        instance.Protocol = instance.get_iface_proto()
+
+        instance.configPath = os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], f'{instance.Name}.conf')
+
+        backupPath = os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], 'WGDashboard_Backup')
+        if not os.path.exists(backupPath):
+            os.mkdir(backupPath)
+
+        # Initialize database manager
+        instance.db = ConfigurationDatabase(instance.Name)
+
+        if name is not None:
+            if data is not None and "Backup" in data.keys():
+                db = instance.db.import_database(
+                    os.path.join(
+                        DashboardConfig.GetConfig("Server", "wg_conf_path")[1],
+                        'WGDashboard_Backup',
+                        data["Backup"].replace(".conf", ".redis")))
+            else:
+                instance.db.create_database()
+                # Ensure migration happens right after database creation
+                instance.db.migrate_database()
+
+            # Mark as async initialized and use async parsing
+            instance._async_initialized = True
+            await instance.__parseConfigurationFile()
+            instance.__initPeersList()
+
+        else:
+            instance.Name = data["ConfigurationName"]
+            instance.configPath = os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], f'{instance.Name}.conf')
+
+            for i in dir(instance):
+                if str(i) in data.keys():
+                    if isinstance(getattr(instance, i), bool):
+                        setattr(instance, i, StringToBoolean(data[i]))
+                    else:
+                        setattr(instance, i, str(data[i]))
+
+            instance.__parser["Interface"] = {
+                "PrivateKey": instance.PrivateKey,
+                "Address": instance.Address,
+                "ListenPort": instance.ListenPort,
+                "PreUp": instance.PreUp,
+                "PreDown": instance.PreDown,
+                "PostUp": instance.PostUp,
+                "PostDown": instance.PostDown,
+            }
+
+            # Only add values if they are not empty or null
+            if instance.Jc:
+                instance.__parser["Interface"]["Jc"] = instance.Jc
+            if instance.Jmin:
+                instance.__parser["Interface"]["Jmin"] = instance.Jmin
+            if instance.Jmax:
+                instance.__parser["Interface"]["Jmax"] = instance.Jmax
+            if instance.S1:
+                instance.__parser["Interface"]["S1"] = instance.S1
+            if instance.S2:
+                instance.__parser["Interface"]["S2"] = instance.S2
+            if instance.H1:
+                instance.__parser["Interface"]["H1"] = instance.H1
+            if instance.H2:
+                instance.__parser["Interface"]["H2"] = instance.H2
+            if instance.H3:
+                instance.__parser["Interface"]["H3"] = instance.H3
+            if instance.H4:
+                instance.__parser["Interface"]["H4"] = instance.H4
+
+            # Add SaveConfig at the end, it seems like it's always True
+            instance.__parser["Interface"]["SaveConfig"] = "true"
+
+            instance.Status = instance.getStatus()
+
+        return instance
+
     def deleteConfiguration(self):
         if self.getStatus():
             self.toggleConfiguration()
@@ -1655,38 +2044,36 @@ class Configuration:
         return True, availableAddress
 
     def getRealtimeTrafficUsage(self):
-        """Get real-time traffic usage using ip command only"""
-        # Simply use the IP-based method directly
-        return self.getRealtimeTrafficFromIp()
+        """Get real-time traffic usage using native WireGuard/AmneziaWG statistics"""
+        # Use the native WireGuard/AmneziaWG method
+        return self.getRealtimeTraffic()
 
-    def getRealtimeTrafficFromIp(self):
-        """Get real-time traffic data using ip command only"""
+    def getRealtimeTraffic(self):
+        """Get real-time traffic data using native WireGuard/AmneziaWG statistics"""
         if not self.getStatus():
             return {"sent": 0, "recv": 0}
         
         try:
-            # Use the global traffic monitor with no protocol command
-            result = TRAFFIC_MONITOR.calculate_rate(self.Name)
+            # Get interface protocol (wg or awg)
+            protocol = self.get_iface_proto()
             
-            # Apply compensation factor to both directions
-            if result:
-                result["sent"] = round(result["sent"] * 0.591, 3)
-                result["recv"] = round(result["recv"] * 1.261, 3)  # Fixed typo in original (01.261)
+            # Use the global traffic monitor with native WireGuard/AmneziaWG commands
+            result = TRAFFIC_MONITOR.calculate_rate(self.Name, protocol)
             
             # Add logging
-            logger.debug(f" Interface {self.Name} (from ip) traffic: in={result['recv']}MB/s, out={result['sent']}MB/s, period={result['sample_period']}s")
+            logger.debug(f"Interface {self.Name} (native {protocol}) traffic: in={result['recv']}MB/s, out={result['sent']}MB/s, period={result['sample_period']}s")
             
             return {
-                "sent": result["recv"],
-                "recv": result["sent"]
+                "sent": result["sent"],
+                "recv": result["recv"]
             }
         except Exception as e:
-            logger.error(f"Failed to get real-time traffic from ip: {str(e)}")
+            logger.error(f"Failed to get real-time traffic from {protocol}: {str(e)}")
             return {"sent": 0, "recv": 0}
 
     def getRealtimeTrafficFromPeers(self):
-        """Get real-time traffic data using ip command only (legacy method name kept for compatibility)"""
-        return self.getRealtimeTrafficFromIp()
+        """Get real-time traffic data using native WireGuard/AmneziaWG statistics (legacy method name kept for compatibility)"""
+        return self.getRealtimeTraffic()
 
 
 class Peer:
@@ -1724,7 +2111,10 @@ class Peer:
     def toJson(self):
         self.getJobs()
         self.getShareLink()
-        return self.__dict__
+        # Create a copy of __dict__ without the configuration reference to avoid circular serialization
+        peer_dict = self.__dict__.copy()
+        peer_dict.pop('configuration', None)  # Remove circular reference
+        return peer_dict
 
     def __repr__(self):
         return str(self.toJson())
@@ -1983,7 +2373,7 @@ def InitWireguardConfigurationsList(startup: bool = False):
             except Configuration.InvalidConfigurationFileException as e:
                 logger.error(f"{i} have an invalid configuration file.")
 
-def InitRateLimits():
+async def InitRateLimits():
     """Reapply rate limits for all peers across all interfaces"""
     logger = logging.getLogger('wiregate')
     try:
@@ -2019,10 +2409,13 @@ def InitRateLimits():
                         ]
                         
                         logger.debug(f"Executing command: {' '.join(cmd)}")
-                        result = subprocess.run(cmd, capture_output=True, text=True)
+                        process = await asyncio.create_subprocess_exec(
+                            *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+                        )
+                        stdout, stderr = await process.communicate()
                         
-                        if result.returncode != 0:
-                            logger.error(f"Failed to reapply rate limits for peer {peer['id']} on {config.Name}: {result.stderr}")
+                        if process.returncode != 0:
+                            logger.error(f"Failed to reapply rate limits for peer {peer['id']} on {config.Name}: {stderr.decode()}")
                         else:
                             logger.debug(f"Successfully applied rate limits for peer {peer['id']} on {config.Name}")
                             
@@ -2038,110 +2431,157 @@ def InitRateLimits():
 
 Configurations: dict[str, Configuration] = {}
 
-def is_kernel_module_loaded(module_name):
+async def is_kernel_module_loaded(module_name):
     """Check if a specific kernel module is loaded"""
     try:
-        result = subprocess.run(['lsmod'], stdout=subprocess.PIPE, text=True)
-        return module_name in result.stdout
+        process = await asyncio.create_subprocess_exec(
+            'lsmod', stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await process.communicate()
+        return module_name in stdout.decode()
     except Exception:
         # Fallback to checking /proc/modules
         try:
-            with open('/proc/modules', 'r') as f:
-                return module_name in f.read()
+            async with aiofiles.open('/proc/modules', 'r') as f:
+                content = await f.read()
+                return module_name in content
         except Exception:
             return False
 
 # Add this at the module level (outside any class)
-class TrafficMonitor:
-    """Traffic rate monitor using raw calculations without statistical smoothing"""
+class WireGuardTrafficMonitor:
+    """Accurate traffic monitor using native WireGuard/AmneziaWG statistics with per-peer granularity"""
     
-    def __init__(self, window_size=3, min_samples=1):
-        self.window_size = window_size
-        self.min_samples = min_samples
-        self.last_measurement = {}  # {interface_name: {'recv': bytes, 'sent': bytes, 'timestamp': time}}
+    def __init__(self):
+        # Track per-peer statistics: {interface_name: {peer_public_key: {'recv': bytes, 'sent': bytes, 'timestamp': time}}}
+        self.last_measurement = {}
     
-    def get_transfer_data(self, interface_name):
-        """Get raw transfer data using ip command only"""
+    def get_transfer_data(self, interface_name, protocol='wg'):
+        """Get cumulative transfer data from wg/awg show transfer command"""
         try:
-            # Use ip -s link show to get interface statistics directly
-            result = execute_ip_command('link_stats', interface_name)
+            # Use appropriate command based on protocol
+            cmd_func = execute_awg_command if protocol == 'awg' else execute_wg_command
+            result = cmd_func('show', interface_name, subcommand='transfer')
+            
             if not result['success']:
+                logger.debug(f"Failed to get transfer data for {interface_name}: {result.get('error', 'Unknown error')}")
                 return None
-            output = result['stdout'].encode()
-            
-            # Parse the output to extract RX/TX bytes
-            lines = output.decode("UTF-8").splitlines()
-            
-            # Find RX and TX statistics sections
-            rx_bytes = None
-            tx_bytes = None
-            
-            for i, line in enumerate(lines):
-                if "RX:" in line and i+1 < len(lines):
-                    # RX bytes is typically the first value on the next line
-                    rx_stats = lines[i+1].strip().split()
-                    if len(rx_stats) >= 1:
-                        try:
-                            rx_bytes = int(rx_stats[0])
-                        except (ValueError, IndexError):
-                            pass
                 
-                if "TX:" in line and i+1 < len(lines):
-                    # TX bytes is typically the first value on the next line
-                    tx_stats = lines[i+1].strip().split()
-                    if len(tx_stats) >= 1:
-                        try:
-                            tx_bytes = int(tx_stats[0])
-                        except (ValueError, IndexError):
-                            pass
+            # Parse output: peer_key\treceived\tsent
+            lines = result['stdout'].strip().split('\n')
+            peer_data = {}
+            total_recv = 0
+            total_sent = 0
             
-            # If we successfully parsed both values, return them
-            if rx_bytes is not None and tx_bytes is not None:
-                return {
-                    'recv': rx_bytes, 
-                    'sent': tx_bytes,
-                    'timestamp': time.time()
-                }
+            for line in lines:
+                if not line.strip():
+                    continue
+                    
+                parts = line.split('\t')
+                if len(parts) == 3:
+                    peer_key = parts[0]
+                    recv_bytes = int(parts[1])
+                    sent_bytes = int(parts[2])
+                    
+                    peer_data[peer_key] = {
+                        'recv': recv_bytes,
+                        'sent': sent_bytes,
+                        'timestamp': time.time()
+                    }
+                    
+                    total_recv += recv_bytes
+                    total_sent += sent_bytes
+            
+            # Return both per-peer data and interface totals
+            return {
+                'peer_data': peer_data,
+                'total_recv': total_recv,
+                'total_sent': total_sent,
+                'timestamp': time.time()
+            }
                 
         except Exception as e:
-            # Log the error
-            logger.debug(f" Could not get interface stats via ip command: {str(e)}")
-        
-        # Return empty result if ip command failed
-        return {}
+            logger.debug(f"Could not get transfer data for {interface_name}: {str(e)}")
+            return None
     
-    def calculate_rate(self, interface_name):
-        """Calculate transfer rate using precise time differentials"""
-        current_data = self.get_transfer_data(interface_name)
-        result = {"sent": 0, "recv": 0, "sample_period": 0}
+    def calculate_rate(self, interface_name, protocol='wg'):
+        """Calculate real-time transfer rate in Mbps using per-peer aggregation"""
+        current_data = self.get_transfer_data(interface_name, protocol)
         
-        if interface_name in self.last_measurement and current_data:
+        if not current_data:
+            return {"sent": 0, "recv": 0, "sample_period": 0}
+        
+        # Check if we have previous measurements
+        if interface_name in self.last_measurement:
             last_data = self.last_measurement[interface_name]
-            
-            current_time = current_data.get('timestamp', time.time())
-            last_time = last_data.get('timestamp', 0)
-            time_diff = current_time - last_time
+            time_diff = current_data['timestamp'] - last_data['timestamp']
             
             if time_diff > 0:
-                recv_diff = current_data['recv'] - last_data['recv']
-                sent_diff = current_data['sent'] - last_data['sent']
+                # Calculate deltas for total interface traffic
+                recv_diff = current_data['total_recv'] - last_data['total_recv']
+                sent_diff = current_data['total_sent'] - last_data['total_sent']
                 
+                # Handle counter resets (interface restart)
                 if recv_diff < 0:
-                    recv_diff = current_data['recv']
+                    recv_diff = current_data['total_recv']
                 if sent_diff < 0:
-                    sent_diff = current_data['sent']
+                    sent_diff = current_data['total_sent']
                 
-                bytes_in_per_sec = recv_diff / time_diff
-                bytes_out_per_sec = sent_diff / time_diff
+                # Convert to Mbps
+                recv_rate_mbps = (recv_diff * 8) / (time_diff * 1_000_000)
+                sent_rate_mbps = (sent_diff * 8) / (time_diff * 1_000_000)
                 
-                result = {
-                    "sent": round((bytes_out_per_sec * 8) / 1_000_000, 3),  # Mbps
-                    "recv": round((bytes_in_per_sec * 8) / 1_000_000, 3),   # Mbps
+                # Store current measurement for next calculation
+                self.last_measurement[interface_name] = current_data
+                
+                return {
+                    "sent": round(sent_rate_mbps, 3),
+                    "recv": round(recv_rate_mbps, 3),
                     "sample_period": round(time_diff, 3)
                 }
         
+        # First measurement, store and return 0
         self.last_measurement[interface_name] = current_data
-        return result
+        return {"sent": 0, "recv": 0, "sample_period": 0}
     
-# Create a single instance at module level with larger window for better statistics
-TRAFFIC_MONITOR = TrafficMonitor(window_size=15, min_samples=3)
+    def get_peer_rates(self, interface_name, protocol='wg'):
+        """Get per-peer transfer rates for detailed analysis"""
+        current_data = self.get_transfer_data(interface_name, protocol)
+        
+        if not current_data or interface_name not in self.last_measurement:
+            return {}
+        
+        last_data = self.last_measurement[interface_name]
+        time_diff = current_data['timestamp'] - last_data['timestamp']
+        
+        if time_diff <= 0:
+            return {}
+        
+        peer_rates = {}
+        
+        # Calculate rate for each peer
+        for peer_key, current_peer in current_data['peer_data'].items():
+            if peer_key in last_data['peer_data']:
+                last_peer = last_data['peer_data'][peer_key]
+                
+                recv_diff = current_peer['recv'] - last_peer['recv']
+                sent_diff = current_peer['sent'] - last_peer['sent']
+                
+                # Handle counter resets
+                if recv_diff < 0:
+                    recv_diff = current_peer['recv']
+                if sent_diff < 0:
+                    sent_diff = current_peer['sent']
+                
+                recv_rate_mbps = (recv_diff * 8) / (time_diff * 1_000_000)
+                sent_rate_mbps = (sent_diff * 8) / (time_diff * 1_000_000)
+                
+                peer_rates[peer_key] = {
+                    "sent": round(sent_rate_mbps, 3),
+                    "recv": round(recv_rate_mbps, 3)
+                }
+        
+        return peer_rates
+
+# Create a single instance at module level
+TRAFFIC_MONITOR = WireGuardTrafficMonitor()

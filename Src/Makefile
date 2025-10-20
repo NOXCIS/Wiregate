@@ -13,7 +13,7 @@ STATIC_DIR_LOCALE = $(WIREGATE_SRC)/static
 AWG_GO_DIR = /usr/bin
 
 # Go settings
-GO_VERSION = 1.24.0
+GO_VERSION = 1.24.6
 GO_ARCH ?= $(shell uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 GO_LDFLAGS = -X main.version=v1.0.0 -s -w
 
@@ -106,18 +106,18 @@ builder-deps:
 
 # Frontend dependencies and build
 frontend-deps:
-	@echo "Installing Node.js dependencies..."
+	@echo "Installing Node.js dependencies with pnpm..."
 	cd $(STATIC_DIR) && \
-	rm -rf node_modules package-lock.json && \
+	rm -rf node_modules pnpm-lock.yaml && \
 	PATH="$(abspath $(NODE_DIST_DIR))/bin:$$PATH" \
-	$(NODE_DIST_DIR)/bin/npm cache clean --force && \
-	$(NODE_DIST_DIR)/bin/npm install --no-audit --no-fund --no-strict-ssl
+	$(NODE_DIST_DIR)/bin/npm install -g pnpm && \
+	pnpm install --frozen-lockfile
 
 frontend: frontend-deps
 	@echo "Building frontend..."
 	cd $(STATIC_DIR) && \
 	PATH="$(abspath $(NODE_DIST_DIR))/bin:$$PATH" \
-	$(NODE_DIST_DIR)/bin/npm run build && \
+	pnpm run build && \
 	mkdir -p $(BUILD_DIR)/app && \
 	mv dist $(BUILD_DIR)/app/dist && \
 	rm -rf node_modules
@@ -150,9 +150,7 @@ go-bins: go-deps
 	# Copy Go source files
 	cp ./torflux/torflux.go $(BUILD_DIR)/torflux-build/
 	cp ./torflux/go.mod $(BUILD_DIR)/torflux-build/
-	cp ./traffic_weir/traffic-weir.go $(BUILD_DIR)/traffic_weir/
-	cp ./traffic_weir/pf_helper.go $(BUILD_DIR)/traffic_weir/
-	cp ./traffic_weir/go.mod $(BUILD_DIR)/traffic_weir/
+	cp -r ./traffic_weir/* $(BUILD_DIR)/traffic_weir/
 	
 	# Build torflux
 	cd $(BUILD_DIR)/torflux-build && \

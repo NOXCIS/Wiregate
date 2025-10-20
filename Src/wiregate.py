@@ -13,10 +13,8 @@
 # limitations under the License.
 
 
-from wiregate.dashboard import app, app_ip, app_port
-from wiregate.modules.Core import InitWireguardConfigurationsList, InitRateLimits
-from wiregate.dashboard import startThreads, stopThreads
-from wiregate.modules.DataBase import check_and_migrate_sqlite_databases
+from wiregate.modules.DashboardConfig import DashboardConfig
+from wiregate.dashboard import stopThreads
 import logging
 import uvicorn
 import sys
@@ -26,7 +24,6 @@ import configparser
 import os
 import signal
 import atexit
-from asgiref.wsgi import WsgiToAsgi
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -48,14 +45,14 @@ def signal_handler(signum, frame):
     logger.info(f"Received signal {signum}. Initiating graceful shutdown...")
     shutdown_requested = True
     
-    # Stop threads and cleanup
+    # Stop threads and cleanup with timeout
     try:
         stopThreads()
         logger.info("Threads stopped successfully")
     except Exception as e:
         logger.error(f"Error stopping threads: {e}")
     
-    # Exit gracefully
+    # Exit immediately after cleanup
     sys.exit(0)
 
 def cleanup_on_exit():
@@ -92,13 +89,21 @@ if __name__ == "__main__":
     parser.add_argument('--keyfile', type=str, help='Path to SSL private key file')
     args = parser.parse_args()
     
+    # Get app configuration
+    _, app_ip = DashboardConfig.GetConfig("Server", "app_ip")
+    _, app_port = DashboardConfig.GetConfig("Server", "app_port")
+    
     # Default options for Uvicorn
     options = {
         'host': app_ip,
         'port': int(app_port),
         'log_level': 'info',
         'access_log': True,
-
+        'loop': 'asyncio',
+        'http': 'h11',
+        'lifespan': 'on',
+        'timeout_keep_alive': 5,
+        'timeout_graceful_shutdown': 5,  # Reduced from 30 to 5 seconds
     }
     
     # Try to load from default config file location if not specified
@@ -170,40 +175,8 @@ if __name__ == "__main__":
     else:
         logger.info(f"Starting Wiregate Dashboard on http://{app_ip}:{app_port}")
     
-    # Check for and migrate any existing SQLite databases to Redis
-    logger.info("Checking for SQLite databases to migrate...")
-    if check_and_migrate_sqlite_databases():
-        logger.info("✓ SQLite databases migrated to Redis")
-    else:
-        logger.info("✓ No SQLite databases found to migrate")
-    
-    InitWireguardConfigurationsList(startup=True)
-    InitRateLimits()
-    startThreads()
-    
-    # Convert Flask WSGI app to ASGI for Uvicorn compatibility
-    asgi_app = WsgiToAsgi(app)
-    
-    # Wrap the app with lifespan support to avoid ASGI warning
-    class LifespanWrapper:
-        def __init__(self, app):
-            self.app = app
-            
-        async def __call__(self, scope, receive, send):
-            if scope["type"] == "lifespan":
-                while True:
-                    message = await receive()
-                    if message["type"] == "lifespan.startup":
-                        await send({"type": "lifespan.startup.complete"})
-                    elif message["type"] == "lifespan.shutdown":
-                        await send({"type": "lifespan.shutdown.complete"})
-                        break
-            else:
-                # Delegate to the WSGI app
-                await self.app(scope, receive, send)
-    
-    # Create the final ASGI app
-    final_app = LifespanWrapper(asgi_app)
+    # Import FastAPI app (lifespan events handle all initialization)
+    from wiregate.modules.App import fastapi_app as final_app
     
     # Remove workers option to avoid Uvicorn warning/crash
     if 'workers' in options:

@@ -7,6 +7,8 @@ metadata:
     app: wiregate
 spec:
   replicas: 1
+  strategy:
+    type: Recreate
   selector:
     matchLabels:
       app: wiregate
@@ -39,7 +41,7 @@ spec:
           mountPath: /tmp/iptable-rules
       containers:
       - name: wiregate
-        image: noxcis/wiregate:sol-beta-v2.3.3
+        image: noxcis/wiregate:sol-beta-v2.4.1
         ports:
         - containerPort: 44333
           protocol: UDP
@@ -52,6 +54,8 @@ spec:
         - containerPort: 4433
           protocol: UDP
         - containerPort: 80
+          protocol: TCP
+        - containerPort: 443
           protocol: TCP
         envFrom:
         - configMapRef:
@@ -125,7 +129,8 @@ spec:
         persistentVolumeClaim:
           claimName: wiregate-db-pvc
       - name: ssl-certs
-        emptyDir: {}
+        configMap:
+          name: wiregate-ssl-certs
       - name: dnscrypt
         emptyDir: {}
       - name: tor

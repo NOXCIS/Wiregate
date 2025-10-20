@@ -121,6 +121,7 @@ ufw allow 8000/tcp
 
 | Variable | Description | Default | Example |
 |----------|-------------|---------|---------|
+| `DASHBOARD_TYPE` | Database mode | `scale` | `simple` (SQLite), `scale` (PostgreSQL + Redis) |
 | `POSTGRES_HOST` | PostgreSQL host | `postgres` | `localhost`, `db.example.com` |
 | `POSTGRES_PORT` | PostgreSQL port | `5432` | `5432` |
 | `POSTGRES_DB` | Database name | `wiregate` | `wiregate_prod` |
@@ -281,6 +282,75 @@ volumes:
 
 ## Configuration Files
 
+### Config Folder Structure
+
+The `configs/` folder contains all configuration files for WireGate services. Here's the recommended structure:
+
+```
+configs/
+├── ssl/                    # SSL/TLS certificates
+│   ├── cert.pem           # SSL certificate
+│   └── key.pem            # SSL private key
+├── dnscrypt/              # Dnscrypt configuration
+│   └── dnscrypt-proxy.toml
+├── tor/                   # Tor configuration files
+│   ├── torrc              # Main Tor configuration
+│   └── dnstorrc           # Tor DNS configuration
+├── postgres/              # PostgreSQL configuration
+│   ├── postgresql.conf    # PostgreSQL server config
+│   └── init.sql           # Database initialization script
+├── redis/                 # Redis configuration
+│   └── redis.conf         # Redis server config
+├── logs/                  # Log files (optional)
+│   ├── dns_tor_startup_log_*.txt
+│   ├── interface_startup_log_*.txt
+│   └── tor_startup_log_*.txt
+└── master-key/            # WireGate master configuration
+    └── master.conf        # Master WireGuard config
+```
+
+### Config Folder Setup
+
+1. **Create the config directory structure**:
+   ```bash
+   mkdir -p configs/{ssl,dnscrypt,tor,postgres,redis,logs,master-key}
+   ```
+
+2. **Set proper permissions**:
+   ```bash
+   chmod 755 configs/
+   chmod 644 configs/*/*.conf
+   chmod 600 configs/ssl/*.pem
+   chmod 644 configs/logs/*
+   ```
+
+3. **SSL Certificates** (Optional):
+   ```bash
+   # Generate self-signed certificates
+   openssl req -x509 -newkey rsa:4096 -keyout configs/ssl/key.pem \
+     -out configs/ssl/cert.pem -days 365 -nodes \
+     -subj "/C=US/ST=State/L=City/O=Organization/CN=yourdomain.com"
+   
+   # Or copy your existing certificates
+   cp /path/to/your/cert.pem configs/ssl/
+   cp /path/to/your/key.pem configs/ssl/
+   ```
+
+4. **Tor Configuration** (Optional):
+   ```bash
+   # Copy default Tor configurations
+   cp /etc/tor/torrc configs/tor/
+   cp /etc/tor/dnstorrc configs/tor/
+   ```
+
+5. **Database Configurations**:
+   ```bash
+   # Copy the provided configuration files
+   cp configs/postgres/postgresql.conf configs/postgres/
+   cp configs/postgres/init.sql configs/postgres/
+   cp configs/redis/redis.conf configs/redis/
+   ```
+
 ### Environment File (.env)
 
 ```ini
@@ -295,6 +365,10 @@ BRUTE_FORCE_MAX_ATTEMPTS=5    # max failed attempts
 BRUTE_FORCE_LOCKOUT_TIME=900  # 15 minutes
 SESSION_TIMEOUT=3600          # 1 hour
 SECURE_SESSION=true
+
+# Database Settings
+##########################################################
+DASHBOARD_TYPE=scale  # simple (SQLite) or scale (PostgreSQL + Redis)
 
 # Redis Database Settings
 ##########################################################
@@ -743,6 +817,83 @@ tar -czf wiregate_config_backup_$(date +%Y%m%d_%H%M%S).tar.gz \
   .env \
   docker-compose.yml
 ```
+
+### Config File Management
+
+#### Validating Configuration Files
+
+```bash
+# Validate PostgreSQL configuration
+docker exec wiregate-postgres postgres --check-config
+
+# Validate Redis configuration
+docker exec wiregate-redis redis-server --test-memory 1
+
+# Check Tor configuration
+docker exec wiregate tor --verify-config
+
+# Validate SSL certificates
+openssl x509 -in configs/ssl/cert.pem -text -noout
+```
+
+#### Config File Permissions
+
+```bash
+# Fix common permission issues
+sudo chown -R $USER:$USER configs/
+chmod 755 configs/
+chmod 644 configs/*/*.conf configs/*/*.toml configs/*/*.sql
+chmod 600 configs/ssl/*.pem
+chmod 644 configs/logs/*
+```
+
+#### Config File Troubleshooting
+
+**Common Issues:**
+
+1. **Permission Denied Errors**:
+   ```bash
+   # Check file ownership and permissions
+   ls -la configs/
+   ls -la configs/ssl/
+   
+   # Fix ownership
+   sudo chown -R $USER:$USER configs/
+   ```
+
+2. **Missing Config Files**:
+   ```bash
+   # Check if all required files exist
+   find configs/ -name "*.conf" -o -name "*.toml" -o -name "*.sql"
+   
+   # Create missing directories
+   mkdir -p configs/{ssl,dnscrypt,tor,postgres,redis,logs,master-key}
+   ```
+
+3. **Invalid Configuration Syntax**:
+   ```bash
+   # Test PostgreSQL config
+   docker exec wiregate-postgres postgres --check-config
+   
+   # Test Redis config
+   docker exec wiregate-redis redis-server --test-memory 1
+   
+   # Test Tor config
+   docker exec wiregate tor --verify-config
+   ```
+
+4. **SSL Certificate Issues**:
+   ```bash
+   # Check certificate validity
+   openssl x509 -in configs/ssl/cert.pem -text -noout
+   
+   # Check certificate expiration
+   openssl x509 -in configs/ssl/cert.pem -noout -dates
+   
+   # Verify certificate and key match
+   openssl x509 -noout -modulus -in configs/ssl/cert.pem | openssl md5
+   openssl rsa -noout -modulus -in configs/ssl/key.pem | openssl md5
+   ```
 
 ### Automated Backup Script
 

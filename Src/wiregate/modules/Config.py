@@ -3,7 +3,7 @@ import socket
 
 
 # Import Enviorment
-DASHBOARD_VERSION = 'sol-beta-v2.3.3'
+DASHBOARD_VERSION = 'sol-beta-v2.5.2'
 DASHBOARD_MODE = None
 CONFIGURATION_PATH = os.getenv('CONFIGURATION_PATH', '.')
 DB_PATH = os.path.join(CONFIGURATION_PATH, 'db')
@@ -65,3 +65,6 @@ BRUTE_FORCE_MAX_ATTEMPTS = int(os.getenv('BRUTE_FORCE_MAX_ATTEMPTS', '5'))  # ma
 BRUTE_FORCE_LOCKOUT_TIME = int(os.getenv('BRUTE_FORCE_LOCKOUT_TIME', '900'))  # 15 minutes
 SESSION_TIMEOUT = int(os.getenv('SESSION_TIMEOUT', '3600'))  # 1 hour
 SECURE_SESSION = os.getenv('SECURE_SESSION', 'true').lower() == 'true'
+
+# Database Type Settings
+DASHBOARD_TYPE = os.getenv('DASHBOARD_TYPE', 'scale')  # simple (SQLite), scale (PostgreSQL + Redis)

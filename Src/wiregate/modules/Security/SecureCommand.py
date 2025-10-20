@@ -115,7 +115,7 @@ class SecureCommandExecutor:
             'max_args': 10
         },
         'traffic-weir': {
-            'allowed_args': ['-interface', '-peer', '-upload-rate', '-download-rate', '-protocol', '-scheduler', '-allowed-ips', '--interface', '--peer', '--upload-rate', '--download-rate', '--protocol', '--scheduler', '--allowed-ips', '--remove'],
+            'allowed_args': ['-interface', '-peer', '-upload-rate', '-download-rate', '-protocol', '-scheduler', '-allowed-ips', '-remove', '-nuke', '--interface', '--peer', '--upload-rate', '--download-rate', '--protocol', '--scheduler', '--allowed-ips', '--remove', '--nuke'],
             'max_args': 15
         },
         'torflux': {

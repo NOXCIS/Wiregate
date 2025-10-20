@@ -120,5 +120,26 @@ def GenerateWireguardPrivateKey() -> tuple[bool, str] | tuple[bool, None]:
             return False, None
     except Exception:
         return False, None
+
+
+def ResponseObject(status=True, message=None, data=None):
+    """
+    FastAPI-compatible response object
+    Returns a dict that can be used with StandardResponse model
+    """
+    return {
+        "status": status,
+        "message": message,
+        "data": data
+    }
+
+
+def convert_response_object_to_dict(response_obj):
+    """Convert response object to dict for FastAPI"""
+    if isinstance(response_obj, dict):
+        return response_obj
+    else:
+        # Fallback for any other format
+        return {"status": False, "message": "Unknown response format", "data": None}
     
 

@@ -6,86 +6,32 @@ import logging
 from typing import List
 from datetime import datetime
 from ..Logger import Log
-from ..ConfigEnv import (
-    CONFIGURATION_PATH
-)
-from ..DataBase import get_redis_manager
+from ..Config import CONFIGURATION_PATH, DASHBOARD_TYPE
+from ..DataBase import get_redis_manager, SQLiteDatabaseManager
 
 # Set up logger
 logger = logging.getLogger(__name__)
 
-class MockRedisClient:
-    """Mock Redis client for when Redis is not available"""
-    def __init__(self):
-        self._data = {}
-    
-    def exists(self, key):
-        return key in self._data
-    
-    def set(self, key, value):
-        self._data[key] = value
-    
-    def incr(self, key):
-        if key not in self._data:
-            self._data[key] = 0
-        self._data[key] += 1
-        return self._data[key]
-    
-    def hset(self, key, field, value):
-        if key not in self._data:
-            self._data[key] = {}
-        self._data[key][field] = value
-    
-    def hgetall(self, key):
-        return self._data.get(key, {})
-    
-    def lpush(self, key, value):
-        if key not in self._data:
-            self._data[key] = []
-        self._data[key].insert(0, value)
-    
-    def lrange(self, key, start, end):
-        data = self._data.get(key, [])
-        if end == -1:
-            return data[start:]
-        return data[start:end+1]
-    
-    def hkeys(self, key):
-        data = self._data.get(key, {})
-        return list(data.keys())
-
 class PeerJobLogger:
     def __init__(self):
-        self.redis_manager = None
-        self.job_logs_key = "wiregate:job_logs"
-        self.log_counter_key = "wiregate:job_logs:counter"
+        self.db_manager = get_redis_manager()
+        self._is_sqlite = isinstance(self.db_manager, SQLiteDatabaseManager)
         self.logs: List[Log] = []
-        self._initialized = False
+        self._initialize_database()
         
-    def _ensure_redis_connection(self):
-        """Ensure Redis connection is established"""
-        if self.redis_manager is None:
-            try:
-                self.redis_manager = get_redis_manager()
-                self.__initialize_redis()
-                self._initialized = True
-            except Exception as e:
-                logger.warning(f"Could not connect to Redis: {e}")
-                # Create a mock redis manager for fallback
-                class MockRedisManager:
-                    def __init__(self):
-                        self.redis_client = MockRedisClient()
-                self.redis_manager = MockRedisManager()
-                self._initialized = True
-
-    def __initialize_redis(self):
-        """Initialize Redis with log counter if not exists"""
-        if not self.redis_manager.redis_client.exists(self.log_counter_key):
-            self.redis_manager.redis_client.set(self.log_counter_key, 0)
+    def _initialize_database(self):
+        """Initialize database tables for logs"""
+        try:
+            # Ensure logs table exists
+            if not self.db_manager.table_exists('PeerJobLogs'):
+                logger.info("Creating PeerJobLogs table...")
+                self.db_manager.create_logs_table()
+            logger.debug("PeerJobLogs table ready")
+        except Exception as e:
+            logger.error(f"Failed to initialize database: {e}")
 
     def log(self, JobID: str, Status: bool = True, Message: str = "") -> bool:
         try:
-            self._ensure_redis_connection()
             log_id = str(uuid.uuid4())
             log_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             
@@ -94,16 +40,12 @@ class PeerJobLogger:
                 'LogID': log_id,
                 'JobID': JobID,
                 'LogDate': log_date,
-                'Status': str(Status),
+                'Status': Status,
                 'Message': Message
             }
             
-            # Save to Redis
-            self.redis_manager.redis_client.hset(
-                self.job_logs_key, 
-                log_id, 
-                json.dumps(log_data)
-            )
+            # Save to database
+            self.db_manager.insert_record('PeerJobLogs', log_id, log_data)
             
             return True
         except Exception as e:
@@ -117,22 +59,28 @@ class PeerJobLogger:
             allJobs = AllPeerJobs.getAllJobs(configName)
             allJobsID = [x.JobID for x in allJobs]
             
-            # Get all job log keys
-            log_keys = self.redis_manager.redis_client.hkeys(self.job_logs_key)
+            # Get all logs from database
+            records = self.db_manager.get_all_records('PeerJobLogs')
             
-            for log_key in log_keys:
-                log_data = self.redis_manager.redis_client.hget(self.job_logs_key, log_key)
-                if log_data:
-                    log_dict = json.loads(log_data)
+            for record in records:
+                try:
                     # Filter by job IDs if configName is specified
-                    if not configName or log_dict.get('JobID') in allJobsID:
+                    if not configName or record.get('JobID') in allJobsID:
+                        status = record.get('Status')
+                        # Handle both boolean and string representations
+                        if isinstance(status, str):
+                            status = status.lower() in ('true', '1', 'yes')
+                        
                         logs.append(Log(
-                            log_dict['LogID'], 
-                            log_dict['JobID'], 
-                            log_dict['LogDate'], 
-                            log_dict['Status'] == 'True', 
-                            log_dict['Message']
+                            record.get('LogID'), 
+                            record.get('JobID'), 
+                            record.get('LogDate'), 
+                            status, 
+                            record.get('Message', '')
                         ))
+                except Exception as e:
+                    logger.warning(f"Failed to parse log record: {e}")
+                    continue
             
             # Sort by date descending
             logs.sort(key=lambda x: x.LogDate, reverse=True)

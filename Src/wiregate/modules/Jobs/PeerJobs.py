@@ -2,146 +2,73 @@ import os
 import logging
 from datetime import datetime
 import json
+import uuid
 
-from ..DataBase import sqlSelect, get_redis_manager
+from ..DataBase import sqlSelect, get_redis_manager, SQLiteDatabaseManager
 from .PeerJob import PeerJob
 from .PeerJobLogger import PeerJobLogger
-from ..ConfigEnv import CONFIGURATION_PATH
+from ..Config import CONFIGURATION_PATH, DASHBOARD_TYPE
 
 logger = logging.getLogger('wiregate')
-
-class MockRedisClient:
-    """Mock Redis client for when Redis is not available"""
-    def __init__(self):
-        self._data = {}
-    
-    def exists(self, key):
-        return key in self._data
-    
-    def set(self, key, value):
-        self._data[key] = value
-    
-    def incr(self, key):
-        if key not in self._data:
-            self._data[key] = 0
-        self._data[key] += 1
-        return self._data[key]
-    
-    def hset(self, key, field, value):
-        if key not in self._data:
-            self._data[key] = {}
-        self._data[key][field] = value
-    
-    def hgetall(self, key):
-        return self._data.get(key, {})
-    
-    def lpush(self, key, value):
-        if key not in self._data:
-            self._data[key] = []
-        self._data[key].insert(0, value)
-    
-    def lrange(self, key, start, end):
-        data = self._data.get(key, [])
-        if end == -1:
-            return data[start:]
-        return data[start:end+1]
-    
-    def hkeys(self, key):
-        data = self._data.get(key, {})
-        return list(data.keys())
 
 class PeerJobs:
 
     def __init__(self):
         self.Jobs: list[PeerJob] = []
-        self.redis_manager = None
-        self.jobs_key = "wiregate:peer_jobs"
-        self.job_counter_key = "wiregate:peer_jobs:counter"
-        self._initialized = False
-        self._ensure_redis_connection()
+        self.db_manager = get_redis_manager()
+        self._is_sqlite = isinstance(self.db_manager, SQLiteDatabaseManager)
+        self._initialize_database()
         self.__getJobs()
         
-    def _ensure_redis_connection(self):
-        """Ensure Redis connection is established"""
-        if self.redis_manager is None:
-            try:
-                self.redis_manager = get_redis_manager()
-                self.__initialize_redis()
-                self._initialized = True
-            except Exception as e:
-                logger.warning(f"Could not connect to Redis: {e}")
-                # Create a mock redis manager for fallback
-                class MockRedisManager:
-                    def __init__(self):
-                        self.redis_client = MockRedisClient()
-                self.redis_manager = MockRedisManager()
-                self._initialized = True
-
-    def __initialize_redis(self):
-        """Initialize Redis with job counter if not exists"""
-        if not self.redis_manager.redis_client.exists(self.job_counter_key):
-            self.redis_manager.redis_client.set(self.job_counter_key, 0)
+    def _initialize_database(self):
+        """Initialize database tables for jobs"""
+        try:
+            # Ensure jobs table exists
+            if not self.db_manager.table_exists('PeerJobs'):
+                logger.info("Creating PeerJobs table...")
+                self.db_manager.create_jobs_table()
+            logger.debug("PeerJobs table ready")
+        except Exception as e:
+            logger.error(f"Failed to initialize database: {e}")
 
     def __get_next_job_id(self) -> str:
-        """Generate next job ID using Redis counter"""
-        self._ensure_redis_connection()
-        return str(self.redis_manager.redis_client.incr(self.job_counter_key))
+        """Generate next job ID"""
+        try:
+            job_id = str(uuid.uuid4())[:8]  # Use short UUID
+            return job_id
+        except Exception as e:
+            logger.error(f"Failed to generate job ID: {e}")
+            return str(datetime.now().timestamp())
 
     def __getJobs(self):
         logger.debug(f"__getJobs called, clearing {len(self.Jobs)} existing jobs")
         self.Jobs.clear()
         try:
-            # Check Redis connection
-            if not self.redis_manager or not self.redis_manager.redis_client:
-                logger.error("Redis connection not available")
-                return
+            # Get all jobs from database
+            records = self.db_manager.get_all_records('PeerJobs')
             
-            # Get all job keys
-            job_keys = self.redis_manager.redis_client.hkeys(self.jobs_key)
-            logger.debug(f"Found {len(job_keys)} job keys in Redis")
-            
-            for job_key in job_keys:
+            for record in records:
                 try:
-                    job_data = self.redis_manager.redis_client.hget(self.jobs_key, job_key)
-                    if job_data:
-                        job_dict = json.loads(job_data)
-                        logger.debug(f" Loading job {job_key}: {job_dict}")
-                        
-                        # Validate job data structure
-                        required_fields = ['JobID', 'Configuration', 'Peer', 'Field', 'Operator', 'Value', 'Action']
-                        if not all(field in job_dict for field in required_fields):
-                            logger.warning(f"Skipping malformed job {job_key}: missing required fields")
-                            continue
-                        
-                        # Only load non-expired jobs (ExpireDate should be None, empty string, or not present)
-                        expire_date = job_dict.get('ExpireDate')
-                        if not expire_date or expire_date == "":
-                            job_obj = PeerJob(
-                                job_dict['JobID'],
-                                job_dict['Configuration'],
-                                job_dict['Peer'],
-                                job_dict['Field'],
-                                job_dict['Operator'],
-                                job_dict['Value'],
-                                job_dict.get('CreationDate', ''),
-                                job_dict.get('ExpireDate', ''),
-                                job_dict['Action']
-                            )
-                            self.Jobs.append(job_obj)
-                            logger.debug(f" Added job: {job_obj.toJson()}")
-                        else:
-                            logger.debug(f" Skipping expired job: {job_key}")
-                except json.JSONDecodeError as e:
-                    logger.error(f"Failed to parse job data for {job_key}: {e}")
-                    continue
+                    job = PeerJob(
+                        record.get('JobID'),
+                        record.get('Configuration'),
+                        record.get('Peer'),
+                        record.get('Field'),
+                        record.get('Operator'),
+                        record.get('Value'),
+                        record.get('CreationDate'),
+                        record.get('ExpireDate'),
+                        record.get('Action')
+                    )
+                    self.Jobs.append(job)
                 except Exception as e:
-                    logger.error(f"Error processing job {job_key}: {e}")
+                    logger.warning(f"Failed to parse job record: {e}")
                     continue
+            
+            logger.debug(f"Loaded {len(self.Jobs)} jobs from database")
         except Exception as e:
-            logger.error(f"Critical error loading jobs: {e}")
-            # Don't raise the exception, just log it and continue with empty jobs list
-        
-        logger.debug(f" __getJobs completed, now have {len(self.Jobs)} jobs")
+            logger.error(f"Error loading jobs: {e}")
+            return
 
     def getAllJobs(self, configuration: str = None):
         if configuration is not None:
@@ -188,12 +115,8 @@ class PeerJobs:
                 'Action': Job.Action
             }
 
-            # Save to Redis
-            self.redis_manager.redis_client.hset(
-                self.jobs_key, 
-                Job.JobID, 
-                json.dumps(job_data)
-            )
+            # Save to database
+            self.db_manager.insert_record('PeerJobs', Job.JobID, job_data)
 
             # Log the action
             if Job.CreationDate == datetime.now().strftime('%Y-%m-%d %H:%M:%S'):
@@ -215,13 +138,13 @@ class PeerJobs:
                 return False, "Job does not exist"
 
             # Check if job exists
-            job_data = self.redis_manager.redis_client.hget(self.jobs_key, Job.JobID)
-            if job_data:
+            record = self.db_manager.get_record('PeerJobs', Job.JobID)
+            if record:
                 # Log the deletion before removing
                 JobLogger.log(Job.JobID, Message="Job deleted by user")
                 
-                # Actually remove from Redis
-                self.redis_manager.redis_client.hdel(self.jobs_key, Job.JobID)
+                # Actually remove from database
+                self.db_manager.delete_record('PeerJobs', Job.JobID)
                 
                 # Reload jobs
                 self.__getJobs()
@@ -236,21 +159,14 @@ class PeerJobs:
     def updateJobConfigurationName(self, ConfigurationName: str, NewConfigurationName: str) -> tuple[bool, str]:
         try:
             # Get all jobs for this configuration
-            job_keys = self.redis_manager.redis_client.hkeys(self.jobs_key)
+            records = self.db_manager.get_all_records('PeerJobs')
             updated_count = 0
             
-            for job_key in job_keys:
-                job_data = self.redis_manager.redis_client.hget(self.jobs_key, job_key)
-                if job_data:
-                    job_dict = json.loads(job_data)
-                    if job_dict.get('Configuration') == ConfigurationName:
-                        job_dict['Configuration'] = NewConfigurationName
-                        self.redis_manager.redis_client.hset(
-                            self.jobs_key, 
-                            job_key, 
-                            json.dumps(job_dict)
-                        )
-                        updated_count += 1
+            for record in records:
+                if record.get('Configuration') == ConfigurationName:
+                    record['Configuration'] = NewConfigurationName
+                    self.db_manager.update_record('PeerJobs', record.get('JobID'), record)
+                    updated_count += 1
 
             # Reload jobs
             self.__getJobs()
@@ -322,7 +238,9 @@ class PeerJobs:
             peer_in_restricted = job.Peer in [p.get('id') for p in restricted_peers]
             
             if should_restrict and not peer_in_restricted:
-                s = configuration.restrictPeers([job.Peer]).get_json()
+                result = configuration.restrictPeers([job.Peer])
+                # Handle both dict (FastAPI) and Flask response
+                s = result.get_json() if hasattr(result, 'get_json') else result
                 if s['status'] is True:
                     JobLogger.log(job.JobID, s["status"],
                               f"Peer {job.Peer} from {configuration.Name} is successfully restricted (weekly schedule)")
@@ -330,7 +248,9 @@ class PeerJobs:
                     JobLogger.log(job.JobID, s["status"],
                               f"Failed to restrict peer {job.Peer}: {s.get('message', 'Unknown error')}")
             elif not should_restrict and peer_in_restricted:
-                s = configuration.allowAccessPeers([job.Peer]).get_json()
+                result = configuration.allowAccessPeers([job.Peer])
+                # Handle both dict (FastAPI) and Flask response
+                s = result.get_json() if hasattr(result, 'get_json') else result
                 if s['status'] is True:
                     JobLogger.log(job.JobID, s["status"],
                               f"Peer {job.Peer} from {configuration.Name} is successfully unrestricted (weekly schedule)")
@@ -375,9 +295,13 @@ class PeerJobs:
                 s = {"status": False, "message": "Unknown action"}
                 
                 if job.Action == "restrict":
-                    s = configuration.restrictPeers([fp.id]).get_json()
+                    result = configuration.restrictPeers([fp.id])
+                    # Handle both dict (FastAPI) and Flask response
+                    s = result.get_json() if hasattr(result, 'get_json') else result
                 elif job.Action == "delete":
-                    s = configuration.deletePeers([fp.id]).get_json()
+                    result = configuration.deletePeers([fp.id])
+                    # Handle both dict (FastAPI) and Flask response
+                    s = result.get_json() if hasattr(result, 'get_json') else result
                 elif job.Action == "rate_limit":
                     try:
                         rates = json.loads(job.Value)
@@ -442,32 +366,29 @@ class PeerJobs:
     def cleanupExpiredJobs(self, max_age_days=30):
         """Remove jobs older than max_age_days from Redis"""
         try:
-            if not self.redis_manager or not self.redis_manager.redis_client:
-                logger.error("Redis connection not available for cleanup")
-                return False, "Redis connection not available"
+            if not self.db_manager:
+                logger.error("Database manager not available for cleanup")
+                return False, "Database manager not available"
             
             from datetime import timedelta
             cutoff_date = datetime.now() - timedelta(days=max_age_days)
             cutoff_str = cutoff_date.strftime('%Y-%m-%d %H:%M:%S')
             
-            job_keys = self.redis_manager.redis_client.hkeys(self.jobs_key)
+            records = self.db_manager.get_all_records('PeerJobs')
             removed_count = 0
             
-            for job_key in job_keys:
+            for record in records:
                 try:
-                    job_data = self.redis_manager.redis_client.hget(self.jobs_key, job_key)
-                    if job_data:
-                        job_dict = json.loads(job_data)
-                        creation_date = job_dict.get('CreationDate', '')
+                    creation_date = record.get('CreationDate', '')
+                    
+                    # Remove jobs older than cutoff date
+                    if creation_date and creation_date < cutoff_str:
+                        self.db_manager.delete_record('PeerJobs', record.get('JobID'))
+                        removed_count += 1
+                        logger.debug(f" Removed expired job {record.get('JobID')} (created: {creation_date})")
                         
-                        # Remove jobs older than cutoff date
-                        if creation_date and creation_date < cutoff_str:
-                            self.redis_manager.redis_client.hdel(self.jobs_key, job_key)
-                            removed_count += 1
-                            logger.debug(f" Removed expired job {job_key} (created: {creation_date})")
-                            
                 except Exception as e:
-                    logger.warning(f"Error processing job {job_key} during cleanup: {e}")
+                    logger.warning(f"Error processing job {record.get('JobID')} during cleanup: {e}")
                     continue
             
             # Reload jobs after cleanup
@@ -483,12 +404,12 @@ class PeerJobs:
     def getJobStats(self):
         """Get statistics about jobs in the system"""
         try:
-            if not self.redis_manager or not self.redis_manager.redis_client:
-                return {"error": "Redis connection not available"}
+            if not self.db_manager:
+                return {"error": "Database manager not available"}
             
-            job_keys = self.redis_manager.redis_client.hkeys(self.jobs_key)
+            records = self.db_manager.get_all_records('PeerJobs')
             stats = {
-                "total_jobs": len(job_keys),
+                "total_jobs": len(records),
                 "active_jobs": len(self.Jobs),
                 "expired_jobs": 0,
                 "by_field": {},
@@ -496,30 +417,26 @@ class PeerJobs:
                 "by_configuration": {}
             }
             
-            for job_key in job_keys:
+            for record in records:
                 try:
-                    job_data = self.redis_manager.redis_client.hget(self.jobs_key, job_key)
-                    if job_data:
-                        job_dict = json.loads(job_data)
-                        
-                        # Count expired jobs
-                        if job_dict.get('ExpireDate'):
-                            stats["expired_jobs"] += 1
-                        
-                        # Count by field
-                        field = job_dict.get('Field', 'unknown')
-                        stats["by_field"][field] = stats["by_field"].get(field, 0) + 1
-                        
-                        # Count by action
-                        action = job_dict.get('Action', 'unknown')
-                        stats["by_action"][action] = stats["by_action"].get(action, 0) + 1
-                        
-                        # Count by configuration
-                        config = job_dict.get('Configuration', 'unknown')
-                        stats["by_configuration"][config] = stats["by_configuration"].get(config, 0) + 1
-                        
+                    # Count expired jobs
+                    if record.get('ExpireDate'):
+                        stats["expired_jobs"] += 1
+                    
+                    # Count by field
+                    field = record.get('Field', 'unknown')
+                    stats["by_field"][field] = stats["by_field"].get(field, 0) + 1
+                    
+                    # Count by action
+                    action = record.get('Action', 'unknown')
+                    stats["by_action"][action] = stats["by_action"].get(action, 0) + 1
+                    
+                    # Count by configuration
+                    config = record.get('Configuration', 'unknown')
+                    stats["by_configuration"][config] = stats["by_configuration"].get(config, 0) + 1
+                    
                 except Exception as e:
-                    logger.warning(f"Error processing job {job_key} for stats: {e}")
+                    logger.warning(f"Error processing job {record.get('JobID')} for stats: {e}")
                     continue
             
             return stats

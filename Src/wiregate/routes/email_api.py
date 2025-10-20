@@ -1,86 +1,109 @@
-from flask import (Blueprint, request)
+"""
+FastAPI Email Router
+Migrated from email_api.py Flask blueprint
+"""
+from fastapi import APIRouter, Depends
 from jinja2 import Template
+from typing import Dict, Any
 
-from ..modules.App import (
-    ResponseObject
-)
-
-from ..modules.Share.Email import (
-    EmailSender
-)
-
-from ..modules.Core import (
-    Configurations,
-)
-
+from ..models.responses import StandardResponse
+from ..models.requests import EmailSend
+from ..modules.Share.Email import EmailSender
+from ..modules.Core import Configurations
 from ..modules.DashboardConfig import DashboardConfig
+from ..modules.Security.fastapi_dependencies import require_authentication, get_async_db
 
-email_blueprint = Blueprint('email', __name__)
+# Create router
+router = APIRouter()
 
 
-
-
-@email_blueprint.get('/email/ready')
-def API_Email_Ready():
+@router.get('/email/ready', response_model=StandardResponse)
+async def email_ready(
+    user: Dict[str, Any] = Depends(require_authentication),
+    async_db = Depends(get_async_db)
+):
+    """Check if email server is ready"""
     email_sender = EmailSender(DashboardConfig)
-    return ResponseObject(email_sender.ready())
+    is_ready = email_sender.ready()
+    return StandardResponse(status=is_ready)
 
-@email_blueprint.post('/email/send')
-def API_Email_Send():
-    data = request.get_json()
-    if "Receiver" not in data.keys():
-        return ResponseObject(False, "Please at least specify receiver")
-    
+
+@router.post('/email/send', response_model=StandardResponse)
+async def email_send(
+    email_data: EmailSend,
+    user: Dict[str, Any] = Depends(require_authentication),
+    async_db = Depends(get_async_db)
+):
+    """Send email with optional peer configuration attachment"""
     # Default no attachment
     attachmentName = ""
     attachmentData = None
+    body = email_data.Body or ""
     
-    if "ConfigurationName" in data.keys() and "Peer" in data.keys():
-        if data.get('ConfigurationName') in Configurations.keys():
-            configuration = Configurations.get(data.get('ConfigurationName'))
-            fp, p = configuration.searchPeer(data.get('Peer'))
+    if email_data.ConfigurationName and email_data.Peer:
+        if email_data.ConfigurationName in Configurations.keys():
+            configuration = Configurations.get(email_data.ConfigurationName)
+            fp, p = configuration.searchPeer(email_data.Peer)
             if fp:
                 # Get the configuration file data from the peer
                 download = p.downloadPeer()
                 # Configure the attachment name and data
                 attachmentName = download['fileName']
                 attachmentData = download['file']
-                # You can also process a template if needed here
-                template = Template(data.get('Body', ''))
-                data['Body'] = template.render(peer=p.toJson(), configurationFile=download)
+                # Process template if needed
+                template = Template(body)
+                body = template.render(peer=p.toJson(), configurationFile=download)
     
-    # Now call the email sender passing the attachmentData directly
+    # Send email
     email_sender = EmailSender(DashboardConfig)
     s, m = email_sender.send(
-        data.get('Receiver'),
-        data.get('Subject', ''),
-        data.get('Body', ''),
-        includeAttachment=data.get('IncludeAttachment', False),
+        email_data.Receiver,
+        email_data.Subject or '',
+        body,
+        includeAttachment=email_data.IncludeAttachment or False,
         attachmentName=attachmentName,
         attachmentData=attachmentData
     )
-    return ResponseObject(s, m)
-
-@email_blueprint.post('/email/previewBody')
-def API_Email_PreviewBody():
-    data = request.get_json()
-    body = data.get('Body', '')
-    if len(body) == 0:
-        return ResponseObject(False, "Nothing to preview") 
-    if ("ConfigurationName" not in data.keys() 
-            or "Peer" not in data.keys() or data.get('ConfigurationName') not in Configurations.keys()):
-        return ResponseObject(False, "Please specify configuration and peer")
     
-    configuration = Configurations.get(data.get('ConfigurationName'))
-    fp, p = configuration.searchPeer(data.get('Peer'))
-    if not fp:
-        return ResponseObject(False, "Peer does not exist")
+    return StandardResponse(status=s, message=m)
 
+
+@router.post('/email/previewBody', response_model=StandardResponse)
+async def email_preview_body(
+    preview_data: Dict[str, str],
+    user: Dict[str, Any] = Depends(require_authentication)
+):
+    """Preview email body with template rendering"""
+    body = preview_data.get('Body', '')
+    
+    if len(body) == 0:
+        return StandardResponse(
+            status=False,
+            message="Nothing to preview"
+        )
+    
+    if ("ConfigurationName" not in preview_data or 
+        "Peer" not in preview_data or 
+        preview_data.get('ConfigurationName') not in Configurations.keys()):
+        return StandardResponse(
+            status=False,
+            message="Please specify configuration and peer"
+        )
+    
+    configuration = Configurations.get(preview_data.get('ConfigurationName'))
+    fp, p = configuration.searchPeer(preview_data.get('Peer'))
+    
+    if not fp:
+        return StandardResponse(
+            status=False,
+            message="Peer does not exist"
+        )
+    
     try:
         template = Template(body)
         download = p.downloadPeer()
-        body = template.render(peer=p.toJson(), configurationFile=download)
-        return ResponseObject(data=body)
+        rendered_body = template.render(peer=p.toJson(), configurationFile=download)
+        return StandardResponse(status=True, data=rendered_body)
     except Exception as e:
-        return ResponseObject(False, message=str(e))
+        return StandardResponse(status=False, message=str(e))
 

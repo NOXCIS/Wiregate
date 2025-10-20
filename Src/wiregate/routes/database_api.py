@@ -1,99 +1,164 @@
-from flask import Blueprint, request
+"""
+FastAPI Database Router
+Migrated from database_api.py Flask blueprint
+"""
 import logging
-import json
+from fastapi import APIRouter, Depends
+from typing import Dict, Any
+
+from ..models.responses import StandardResponse
+from ..modules.DataBase.DataBaseManager import DatabaseAPI
+from ..modules.Security.fastapi_dependencies import require_authentication, get_async_db
 
 logger = logging.getLogger('wiregate')
 
-from ..modules.App import ResponseObject
-from ..modules.DataBase.DataBaseManager import DatabaseAPI
+# Create router
+router = APIRouter()
 
-database_blueprint = Blueprint('database', __name__)
 
-@database_blueprint.route('/database/config', methods=['GET'])
-def get_database_config():
+@router.get('/database/config', response_model=StandardResponse)
+async def get_database_config(
+    user: Dict[str, Any] = Depends(require_authentication),
+    async_db = Depends(get_async_db)
+):
     """Get current database configuration"""
     try:
-        # Get database configuration from DatabaseAPI
         config = DatabaseAPI.get_config()
-        return ResponseObject(True, data=config)
+        return StandardResponse(status=True, data=config)
     except Exception as e:
         logger.error(f"Failed to get database config: {e}")
-        return ResponseObject(False, f"Failed to get database configuration: {str(e)}")
+        return StandardResponse(
+            status=False,
+            message=f"Failed to get database configuration: {str(e)}"
+        )
 
-@database_blueprint.route('/database/config', methods=['POST'])
-def update_database_config():
+
+@router.post('/database/config', response_model=StandardResponse)
+async def update_database_config(
+    config_data: Dict[str, Any],
+    user: Dict[str, Any] = Depends(require_authentication),
+    async_db = Depends(get_async_db)
+):
     """Update database configuration"""
     try:
-        data = request.get_json()
-        if not data:
-            return ResponseObject(False, "No configuration data provided")
+        if not config_data:
+            return StandardResponse(
+                status=False,
+                message="No configuration data provided"
+            )
         
-        # Update database configuration
-        result = DatabaseAPI.update_config(data)
+        result = DatabaseAPI.update_config(config_data)
         if result:
-            return ResponseObject(True, "Database configuration updated successfully")
+            return StandardResponse(
+                status=True,
+                message="Database configuration updated successfully"
+            )
         else:
-            return ResponseObject(False, "Failed to update database configuration")
+            return StandardResponse(
+                status=False,
+                message="Failed to update database configuration"
+            )
     except Exception as e:
         logger.error(f"Failed to update database config: {e}")
-        return ResponseObject(False, f"Failed to update database configuration: {str(e)}")
+        return StandardResponse(
+            status=False,
+            message=f"Failed to update database configuration: {str(e)}"
+        )
 
-@database_blueprint.route('/database/stats', methods=['GET'])
-def get_database_stats():
+
+@router.get('/database/stats', response_model=StandardResponse)
+async def get_database_stats(
+    user: Dict[str, Any] = Depends(require_authentication),
+    async_db = Depends(get_async_db)
+):
     """Get database statistics"""
     try:
         stats = DatabaseAPI.get_stats()
-        return ResponseObject(True, data=stats)
+        return StandardResponse(status=True, data=stats)
     except Exception as e:
         logger.error(f"Failed to get database stats: {e}")
-        return ResponseObject(False, f"Failed to get database statistics: {str(e)}")
+        return StandardResponse(
+            status=False,
+            message=f"Failed to get database statistics: {str(e)}"
+        )
 
-@database_blueprint.route('/database/test', methods=['POST'])
-def test_database_connections():
+
+@router.post('/database/test', response_model=StandardResponse)
+async def test_database_connections(
+    test_data: Dict[str, Any],
+    user: Dict[str, Any] = Depends(require_authentication),
+    async_db = Depends(get_async_db)
+):
     """Test database connections"""
     try:
-        data = request.get_json()
-        if not data:
-            return ResponseObject(False, "No configuration data provided")
+        if not test_data:
+            return StandardResponse(
+                status=False,
+                message="No configuration data provided"
+            )
         
-        # Test database connections
-        result = DatabaseAPI.test_connections(data)
+        result = DatabaseAPI.test_connections(test_data)
         if result['success']:
-            return ResponseObject(True, data=result['data'])
+            return StandardResponse(status=True, data=result['data'])
         else:
-            return ResponseObject(False, result['message'])
+            return StandardResponse(status=False, message=result['message'])
     except Exception as e:
         logger.error(f"Failed to test database connections: {e}")
-        return ResponseObject(False, f"Failed to test database connections: {str(e)}")
+        return StandardResponse(
+            status=False,
+            message=f"Failed to test database connections: {str(e)}"
+        )
 
-@database_blueprint.route('/database/migrate', methods=['POST'])
-def migrate_database():
+
+@router.post('/database/migrate', response_model=StandardResponse)
+async def migrate_database(
+    migrate_data: Dict[str, str],
+    user: Dict[str, Any] = Depends(require_authentication),
+    async_db = Depends(get_async_db)
+):
     """Migrate database between architectures"""
     try:
-        data = request.get_json()
-        if not data or 'type' not in data:
-            return ResponseObject(False, "Migration type not specified")
+        if not migrate_data or 'type' not in migrate_data:
+            return StandardResponse(
+                status=False,
+                message="Migration type not specified"
+            )
         
-        migration_type = data['type']
+        migration_type = migrate_data['type']
         result = DatabaseAPI.migrate(migration_type)
         
         if result['success']:
-            return ResponseObject(True, data=result['data'], message=result['message'])
+            return StandardResponse(
+                status=True,
+                data=result['data'],
+                message=result['message']
+            )
         else:
-            return ResponseObject(False, result['message'])
+            return StandardResponse(status=False, message=result['message'])
     except Exception as e:
         logger.error(f"Failed to migrate database: {e}")
-        return ResponseObject(False, f"Failed to migrate database: {str(e)}")
+        return StandardResponse(
+            status=False,
+            message=f"Failed to migrate database: {str(e)}"
+        )
 
-@database_blueprint.route('/database/clear-cache', methods=['POST'])
-def clear_database_cache():
+
+@router.post('/database/clear-cache', response_model=StandardResponse)
+async def clear_database_cache(
+    user: Dict[str, Any] = Depends(require_authentication),
+    async_db = Depends(get_async_db)
+):
     """Clear database cache"""
     try:
         result = DatabaseAPI.clear_cache()
         if result['success']:
-            return ResponseObject(True, message=result['message'])
+            return StandardResponse(status=True, message=result['message'])
         else:
-            return ResponseObject(False, result['message'])
+            return StandardResponse(status=False, message=result['message'])
     except Exception as e:
         logger.error(f"Failed to clear database cache: {e}")
-        return ResponseObject(False, f"Failed to clear database cache: {str(e)}")
+        return StandardResponse(
+            status=False,
+            message=f"Failed to clear database cache: {str(e)}"
+        )
+

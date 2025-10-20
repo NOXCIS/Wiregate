@@ -36,7 +36,7 @@ spec:
             command:
             - redis-cli
             - -a
-            - wiregate_redis_password
+            - $(REDIS_PASSWORD)
             - ping
           initialDelaySeconds: 10
           periodSeconds: 10
@@ -47,7 +47,7 @@ spec:
             command:
             - redis-cli
             - -a
-            - wiregate_redis_password
+            - $(REDIS_PASSWORD)
             - ping
           initialDelaySeconds: 10
           periodSeconds: 10
