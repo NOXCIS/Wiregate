@@ -16,6 +16,7 @@ from typing import Dict, Any, List
 from fastapi import APIRouter, Query, Depends, Request
 from fastapi.responses import StreamingResponse, JSONResponse
 import asyncio
+import aiofiles
 
 from ..models.responses import StandardResponse, SystemStatusResponse
 from ..models.requests import (
@@ -27,7 +28,7 @@ from ..modules.Core import (
     InitWireguardConfigurationsList
 )
 from ..modules.DataBase import sqlUpdate
-from ..modules.ConfigEnv import wgd_config_path
+from ..modules.Config import wgd_config_path
 from ..modules.Utilities import (
     GenerateWireguardPublicKey, GenerateWireguardPrivateKey,
     get_backup_paths, RegexMatch
@@ -38,7 +39,7 @@ from ..modules.Security import (
     execute_awg_command, execute_wg_quick_command
 )
 from ..modules.Security.fastapi_dependencies import require_authentication, get_async_db
-from ..modules.App import convert_response_object_to_dict
+from ..modules.Utilities import convert_response_object_to_dict
 from ..modules.Async import (
     thread_pool, bulk_peer_status_check, redis_bulk_operations,
     file_operations, wg_command_operations, process_pool,
@@ -83,8 +84,26 @@ async def get_configurations(
 ):
     """Get all WireGuard configurations"""
     InitWireguardConfigurationsList()
-    configs = [wc.toJson() for wc in Configurations.values()]
-    return StandardResponse(status=True, data=configs)
+    
+    # Process configurations in parallel for better performance
+    async def process_config(config):
+        return config.toJson()
+    
+    # Use asyncio.gather to process all configurations in parallel
+    configs = await asyncio.gather(
+        *[process_config(wc) for wc in Configurations.values()],
+        return_exceptions=True
+    )
+    
+    # Filter out any exceptions and log them
+    valid_configs = []
+    for i, config in enumerate(configs):
+        if isinstance(config, Exception):
+            logger.warning(f"Error processing configuration {i}: {config}")
+        else:
+            valid_configs.append(config)
+    
+    return StandardResponse(status=True, data=valid_configs)
 
 
 @router.post('/cleanupOrphanedConfigurations', response_model=StandardResponse)
@@ -184,7 +203,11 @@ async def add_configuration(
                 DashboardConfig.GetConfig("Server", "wg_conf_path")[1],
                 f'{config_data["ConfigurationName"]}.conf'
             )
-            shutil.copy(backup_file, wg_conf_path)
+            # Use async file copy
+            async with aiofiles.open(backup_file, 'rb') as src:
+                content = await src.read()
+            async with aiofiles.open(wg_conf_path, 'wb') as dst:
+                await dst.write(content)
         except Exception as e:
             return StandardResponse(
                 status=False,
@@ -207,8 +230,9 @@ async def add_configuration(
         # Restore database if it exists
         if os.path.exists(backup_redis):
             try:
-                with open(backup_redis, 'r') as f:
-                    for line in f:
+                async with aiofiles.open(backup_redis, 'r') as f:
+                    content = await f.read()
+                    for line in content.splitlines():
                         line = line.strip()
                         if line:
                             if not _is_safe_sql_statement(line):
@@ -231,8 +255,9 @@ async def add_configuration(
         # Restore iptables scripts if they exist
         if os.path.exists(backup_iptables):
             try:
-                with open(backup_iptables, 'r') as f:
-                    scripts = json.load(f)
+                async with aiofiles.open(backup_iptables, 'r') as f:
+                    content = await f.read()
+                    scripts = json.loads(content)
                 
                 script_mapping = {
                     'preup_script': ('PreUp', '-preup.sh'),
@@ -244,8 +269,8 @@ async def add_configuration(
                 for script_key, (config_attr, suffix) in script_mapping.items():
                     if script_key in scripts:
                         script_path = os.path.join(iptables_dir, f"{config_data['ConfigurationName']}{suffix}")
-                        with open(script_path, 'w') as f:
-                            f.write(scripts[script_key])
+                        async with aiofiles.open(script_path, 'w') as f:
+                            await f.write(scripts[script_key])
                         os.chmod(script_path, 0o755)
                         
                         setattr(
@@ -279,10 +304,11 @@ async def add_configuration(
             for script_type, script_name in script_types.items():
                 if script_type in config_data and config_data.get(script_type):
                     script_path = os.path.join(config_script_dir, f"{script_name}.sh")
-                    with open(script_path, 'w') as f:
-                        f.write("#!/bin/bash\n\n")
-                        f.write(f"# IPTables {script_type} Rules for {config_name}\n")
-                        f.write(config_data.get(script_type, ''))
+                    script_content = "#!/bin/bash\n\n"
+                    script_content += f"# IPTables {script_type} Rules for {config_name}\n"
+                    script_content += config_data.get(script_type, '')
+                    async with aiofiles.open(script_path, 'w') as f:
+                        await f.write(script_content)
                     os.chmod(script_path, 0o755)
                     script_paths[script_type] = script_path
             
@@ -1129,6 +1155,13 @@ async def get_dashboard_version():
     return StandardResponse(status=True, data=version)
 
 
+@router.get('/getDashboardProto', response_model=StandardResponse)
+async def get_dashboard_proto():
+    """Get dashboard protocol (public endpoint)"""
+    protocol = DashboardConfig.GetConfig("Server", "protocol")[1]
+    return StandardResponse(status=True, data=protocol)
+
+
 # ============================================================================
 # IPTables Script Management
 # ============================================================================
@@ -1158,8 +1191,8 @@ async def get_config_tables_preup(
     script_contents = {}
     for path in script_paths:
         try:
-            with open(path, 'r') as f:
-                script_contents[path] = f.read()
+            async with aiofiles.open(path, 'r') as f:
+                script_contents[path] = await f.read()
         except (IOError, OSError) as e:
             script_contents[path] = f"Error reading file: {str(e)}"
     
@@ -1198,8 +1231,8 @@ async def get_config_tables_postup(
     script_contents = {}
     for path in script_paths:
         try:
-            with open(path, 'r') as f:
-                script_contents[path] = f.read()
+            async with aiofiles.open(path, 'r') as f:
+                script_contents[path] = await f.read()
         except (IOError, OSError) as e:
             script_contents[path] = f"Error reading file: {str(e)}"
     
@@ -1238,8 +1271,8 @@ async def get_config_tables_postdown(
     script_contents = {}
     for path in script_paths:
         try:
-            with open(path, 'r') as f:
-                script_contents[path] = f.read()
+            async with aiofiles.open(path, 'r') as f:
+                script_contents[path] = await f.read()
         except (IOError, OSError) as e:
             script_contents[path] = f"Error reading file: {str(e)}"
     
@@ -1278,8 +1311,8 @@ async def get_config_tables_predown(
     script_contents = {}
     for path in script_paths:
         try:
-            with open(path, 'r') as f:
-                script_contents[path] = f.read()
+            async with aiofiles.open(path, 'r') as f:
+                script_contents[path] = await f.read()
         except (IOError, OSError) as e:
             script_contents[path] = f"Error reading file: {str(e)}"
     
@@ -1325,8 +1358,8 @@ async def update_config_tables_preup(
     
     try:
         for path in script_paths:
-            with open(path, 'w') as f:
-                f.write(script_content)
+            async with aiofiles.open(path, 'w') as f:
+                await f.write(script_content)
             os.chmod(path, 0o755)
         
         return StandardResponse(
@@ -1372,8 +1405,8 @@ async def update_config_tables_postup(
     
     try:
         for path in script_paths:
-            with open(path, 'w') as f:
-                f.write(script_content)
+            async with aiofiles.open(path, 'w') as f:
+                await f.write(script_content)
             os.chmod(path, 0o755)
         
         return StandardResponse(
@@ -1419,8 +1452,8 @@ async def update_config_tables_predown(
     
     try:
         for path in script_paths:
-            with open(path, 'w') as f:
-                f.write(script_content)
+            async with aiofiles.open(path, 'w') as f:
+                await f.write(script_content)
             os.chmod(path, 0o755)
         
         return StandardResponse(
@@ -1466,8 +1499,8 @@ async def update_config_tables_postdown(
     
     try:
         for path in script_paths:
-            with open(path, 'w') as f:
-                f.write(script_content)
+            async with aiofiles.open(path, 'w') as f:
+                await f.write(script_content)
             os.chmod(path, 0o755)
         
         return StandardResponse(
@@ -1485,26 +1518,35 @@ async def update_config_tables_postdown(
 # System Status
 # ============================================================================
 
-@router.get('/systemStatus', response_model=StandardResponse)
-async def get_system_status(
-    user: Dict[str, Any] = Depends(require_authentication)
-):
-    """Get system status (CPU, memory, disk, network, processes)"""
+# Simple in-memory cache for system status
+_system_status_cache = {}
+_cache_ttl = 2  # 2 seconds TTL
+
+async def _get_cached_system_status():
+    """Get system status with caching"""
+    current_time = time.time()
+    
+    # Check if cache is valid
+    if 'data' in _system_status_cache and 'timestamp' in _system_status_cache:
+        if current_time - _system_status_cache['timestamp'] < _cache_ttl:
+            return _system_status_cache['data']
+    
+    # Cache is invalid or doesn't exist, fetch fresh data
     try:
-        # CPU Information
+        # CPU Information - run in thread pool to avoid blocking
         try:
-            cpu_percpu = psutil.cpu_percent(interval=0.5, percpu=True)
-            cpu = psutil.cpu_percent(interval=0.5)
+            cpu_percpu = await asyncio.to_thread(psutil.cpu_percent, interval=0.1, percpu=True)
+            cpu = await asyncio.to_thread(psutil.cpu_percent, interval=0.1)
         except Exception as e:
             cpu_percpu = []
             cpu = None
             logger.warning(f"Could not retrieve CPU information: {e}")
         
-        # Memory Information
+        # Memory Information - run in thread pool
         try:
-            memory = psutil.virtual_memory()
+            memory = await asyncio.to_thread(psutil.virtual_memory)
             try:
-                swap_memory = psutil.swap_memory()
+                swap_memory = await asyncio.to_thread(psutil.swap_memory)
             except AttributeError:
                 swap_memory = None
         except Exception as e:
@@ -1512,15 +1554,15 @@ async def get_system_status(
             swap_memory = None
             logger.warning(f"Could not retrieve memory information: {e}")
         
-        # Disk Information
+        # Disk Information - run in thread pool
         try:
-            disks = psutil.disk_partitions(all=False)
+            disks = await asyncio.to_thread(psutil.disk_partitions, all=False)
             disk_status = {}
             for d in disks:
                 if d.fstype in ('squashfs', 'devfs', 'fdescfs', 'devtmpfs'):
                     continue
                 try:
-                    detail = psutil.disk_usage(d.mountpoint)
+                    detail = await asyncio.to_thread(psutil.disk_usage, d.mountpoint)
                     disk_status[d.mountpoint] = {
                         "total": detail.total,
                         "used": detail.used,
@@ -1537,16 +1579,21 @@ async def get_system_status(
         try:
             is_awg_kernel_loaded = False
             try:
-                result = subprocess.run(['lsmod'], stdout=subprocess.PIPE, text=True)
-                is_awg_kernel_loaded = 'amneziawg' in result.stdout
+                # Use async subprocess
+                process = await asyncio.create_subprocess_exec(
+                    'lsmod', stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
+                )
+                stdout, stderr = await process.communicate()
+                is_awg_kernel_loaded = 'amneziawg' in stdout.decode()
             except Exception:
                 try:
-                    with open('/proc/modules', 'r') as f:
-                        is_awg_kernel_loaded = 'amneziawg' in f.read()
+                    async with aiofiles.open('/proc/modules', 'r') as f:
+                        content = await f.read()
+                        is_awg_kernel_loaded = 'amneziawg' in content
                 except Exception:
                     pass
             
-            network = psutil.net_io_counters(pernic=True, nowrap=True)
+            network = await asyncio.to_thread(psutil.net_io_counters, pernic=True, nowrap=True)
             network_status = {}
             
             for interface, stats in network.items():
@@ -1589,33 +1636,37 @@ async def get_system_status(
             network_status = {}
             logger.warning(f"Could not retrieve network information: {e}")
         
-        # Process Information
+        # Process Information - run in thread pool to avoid blocking
         try:
-            processes = []
-            for proc in psutil.process_iter():
-                try:
-                    with proc.oneshot():
-                        name = proc.name()
-                        try:
-                            cmdline = ' '.join(proc.cmdline())
-                        except (psutil.NoSuchProcess, psutil.AccessDenied):
-                            cmdline = name
-                        
-                        cpu_percent = proc.cpu_percent(interval=None)
-                        mem_percent = proc.memory_percent()
-                        
-                        processes.append({
-                            "name": name,
-                            "command": cmdline,
-                            "pid": proc.pid,
-                            "cpu_percent": cpu_percent,
-                            "memory_percent": mem_percent
-                        })
-                except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                    continue
-                except Exception as proc_e:
-                    logger.warning(f"Error getting process info: {proc_e}")
-                    continue
+            def get_process_info():
+                processes = []
+                for proc in psutil.process_iter():
+                    try:
+                        with proc.oneshot():
+                            name = proc.name()
+                            try:
+                                cmdline = ' '.join(proc.cmdline())
+                            except (psutil.NoSuchProcess, psutil.AccessDenied):
+                                cmdline = name
+                            
+                            cpu_percent = proc.cpu_percent(interval=None)
+                            mem_percent = proc.memory_percent()
+                            
+                            processes.append({
+                                "name": name,
+                                "command": cmdline,
+                                "pid": proc.pid,
+                                "cpu_percent": cpu_percent,
+                                "memory_percent": mem_percent
+                            })
+                    except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                        continue
+                    except Exception as proc_e:
+                        logger.warning(f"Error getting process info: {proc_e}")
+                        continue
+                return processes
+            
+            processes = await asyncio.to_thread(get_process_info)
             
             cpu_top_10 = sorted(
                 [p for p in processes if p['cpu_percent'] is not None],
@@ -1659,14 +1710,30 @@ async def get_system_status(
             }
         }
         
-        return StandardResponse(status=True, data=status_data)
+        # Cache the result
+        _system_status_cache['data'] = status_data
+        _system_status_cache['timestamp'] = current_time
         
-    except Exception as global_e:
-        logger.error(f"Unexpected error in system status API: {global_e}")
+        return status_data
+        
+    except Exception as e:
+        logger.error(f"Error retrieving system status: {e}")
+        return None
+
+@router.get('/systemStatus', response_model=StandardResponse)
+async def get_system_status(
+    user: Dict[str, Any] = Depends(require_authentication)
+):
+    """Get system status (CPU, memory, disk, network, processes) with caching"""
+    status_data = await _get_cached_system_status()
+    
+    if status_data is None:
         return StandardResponse(
             status=False,
-            message=f"Failed to retrieve system status: {str(global_e)}"
+            message="Failed to retrieve system status"
         )
+    
+    return StandardResponse(status=True, data=status_data)
 
 
 # ============================================================================

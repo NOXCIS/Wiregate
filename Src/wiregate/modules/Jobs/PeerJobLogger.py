@@ -6,7 +6,7 @@ import logging
 from typing import List
 from datetime import datetime
 from ..Logger import Log
-from ..ConfigEnv import CONFIGURATION_PATH, DASHBOARD_TYPE
+from ..Config import CONFIGURATION_PATH, DASHBOARD_TYPE
 from ..DataBase import get_redis_manager, SQLiteDatabaseManager
 
 # Set up logger

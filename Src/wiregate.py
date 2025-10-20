@@ -176,7 +176,7 @@ if __name__ == "__main__":
         logger.info(f"Starting Wiregate Dashboard on http://{app_ip}:{app_port}")
     
     # Import FastAPI app (lifespan events handle all initialization)
-    from wiregate.fastapi_app import fastapi_app as final_app
+    from wiregate.modules.App import fastapi_app as final_app
     
     # Remove workers option to avoid Uvicorn warning/crash
     if 'workers' in options:

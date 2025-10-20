@@ -43,6 +43,7 @@ ALLOWED_COMMANDS() {
         "wc") echo "-l" ;;
         "sort") echo "" ;;
         "uniq") echo "" ;;
+        "od") echo "" ;;
         "tr") echo "" ;;
         "cut") echo "-d|-f" ;;
         "seq") echo "" ;;
@@ -111,6 +112,7 @@ declare -a ALLOWED_COMMANDS_ARRAY=(
     ["wc"]="-l"
     ["sort"]=""
     ["uniq"]=""
+    ["od"]=""
     ["tr"]=""
     ["cut"]="-d|-f"
     ["seq"]=""

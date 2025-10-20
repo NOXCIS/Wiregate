@@ -2,7 +2,7 @@
 Dashboard Logger Class
 """
 import os, uuid, threading, logging, json
-from ...modules.ConfigEnv import CONFIGURATION_PATH
+from ...modules.Config import CONFIGURATION_PATH
 from ..DataBase import get_redis_manager
 
 # Set up logger

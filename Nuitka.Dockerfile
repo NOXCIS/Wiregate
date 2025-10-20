@@ -122,10 +122,20 @@ RUN mkdir -p /build/torflux-build /build/traffic_weir && \
     -ldflags="-X main.version=v1.0.0 -s -w" \
     -o /build/traffic-weir
 
-# pybuilder: Python binary builder
+# nuitka_builder: Nuitka Python binary builder (replaces pybuilder)
 ##########################################################
-FROM base_dependencies AS pybuilder
+FROM base_dependencies AS nuitka_builder
 WORKDIR /build
+
+# Install Nuitka and additional dependencies
+RUN venv/bin/pip install nuitka ordered-set zstandard
+
+# Install C compiler and build tools for Nuitka
+RUN apk add --no-cache gcc g++ ccache patchelf clang
+
+# Set up ccache for faster rebuilds
+ENV CCACHE_DIR=/build/ccache
+RUN mkdir -p /build/ccache
 
 # Copy all source files in single operation
 COPY ./Src/wiregate /build/wiregate/
@@ -133,13 +143,31 @@ COPY ./Src/wiregate.py ./
 COPY ./Src/vanguards /build/vanguards/
 COPY ./Src/vanguards.py ./
 
-# Build both Python binaries in single layer
-RUN venv/bin/pyinstaller \
-        --onefile --clean --distpath=/build/dist --name=wiregate \
-        wiregate.py && \
-    venv/bin/pyinstaller \
-        --onefile --clean --distpath=/build/dist --name=vanguards \
-        vanguards.py
+# Build wiregate binary with Nuitka (simplified for reliability)
+RUN venv/bin/python -m nuitka \
+    --onefile \
+    --standalone \
+    --follow-imports \
+    --assume-yes-for-downloads \
+    --output-dir=/build/dist \
+    --output-filename=wiregate \
+    --nofollow-import-to=pytest,test,unittest \
+    --python-flag=no_site \
+    --jobs=2 \
+    wiregate.py
+
+# Build vanguards binary with Nuitka (simplified for reliability)
+RUN venv/bin/python -m nuitka \
+    --onefile \
+    --standalone \
+    --follow-imports \
+    --assume-yes-for-downloads \
+    --output-dir=/build/dist \
+    --output-filename=vanguards \
+    --nofollow-import-to=pytest,test,unittest \
+    --python-flag=no_site \
+    --jobs=2 \
+    vanguards.py
 
 # runtime-deps: Prepare runtime dependencies
 ##########################################################
@@ -150,7 +178,7 @@ COPY select-mirror.sh /tmp/select-mirror.sh
 RUN chmod +x /tmp/select-mirror.sh && /tmp/select-mirror.sh && \
     apk add --no-cache \
         wireguard-tools iptables ip6tables iproute2 tzdata sudo tor ca-certificates \
-        net-tools bash && \
+        net-tools bash readline ncurses-libs && \
     mkdir -p /runtime-files/bin /runtime-files/sbin /runtime-files/usr/bin /runtime-files/usr/sbin \
              /runtime-files/lib /runtime-files/usr/lib /runtime-files/etc /runtime-files/usr/share && \
     # Verify Tor installation includes GEOIP files
@@ -163,18 +191,15 @@ RUN chmod +x /tmp/select-mirror.sh && /tmp/select-mirror.sh && \
         find /usr -name "geoip*" 2>/dev/null || echo "No GEOIP files found in /usr"; \
     fi
 
-# Final stage: Minimal WireGate container
+# runtime: Final runtime image
 ##########################################################
-FROM base_cve_patch AS final
-
-LABEL maintainer="NOXCIS"
+FROM base_cve_patch AS runtime
+WORKDIR /WireGate
 
 # Set environment variables and create directories in single layer
 ENV TZ=UTC
 ENV WGD_CONF_PATH="/etc/wireguard"
 RUN mkdir -p /WireGate /etc/wireguard /var/lib/tor /var/log/tor /proc /sys /dev/pts
-
-WORKDIR /WireGate
 
 # Copy runtime binaries in grouped operations
 COPY --from=runtime-deps \
@@ -188,7 +213,6 @@ COPY --from=runtime-deps \
 COPY --from=runtime-deps \
     /bin/netstat /bin/bash /bin/hostname /bin/sleep /bin/date /bin/stat /bin/base64 /bin/sync \
     /bin/
-
 
 COPY --from=runtime-deps \
     /sbin/modprobe /sbin/lsmod /sbin/ip /sbin/tc \
@@ -242,6 +266,11 @@ RUN echo "Verifying GEOIP files in final image:" && \
         exit 1; \
     fi
 
+# Copy additional runtime libraries for Nuitka binaries
+COPY --from=nuitka_builder /usr/lib/libstdc++.so.6 /usr/lib/
+COPY --from=nuitka_builder /usr/lib/libgcc_s.so.1 /usr/lib/
+COPY --from=nuitka_builder /usr/lib/libgomp.so.1 /usr/lib/
+
 # Copy application files and set permissions in single layer
 COPY ./Src/iptable-rules /WireGate/iptable-rules
 COPY ./Src/wiregate.sh ./Src/entrypoint.sh /WireGate/
@@ -262,13 +291,10 @@ RUN mv /usr/local/bin/lyrebird /usr/local/bin/obfs4
 
 COPY --from=noxcis/awg-bins:latest /amneziawg-go /awg /awg-quick /usr/bin/
 
-# Copy built binaries and set permissions
-COPY --from=pybuilder /build/dist/wiregate /build/dist/vanguards /WireGate/
+# Copy Nuitka-compiled binaries and set permissions
+COPY --from=nuitka_builder /build/dist/wiregate /WireGate/wiregate
+COPY --from=nuitka_builder /build/dist/vanguards /WireGate/vanguards
 COPY --from=builder /build/torflux /build/traffic-weir /WireGate/
-
-# Copy Python shared library for PyInstaller executables
-#COPY --from=base_dependencies /usr/local/lib/libpython3.13.so.1.0 /usr/local/lib/
-#RUN ln -sf /usr/local/lib/libpython3.13.so.1.0 /lib/libpython3.13.so.1.0
 
 RUN chmod +x /WireGate/wiregate /WireGate/vanguards /WireGate/torflux /WireGate/traffic-weir
 

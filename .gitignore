@@ -58,3 +58,5 @@ dashboard.pid
 /Src/configs
 ghcr.sh
 *.pem
+/docker-bake
+Src/test_async_performance.py

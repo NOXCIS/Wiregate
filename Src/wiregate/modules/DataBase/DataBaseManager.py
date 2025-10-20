@@ -8,7 +8,7 @@ import psycopg2.extras
 from typing import Dict, List, Any, Optional, Union
 from datetime import datetime
 import logging
-from ..ConfigEnv import (
+from ..Config import (
     redis_host, redis_port, redis_db, redis_password,
     postgres_host, postgres_port, postgres_db, postgres_user, postgres_password, postgres_ssl_mode,
     DASHBOARD_TYPE
@@ -1288,28 +1288,6 @@ class PostgreSQLCursor:
         """Make cursor iterable"""
         return iter(self.results)
 
-# Legacy compatibility - maintain the old sqldb reference
-class LegacySqldb:
-    """Legacy SQLite database compatibility using PostgreSQL"""
-    
-    def iterdump(self):
-        """Iterate over SQL dump statements"""
-        manager = get_redis_manager()
-        
-        try:
-            # Get all table names from PostgreSQL
-            tables = manager.get_all_keys()
-            
-            # Generate SQL dump statements
-            for table_name in tables:
-                sql_statements = manager.dump_table(table_name)
-                for statement in sql_statements:
-                    yield statement
-        except Exception as e:
-            logger.error(f"Failed to generate SQL dump: {e}")
-            # Return empty generator to prevent startup failures
-            return
-
 # Configuration-specific database methods (moved from Core.py)
 class ConfigurationDatabase:
     """Database methods specific to Configuration class"""
@@ -1698,7 +1676,7 @@ class DatabaseAPI:
             db_config = DashboardConfig.GetConfig("Database", "redis_host")[1]
             if not db_config:
                 # Fallback to environment variables if not in config
-                from ..ConfigEnv import (
+                from ..Config import (
                     redis_host, redis_port, redis_db, redis_password,
                     postgres_host, postgres_port, postgres_db, postgres_user, postgres_password, postgres_ssl_mode
                 )
@@ -2022,9 +2000,6 @@ class DatabaseAPI:
                 'message': f'Failed to clear cache: {str(e)}'
             }
 
-# Global sqldb instance for compatibility
-sqldb = LegacySqldb()
-
 # Initialize database manager on module import
 try:
     manager = get_redis_manager()
@@ -2273,7 +2248,7 @@ def check_and_migrate_sqlite_databases():
             return True
         
         # Check for development mode - skip migration if in development
-        from ..ConfigEnv import DASHBOARD_MODE
+        from ..Config import DASHBOARD_MODE
         if DASHBOARD_MODE == 'development':
             logger.info("Development mode detected, skipping SQLite migration")
             return False

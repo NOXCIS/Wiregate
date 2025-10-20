@@ -15,7 +15,7 @@ from .Utilities import ValidateDNSAddress
 
 #from . DashboardAPIkey import DashboardAPIKey
 
-from .ConfigEnv import (
+from .Config import (
     DASHBOARD_VERSION, DASHBOARD_CONF,
     wgd_config_path,
     wgd_welcome,

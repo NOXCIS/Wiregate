@@ -9,7 +9,7 @@ from fastapi import Depends, HTTPException, Header, Request, status
 from fastapi.security import APIKeyHeader
 from datetime import datetime
 
-from ..ConfigEnv import SESSION_TIMEOUT
+from ..Config import SESSION_TIMEOUT
 
 logger = logging.getLogger(__name__)
 

@@ -13,7 +13,7 @@ import asyncpg
 import aiosqlite
 import redis.asyncio as aioredis
 
-from ..ConfigEnv import (
+from ..Config import (
     redis_host, redis_port, redis_db, redis_password,
     postgres_host, postgres_port, postgres_db, postgres_user, postgres_password, postgres_ssl_mode,
     DASHBOARD_TYPE
@@ -754,6 +754,166 @@ class AsyncConfigurationDatabase:
         if hasattr(manager, '_invalidate_cache'):
             await manager._invalidate_cache(self.configuration_name, peer_id)
         return result
+
+    # Bulk operations for better performance
+    async def bulk_insert_peers(self, peers_data: List[dict]):
+        """Insert multiple peers in a single transaction for better performance"""
+        manager = await self._get_manager()
+        
+        if not peers_data:
+            return True
+        
+        try:
+            # Use transaction for bulk operations
+            if hasattr(manager, 'bulk_insert_records'):
+                result = await manager.bulk_insert_records(self.configuration_name, peers_data)
+            else:
+                # Fallback to individual inserts in transaction
+                results = []
+                for peer_data in peers_data:
+                    peer_id = peer_data.get('id')
+                    if peer_id:
+                        result = await manager.insert_record(self.configuration_name, peer_id, peer_data)
+                        results.append(result)
+                result = all(results)
+            
+            # Invalidate cache for all peers
+            if hasattr(manager, '_invalidate_cache'):
+                for peer_data in peers_data:
+                    peer_id = peer_data.get('id')
+                    if peer_id:
+                        await manager._invalidate_cache(self.configuration_name, peer_id)
+            
+            return result
+        except Exception as e:
+            logger.error(f"Bulk insert peers failed: {e}")
+            return False
+
+    async def bulk_update_peers(self, peers_updates: List[tuple]):
+        """Update multiple peers in a single transaction
+        Args:
+            peers_updates: List of (peer_id, peer_data) tuples
+        """
+        manager = await self._get_manager()
+        
+        if not peers_updates:
+            return True
+        
+        try:
+            # Use transaction for bulk operations
+            if hasattr(manager, 'bulk_update_records'):
+                result = await manager.bulk_update_records(self.configuration_name, peers_updates)
+            else:
+                # Fallback to individual updates in transaction
+                results = []
+                for peer_id, peer_data in peers_updates:
+                    result = await manager.update_record(self.configuration_name, peer_id, peer_data)
+                    results.append(result)
+                result = all(results)
+            
+            # Invalidate cache for all updated peers
+            if hasattr(manager, '_invalidate_cache'):
+                for peer_id, _ in peers_updates:
+                    await manager._invalidate_cache(self.configuration_name, peer_id)
+            
+            return result
+        except Exception as e:
+            logger.error(f"Bulk update peers failed: {e}")
+            return False
+
+    async def bulk_move_peers_to_restricted(self, peer_ids: List[str]):
+        """Move multiple peers to restricted access table in a single transaction"""
+        manager = await self._get_manager()
+        
+        if not peer_ids:
+            return True
+        
+        try:
+            # Get all peer data first
+            peers_data = []
+            for peer_id in peer_ids:
+                peer_data = await manager.get_record(self.configuration_name, peer_id)
+                if peer_data:
+                    peers_data.append((peer_id, peer_data))
+            
+            if not peers_data:
+                return True
+            
+            # Use transaction for bulk operations
+            if hasattr(manager, 'bulk_move_records'):
+                result = await manager.bulk_move_records(
+                    self.configuration_name, 
+                    f"{self.configuration_name}_restrict_access", 
+                    peers_data
+                )
+            else:
+                # Fallback to individual moves
+                results = []
+                for peer_id, peer_data in peers_data:
+                    # Insert into restricted table
+                    await manager.insert_record(f"{self.configuration_name}_restrict_access", peer_id, peer_data)
+                    # Delete from main table
+                    await manager.delete_record(self.configuration_name, peer_id)
+                    results.append(True)
+                result = all(results)
+            
+            # Invalidate cache for all moved peers
+            if hasattr(manager, '_invalidate_cache'):
+                for peer_id, _ in peers_data:
+                    await manager._invalidate_cache(self.configuration_name, peer_id)
+                    await manager._invalidate_cache(f"{self.configuration_name}_restrict_access", peer_id)
+            
+            return result
+        except Exception as e:
+            logger.error(f"Bulk move peers to restricted failed: {e}")
+            return False
+
+    async def bulk_move_peers_from_restricted(self, peer_ids: List[str]):
+        """Move multiple peers from restricted access table back to main table in a single transaction"""
+        manager = await self._get_manager()
+        
+        if not peer_ids:
+            return True
+        
+        try:
+            # Get all peer data first
+            peers_data = []
+            for peer_id in peer_ids:
+                peer_data = await manager.get_record(f"{self.configuration_name}_restrict_access", peer_id)
+                if peer_data:
+                    peers_data.append((peer_id, peer_data))
+            
+            if not peers_data:
+                return True
+            
+            # Use transaction for bulk operations
+            if hasattr(manager, 'bulk_move_records'):
+                result = await manager.bulk_move_records(
+                    f"{self.configuration_name}_restrict_access",
+                    self.configuration_name, 
+                    peers_data
+                )
+            else:
+                # Fallback to individual moves
+                results = []
+                for peer_id, peer_data in peers_data:
+                    # Insert into main table
+                    await manager.insert_record(self.configuration_name, peer_id, peer_data)
+                    # Delete from restricted table
+                    await manager.delete_record(f"{self.configuration_name}_restrict_access", peer_id)
+                    results.append(True)
+                result = all(results)
+            
+            # Invalidate cache for all moved peers
+            if hasattr(manager, '_invalidate_cache'):
+                for peer_id, _ in peers_data:
+                    await manager._invalidate_cache(self.configuration_name, peer_id)
+                    await manager._invalidate_cache(f"{self.configuration_name}_restrict_access", peer_id)
+            
+            return result
+        except Exception as e:
+            logger.error(f"Bulk move peers from restricted failed: {e}")
+            return False
 
 
 # Initialize async database manager on module import

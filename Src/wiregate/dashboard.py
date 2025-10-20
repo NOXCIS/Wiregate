@@ -40,7 +40,7 @@ async def backGroundThread():
             update_check_counter += 1
             if update_check_counter >= 360:
                 try:
-                    from .routes.fastapi_utils import _background_update_check
+                    from .routes.utils_api import _background_update_check
                     # Run in thread pool to avoid blocking async loop
                     await asyncio.to_thread(_background_update_check)
                     logger.debug("Update check completed")

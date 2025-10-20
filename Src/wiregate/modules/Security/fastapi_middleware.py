@@ -4,13 +4,14 @@ Converts Flask-based security to FastAPI middleware
 """
 import time
 import logging
+import asyncio
 from typing import Callable
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import Response, JSONResponse
 from starlette.middleware.cors import CORSMiddleware
 
-from ..ConfigEnv import (
+from ..Config import (
     DASHBOARD_MODE, ALLOWED_ORIGINS, SECURE_SESSION, SESSION_TIMEOUT
 )
 
@@ -67,36 +68,44 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
     """Log all API requests for security auditing"""
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
-        # Log API requests
+        # Log API requests in background task to avoid blocking
         if "/api/" in request.url.path:
             from ..Logger import AllDashboardLogger
             
             client_ip = request.client.host if request.client else "unknown"
             
-            if request.method == "GET":
-                AllDashboardLogger.log(
-                    str(request.url),
-                    client_ip,
-                    Message="API GET request"
-                )
-            elif request.method == "POST":
-                # For POST, log sanitized body (remove sensitive fields)
+            # Create background task for logging
+            async def log_request():
                 try:
-                    if request.headers.get('content-type', '').startswith('application/json'):
-                        # Note: We can't re-read the body here, so just log the endpoint
+                    if request.method == "GET":
                         AllDashboardLogger.log(
                             str(request.url),
                             client_ip,
-                            Message=f"API POST request"
+                            Message="API GET request"
                         )
-                    else:
-                        AllDashboardLogger.log(
-                            str(request.url),
-                            client_ip,
-                            Message=f"API {request.method} request"
-                        )
+                    elif request.method == "POST":
+                        # For POST, log sanitized body (remove sensitive fields)
+                        try:
+                            if request.headers.get('content-type', '').startswith('application/json'):
+                                # Note: We can't re-read the body here, so just log the endpoint
+                                AllDashboardLogger.log(
+                                    str(request.url),
+                                    client_ip,
+                                    Message=f"API POST request"
+                                )
+                            else:
+                                AllDashboardLogger.log(
+                                    str(request.url),
+                                    client_ip,
+                                    Message=f"API {request.method} request"
+                                )
+                        except Exception as e:
+                            logger.debug(f"Failed to log request: {e}")
                 except Exception as e:
-                    logger.debug(f"Failed to log request: {e}")
+                    logger.debug(f"Failed to log request in background: {e}")
+            
+            # Schedule logging as background task
+            asyncio.create_task(log_request())
         
         response = await call_next(request)
         return response

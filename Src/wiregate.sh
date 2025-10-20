@@ -1041,3 +1041,4 @@ else
         metal_install
     fi
 fi
+

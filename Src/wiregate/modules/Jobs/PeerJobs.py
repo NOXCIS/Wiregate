@@ -7,7 +7,7 @@ import uuid
 from ..DataBase import sqlSelect, get_redis_manager, SQLiteDatabaseManager
 from .PeerJob import PeerJob
 from .PeerJobLogger import PeerJobLogger
-from ..ConfigEnv import CONFIGURATION_PATH, DASHBOARD_TYPE
+from ..Config import CONFIGURATION_PATH, DASHBOARD_TYPE
 
 logger = logging.getLogger('wiregate')
 
