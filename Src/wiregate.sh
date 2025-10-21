@@ -423,21 +423,45 @@ check_dashboard_status(){
 dashboard_start() {
     printf "%s\n" "$equals"
     
-    # Check for SSL certificates and enable SSL if available
-    if [ -f "./SSL_CERT/cert.pem" ] && [ -f "./SSL_CERT/key.pem" ]; then
-        echo "[WIREGATE] SSL certificates found, starting HTTPS-only (production mode)..."
+    # Check if we should use SSL based on DASHBOARD_MODE environment variable
+    # Default to HTTP unless DASHBOARD_MODE is set to "production"
+    if [[ "$DASHBOARD_MODE" == "production" ]]; then
+        # Check for SSL certificates in both possible locations
+        SSL_CERT_PATH=""
+        if [ -f "./SSL_CERT/cert.pem" ] && [ -f "./SSL_CERT/key.pem" ]; then
+            SSL_CERT_PATH="./SSL_CERT"
+        elif [ -f "/WireGate/SSL_CERT/cert.pem" ] && [ -f "/WireGate/SSL_CERT/key.pem" ]; then
+            SSL_CERT_PATH="/WireGate/SSL_CERT"
+        fi
         
-        # Start HTTPS server on port 443 only (production best practice)
-        WGD_REMOTE_ENDPOINT_PORT=443 ./wiregate --ssl --certfile ./SSL_CERT/cert.pem --keyfile ./SSL_CERT/key.pem &
-        local https_pid=$!
-        echo "$https_pid" > "$PID_FILE"
-        CHILD_PIDS+=("$https_pid")
-        echo "[WIREGATE] Started HTTPS server on port 443 (PID: $https_pid)"
-        echo "[WIREGATE] Access via: https://your-domain:8443"
+        if [ -n "$SSL_CERT_PATH" ]; then
+            echo "[WIREGATE] SSL mode enabled, starting HTTPS-only (production mode)..."
+            
+            # Start HTTPS server on port 443 only (production best practice)
+            WGD_REMOTE_ENDPOINT_PORT=443 ./wiregate --ssl --certfile ${SSL_CERT_PATH}/cert.pem --keyfile ${SSL_CERT_PATH}/key.pem &
+            local https_pid=$!
+            echo "$https_pid" > "$PID_FILE"
+            CHILD_PIDS+=("$https_pid")
+            echo "[WIREGATE] Started HTTPS server on port 443 (PID: $https_pid)"
+            echo "[WIREGATE] Access via: https://your-domain:8443"
+        else
+            echo "[WIREGATE] Production mode enabled but no SSL certificates found!"
+            echo "[WIREGATE] Falling back to HTTP mode..."
+            echo "[WIREGATE] To enable HTTPS, mount SSL certificates to ./SSL_CERT/ or /WireGate/SSL_CERT/ directory"
+            echo "[WIREGATE] Required files: cert.pem and key.pem"
+            
+            # Start the dashboard executable in the background and capture its PID
+            ./wiregate &
+            local wiregate_pid=$!
+            echo "$wiregate_pid" > "$PID_FILE"
+            CHILD_PIDS+=("$wiregate_pid")
+            echo "[WIREGATE] Started wiregate process with HTTP on port 80 (PID: $wiregate_pid)"
+            echo "[WIREGATE] Access via: http://your-domain:8080"
+        fi
     else
-        echo "[WIREGATE] No SSL certificates found, starting HTTP only..."
-        echo "[WIREGATE] To enable HTTPS, mount SSL certificates to ./SSL_CERT/ directory"
-        echo "[WIREGATE] Required files: ./SSL_CERT/cert.pem and ./SSL_CERT/key.pem"
+        echo "[WIREGATE] Starting in development mode (HTTP only)..."
+        echo "[WIREGATE] To enable HTTPS, set DASHBOARD_MODE=production and mount SSL certificates"
+        echo "[WIREGATE] SSL certificates should be placed in ./SSL_CERT/ or /WireGate/SSL_CERT/ directory"
         
         # Start the dashboard executable in the background and capture its PID
         ./wiregate &

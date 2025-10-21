@@ -6,10 +6,11 @@ import {fetchGet} from "@/utilities/fetch.js";
 import LocaleText from "@/components/text/localeText.vue";
 import {GetLocale} from "@/utilities/locale.js";
 import ProtocolBadge from "@/components/protocolBadge.vue";
+import ChangelogModal from "@/components/changelogModal.vue";
 
 export default {
 	name: "navbar",
-	components: {LocaleText, ProtocolBadge},
+	components: {LocaleText, ProtocolBadge, ChangelogModal},
 	setup(){
 		const wireguardConfigurationsStore = WireguardConfigurationsStore();
 		const dashboardConfigurationStore = DashboardConfigurationStore();
@@ -20,10 +21,10 @@ export default {
 			updateAvailable: false,
 			updateMessage: "Checking for update...",
 			updateUrl: "",
-			changelogItems: [],
-			showChangelog: false,
-			changelogLoading: false,
-			changelogVersion: null,
+			showChangelogModal: false,
+			configurationsCollapsed: false,
+			toolsCollapsed: true,
+			showProtocolBadges: true,
 		}
 	},
 	computed: {
@@ -45,12 +46,6 @@ export default {
 			this.checkForUpdates();
 		};
 		window.addEventListener('triggerUpdateCheck', this.updateCheckHandler);
-		
-		// Always fetch changelog for current version on mount
-		// Use a longer delay to ensure the store is fully loaded
-		setTimeout(() => {
-			this.fetchCurrentVersionChangelog();
-		}, 2000);
 		
 		// Initialize matrix rain effect
 		this.initMatrixRain();
@@ -85,20 +80,16 @@ export default {
 						this.updateAvailable = true
 						if (typeof res.data === 'object' && res.data.url) {
 							this.updateUrl = res.data.url
-							this.changelogItems = res.data.changelog || []
-							console.log("Changelog items received:", this.changelogItems);
-							console.log("Changelog items count:", this.changelogItems.length);
-							console.log("Changelog items type:", typeof this.changelogItems);
+							console.log("Update URL:", this.updateUrl);
 						} else {
 							this.updateUrl = res.data
 							console.log("No changelog data in response, using simple URL");
 						}
 						console.log("Update URL:", this.updateUrl);
 					} else {
-						// No update available, preserve existing changelog data
+						// No update available
 						this.updateAvailable = false
-						console.log("No update available, preserving existing changelog data");
-						// Don't clear changelog items here - keep what we have
+						console.log("No update available");
 					}
 					this.updateMessage = res.message
 					console.log("Update message:", this.updateMessage);
@@ -121,182 +112,22 @@ export default {
 		},
 		refreshUpdateCheck() {
 			this.updateMessage = "Checking for updates...";
-			// Store current changelog items before update check
-			const currentChangelogItems = [...this.changelogItems];
-			const currentChangelogVersion = this.changelogVersion;
 			this.checkForUpdates();
-			// Restore changelog items if update check doesn't provide new ones
-			setTimeout(() => {
-				if (this.changelogItems.length === 0 && currentChangelogItems.length > 0) {
-					this.changelogItems = currentChangelogItems;
-					this.changelogVersion = currentChangelogVersion;
-					console.log("Restored changelog data after update check");
-				}
-			}, 2000);
 		},
-		toggleChangelog() {
-			console.log("Toggling changelog. Current state:", this.showChangelog);
-			console.log("Current changelog items:", this.changelogItems);
-			console.log("Changelog items length:", this.changelogItems.length);
-			console.log("Changelog items type:", typeof this.changelogItems);
-			this.showChangelog = !this.showChangelog;
+		openChangelogModal() {
+			this.showChangelogModal = true;
 		},
-		fetchCurrentVersionChangelog() {
-			// Fetch changelog for latest version using the existing API
-			console.log("Fetching changelog for latest version using API");
-			this.changelogLoading = true;
-			
-			// Add a small delay to ensure the store is fully loaded
-			setTimeout(() => {
-				// Use the existing update API which already determines the latest Docker tag
-				this.fetchLatestVersionChangelogFromAPI();
-			}, 1000);
+		closeChangelogModal() {
+			this.showChangelogModal = false;
 		},
-		fetchLatestVersionChangelogFromAPI() {
-			// Use the existing update API to get the latest version's changelog
-			console.log("Fetching latest version changelog from update API");
-			this.changelogLoading = true;
-			
-			fetchGet("/api/getDashboardUpdate", {}, (res) => {
-				console.log("Update API response for changelog:", res);
-				this.changelogLoading = false;
-				
-				if (res.status && res.data) {
-					// If there's an update available, use that changelog
-					if (typeof res.data === 'object' && res.data.changelog && res.data.changelog.length > 0) {
-						this.changelogItems = res.data.changelog || [];
-						this.changelogVersion = res.data.version || "latest";
-						console.log("Loaded latest changelog from update API:", this.changelogItems.length, "items");
-					} else {
-						// No changelog data from API, fall back to parsing the changelog file
-						console.log("No changelog data from API, falling back to GitHub parsing");
-						this.loadLatestVersionChangelog();
-					}
-				} else {
-					// API failed, fall back to parsing the changelog file
-					console.log("API failed, falling back to GitHub parsing");
-					this.loadLatestVersionChangelog();
-				}
-			}).catch(error => {
-				console.warn("Update API failed, falling back to changelog parsing:", error);
-				this.changelogLoading = false;
-				this.loadLatestVersionChangelog();
-			});
+		toggleConfigurations() {
+			this.configurationsCollapsed = !this.configurationsCollapsed;
 		},
-		loadLatestVersionChangelog() {
-			// Fallback: Fetch the latest version's changelog from GitHub directly
-			console.log("Loading latest version changelog from GitHub (fallback)");
-			this.changelogLoading = true;
-			
-			// Try to fetch directly from GitHub
-			fetch('https://raw.githubusercontent.com/NOXCIS/Wiregate/refs/heads/main/Docs/CHANGELOG.md')
-				.then(response => response.text())
-				.then(text => {
-					const { changelogItems, version } = this.parseLatestChangelogFromText(text);
-					this.changelogItems = changelogItems;
-					this.changelogVersion = version;
-					this.changelogLoading = false;
-					console.log("Loaded latest changelog from GitHub:", changelogItems.length, "items for version", version);
-				})
-				.catch(error => {
-					console.warn("Failed to fetch changelog from GitHub:", error);
-					this.changelogItems = [];
-					this.changelogLoading = false;
-				});
+		toggleTools() {
+			this.toolsCollapsed = !this.toolsCollapsed;
 		},
-		loadLocalChangelogForCurrentVersion() {
-			// Fallback: Try to fetch from GitHub directly if API fails
-			const currentVersion = this.dashboardConfigurationStore.Configuration.Server.version;
-			console.log("Loading changelog from GitHub for version:", currentVersion);
-			this.changelogLoading = true;
-			
-			// Try to fetch directly from GitHub as fallback
-			fetch('https://raw.githubusercontent.com/NOXCIS/Wiregate/refs/heads/main/Docs/CHANGELOG.md')
-				.then(response => response.text())
-				.then(text => {
-					const changelogItems = this.parseChangelogFromText(text, currentVersion);
-					this.changelogItems = changelogItems;
-					this.changelogLoading = false;
-					console.log("Loaded changelog from GitHub:", changelogItems.length, "items");
-				})
-				.catch(error => {
-					console.warn("Failed to fetch changelog from GitHub:", error);
-					this.changelogItems = [];
-					this.changelogLoading = false;
-				});
-		},
-		parseChangelogFromText(text, version) {
-			// Parse changelog text to extract items for specific version
-			const changelogMap = {};
-			const content = text.trim().split('\n');
-			let currentVersion = null;
-			
-			for (const line of content) {
-				const trimmedLine = line.trim();
-				if (!trimmedLine) continue;
-				
-				// Check if this line defines a version (starts with ## or ends with :)
-				if (trimmedLine.startsWith('## ')) {
-					currentVersion = trimmedLine.replace('## ', '').trim();
-					changelogMap[currentVersion] = [];
-				} else if (trimmedLine.endsWith(':')) {
-					currentVersion = trimmedLine.replace(':', '').trim();
-					changelogMap[currentVersion] = [];
-				} else if (trimmedLine.startsWith('-') && currentVersion) {
-					const item = trimmedLine.replace('-', '', 1).trim();
-					changelogMap[currentVersion].push(item);
-				}
-			}
-			
-			// If exact version not found, try to find the latest version
-			if (changelogMap[version] && changelogMap[version].length > 0) {
-				return changelogMap[version];
-			}
-			
-			// Fallback: return the latest available version's changelog
-			const versions = Object.keys(changelogMap);
-			if (versions.length > 0) {
-				const latestVersion = versions[0]; // Assuming first version is latest
-				console.log(`Version ${version} not found, showing latest available: ${latestVersion}`);
-				this.changelogVersion = latestVersion;
-				return changelogMap[latestVersion] || [];
-			}
-			
-			return [];
-		},
-		parseLatestChangelogFromText(text) {
-			// Parse changelog text to extract the latest version's changelog
-			const changelogMap = {};
-			const content = text.trim().split('\n');
-			let currentVersion = null;
-			
-			for (const line of content) {
-				const trimmedLine = line.trim();
-				if (!trimmedLine) continue;
-				
-				// Check if this line defines a version (starts with ## or ends with :)
-				if (trimmedLine.startsWith('## ')) {
-					currentVersion = trimmedLine.replace('## ', '').trim();
-					changelogMap[currentVersion] = [];
-				} else if (trimmedLine.endsWith(':')) {
-					currentVersion = trimmedLine.replace(':', '').trim();
-					changelogMap[currentVersion] = [];
-				} else if (trimmedLine.startsWith('-') && currentVersion) {
-					const item = trimmedLine.replace('-', '', 1).trim();
-					changelogMap[currentVersion].push(item);
-				}
-			}
-			
-			// Return the first (latest) version's changelog
-			const versions = Object.keys(changelogMap);
-			if (versions.length > 0) {
-				const latestVersion = versions[0]; // First version is latest
-				const changelogItems = changelogMap[latestVersion] || [];
-				console.log(`Found latest version: ${latestVersion} with ${changelogItems.length} items`);
-				return { changelogItems, version: latestVersion };
-			}
-			
-			return { changelogItems: [], version: null };
+		toggleProtocolBadges() {
+			this.showProtocolBadges = !this.showProtocolBadges;
 		},
 		initMatrixRain() {
 			// Wait for next tick to ensure DOM is ready
@@ -580,7 +411,7 @@ export default {
 					
 					<div class="responsive-title-container d-flex">
 						<div class="logo-column me-2">
-							<img src="/img/logo.png" alt="WireGate Logo" style="width: 32px; height: 32px;">
+							<img src="/img/logo.png" alt="WireGate Logo" class="logo-image">
 						</div>
 						<div class="title-column">
 							<div class="responsive-title">WireGate</div>
@@ -596,7 +427,7 @@ export default {
 				
 				<!-- Mobile Logo and Title - Hidden, shown in top navbar instead -->
 				<div class="text-white m-0 py-2 mb-2 nav-brand-mobile d-flex align-items-center d-none matrix-rain-bg">
-					<img src="/img/logo.png" alt="WireGate Logo" class="mobile-logo me-2" style="width: 32px; height: 32px;">
+					<img src="/img/logo.png" alt="WireGate Logo" class="mobile-logo me-2">
 					<div class="d-flex flex-column">
 						<span class="mobile-title">WireGate</span>
 						<span class="mobile-subtitle">Dashboard</span>
@@ -618,168 +449,136 @@ export default {
 					</li>
 				</ul>
 				<hr class="text-body">
-				<h6 class="sidebar-heading px-3 mt-4 mb-3 text-muted" style="font-size: 0.7rem; font-weight: 100;">
-					<i class="bi bi-body-text me-2"></i>
-					<LocaleText t="Configurations"></LocaleText>
-				</h6>
-				<ul class="nav flex-column px-2">
-					<li class="nav-item mb-2">
-						<RouterLink to="/new_configuration" class="nav-link rounded-3" active-class="active">
-							<i class="bi bi-plus-circle me-2"></i>
-							<LocaleText t="New Configuration"></LocaleText>
-						</RouterLink>
-					</li>
-					<li class="nav-item" v-for="c in this.wireguardConfigurationsStore.Configurations">
-						<RouterLink :to="'/configuration/'+c.Name + '/peers'" 
-						            class="nav-link nav-conf-link rounded-3"
-						            active-class="active">
-							<span class="dot me-2" :class="{active: c.Status}"></span>
-							<div class="d-flex align-items-center">
-								<span class="configuration-name">{{c.Name}}</span>
-								<ProtocolBadge :protocol="c.Protocol" :mini="true" class="protocol-badge-small ms-2"></ProtocolBadge>
-							</div>
-						</RouterLink>
-					</li>
-				</ul>
+				<div class="sidebar-section">
+					<div class="sidebar-heading px-3 mt-4 mb-3 text-muted d-flex align-items-center justify-content-between" 
+					     @click="toggleConfigurations" role="button">
+						<div class="d-flex align-items-center">
+							<i class="bi bi-body-text me-2"></i>
+							<LocaleText t="Configurations"></LocaleText>
+						</div>
+						<div class="d-flex align-items-center">
+							<button class="btn btn-sm btn-outline-secondary protocol-toggle me-2" 
+							        @click.stop="toggleProtocolBadges" 
+							        :title="showProtocolBadges ? 'Hide Protocol Badges' : 'Show Protocol Badges'">
+								<i class="bi" :class="showProtocolBadges ? 'bi-eye' : 'bi-eye-slash'"></i>
+							</button>
+							<i class="bi" :class="configurationsCollapsed ? 'bi-chevron-right' : 'bi-chevron-down'"></i>
+						</div>
+					</div>
+					<div class="collapse" :class="{show: !configurationsCollapsed}">
+						<ul class="nav flex-column px-2">
+							<li class="nav-item mb-2">
+								<RouterLink to="/new_configuration" class="nav-link rounded-3" active-class="active">
+									<i class="bi bi-plus-circle me-2"></i>
+									<LocaleText t="New Configuration"></LocaleText>
+								</RouterLink>
+							</li>
+							<li class="nav-item" v-for="c in this.wireguardConfigurationsStore.Configurations">
+								<RouterLink :to="'/configuration/'+c.Name + '/peers'" 
+								            class="nav-link nav-conf-link rounded-3"
+								            active-class="active">
+									<span class="dot me-2" :class="{active: c.Status}"></span>
+									<div class="d-flex align-items-center">
+										<span class="configuration-name">{{c.Name}}</span>
+										<ProtocolBadge v-if="showProtocolBadges" :protocol="c.Protocol" :mini="true" class="protocol-badge-small ms-2"></ProtocolBadge>
+									</div>
+								</RouterLink>
+							</li>
+						</ul>
+					</div>
+				</div>
 				<hr class="text-body">
-				<h6 class="sidebar-heading px-3 mt-4 mb-3 text-muted" style="font-size: 0.7rem; font-weight: 100;">
-					<i class="bi bi-tools me-2"></i>
-					<LocaleText t="Tools"></LocaleText>
-				</h6>
-				<ul class="nav flex-column px-2">
-					<li class="nav-item mb-2">
-						<RouterLink to="/system_status" class="nav-link rounded-3" active-class="active">
-							<i class="bi bi-pc-display me-2"></i>
-							<LocaleText t="System Status"></LocaleText>
-						</RouterLink>
-					</li>
-					<li class="nav-item mb-2">
-						<RouterLink to="/tor-configuration" class="nav-link rounded-3" active-class="active">
-							<i class="bi tor-logo me-2"></i>
-							<LocaleText t="Tor Configuration"></LocaleText>
-						</RouterLink>
-					</li>
-					<li class="nav-item mb-2">
-						<RouterLink to="/ping" class="nav-link rounded-3" active-class="active">
-							<i class="bi bi-broadcast me-2" style="font-size: 1.3em"></i>
-							<LocaleText t="Ping"></LocaleText>
-						</RouterLink>
-					</li>
-					<li class="nav-item mb-2">
-						<RouterLink to="/traceroute" class="nav-link rounded-3" active-class="active">
-							<i class="bi bi-diagram-2 me-2" style="font-size: 1.4em"></i>
-							<LocaleText t="Traceroute"></LocaleText>
-						</RouterLink>
-					</li>
-					<li class="nav-item mb-2">
-						<RouterLink to="/restore_configuration" class="nav-link rounded-3" active-class="active">
-							<i class="bi bi-cloud-upload me-2" style="font-size: 1.3em"></i>
-							<LocaleText t="Upload & Restore"></LocaleText>
-						</RouterLink>
-					</li>
-				</ul>
+				<div class="sidebar-section">
+					<div class="sidebar-heading px-3 mt-4 mb-3 text-muted d-flex align-items-center justify-content-between" 
+					     @click="toggleTools" role="button">
+						<div class="d-flex align-items-center">
+							<i class="bi bi-tools me-2"></i>
+							<LocaleText t="Tools"></LocaleText>
+						</div>
+						<i class="bi" :class="toolsCollapsed ? 'bi-chevron-right' : 'bi-chevron-down'"></i>
+					</div>
+					<div class="collapse" :class="{show: !toolsCollapsed}">
+						<ul class="nav flex-column px-2">
+							<li class="nav-item mb-2">
+								<RouterLink to="/system_status" class="nav-link rounded-3" active-class="active">
+									<i class="bi bi-pc-display me-2"></i>
+									<LocaleText t="System Status"></LocaleText>
+								</RouterLink>
+							</li>
+							<li class="nav-item mb-2">
+								<RouterLink to="/tor-configuration" class="nav-link rounded-3" active-class="active">
+									<i class="bi tor-logo me-2"></i>
+									<LocaleText t="Tor Configuration"></LocaleText>
+								</RouterLink>
+							</li>
+							<li class="nav-item mb-2">
+								<RouterLink to="/ping" class="nav-link rounded-3" active-class="active">
+									<i class="bi bi-broadcast me-2 icon-broadcast"></i>
+									<LocaleText t="Ping"></LocaleText>
+								</RouterLink>
+							</li>
+							<li class="nav-item mb-2">
+								<RouterLink to="/traceroute" class="nav-link rounded-3" active-class="active">
+									<i class="bi bi-diagram-2 me-2 icon-diagram"></i>
+									<LocaleText t="Traceroute"></LocaleText>
+								</RouterLink>
+							</li>
+							<li class="nav-item mb-2">
+								<RouterLink to="/restore_configuration" class="nav-link rounded-3" active-class="active">
+									<i class="bi bi-cloud-upload me-2 icon-cloud-upload"></i>
+									<LocaleText t="Upload & Restore"></LocaleText>
+								</RouterLink>
+							</li>
+							<li class="nav-item mb-2">
+								<a class="nav-link rounded-3" @click="openChangelogModal" role="button">
+									<i class="bi bi-journal-text me-2"></i>
+									<LocaleText t="Changelog"></LocaleText>
+								</a>
+							</li>
+						</ul>
+					</div>
+				</div>
 				<hr class="text-body">
 				<ul class="nav flex-column px-2 mb-3">
 					<li class="nav-item">
-						<a class="nav-link text-danger rounded-3" 
+						<a class="nav-link text-danger rounded-3 sign-out-link" 
 					                        @click="this.dashboardConfigurationStore.signOut()" 
-					                        role="button" style="font-weight: bold">
+					                        role="button">
 							<i class="bi bi-box-arrow-left me-2"></i>
 							<LocaleText t="Sign Out"></LocaleText>	
 						</a>
 					</li>
-					<li class="nav-item">
-						<a :href="this.updateUrl" 
-						   v-if="this.updateAvailable" 
-						   class="nav-link text-success rounded-3" 
-						   target="_blank">
-							<div class="d-flex align-items-center">
-								<i class="bi bi-arrow-up-circle me-2"></i>
-								<div class="d-flex flex-column flex-grow-1">
-									<small><LocaleText :t="this.updateMessage"></LocaleText></small>
-									<small class="text-muted">
-										<LocaleText t="Current Version:"></LocaleText> 
-										{{ dashboardConfigurationStore.Configuration.Server.version }}
-									</small>
-									<small v-if="changelogItems.length > 0" 
-										   class="changelog-toggle" 
-										   @click.stop.prevent="toggleChangelog">
-										<i class="bi" :class="showChangelog ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
-										<LocaleText t="View changelog"></LocaleText>
-									</small>
-									<div v-if="showChangelog" class="changelog-container mt-2">
-										<div v-if="changelogItems.length > 0" class="text-info mb-2" style="font-size: 0.75rem;">
-											<i class="bi bi-info-circle me-1"></i>
-											<LocaleText t="Changelog for version:"></LocaleText> {{ changelogVersion || 'latest' }}
-										</div>
-										<ul v-if="changelogItems.length > 0" class="changelog-list">
-											<li v-for="(item, index) in changelogItems" :key="index">
-												{{ item }}
-											</li>
-										</ul>
-										<div v-else class="text-muted text-center py-2">
-											<small><LocaleText t="NO CHANGE LOG AVAILABLE"></LocaleText></small>
-										</div>
-									</div>
-								</div>
-								<button class="btn btn-sm btn-outline-light ms-2" 
-								        @click.stop.prevent="refreshUpdateCheck"
-								        title="Refresh update check">
-									<i class="bi bi-arrow-clockwise"></i>
-								</button>
-							</div>
-						</a>
-						<div v-else class="nav-link text-muted rounded-3 d-flex align-items-center">
-							
-							<div class="d-flex flex-column flex-grow-1">
-								<small><LocaleText :t="this.updateMessage"></LocaleText></small>
-								<small>{{ dashboardConfigurationStore.Configuration.Server.version }}</small>
-								<small class="changelog-toggle" 
-									   @click.stop.prevent="toggleChangelog"
-									   style="cursor: pointer;">
-									<i class="bi" :class="showChangelog ? 'bi-chevron-down' : 'bi-chevron-right'"></i>
-									<LocaleText t="View changelog"></LocaleText>
+					<li class="nav-item mt-4">
+						<div class="d-flex align-items-center justify-content-center">
+							<div class="d-flex flex-column">
+								<small class="version-link" @click="openChangelogModal" title="View Changelog">
+									<strong>{{ dashboardConfigurationStore.Configuration.Server.version }}</strong>
 								</small>
-								<div v-if="showChangelog" class="changelog-container mt-2">
-									<div v-if="changelogLoading" class="text-center py-2">
-										<small class="text-muted">
-											<i class="bi bi-hourglass-split me-1"></i>
-											<LocaleText t="Loading changelog..."></LocaleText>
-										</small>
-									</div>
-									<div v-else-if="changelogItems.length > 0">
-										<div class="text-info mb-2" style="font-size: 0.75rem;">
-											<i class="bi bi-info-circle me-1"></i>
-											<LocaleText t="Changelog for version:"></LocaleText> {{ changelogVersion || 'latest' }}
-										</div>
-										<ul class="changelog-list">
-											<li v-for="(item, index) in changelogItems" :key="index">
-												{{ item }}
-											</li>
-										</ul>
-									</div>
-									<div v-else class="text-muted text-center py-2">
-										<small><LocaleText t="NO CHANGE LOG AVAILABLE"></LocaleText></small>
-									</div>
-								</div>
 							</div>
-							<button class="btn btn-sm btn-outline-light ms-2" 
-							        @click.stop.prevent="refreshUpdateCheck"
-							        title="Refresh update check">
-								<i class="bi bi-arrow-clockwise"></i>
-							</button>
 						</div>
 					</li>
 				</ul>
 			</div>
 		</nav>
+		
+		<!-- Changelog Modal -->
+		<ChangelogModal v-if="showChangelogModal" @close="closeChangelogModal" />
 	</div>
 </template>
 
 <style scoped>
 .nav-link.active {
-	background: linear-gradient(234deg, var(--brandColor4) 0%, var(--brandColor6) 100%);
+	background-color: #000000 !important;
+	border: 1px solid #ffffff !important;
 	color: white !important;
+	font-weight: 500;
+}
+
+/* Light theme styles for navbar */
+[data-bs-theme="light"] .nav-link.active {
+	background-color: #ffffff !important;
+	border: 1px solid #000000 !important;
+	color: #000000 !important;
 	font-weight: 500;
 }
 
@@ -943,6 +742,41 @@ export default {
 .logo-column {
 	display: flex;
 	align-items: center;
+}
+
+.logo-image {
+	width: 32px;
+	height: 32px;
+}
+
+.mobile-logo {
+	width: 32px;
+	height: 32px;
+}
+
+.sidebar-heading {
+	font-size: 0.7rem;
+	font-weight: 100;
+}
+
+.icon-broadcast {
+	font-size: 1.3em;
+}
+
+.icon-diagram {
+	font-size: 1.4em;
+}
+
+.icon-cloud-upload {
+	font-size: 1.3em;
+}
+
+.sign-out-link {
+	font-weight: bold;
+}
+
+.changelog-version {
+	font-size: 0.75rem;
 }
 
 .title-column {
@@ -1306,5 +1140,78 @@ export default {
 .nav-brand-mobile.matrix-rain-bg {
 	background: linear-gradient(234deg, #150044 0%, #002e00 100%) !important;
 	animation: matrixGradient 8s ease-in-out infinite;
+}
+
+/* Version clickable styling */
+.version-link {
+	cursor: pointer;
+	transition: color 0.2s ease-in-out;
+	color: #4a4a4a;
+}
+
+.version-link:hover {
+	color: white !important;
+}
+
+/* Collapsible sidebar sections */
+.sidebar-section {
+	margin-bottom: 0.5rem;
+}
+
+.sidebar-section .sidebar-heading {
+	cursor: pointer;
+	transition: all 0.2s ease-in-out;
+	border-radius: 0.375rem;
+	margin-bottom: 0.5rem !important;
+	padding: 0.5rem 0.75rem !important;
+}
+
+.sidebar-section .sidebar-heading:hover {
+	background-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-bs-theme="light"] .sidebar-section .sidebar-heading:hover {
+	background-color: rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-section .collapse {
+	transition: all 0.3s ease-in-out;
+}
+
+.sidebar-section .collapse.show {
+	display: block;
+}
+
+.sidebar-section .bi-chevron-right,
+.sidebar-section .bi-chevron-down {
+	transition: transform 0.2s ease-in-out;
+	font-size: 0.8rem;
+}
+
+/* Protocol toggle button styling */
+.protocol-toggle {
+	padding: 0.2rem 0.4rem !important;
+	font-size: 0.7rem !important;
+	border: 1px solid rgba(255, 255, 255, 0.3) !important;
+	background-color: transparent !important;
+	color: rgba(255, 255, 255, 0.7) !important;
+	transition: all 0.2s ease-in-out;
+}
+
+.protocol-toggle:hover {
+	background-color: rgba(255, 255, 255, 0.1) !important;
+	border-color: rgba(255, 255, 255, 0.5) !important;
+	color: white !important;
+}
+
+[data-bs-theme="light"] .protocol-toggle {
+	border: 1px solid rgba(0, 0, 0, 0.3) !important;
+	color: rgba(0, 0, 0, 0.7) !important;
+}
+
+[data-bs-theme="light"] .protocol-toggle:hover {
+	background-color: rgba(0, 0, 0, 0.1) !important;
+	border-color: rgba(0, 0, 0, 0.5) !important;
+	color: #000000 !important;
 }
 </style>

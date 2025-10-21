@@ -19,19 +19,18 @@ const route = useRoute()
 </script>
 
 <template>
-	<div style="z-index: 9999; height: 4px" class="position-absolute loadingBar top-0 start-0"></div>
+	<div class="loading-bar-top position-absolute loadingBar top-0 start-0"></div>
 	<nav class="navbar bg-dark sticky-top" data-bs-theme="dark" v-if="!route.meta.hideTopNav">
 		<div class="container-fluid d-flex text-body align-items-center">
 			<RouterLink to="/" class="navbar-brand mb-0 h1 d-flex align-items-center">
-				<img src="/img/logo.png" alt="WireGate Logo" style="width: 32px" class="me-2">
+				<img src="/img/logo.png" alt="WireGate Logo" class="navbar-logo me-2">
 				<div class="d-flex flex-column">
 					<span class="navbar-title">WireGate</span>
 					<small class="navbar-subtitle">Dashboard</small>
 				</div>
 			</RouterLink>
-			<a role="button" class="navbarBtn text-body"
-			   @click="store.ShowNavBar = !store.ShowNavBar"
-			   style="line-height: 0; font-size: 2rem">
+			<a role="button" class="navbarBtn text-body navbar-toggle-btn"
+			   @click="store.ShowNavBar = !store.ShowNavBar">
 				<Transition name="fade2" mode="out-in">
 					<i class="bi bi-list" v-if="!store.ShowNavBar"></i>
 					<i class="bi bi-x-lg" v-else></i>
@@ -68,6 +67,20 @@ const route = useRoute()
 	font-size: 0.7rem;
 	color: rgba(255, 255, 255, 0.75);
 	line-height: 1;
+}
+
+.loading-bar-top {
+	z-index: 9999;
+	height: 4px;
+}
+
+.navbar-logo {
+	width: 32px;
+}
+
+.navbar-toggle-btn {
+	line-height: 0;
+	font-size: 2rem;
 }
 
 /* Mobile responsive adjustments */

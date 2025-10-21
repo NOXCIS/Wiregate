@@ -134,11 +134,13 @@ if __name__ == "__main__":
                 ssl_enabled = False
                 if 'ssl' in config_section:
                     ssl_enabled = config_section.getboolean('ssl')
+                    logger.debug(f"SSL setting from config: {ssl_enabled}")
                     
                 if ssl_enabled:
                     if 'certfile' in config_section and 'keyfile' in config_section:
                         options['ssl_certfile'] = config_section['certfile']
                         options['ssl_keyfile'] = config_section['keyfile']
+                        logger.debug("SSL certificates loaded from config file")
                 
                 logger.debug("Loaded configuration successfully")
         except Exception as e:
@@ -164,6 +166,8 @@ if __name__ == "__main__":
     )
     
     # Handle SSL configuration (command line takes precedence)
+    logger.debug(f"SSL configuration check: args.ssl={args.ssl}, ssl_enabled={ssl_enabled}, ssl_certfile in options={'ssl_certfile' in options}, ssl_keyfile in options={'ssl_keyfile' in options}")
+    
     if args.ssl:
         if not args.certfile or not args.keyfile:
             parser.error("--ssl requires --certfile and --keyfile")

@@ -28,7 +28,8 @@ export default defineConfig(({mode}) => {
 				terserOptions: {
 					compress: {
 						drop_console: isProduction,
-						drop_debugger: isProduction
+						drop_debugger: isProduction,
+						pure_funcs: ['console.log', 'console.info', 'console.debug', 'console.warn']
 					}
 				},
 				rollupOptions: {
@@ -65,7 +66,8 @@ export default defineConfig(({mode}) => {
 			terserOptions: {
 				compress: {
 					drop_console: isProduction,
-					drop_debugger: isProduction
+					drop_debugger: isProduction,
+					pure_funcs: ['console.log', 'console.info', 'console.debug', 'console.warn']
 				}
 			},
 			rollupOptions: {

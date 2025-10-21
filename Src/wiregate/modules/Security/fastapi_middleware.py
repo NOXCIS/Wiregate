@@ -36,15 +36,19 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         response.headers['Expires'] = '0'
         
         # Safari WebKit specific headers
-        response.headers['X-WebKit-CSP'] = "default-src 'self'"
+        #response.headers['X-WebKit-CSP'] = "default-src 'self'"
         
         if DASHBOARD_MODE == 'production':
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
             response.headers['Content-Security-Policy'] = (
-                "default-src 'self'; "
                 "script-src 'self'; "
                 "style-src 'self'; "
                 "img-src 'self' data:; "
+                "font-src 'self'; "
+                "media-src 'self'; "
+                "object-src 'none'; "
+                "frame-src 'none'; "
+                "manifest-src 'self'; "
                 "connect-src 'self' https://raw.githubusercontent.com https://tile.openstreetmap.org; "
                 "frame-ancestors 'none'; "
                 "form-action 'self'"
@@ -52,10 +56,14 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         else:
             # Development mode - more permissive CSP
             response.headers['Content-Security-Policy'] = (
-                "default-src 'self'; "
-                "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-                "style-src 'self' 'unsafe-inline'; "
+                "script-src 'self'; "
+                "style-src 'self'; "
                 "img-src 'self' data:; "
+                "font-src 'self'; "
+                "media-src 'self'; "
+                "object-src 'none'; "
+                "frame-src 'none'; "
+                "manifest-src 'self'; "
                 "connect-src 'self' https://raw.githubusercontent.com https://tile.openstreetmap.org; "
                 "frame-ancestors 'none'; "
                 "form-action 'self'"

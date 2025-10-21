@@ -266,9 +266,7 @@ COPY --from=noxcis/awg-bins:latest /amneziawg-go /awg /awg-quick /usr/bin/
 COPY --from=pybuilder /build/dist/wiregate /build/dist/vanguards /WireGate/
 COPY --from=builder /build/torflux /build/traffic-weir /WireGate/
 
-# Copy Python shared library for PyInstaller executables
-#COPY --from=base_dependencies /usr/local/lib/libpython3.13.so.1.0 /usr/local/lib/
-#RUN ln -sf /usr/local/lib/libpython3.13.so.1.0 /lib/libpython3.13.so.1.0
+
 
 RUN chmod +x /WireGate/wiregate /WireGate/vanguards /WireGate/torflux /WireGate/traffic-weir
 

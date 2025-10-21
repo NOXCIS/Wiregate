@@ -106,6 +106,27 @@ async def get_configurations(
     return StandardResponse(status=True, data=valid_configs)
 
 
+@router.post('/refreshPublicKeys', response_model=StandardResponse)
+async def refresh_public_keys(
+    user: Dict[str, Any] = Depends(require_authentication)
+):
+    """Force refresh public keys for all configurations"""
+    try:
+        from ..modules.Core import refresh_all_public_keys
+        refreshed_count = refresh_all_public_keys()
+        return StandardResponse(
+            status=True, 
+            message=f"Refreshed public keys for {refreshed_count} configurations",
+            data={"refreshed_count": refreshed_count}
+        )
+    except Exception as e:
+        logger.error(f"Error refreshing public keys: {e}")
+        return StandardResponse(
+            status=False,
+            message=f"Failed to refresh public keys: {str(e)}"
+        )
+
+
 @router.post('/cleanupOrphanedConfigurations', response_model=StandardResponse)
 async def cleanup_orphaned_configurations(
     user: Dict[str, Any] = Depends(require_authentication)
@@ -650,11 +671,33 @@ async def add_peers(
             
             keyPairs = []
             for i in range(bulkAddAmount):
-                newPrivateKey = GenerateWireguardPrivateKey()[1]
+                # Generate private key
+                private_success, newPrivateKey = GenerateWireguardPrivateKey()
+                if not private_success or not newPrivateKey:
+                    return StandardResponse(
+                        status=False,
+                        message=f"Failed to generate private key for peer {i+1}"
+                    )
+                
+                # Generate public key from private key
+                public_success, newPublicKey = GenerateWireguardPublicKey(newPrivateKey)
+                if not public_success or not newPublicKey:
+                    return StandardResponse(
+                        status=False,
+                        message=f"Failed to generate public key for peer {i+1}"
+                    )
+                
+                # Generate preshared key if needed
+                preshared_key = ""
+                if preshared_key_bulkAdd:
+                    psk_success, psk_key = GenerateWireguardPrivateKey()
+                    if psk_success and psk_key:
+                        preshared_key = psk_key
+                
                 keyPairs.append({
                     "private_key": newPrivateKey,
-                    "id": GenerateWireguardPublicKey(newPrivateKey)[1],
-                    "preshared_key": (GenerateWireguardPrivateKey()[1] if preshared_key_bulkAdd else ""),
+                    "id": newPublicKey,
+                    "preshared_key": preshared_key,
                     "allowed_ip": availableIps[1][i],
                     "name": f"BulkPeer #{(i + 1)}_{datetime.now().strftime('%Y%m%d_%H%M%S')}",
                     "DNS": dns_addresses,

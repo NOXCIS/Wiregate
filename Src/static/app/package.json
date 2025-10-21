@@ -9,9 +9,9 @@
     "buildcommitpush": "./build.sh",
     "build electron": "vite build && vite build --mode electron && cd ../../../../WGDashboard-Desktop && electron-builder --mac --win",
     "preview": "vite preview",
-    "audit": "npm audit --audit-level=moderate",
+    "audit": "npm audit --audit-level=low",
     "audit:fix": "npm audit fix",
-    "security:check": "npm audit --audit-level=high && npm outdated",
+    "security:check": "npm audit --audit-level=low && npm outdated",
     "deps:update": "npm update && npm audit fix"
   },
   "dependencies": {

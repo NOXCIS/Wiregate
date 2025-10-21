@@ -226,5 +226,42 @@ export default {
 </template>
 
 <style scoped>
+/* Settings tab styling - clean black/white theme */
+.nav-pills .nav-link {
+    background-color: transparent !important;
+    border: 1px solid transparent !important;
+    color: #ffffff !important;
+    transition: all 0.2s ease-in-out;
+}
 
+.nav-pills .nav-link:hover {
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    color: #ffffff !important;
+}
+
+.nav-pills .nav-link.active {
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    color: #ffffff !important;
+}
+
+/* Light theme styles */
+[data-bs-theme="light"] .nav-pills .nav-link {
+    background-color: transparent !important;
+    border: 1px solid transparent !important;
+    color: #000000 !important;
+}
+
+[data-bs-theme="light"] .nav-pills .nav-link:hover {
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+}
+
+[data-bs-theme="light"] .nav-pills .nav-link.active {
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+}
 </style>

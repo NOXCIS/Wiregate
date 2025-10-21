@@ -386,8 +386,12 @@ class Configuration:
             except ValueError as e:
                 raise self.InvalidConfigurationFileException(
                     "[Interface] section not found in " + self.configPath)
+            logger.debug(f"Configuration {self.Name} parsed. PrivateKey length: {len(self.PrivateKey) if self.PrivateKey else 0}")
             if self.PrivateKey:
                 self.PublicKey = self.__getPublicKey()
+                logger.debug(f"Configuration {self.Name} PublicKey length: {len(self.PublicKey) if self.PublicKey else 0}")
+            else:
+                logger.warning(f"Configuration {self.Name} has no PrivateKey, skipping public key generation")
             self.Status = self.getStatus()
 
     def __dropDatabase(self):
@@ -411,7 +415,14 @@ class Configuration:
         return self.db.import_database(sqlFilePath)
 
     def __getPublicKey(self) -> str:
-        return GenerateWireguardPublicKey(self.PrivateKey)[1]
+        logger.debug(f"Generating public key for configuration {self.Name}, PrivateKey length: {len(self.PrivateKey) if self.PrivateKey else 0}")
+        success, public_key = GenerateWireguardPublicKey(self.PrivateKey)
+        if success and public_key:
+            logger.debug(f"Successfully generated public key for {self.Name}: {public_key[:10]}...")
+            return public_key
+        else:
+            logger.error(f"Failed to generate public key for configuration {self.Name}. Success: {success}, PublicKey: {public_key}")
+            return ""
 
     def getStatus(self) -> bool:
         self.Status = self.Name in psutil.net_if_addrs().keys()
@@ -1488,6 +1499,10 @@ class Configuration:
 
     def toJson(self):
         self.Status = self.getStatus()
+        # Force refresh public key if it's empty but we have a private key
+        if not self.PublicKey and self.PrivateKey:
+            logger.debug(f"Refreshing empty public key for configuration {self.Name}")
+            self.PublicKey = self.__getPublicKey()
         return {
             "Status": self.Status,
             "Name": self.Name,
@@ -2372,6 +2387,26 @@ def InitWireguardConfigurationsList(startup: bool = False):
                     # Don't try to call the private method directly
             except Configuration.InvalidConfigurationFileException as e:
                 logger.error(f"{i} have an invalid configuration file.")
+
+def refresh_all_public_keys():
+    """Force refresh public keys for all configurations"""
+    logger.info("Refreshing public keys for all configurations...")
+    refreshed_count = 0
+    for config_name, config in Configurations.items():
+        if config.PrivateKey and not config.PublicKey:
+            logger.info(f"Refreshing public key for configuration: {config_name}")
+            config.PublicKey = config.__getPublicKey()
+            refreshed_count += 1
+        elif config.PrivateKey and config.PublicKey:
+            # Test if the existing public key is valid by regenerating it
+            success, new_public_key = GenerateWireguardPublicKey(config.PrivateKey)
+            if success and new_public_key and new_public_key != config.PublicKey:
+                logger.warning(f"Public key mismatch for {config_name}, updating...")
+                config.PublicKey = new_public_key
+                refreshed_count += 1
+    
+    logger.info(f"Refreshed public keys for {refreshed_count} configurations")
+    return refreshed_count
 
 async def InitRateLimits():
     """Reapply rate limits for all peers across all interfaces"""

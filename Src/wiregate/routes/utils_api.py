@@ -30,24 +30,26 @@ _update_cache = {
 
 
 def get_changelog_for_version(version):
-    """Return changelog data for a specific version from local changelog file."""
+    """Return changelog data for a specific version from GitHub changelog file."""
     try:
-        import os
-        # Path to the local changelog file
-        changelog_path = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "..", "Docs", "CHANGELOG.md")
+        logger.info(f"Getting changelog for version: {version}")
+        
+        # Fetch changelog from GitHub
+        changelog_url = "https://raw.githubusercontent.com/NOXCIS/Wiregate/refs/heads/main/Docs/CHANGELOG.md"
+        logger.info(f"Fetching changelog from: {changelog_url}")
+        response = requests.get(changelog_url, timeout=10)
+        
+        logger.info(f"GitHub response status: {response.status_code}")
+        if response.status_code != 200:
+            logger.warning(f"Failed to fetch changelog from GitHub: {response.status_code}")
+            return []
+        
+        content = response.text.strip().split('\n')
+        logger.info(f"Changelog content length: {len(content)} lines")
+        logger.info(f"First 10 lines of changelog: {content[:10]}")
         
         # Initialize an empty dictionary to store the parsed changelog
         changelog_map = {}
-        
-        # Read the changelog content from local file
-        if os.path.exists(changelog_path):
-            with open(changelog_path, 'r', encoding='utf-8') as f:
-                content = f.read().strip().split('\n')
-        else:
-            logger.warning(f"Changelog file not found at {changelog_path}")
-            return []
-        
-        # Parse the content
         current_version = None
         
         for line in content:
@@ -55,14 +57,19 @@ def get_changelog_for_version(version):
             if not line:
                 continue
                 
-            # Check if this line defines a version (starts with ##)
-            if line.startswith('## '):
-                current_version = line.replace('## ', '').strip()
+            # Check if this line defines a version (ends with : and doesn't start with - or space)
+            if line.endswith(':') and not line.startswith('-') and not line.startswith(' '):
+                current_version = line.replace(':', '').strip()
                 changelog_map[current_version] = []
+                logger.info(f"Found version header: {current_version}")
             # If this is a changelog item for the current version (starts with -)
             elif line.startswith('-') and current_version:
                 item = line.replace('-', '', 1).strip()
                 changelog_map[current_version].append(item)
+                logger.info(f"Added item to {current_version}: {item}")
+        
+        logger.info(f"Available versions in changelog: {list(changelog_map.keys())}")
+        logger.info(f"Changelog map: {changelog_map}")
         
         # Handle "latest" version request
         if version == "latest":
@@ -78,16 +85,19 @@ def get_changelog_for_version(version):
         
         # Return the changelog items for the requested version only
         result = changelog_map.get(version, [])
+        logger.info(f"Looking for version '{version}' in changelog map")
+        logger.info(f"Found result: {result}")
         if result:
             logger.info(f"Found {len(result)} changelog items for version {version}")
             return result
         else:
             # No changelog available for this specific version
             logger.info(f"No changelog found for version {version}")
+            logger.info(f"Available versions: {list(changelog_map.keys())}")
             return []
             
     except Exception as e:
-        logger.error(f"Error reading changelog: {str(e)}")
+        logger.error(f"Error reading changelog from GitHub: {str(e)}")
         logger.debug(f"Failed to read changelog, returning empty list")
         return []
 
@@ -322,14 +332,21 @@ async def get_current_version_changelog(
 ):
     """Get changelog for a specific version"""
     try:
+        logger.info(f"API endpoint called with version: {version}")
         changelog_items = get_changelog_for_version(version)
+        logger.info(f"API endpoint returning {len(changelog_items)} items for version {version}")
+        
+        response_data = {
+            'changelog': changelog_items,
+            'version': version
+        }
+        
+        logger.info(f"API response data: {response_data}")
+        
         return StandardResponse(
             status=True,
             message=f"Changelog for {version}",
-            data={
-                'changelog': changelog_items,
-                'version': version
-            }
+            data=response_data
         )
     except Exception as e:
         logger.error(f"Failed to get changelog for version {version}: {e}")
