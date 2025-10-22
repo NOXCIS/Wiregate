@@ -68,7 +68,8 @@ async def get_current_user(request: Request) -> Optional[Dict[str, Any]]:
     # Check if authentication is required
     auth_required = DashboardConfig.GetConfig("Server", "auth_req")[1]
     if not auth_required:
-        return {"username": "admin", "authenticated": False}  # No auth required
+        configured_username = DashboardConfig.GetConfig("Account", "username")[1]
+        return {"username": configured_username, "authenticated": True}  # No auth required
     
     # Get session data from request state (set by session middleware)
     session_data = getattr(request.state, 'session', {})
