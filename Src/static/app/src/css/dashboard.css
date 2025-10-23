@@ -326,59 +326,63 @@
 
 .form-check-input {
     background-color: #ffffff !important;
-    border-color: #7a0cc4 !important;
+    border-color: #000000 !important;
 }
 
 .form-check-input:checked {
-    background-color: #7a0cc4 !important;
-    border-color: #b84dff !important;
+    background-color: #000000 !important;
+    border-color: #000000 !important;
 }
 
 .form-check-input:focus {
-    background-color: #00ff2d;
-    border-color: #008a19 !important;
+    background-color: #000000 !important;
+    border-color: #000000 !important;
     outline: 0 !important;
-    box-shadow: 0 0 0 0.25rem #00ff2f20 !important;
+    box-shadow: 0 0 0 0.25rem #00000020 !important;
 }
 
 [data-bs-theme="dark"] .form-check-input {
-    background-color: #200035 !important;
-    border-color: #7a0cc4 !important;
+    background-color: #000000 !important;
+    border-color: #ffffff !important;
 }
 
 [data-bs-theme="dark"] .form-check-input:checked {
-    background-color: #7a0cc4 !important;
-    border-color: #b84dff !important;
+    background-color: #ffffff !important;
+    border-color: #ffffff !important;
 }
 
 [data-bs-theme="dark"] .form-check-input:focus {
-    background-color: #00ff2d;
-    border-color: #008a19 !important;
+    background-color: #ffffff !important;
+    border-color: #ffffff !important;
     outline: 0 !important;
-    box-shadow: 0 0 0 0.25rem #00ff2f20 !important;
+    box-shadow: 0 0 0 0.25rem #ffffff20 !important;
 }
 
 
 
 /* Form Switch Styles */
 .form-switch .form-check-input {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%237a0cc4'/%3e%3c/svg%3e") !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23000000'/%3e%3c/svg%3e") !important;
 }
 
 .form-switch .form-check-input:focus {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%237a0cc4'/%3e%3c/svg%3e") !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23000000'/%3e%3c/svg%3e") !important;
 }
 
 .form-switch .form-check-input:checked {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23ffffff'/%3e%3c/svg%3e") !important;
 }
 
+[data-bs-theme="dark"] .form-switch .form-check-input {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23ffffff'/%3e%3c/svg%3e") !important;
+}
+
 [data-bs-theme="dark"] .form-switch .form-check-input:focus {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23008a19'/%3e%3c/svg%3e") !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23ffffff'/%3e%3c/svg%3e") !important;
 }
 
 [data-bs-theme="dark"] .form-switch .form-check-input:checked {
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23ffffff'/%3e%3c/svg%3e") !important;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='-4 -4 8 8'%3e%3ccircle r='3' fill='%23000000'/%3e%3c/svg%3e") !important;
 }
 
 
@@ -749,8 +753,9 @@ a:-webkit-any-link,
 
 
 [data-bs-theme="dark"] .bg-primary-subtle {
-    --bs-btn-active-border-color: #7A0BC4 !important;
-    background-color: #200035 !important;
+    --bs-btn-active-border-color: #ffffff !important;
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
 }
 
 
@@ -759,21 +764,48 @@ a:-webkit-any-link,
 }
 
 [data-bs-theme="dark"] .border-primary-subtle {
-    border-color: #7A0BC4 !important;
+    border-color: #ffffff !important;
 }
 
+/* Active state styles for dark theme - inverted colors */
+[data-bs-theme="dark"] .bg-primary-subtle.active {
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+}
 
 [data-bs-theme="light"] .bg-primary-subtle {
-    background-color: #228724 !important;
-    --bs-btn-active-border-color: #65a166 !important;
+    background-color: #ffffff !important;
+    --bs-btn-active-border-color: #000000 !important;
+    border: 1px solid #000000 !important;
 }
 
 [data-bs-theme="light"] .text-primary-emphasis {
-    color: #ffffff !important;
+    color: #000000 !important;
 }
 
 [data-bs-theme="light"] .border-primary-subtle {
-    border-color: #e0e0e0 !important;
+    border-color: #000000 !important;
+}
+
+/* Active state styles for light theme - inverted colors */
+[data-bs-theme="light"] .bg-primary-subtle.active {
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    color: #ffffff !important;
+}
+
+/* Script editor button styling for light theme */
+[data-bs-theme="light"] .bg-primary-subtle.border-primary-subtle.btn-outline-secondary {
+    background-color: #ffffff !important;
+    border-color: #000000 !important;
+    color: #000000 !important;
+}
+
+[data-bs-theme="light"] .bg-primary-subtle.border-primary-subtle.btn-outline-secondary:hover {
+    background-color: #000000 !important;
+    border-color: #ffffff !important;
+    color: #ffffff !important;
 }
 
 [data-bs-theme="dark"] .text-bg-primary {
@@ -1123,10 +1155,111 @@ main {
 [data-bs-theme="dark"] .conf_card {
     transition: 0.2s ease-in-out;
     background-color: #0d0d0d !important;
+    border: 2px solid #404040 !important;
 }
 
-.conf_card:hover {
-    border-color: #7a0cc4;
+/* Dark theme configuration card hover - inverted style */
+[data-bs-theme="dark"] .conf_card:hover {
+    background-color: #ffffff !important;
+    border: 2px solid #000000 !important;
+    color: #000000 !important;
+}
+
+[data-bs-theme="dark"] .conf_card:hover .card-body,
+[data-bs-theme="dark"] .conf_card:hover .card-footer {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+}
+
+[data-bs-theme="dark"] .conf_card:hover .card-body {
+    border-radius: 0.75rem 0.75rem 0 0 !important;
+}
+
+[data-bs-theme="dark"] .conf_card:hover .card-footer {
+    border-top: 1px solid #000000 !important;
+}
+
+[data-bs-theme="dark"] .conf_card:hover .card-title,
+[data-bs-theme="dark"] .conf_card:hover .card-title samp,
+[data-bs-theme="dark"] .conf_card:hover small,
+[data-bs-theme="dark"] .conf_card:hover .text-muted {
+    color: #000000 !important;
+}
+
+[data-bs-theme="dark"] .conf_card:hover .text-primary-emphasis {
+    color: #000000 !important;
+}
+
+[data-bs-theme="dark"] .conf_card:hover .text-success-emphasis {
+    color: #000000 !important;
+}
+
+[data-bs-theme="dark"] .conf_card:hover .form-check-input {
+    background-color: #000000 !important;
+    border-color: #000000 !important;
+}
+
+[data-bs-theme="dark"] .conf_card:hover .form-check-input:checked {
+    background-color: #ffffff !important;
+    border-color: #000000 !important;
+}
+
+[data-bs-theme="dark"] .conf_card:hover .form-check-input:focus {
+    background-color: #000000 !important;
+    border-color: #000000 !important;
+    box-shadow: 0 0 0 0.25rem #00000020 !important;
+}
+
+/* Light theme configuration card hover - inverted style */
+[data-bs-theme="light"] .conf_card:hover {
+    background-color: #000000 !important;
+    border: 2px solid #ffffff !important;
+    color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .conf_card:hover .card-body,
+[data-bs-theme="light"] .conf_card:hover .card-footer {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .conf_card:hover .card-body {
+    border-radius: 0.75rem 0.75rem 0 0 !important;
+}
+
+[data-bs-theme="light"] .conf_card:hover .card-footer {
+    border-top: 1px solid #ffffff !important;
+}
+
+[data-bs-theme="light"] .conf_card:hover .card-title,
+[data-bs-theme="light"] .conf_card:hover .card-title samp,
+[data-bs-theme="light"] .conf_card:hover small,
+[data-bs-theme="light"] .conf_card:hover .text-muted {
+    color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .conf_card:hover .text-primary-emphasis {
+    color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .conf_card:hover .text-success-emphasis {
+    color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .conf_card:hover .form-check-input {
+    background-color: #ffffff !important;
+    border-color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .conf_card:hover .form-check-input:checked {
+    background-color: #000000 !important;
+    border-color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .conf_card:hover .form-check-input:focus {
+    background-color: #ffffff !important;
+    border-color: #ffffff !important;
+    box-shadow: 0 0 0 0.25rem #ffffff20 !important;
 }
 
 .info_loading {
@@ -1297,10 +1430,10 @@ pre.index-alert {
 .toggleLabel{
     width: 64px;
     height: 32px;
-    background-color: #6c757d17;
+    background-color: #ffffff;
     display: flex;
     position: relative;
-    border: 2px solid #6c757d8c;
+    border: 2px solid #000000;
     border-radius: 100px;
     transition: all 200ms ease-in;
     cursor: pointer;
@@ -1312,7 +1445,7 @@ pre.index-alert {
 }
 
 .toggleLabel::before{
-    background-color: #6c757d;
+    background-color: #000000;
     height: 26px;
     width: 26px;
     content: "";
@@ -1332,12 +1465,12 @@ pre.index-alert {
 
 
 .toggle--switch:checked + .toggleLabel{
-    background-color: #007bff17 !important;
-    border: 2px solid #007bff8c;
+    background-color: #000000 !important;
+    border: 2px solid #000000;
 }
 
 .toggle--switch:checked + .toggleLabel::before{
-    background-color: #007bff;
+    background-color: #ffffff;
     animation-name: on;
     animation-duration: 350ms;
     animation-fill-mode: forwards;
@@ -1369,6 +1502,25 @@ pre.index-alert {
         left: 0px;
         width: 26px; 
     }
+}
+
+/* Dark theme toggle switch styles */
+[data-bs-theme="dark"] .toggleLabel{
+    background-color: #000000;
+    border: 2px solid #ffffff;
+}
+
+[data-bs-theme="dark"] .toggleLabel::before{
+    background-color: #ffffff;
+}
+
+[data-bs-theme="dark"] .toggle--switch:checked + .toggleLabel{
+    background-color: #ffffff !important;
+    border: 2px solid #ffffff;
+}
+
+[data-bs-theme="dark"] .toggle--switch:checked + .toggleLabel::before{
+    background-color: #000000;
 }
 
 .toastContainer{
@@ -1641,6 +1793,12 @@ pre.index-alert {
     z-index: 9999;
     backdrop-filter: blur(1px);
     -webkit-backdrop-filter: blur(1px);
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    overflow-y: auto;
 }
 
 .dashboardModal{

@@ -246,7 +246,6 @@ RUN echo "Verifying GEOIP files in final image:" && \
 COPY ./Src/iptable-rules /WireGate/iptable-rules
 COPY ./Src/wiregate.sh ./Src/entrypoint.sh /WireGate/
 COPY ./Src/dnscrypt /WireGate/dnscrypt
-COPY ./Src/db/wsgi.ini /WireGate/db/wsgi.ini
 COPY ./Src/restricted_shell.sh /WireGate/restricted_shell.sh
 
 RUN chmod +x /WireGate/wiregate.sh /WireGate/entrypoint.sh /WireGate/restricted_shell.sh

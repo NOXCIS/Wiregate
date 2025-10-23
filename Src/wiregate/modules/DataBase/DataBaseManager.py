@@ -245,7 +245,7 @@ class SQLiteDatabaseManager:
                             logger.warning(f"Failed to execute SQL statement: {sql[:100]}... Error: {e}")
                             continue
             
-            logger.info(f"Imported {len(sql_statements)} SQL statements")
+            logger.debug(f"Imported {len(sql_statements)} SQL statements")
             return True
         except Exception as e:
             logger.error(f"Failed to import SQL statements: {e}")
@@ -608,7 +608,7 @@ class DatabaseManager:
                 # Invalidate cache for this table
                 self._invalidate_cache(table_name)
                 
-                logger.info(f"Created table {table_name}")
+                logger.debug(f"Created table {table_name}")
                 return True
         except Exception as e:
             logger.error(f"Failed to create table {table_name}: {e}")
@@ -718,7 +718,7 @@ class DatabaseManager:
                 # Invalidate cache for this table
                 self._invalidate_cache(table_name)
                 
-                logger.info(f"Dropped table {table_name}")
+                logger.debug(f"Dropped table {table_name}")
                 return True
         except Exception as e:
             logger.error(f"Failed to drop table {table_name}: {e}")
@@ -940,7 +940,7 @@ class DatabaseManager:
                     version = EXCLUDED.version
                 """, migration_data)
                 
-                logger.info(f"Set migration flag for {migration_type}")
+                logger.debug(f"Set migration flag for {migration_type}")
                 return True
         except Exception as e:
             logger.error(f"Failed to set migration flag for {migration_type}: {e}")
@@ -984,7 +984,7 @@ class DatabaseManager:
                 """, (migration_type,))
                 
                 if cursor.rowcount > 0:
-                    logger.info(f"Reset migration flag for {migration_type}")
+                    logger.debug(f"Reset migration flag for {migration_type}")
                     return True
                 else:
                     logger.warning(f"Migration flag for {migration_type} was not found")
@@ -1045,7 +1045,7 @@ class DatabaseManager:
                             logger.warning(f"Failed to execute SQL statement: {sql[:100]}... Error: {e}")
                             continue
             
-            logger.info(f"Imported {len(sql_statements)} SQL statements")
+            logger.debug(f"Imported {len(sql_statements)} SQL statements")
             return True
         except Exception as e:
             logger.error(f"Failed to import SQL statements: {e}")
@@ -1395,10 +1395,10 @@ class ConfigurationDatabase:
         
         for table in tables:
             if not self.manager.table_exists(table):
-                logger.info(f"Table {table} does not exist, skipping migration")
+                logger.debug(f"Table {table} does not exist, skipping migration")
                 continue
             
-            logger.info(f"Migrating table {table}...")
+            logger.debug(f"Migrating table {table}...")
             
             try:
                 # Get appropriate cursor based on database type
@@ -1459,7 +1459,7 @@ class ConfigurationDatabase:
                         # Invalidate cache for this table
                         self.manager._invalidate_cache(table)
                 
-                logger.info(f"Migration completed for table {table}: {updated_count} records updated")
+                logger.debug(f"Migration completed for table {table}: {updated_count} records updated")
                 
             except Exception as e:
                 logger.error(f"Error migrating table {table}: {e}")
@@ -1682,7 +1682,7 @@ class DatabaseAPI:
                 )
                 
                 return {
-                    'architecture': 'hybrid',
+                    'mode': DASHBOARD_TYPE,
                     'redis': {
                         'host': redis_host,
                         'port': redis_port,
@@ -1720,7 +1720,7 @@ class DatabaseAPI:
             cache_ttl = DashboardConfig.GetConfig("Database", "cache_ttl")[1]
             
             return {
-                'architecture': 'hybrid',
+                'mode': DASHBOARD_TYPE,
                 'redis': {
                     'host': redis_host,
                     'port': redis_port,
@@ -1936,41 +1936,6 @@ class DatabaseAPI:
                 'message': f'Connection test failed: {str(e)}'
             }
     
-    @staticmethod
-    def migrate(migration_type):
-        """Migrate database between architectures"""
-        try:
-            results = {
-                'success': True,
-                'data': {},
-                'message': f'Migration {migration_type} completed successfully'
-            }
-            
-            if migration_type == 'auto':
-                # Auto migration - detect current state and migrate accordingly
-                logger.info("Performing automatic database migration")
-                results['message'] = 'Automatic migration completed'
-            elif migration_type == 'redis_to_hybrid':
-                logger.info("Migrating from Redis-only to Hybrid architecture")
-                results['message'] = 'Migrated from Redis-only to Hybrid architecture'
-            elif migration_type == 'hybrid_to_postgres':
-                logger.info("Migrating from Hybrid to PostgreSQL-only architecture")
-                results['message'] = 'Migrated from Hybrid to PostgreSQL-only architecture'
-            elif migration_type == 'postgres_to_hybrid':
-                logger.info("Migrating from PostgreSQL-only to Hybrid architecture")
-                results['message'] = 'Migrated from PostgreSQL-only to Hybrid architecture'
-            else:
-                results['success'] = False
-                results['message'] = f'Unknown migration type: {migration_type}'
-            
-            return results
-        except Exception as e:
-            logger.error(f"Failed to migrate database: {e}")
-            return {
-                'success': False,
-                'data': {},
-                'message': f'Migration failed: {str(e)}'
-            }
     
     @staticmethod
     def clear_cache():
@@ -2246,12 +2211,6 @@ def check_and_migrate_sqlite_databases():
             migration_info = db_manager.get_migration_info('sqlite_to_postgres')
             logger.info(f"SQLite to PostgreSQL migration already completed at {migration_info.get('timestamp', 'unknown time')}")
             return True
-        
-        # Check for development mode - skip migration if in development
-        from ..Config import DASHBOARD_MODE
-        if DASHBOARD_MODE == 'development':
-            logger.info("Development mode detected, skipping SQLite migration")
-            return False
         
         # Run migration
         migrated_count = migrate_sqlite_to_postgres()

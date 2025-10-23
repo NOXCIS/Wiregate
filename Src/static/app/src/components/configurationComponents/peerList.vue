@@ -235,14 +235,16 @@ watch(() => configurationPeers.value, async (newPeers) => {
 <div class="container-fluid" >
 	<div class="d-flex align-items-sm-center flex-column flex-sm-row gap-3">
 		<div>
-			<div class="text-muted d-flex align-items-center gap-2">
-				<h5 class="mb-0">
-					<ProtocolBadge :protocol="configurationInfo.Protocol"></ProtocolBadge>
-				</h5>
-			</div>
 			<div class="d-flex align-items-center gap-3">
 				<h1 class="mb-0 display-4"><samp>{{configurationInfo.Name}}</samp></h1>
 			</div>
+			<br></br>
+			<div class="text-muted d-flex align-items-center gap-2">
+			<h5 class="mb-0">
+				<ProtocolBadge :protocol="configurationInfo.Protocol" :hasTor="configurationInfo.HasTor"></ProtocolBadge>
+			</h5>
+			</div>
+			
 		</div>
 		<div class="ms-sm-auto d-flex gap-2 flex-column">
 			<div class="card rounded-3 bg-transparent ">

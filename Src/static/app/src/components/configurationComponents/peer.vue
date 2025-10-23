@@ -231,10 +231,21 @@ export default {
 
 .peerCard{
 	transition: box-shadow 0.1s cubic-bezier(0.82, 0.58, 0.17, 0.9);
+	border: 2px solid #606060 !important;
 }
 
 .peerCard:hover{
 	box-shadow: var(--bs-box-shadow) !important;
+	border: 2px solid #ffffff !important;
+}
+
+/* Light theme peer card styles */
+[data-bs-theme="light"] .peerCard{
+	border: 2px solid #e1e1e1 !important;
+}
+
+[data-bs-theme="light"] .peerCard:hover{
+	border: 2px solid #000000 !important;
 }
 
 .modal {

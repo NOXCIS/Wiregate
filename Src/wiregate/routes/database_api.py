@@ -110,39 +110,6 @@ async def test_database_connections(
         )
 
 
-@router.post('/database/migrate', response_model=StandardResponse)
-async def migrate_database(
-    migrate_data: Dict[str, str],
-    user: Dict[str, Any] = Depends(require_authentication),
-    async_db = Depends(get_async_db)
-):
-    """Migrate database between architectures"""
-    try:
-        if not migrate_data or 'type' not in migrate_data:
-            return StandardResponse(
-                status=False,
-                message="Migration type not specified"
-            )
-        
-        migration_type = migrate_data['type']
-        result = DatabaseAPI.migrate(migration_type)
-        
-        if result['success']:
-            return StandardResponse(
-                status=True,
-                data=result['data'],
-                message=result['message']
-            )
-        else:
-            return StandardResponse(status=False, message=result['message'])
-    except Exception as e:
-        logger.error(f"Failed to migrate database: {e}")
-        return StandardResponse(
-            status=False,
-            message=f"Failed to migrate database: {str(e)}"
-        )
-
-
 @router.post('/database/clear-cache', response_model=StandardResponse)
 async def clear_database_cache(
     user: Dict[str, Any] = Depends(require_authentication),

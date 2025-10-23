@@ -20,7 +20,6 @@ import uvicorn
 import sys
 import time
 import argparse
-import configparser
 import os
 import signal
 import atexit
@@ -76,7 +75,6 @@ if __name__ == "__main__":
     
     # Add argument parser
     parser = argparse.ArgumentParser(description='Wiregate Dashboard Server')
-    parser.add_argument('--config', type=str, help='Path to configuration file (defaults to ./db/wsgi.ini)')
     parser.add_argument('--workers', type=int, help='Number of worker processes')
     parser.add_argument('--threads', type=int, help='Number of threads per worker')
     parser.add_argument('--loglevel', type=str,
@@ -106,50 +104,36 @@ if __name__ == "__main__":
         'timeout_graceful_shutdown': 5,  # Reduced from 30 to 5 seconds
     }
     
-    # Try to load from default config file location if not specified
-    config_path = args.config if args.config else './db/wsgi.ini'
+    # Load uvicorn configuration from environment variables
+    logger.debug("Loading uvicorn configuration from environment variables")
     
-    # Load options from config file if it exists
-    if os.path.exists(config_path):
-        logger.debug(f"Loading configuration from {config_path}")
-        config = configparser.ConfigParser()
+    # Load workers from environment
+    workers_env = os.getenv('UVICORN_WORKERS')
+    if workers_env:
         try:
-            config.read(config_path)
-            # Support both 'uvicorn' and 'gunicorn' sections for backward compatibility
-            config_section = None
-            if 'uvicorn' in config:
-                config_section = config['uvicorn']
-            elif 'gunicorn' in config:
-                config_section = config['gunicorn']
-                
-            if config_section:
-                # Override defaults with config file values
-                if 'workers' in config_section:
-                    options['workers'] = int(config_section['workers'])
-                if 'log_level' in config_section or 'loglevel' in config_section:
-                    log_level = config_section.get('log_level', config_section.get('loglevel', 'info'))
-                    options['log_level'] = log_level.lower()
-                
-                # Handle SSL configuration from config file
-                ssl_enabled = False
-                if 'ssl' in config_section:
-                    ssl_enabled = config_section.getboolean('ssl')
-                    logger.debug(f"SSL setting from config: {ssl_enabled}")
-                    
-                if ssl_enabled:
-                    if 'certfile' in config_section and 'keyfile' in config_section:
-                        options['ssl_certfile'] = config_section['certfile']
-                        options['ssl_keyfile'] = config_section['keyfile']
-                        logger.debug("SSL certificates loaded from config file")
-                
-                logger.debug("Loaded configuration successfully")
-        except Exception as e:
-            logger.error(f"Error loading configuration file: {e}")
-    else:
-        if args.config:
-            logger.warning(f"Specified config file {config_path} not found")
+            options['workers'] = int(workers_env)
+            logger.debug(f"Workers set from environment: {workers_env}")
+        except ValueError:
+            logger.warning(f"Invalid UVICORN_WORKERS value: {workers_env}")
+    
+    # Load log level from environment
+    log_level_env = os.getenv('UVICORN_LOG_LEVEL')
+    if log_level_env:
+        options['log_level'] = log_level_env.lower()
+        logger.debug(f"Log level set from environment: {log_level_env}")
+    
+    # Load SSL configuration from environment
+    ssl_enabled = os.getenv('UVICORN_SSL', 'false').lower() in ('true', '1', 'yes')
+    if ssl_enabled:
+        certfile_env = os.getenv('UVICORN_CERTFILE')
+        keyfile_env = os.getenv('UVICORN_KEYFILE')
+        if certfile_env and keyfile_env:
+            options['ssl_certfile'] = certfile_env
+            options['ssl_keyfile'] = keyfile_env
+            logger.debug(f"SSL certificates loaded from environment: {certfile_env}, {keyfile_env}")
         else:
-            logger.debug("No config file found at default location (./db/wsgi.ini), using defaults")
+            logger.warning("UVICORN_SSL is enabled but UVICORN_CERTFILE or UVICORN_KEYFILE is missing")
+            ssl_enabled = False
     
     # Override with command-line arguments (highest precedence)
     if args.workers is not None:

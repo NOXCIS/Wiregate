@@ -90,10 +90,8 @@ secure_exec chmod u+x wiregate.sh
 
 ./wiregate.sh install
 
-echo "[WIREGATE] DEBUG: Starting main process"
 ./wiregate.sh start &
 
-echo "[WIREGATE] DEBUG: Main process started in background, waiting for signal"
 # Keep the script running to handle signals
 while true; do
     sleep 1

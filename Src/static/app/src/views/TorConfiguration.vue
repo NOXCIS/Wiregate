@@ -294,16 +294,16 @@ ClientTransportPlugin ${plugin} exec /usr/local/bin/${plugin}`
                             
                             <div class="btn-group">
                                 <button 
-                                    class="btn text-muted" 
-                                    :class="selectedConfig === 'main' ? 'text-primary-emphasis bg-primary-subtle btn-outline-primary' : 'btn-outline-primary'"
+                                    class="btn" 
+                                    :class="selectedConfig === 'main' ? 'tor-config-btn-active' : 'tor-config-btn-inactive'"
                                     @click="selectedConfig = 'main'"
                                     :disabled="loading"
                                 >
                                     Main Torrc
                                 </button>
                                 <button 
-                                    class="btn text-muted" 
-                                    :class="selectedConfig === 'dns' ? 'text-primary-emphasis bg-primary-subtle btn-outline-primary' : 'btn-outline-primary'"
+                                    class="btn" 
+                                    :class="selectedConfig === 'dns' ? 'tor-config-btn-active' : 'tor-config-btn-inactive'"
                                     @click="selectedConfig = 'dns'"
                                     :disabled="loading"
                                 >
@@ -344,7 +344,7 @@ ClientTransportPlugin ${plugin} exec /usr/local/bin/${plugin}`
                             <div class="mb-3 d-flex gap-2 align-items-center">
                                 <button 
                                     class="btn"
-                                    :class="useBridges ? 'btn-success' : 'btn-outline-secondary'"
+                                    :class="useBridges ? 'tor-bridge-btn-active' : 'tor-bridge-btn-inactive'"
                                     @click="toggleBridges"
                                     :disabled="loading"
                                 >
@@ -354,7 +354,7 @@ ClientTransportPlugin ${plugin} exec /usr/local/bin/${plugin}`
                                 
                                 <button 
                                     v-if="['obfs4', 'webtunnel'].includes(currentPlugin) && useBridges"
-                                    class="btn btn-outline-primary btn-reload"
+                                    class="btn tor-refresh-btn-inactive btn-reload"
                                     @click="refreshBridges"
                                     :disabled="refreshLoading"
                                     :class="{ 'is-loading': refreshLoading }"
@@ -373,7 +373,7 @@ ClientTransportPlugin ${plugin} exec /usr/local/bin/${plugin}`
                                     v-for="plugin in availablePlugins" 
                                     :key="plugin"
                                     class="btn" 
-                                    :class="currentPlugin === plugin ? 'btn-success' : 'btn-outline-secondary'"
+                                    :class="currentPlugin === plugin ? 'tor-plugin-btn-active' : 'tor-plugin-btn-inactive'"
                                     @click="setPlugin(plugin)"
                                     :disabled="loading"
                                 >
@@ -400,7 +400,7 @@ ClientTransportPlugin ${plugin} exec /usr/local/bin/${plugin}`
                     <div class="card-footer">
                         <div class="d-flex justify-content-between">
                             <button 
-                                class="btn btn-outline-primary" 
+                                class="btn tor-footer-btn-inactive" 
                                 @click="loadConfig"
                                 :disabled="reloadLoading"
                                 :class="{ 'is-loading': reloadLoading }"
@@ -409,7 +409,7 @@ ClientTransportPlugin ${plugin} exec /usr/local/bin/${plugin}`
                                 Refresh Tor Config File
                             </button>
                             <button 
-                                class="ms-md-auto py-2 text-decoration-none btn btn-outline-primary" 
+                                class="ms-md-auto py-2 text-decoration-none btn tor-footer-btn-inactive" 
                                 @click="saveConfig"
                                 :disabled="loading"
                             >
@@ -504,5 +504,168 @@ ClientTransportPlugin ${plugin} exec /usr/local/bin/${plugin}`
     to {
         transform: rotate(360deg);
     }
+}
+
+/* Tor Configuration Button Styling - Inverted Theme */
+.tor-config-btn-inactive {
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    color: #ffffff !important;
+    transition: all 0.2s ease-in-out;
+}
+
+.tor-config-btn-inactive:hover {
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+}
+
+.tor-config-btn-active {
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+}
+
+.tor-bridge-btn-inactive {
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    color: #ffffff !important;
+    transition: all 0.2s ease-in-out;
+}
+
+.tor-bridge-btn-inactive:hover {
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+}
+
+.tor-bridge-btn-active {
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+}
+
+.tor-plugin-btn-inactive {
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    color: #ffffff !important;
+    transition: all 0.2s ease-in-out;
+}
+
+.tor-plugin-btn-inactive:hover {
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+}
+
+.tor-plugin-btn-active {
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+}
+
+.tor-refresh-btn-inactive {
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    color: #ffffff !important;
+    transition: all 0.2s ease-in-out;
+}
+
+.tor-refresh-btn-inactive:hover {
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+}
+
+.tor-footer-btn-inactive {
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    color: #ffffff !important;
+    transition: all 0.2s ease-in-out;
+}
+
+.tor-footer-btn-inactive:hover {
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+}
+
+/* Light theme styles */
+[data-bs-theme="light"] .tor-config-btn-inactive {
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+}
+
+[data-bs-theme="light"] .tor-config-btn-inactive:hover {
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .tor-config-btn-active {
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .tor-bridge-btn-inactive {
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+}
+
+[data-bs-theme="light"] .tor-bridge-btn-inactive:hover {
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .tor-bridge-btn-active {
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .tor-plugin-btn-inactive {
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+}
+
+[data-bs-theme="light"] .tor-plugin-btn-inactive:hover {
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .tor-plugin-btn-active {
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .tor-refresh-btn-inactive {
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+}
+
+[data-bs-theme="light"] .tor-refresh-btn-inactive:hover {
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .tor-footer-btn-inactive {
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+}
+
+[data-bs-theme="light"] .tor-footer-btn-inactive:hover {
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    color: #ffffff !important;
 }
 </style>

@@ -83,7 +83,7 @@ dashes='------------------------------------------------------------'
 equals='============================================================'
 log_dir="./log"
 export WGD_IPTABLES_DNS=1.1.1.1
-WGD_TOR_PROXY=false
+WGD_TOR_PROXY="${WGD_TOR_PROXY:-false}"
 
 
 # Default configuration paths and settings
@@ -252,7 +252,7 @@ generate_vanguard_tor_ctrl_pass() {
   export CTRL_P_PASS="$TOR_HASH"
   export VANGUARD="$PASSWORD"
   echo "[TOR] Generated Tor Hash: $CTRL_P_PASS"
-  echo "[TOR] Generated Tor Password: $VANGUARD"
+  #echo "[TOR] Generated Tor Password: $VANGUARD"
 }
 run_tor_flux() {
     # Start both Tor processes
@@ -447,7 +447,7 @@ dashboard_start() {
         else
             echo "[WIREGATE] Production mode enabled but no SSL certificates found!"
             echo "[WIREGATE] Falling back to HTTP mode..."
-            echo "[WIREGATE] To enable HTTPS, mount SSL certificates to ./SSL_CERT/ or /WireGate/SSL_CERT/ directory"
+            echo "[WIREGATE] To enable HTTPS, mount SSL certificates to ./configs/ssl/ or /WireGate/SSL_CERT/ directory inside container"
             echo "[WIREGATE] Required files: cert.pem and key.pem"
             
             # Start the dashboard executable in the background and capture its PID
@@ -1020,7 +1020,7 @@ run_pre_start_setup() {
     generate_vanguard_tor_ctrl_pass
     dashboard_start
     printf "%s\n" "$equals"
-    printf "[WIREGATE] %s Dashboard Started\n" "$heavy_checkmark"
+    printf "[WIREGATE] %s Dashboard Starting\n" "$heavy_checkmark"
     printf "%s\n" "$equals"
     sleep 3
     make_torrc

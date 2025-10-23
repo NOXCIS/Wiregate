@@ -61,3 +61,4 @@ ghcr.sh
 /docker-bake
 Src/test_async_performance.py
 omv.docker-compose.yml
+/.VSCodeCounter

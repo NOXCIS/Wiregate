@@ -23,8 +23,8 @@ export default {
 			updateUrl: "",
 			showChangelogModal: false,
 			configurationsCollapsed: false,
-			toolsCollapsed: true,
-			showProtocolBadges: true,
+			toolsCollapsed: false,
+			showProtocolBadges: false,
 		}
 	},
 	computed: {
@@ -76,7 +76,9 @@ export default {
 				clearTimeout(timeoutId);
 				console.log("Update check response:", res);
 				if (res.status){
-					if (res.data){
+					// Check if there's actually an update available
+					// The API should return a specific indicator or the message should indicate an update
+					if (res.data && (res.message && res.message.toLowerCase().includes('update'))) {
 						this.updateAvailable = true
 						if (typeof res.data === 'object' && res.data.url) {
 							this.updateUrl = res.data.url
@@ -186,17 +188,17 @@ export default {
 				fadeFactor: 0.15,
 				interval: 120,
 				colors: {
-					primary: '#4cd964',    // Green
-					secondary: '#33ff33',  // Bright green
+					primary: '#808080',    // Gray
+					secondary: '#a0a0a0',  // Light gray
 					purple: {
-						head: '#b31fff',     // Bright purple head
-						tail: '#7a0cc4'      // Original purple tail
+						head: '#606060',     // Dark gray head
+						tail: '#404040'      // Darker gray tail
 					},
 					orange: {
-						head: '#ff7b00',     // Bright orange head
-						tail: '#e38e41'      // Original orange tail
+						head: '#707070',     // Medium gray head
+						tail: '#505050'      // Darker gray tail
 					},
-					cyan: '#00ffff'        // Cyan for easter eggs
+					cyan: '#909090'        // Light gray for easter eggs
 				}
 			};
 			
@@ -480,7 +482,7 @@ export default {
 									<span class="dot me-2" :class="{active: c.Status}"></span>
 									<div class="d-flex align-items-center">
 										<span class="configuration-name">{{c.Name}}</span>
-										<ProtocolBadge v-if="showProtocolBadges" :protocol="c.Protocol" :mini="true" class="protocol-badge-small ms-2"></ProtocolBadge>
+										<ProtocolBadge v-if="showProtocolBadges" :protocol="c.Protocol" :hasTor="c.HasTor" :mini="true" class="protocol-badge-small ms-2"></ProtocolBadge>
 									</div>
 								</RouterLink>
 							</li>
@@ -553,6 +555,9 @@ export default {
 							<div class="d-flex flex-column">
 								<small class="version-link" @click="openChangelogModal" title="View Changelog">
 									<strong>{{ dashboardConfigurationStore.Configuration.Server.version }}</strong>
+								</small>
+								<small v-if="updateAvailable" class="text-warning text-center mt-1" style="font-size: 0.7rem;">
+									Update Available
 								</small>
 							</div>
 						</div>
@@ -745,13 +750,13 @@ export default {
 }
 
 .logo-image {
-	width: 32px;
-	height: 32px;
+	width: 50px;
+	height: 50px;
 }
 
 .mobile-logo {
-	width: 32px;
-	height: 32px;
+	width: 40px;
+	height: 40px;
 }
 
 .sidebar-heading {
@@ -920,8 +925,8 @@ export default {
 }
 
 .mobile-logo {
-	width: 32px !important;
-	height: 32px !important;
+	width: 40px !important;
+	height: 40px !important;
 	flex-shrink: 0;
 }
 
@@ -1106,16 +1111,16 @@ export default {
 .matrix-rain-bg {
 	position: relative;
 	overflow: hidden;
-	background: linear-gradient(234deg, #150044 0%, #002e00 100%) !important;
+	background: linear-gradient(234deg, #404040 0%, #202020 100%) !important;
 	animation: matrixGradient 8s ease-in-out infinite;
 }
 
 @keyframes matrixGradient {
 	0% {
-		background: linear-gradient(234deg, #150044 0%, #002e00 100%) !important;
+		background: linear-gradient(234deg, #404040 0%, #202020 100%) !important;
 	}
 	100% {
-		background: linear-gradient(594deg, #150044 0%, #002e00 100%) !important;
+		background: linear-gradient(594deg, #404040 0%, #202020 100%) !important;
 	}
 }
 
@@ -1138,7 +1143,7 @@ export default {
 
 /* Matrix rain for mobile navbar */
 .nav-brand-mobile.matrix-rain-bg {
-	background: linear-gradient(234deg, #150044 0%, #002e00 100%) !important;
+	background: linear-gradient(234deg, #404040 0%, #202020 100%) !important;
 	animation: matrixGradient 8s ease-in-out infinite;
 }
 

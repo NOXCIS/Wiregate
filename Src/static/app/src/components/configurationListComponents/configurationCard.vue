@@ -14,7 +14,11 @@ export default {
 			PublicKey: String,
 			PrivateKey: String
 		},
-		delay: String
+		delay: String,
+		showProtocolBadges: {
+			type: Boolean,
+			default: true
+		}
 	},
 	data(){
 		return{
@@ -52,8 +56,8 @@ export default {
 			<h6 class="mb-0"><span class="dot" :class="{active: c.Status}"></span></h6>
 			<h6 class="card-title mb-0 d-flex align-items-center gap-2">
 				<samp>{{c.Name}}</samp>
-				<small>
-					<ProtocolBadge :protocol="c.Protocol" :mini="true"></ProtocolBadge>
+				<small v-if="showProtocolBadges">
+					<ProtocolBadge :protocol="c.Protocol" :hasTor="c.HasTor" :mini="true"></ProtocolBadge>
 				</small>
 			</h6>
 			<h6 class="mb-0 ms-auto">

@@ -15,6 +15,7 @@ export default {
 	data(){
 		return {
 			configurationLoaded: false,
+			showProtocolBadges: true,
 			sort: {
 				Name: GetLocale("Name"),
 				Status: GetLocale("Status"),
@@ -24,7 +25,8 @@ export default {
 				key: "Name",
 				order: "asc"
 			},
-			searchKey: ""
+			searchKey: "",
+			protocolFilter: null
 		}
 	},
 	async mounted() {
@@ -32,6 +34,11 @@ export default {
 			window.localStorage.setItem('ConfigurationListSort', JSON.stringify(this.currentSort))
 		}else{
 			this.currentSort = JSON.parse(window.localStorage.getItem('ConfigurationListSort'))
+		}
+		
+		// Load protocol badge visibility preference
+		if (window.localStorage.getItem('ConfigurationListShowProtocolBadges') !== null){
+			this.showProtocolBadges = JSON.parse(window.localStorage.getItem('ConfigurationListShowProtocolBadges'))
 		}
 		
 		await this.wireguardConfigurationsStore.getConfigurations();
@@ -52,11 +59,19 @@ export default {
 	},
 	computed: {
 		configurations(){
-			return [...this.wireguardConfigurationsStore.Configurations]
-				.filter(x => x.Name.includes(this.searchKey) || x.PublicKey.includes(this.searchKey) || !this.searchKey)
-				.sort((a, b) => {
-				
-
+			let filteredConfigurations = [...this.wireguardConfigurationsStore.Configurations]
+				.filter(x => x.Name.includes(this.searchKey) || x.PublicKey.includes(this.searchKey) || !this.searchKey);
+			
+			// Apply protocol filter
+			if (this.protocolFilter) {
+				if (this.protocolFilter === 'tor') {
+					filteredConfigurations = filteredConfigurations.filter(configuration => configuration.HasTor);
+				} else {
+					filteredConfigurations = filteredConfigurations.filter(configuration => configuration.Protocol === this.protocolFilter);
+				}
+			}
+			
+			return filteredConfigurations.sort((a, b) => {
 				if (this.currentSort.order === 'desc') {
 					return this.dotNotation(a, this.currentSort.key) < this.dotNotation(b, this.currentSort.key) ? 
 						1 : this.dotNotation(a, this.currentSort.key) > this.dotNotation(b, this.currentSort.key) ? -1 : 0;
@@ -97,6 +112,18 @@ export default {
 				// Dispatch a custom event to trigger update check
 				window.dispatchEvent(new CustomEvent('triggerUpdateCheck'));
 			}, 2000); // Wait 2 seconds after configurations are loaded
+		},
+		toggleProtocolBadges() {
+			this.showProtocolBadges = !this.showProtocolBadges;
+			window.localStorage.setItem('ConfigurationListShowProtocolBadges', JSON.stringify(this.showProtocolBadges));
+		},
+		filterByProtocol(protocol) {
+			if (this.protocolFilter === protocol) {
+				// If clicking the same filter, clear it
+				this.protocolFilter = null;
+			} else {
+				this.protocolFilter = protocol;
+			}
 		}
 	}
 }
@@ -127,22 +154,49 @@ export default {
 					</small>
 					<a role="button" 
 					   @click="updateSort(sv)"
-					   :class="{'bg-primary-subtle text-primary-emphasis': this.currentSort.key === sv}"
-					   class="px-2 bg-primary-subtle text-primary-emphasis py-1 rounded-3" v-for="(s, sv) in this.sort">
+					   :class="{'sort-btn-active': this.currentSort.key === sv, 'sort-btn-inactive': this.currentSort.key !== sv}"
+					   class="px-2 py-1 rounded-3" v-for="(s, sv) in this.sort">
 						<small>
 							<i class="bi me-2" 
 							   :class="[this.currentSort.order === 'asc' ? 'bi-sort-up' : 'bi-sort-down']" 
 							   v-if="this.currentSort.key === sv"></i>{{s}}
 						</small>
 					</a>
-				</div>
-				<div class="d-flex align-items-center ms-md-auto">
-					<label for="configurationSearch" class="text-muted">
-						<i class="bi bi-search me-2"></i>
-					</label>
-					<input class="form-control form-control-sm rounded-3" 
-					       v-model="this.searchKey"
-					       id="configurationSearch">
+					<a role="button" 
+					   @click="toggleProtocolBadges"
+					   :class="{'visibility-btn-active': showProtocolBadges, 'visibility-btn-inactive': !showProtocolBadges}"
+					   class="px-2 py-1 rounded-3"
+					   :title="showProtocolBadges ? 'Hide Protocol Badges' : 'Show Protocol Badges'">
+						<small>
+							<i class="bi" :class="showProtocolBadges ? 'bi-eye' : 'bi-eye-slash'"></i>
+						</small>
+					</a>
+					<a role="button" 
+					   @click="filterByProtocol('wg')"
+					   :class="{'protocol-btn-active': protocolFilter === 'wg', 'protocol-btn-inactive': protocolFilter !== 'wg'}"
+					   class="px-2 py-1 rounded-3">
+						<small>WG</small>
+					</a>
+					<a role="button" 
+					   @click="filterByProtocol('awg')"
+					   :class="{'protocol-btn-active': protocolFilter === 'awg', 'protocol-btn-inactive': protocolFilter !== 'awg'}"
+					   class="px-2 py-1 rounded-3">
+						<small>AWG</small>
+					</a>
+					<a role="button" 
+					   @click="filterByProtocol('tor')"
+					   :class="{'protocol-btn-active': protocolFilter === 'tor', 'protocol-btn-inactive': protocolFilter !== 'tor'}"
+					   class="px-2 py-1 rounded-3">
+						<small>Tor</small>
+					</a>
+					<div class="d-flex align-items-center">
+						<label for="configurationSearch" class="text-muted">
+							<i class="bi bi-search me-2"></i>
+						</label>
+						<input class="form-control form-control-sm rounded-3" 
+						       v-model="this.searchKey"
+						       id="configurationSearch">
+					</div>
 				</div>
 			</div>
 			
@@ -173,7 +227,7 @@ export default {
 				</p>
 				<ConfigurationCard v-for="(c, index) in configurations"
 				                   v-else-if="this.configurationLoaded"
-				                   :key="c.Name" :c="c"></ConfigurationCard>
+				                   :key="c.Name" :c="c" :showProtocolBadges="showProtocolBadges"></ConfigurationCard>
 			</TransitionGroup>
 			
 		</div>
@@ -214,5 +268,122 @@ export default {
 
 [data-bs-theme="dark"] .skeleton-line {
 	background: rgba(255, 255, 255, 0.05);
+}
+
+/* Sort button styling - inverted theme like settings */
+.sort-btn-inactive {
+	background-color: #000000 !important;
+	border: 1px solid #ffffff !important;
+	color: #ffffff !important;
+	transition: all 0.2s ease-in-out;
+}
+
+.sort-btn-inactive:hover {
+	background-color: #ffffff !important;
+	border: 1px solid #000000 !important;
+	color: #000000 !important;
+}
+
+.sort-btn-active {
+	background-color: #ffffff !important;
+	border: 1px solid #000000 !important;
+	color: #000000 !important;
+}
+
+/* Light theme styles */
+[data-bs-theme="light"] .sort-btn-inactive {
+	background-color: #ffffff !important;
+	border: 1px solid #000000 !important;
+	color: #000000 !important;
+}
+
+[data-bs-theme="light"] .sort-btn-inactive:hover {
+	background-color: #000000 !important;
+	border: 1px solid #ffffff !important;
+	color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .sort-btn-active {
+	background-color: #000000 !important;
+	border: 1px solid #ffffff !important;
+	color: #ffffff !important;
+}
+
+/* Protocol filter button styling - same inverted theme as sort buttons */
+.protocol-btn-inactive {
+	background-color: #000000 !important;
+	border: 1px solid #ffffff !important;
+	color: #ffffff !important;
+	transition: all 0.2s ease-in-out;
+}
+
+.protocol-btn-inactive:hover {
+	background-color: #ffffff !important;
+	border: 1px solid #000000 !important;
+	color: #000000 !important;
+}
+
+.protocol-btn-active {
+	background-color: #ffffff !important;
+	border: 1px solid #000000 !important;
+	color: #000000 !important;
+}
+
+/* Light theme styles for protocol buttons */
+[data-bs-theme="light"] .protocol-btn-inactive {
+	background-color: #ffffff !important;
+	border: 1px solid #000000 !important;
+	color: #000000 !important;
+}
+
+[data-bs-theme="light"] .protocol-btn-inactive:hover {
+	background-color: #000000 !important;
+	border: 1px solid #ffffff !important;
+	color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .protocol-btn-active {
+	background-color: #000000 !important;
+	border: 1px solid #ffffff !important;
+	color: #ffffff !important;
+}
+
+/* Visibility toggle button styling - same inverted theme as other buttons */
+.visibility-btn-inactive {
+	background-color: #000000 !important;
+	border: 1px solid #ffffff !important;
+	color: #ffffff !important;
+	transition: all 0.2s ease-in-out;
+}
+
+.visibility-btn-inactive:hover {
+	background-color: #ffffff !important;
+	border: 1px solid #000000 !important;
+	color: #000000 !important;
+}
+
+.visibility-btn-active {
+	background-color: #ffffff !important;
+	border: 1px solid #000000 !important;
+	color: #000000 !important;
+}
+
+/* Light theme styles for visibility button */
+[data-bs-theme="light"] .visibility-btn-inactive {
+	background-color: #ffffff !important;
+	border: 1px solid #000000 !important;
+	color: #000000 !important;
+}
+
+[data-bs-theme="light"] .visibility-btn-inactive:hover {
+	background-color: #000000 !important;
+	border: 1px solid #ffffff !important;
+	color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .visibility-btn-active {
+	background-color: #000000 !important;
+	border: 1px solid #ffffff !important;
+	color: #ffffff !important;
 }
 </style>

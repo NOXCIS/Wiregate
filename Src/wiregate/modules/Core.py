@@ -1503,6 +1503,17 @@ class Configuration:
         if not self.PublicKey and self.PrivateKey:
             logger.debug(f"Refreshing empty public key for configuration {self.Name}")
             self.PublicKey = self.__getPublicKey()
+        
+        # Detect Tor configuration in iptables scripts
+        has_tor = False
+        tor_keywords = ['proxy', 'tor', 'transport', 'dnsport', '9050', '9040']
+        iptables_scripts = [self.PreUp, self.PostUp, self.PreDown, self.PostDown]
+        
+        for script in iptables_scripts:
+            if script and any(keyword in script.lower() for keyword in tor_keywords):
+                has_tor = True
+                break
+        
         return {
             "Status": self.Status,
             "Name": self.Name,
@@ -1523,6 +1534,7 @@ class Configuration:
             "ConnectedPeers": len(list(filter(lambda x: x.status == "running", self.Peers))),
             "TotalPeers": len(self.Peers),
             "Protocol": self.Protocol,
+            "HasTor": has_tor,
         }
 
     def backupConfigurationFile(self):

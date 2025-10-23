@@ -32,21 +32,21 @@ _update_cache = {
 def get_changelog_for_version(version):
     """Return changelog data for a specific version from GitHub changelog file."""
     try:
-        logger.info(f"Getting changelog for version: {version}")
+        logger.debug(f"Getting changelog for version: {version}")
         
         # Fetch changelog from GitHub
         changelog_url = "https://raw.githubusercontent.com/NOXCIS/Wiregate/refs/heads/main/Docs/CHANGELOG.md"
-        logger.info(f"Fetching changelog from: {changelog_url}")
+        logger.debug(f"Fetching changelog from: {changelog_url}")
         response = requests.get(changelog_url, timeout=10)
         
-        logger.info(f"GitHub response status: {response.status_code}")
+        logger.debug(f"GitHub response status: {response.status_code}")
         if response.status_code != 200:
             logger.warning(f"Failed to fetch changelog from GitHub: {response.status_code}")
             return []
         
         content = response.text.strip().split('\n')
-        logger.info(f"Changelog content length: {len(content)} lines")
-        logger.info(f"First 10 lines of changelog: {content[:10]}")
+        logger.debug(f"Changelog content length: {len(content)} lines")
+        logger.debug(f"First 10 lines of changelog: {content[:10]}")
         
         # Initialize an empty dictionary to store the parsed changelog
         changelog_map = {}
@@ -61,15 +61,15 @@ def get_changelog_for_version(version):
             if line.endswith(':') and not line.startswith('-') and not line.startswith(' '):
                 current_version = line.replace(':', '').strip()
                 changelog_map[current_version] = []
-                logger.info(f"Found version header: {current_version}")
+                logger.debug(f"Found version header: {current_version}")
             # If this is a changelog item for the current version (starts with -)
             elif line.startswith('-') and current_version:
                 item = line.replace('-', '', 1).strip()
                 changelog_map[current_version].append(item)
-                logger.info(f"Added item to {current_version}: {item}")
+                logger.debug(f"Added item to {current_version}: {item}")
         
-        logger.info(f"Available versions in changelog: {list(changelog_map.keys())}")
-        logger.info(f"Changelog map: {changelog_map}")
+        logger.debug(f"Available versions in changelog: {list(changelog_map.keys())}")
+        logger.debug(f"Changelog map: {changelog_map}")
         
         # Handle "latest" version request
         if version == "latest":
@@ -146,7 +146,7 @@ def _background_update_check():
                     
                     if latest_tag and latest_tag != DASHBOARD_VERSION:
                         logger.info(f"Update available: {latest_tag} (current: {DASHBOARD_VERSION})")
-                        logger.info(f"Changelog items for {latest_tag}: {len(changelog_items)} items")
+                        logger.debug(f"Changelog items for {latest_tag}: {len(changelog_items)} items")
                         _update_cache = {
                             'last_check': datetime.now(),
                             'data': {
@@ -159,8 +159,8 @@ def _background_update_check():
                         }
                     else:
                         # Even when on latest version, show the latest changelog
-                        logger.info(f"Already on latest version: {DASHBOARD_VERSION}")
-                        logger.info(f"Showing latest changelog for version {latest_tag}: {len(changelog_items)} items")
+                        logger.debug(f"Already on latest version: {DASHBOARD_VERSION}")
+                        logger.debug(f"Showing latest changelog for version {latest_tag}: {len(changelog_items)} items")
                         _update_cache = {
                             'last_check': datetime.now(),
                             'data': {

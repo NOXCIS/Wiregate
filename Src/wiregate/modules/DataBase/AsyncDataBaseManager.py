@@ -228,8 +228,6 @@ class AsyncDatabaseManager:
         try:
             self.redis = aioredis.ConnectionPool.from_url(
                 f"redis://:{self.redis_config['password']}@{self.redis_config['host']}:{self.redis_config['port']}/{self.redis_config['db']}",
-                minsize=5,
-                maxsize=20,
                 decode_responses=True,
                 socket_connect_timeout=5,
                 socket_timeout=5

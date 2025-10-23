@@ -226,42 +226,42 @@ export default {
 </template>
 
 <style scoped>
-/* Settings tab styling - clean black/white theme */
+/* Settings tab styling - matching button theme pattern */
 .nav-pills .nav-link {
-    background-color: transparent !important;
-    border: 1px solid transparent !important;
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
     color: #ffffff !important;
     transition: all 0.2s ease-in-out;
 }
 
 .nav-pills .nav-link:hover {
-    background-color: #000000 !important;
-    border: 1px solid #ffffff !important;
-    color: #ffffff !important;
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
 }
 
 .nav-pills .nav-link.active {
-    background-color: #000000 !important;
-    border: 1px solid #ffffff !important;
-    color: #ffffff !important;
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
 }
 
 /* Light theme styles */
 [data-bs-theme="light"] .nav-pills .nav-link {
-    background-color: transparent !important;
-    border: 1px solid transparent !important;
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
     color: #000000 !important;
 }
 
 [data-bs-theme="light"] .nav-pills .nav-link:hover {
-    background-color: #ffffff !important;
-    border: 1px solid #000000 !important;
-    color: #000000 !important;
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    color: #ffffff !important;
 }
 
 [data-bs-theme="light"] .nav-pills .nav-link.active {
-    background-color: #ffffff !important;
-    border: 1px solid #000000 !important;
-    color: #000000 !important;
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    color: #ffffff !important;
 }
 </style>
