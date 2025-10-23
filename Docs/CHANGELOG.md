@@ -101,6 +101,7 @@ sol-beta-v2.5.2:
   - Sqlite backwards Compatablitly via DASHBOARD_TYPE=scale  # simple (SQLite) or scale (PostgreSQL + Redis)
 
 sol-beta-v2.5.3:
+  - DO NOT USE IN PROD IS BETA
   - theme updates 
   - logo update
   - ui bug fixes
