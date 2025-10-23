@@ -100,5 +100,14 @@ sol-beta-v2.5.2:
   - Bug Fixes (Traffic Shaping) (Unsafe Inline css) (Public keys)
   - Sqlite backwards Compatablitly via DASHBOARD_TYPE=scale  # simple (SQLite) or scale (PostgreSQL + Redis)
 
+sol-beta-v2.5.3:
+  - theme updates 
+  - logo update
+  - ui bug fixes
+  - added Tor Protocol Badge
+  - fixed tor proxy config generation
+  - move uvicorn options to .env
+  - bug fixes
+
 
 
