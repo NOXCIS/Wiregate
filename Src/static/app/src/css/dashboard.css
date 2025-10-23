@@ -258,24 +258,60 @@
    ========================================================================== */
 
 .btn-brand {
-    background: linear-gradient(var(--degree), var(--brandColor3) var(--distance2), var(--brandColor4) 100%);
-    border: 0 !important;
-    transition: --brandColor1 1s, --brandColor2 1s, --distance2 0.5s !important;
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    color: #ffffff !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+.btn-brand:hover {
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+}
+
+/* Light theme btn-brand styles */
+[data-bs-theme="light"] .btn-brand {
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
+    color: #000000 !important;
+}
+
+[data-bs-theme="light"] .btn-brand:hover {
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    color: #ffffff !important;
 }
 
 .btn-outline-primary,
 .btn-outline-info {
-    --bs-btn-bg: #7A0BC4 !important;
+    --bs-btn-bg: #000000 !important;
     --bs-btn-color: #ffffff !important;
-    --bs-btn-border-color: #7A0BC4 !important;
-    --bs-btn-hover-color: #fff !important;
-    --bs-btn-hover-bg: #200035 !important;
-    --bs-btn-hover-border-color: #7A0BC4 !important;
+    --bs-btn-border-color: #ffffff !important;
+    --bs-btn-hover-color: #000000 !important;
+    --bs-btn-hover-bg: #ffffff !important;
+    --bs-btn-hover-border-color: #000000 !important;
 }
 
 .btn-outline-primary {
-    --bs-btn-active-bg: var(--brandColor8) !important;
-    --bs-btn-active-border-color: #7A0BC4 !important;
+    --bs-btn-active-bg: #ffffff !important;
+    --bs-btn-active-border-color: #000000 !important;
+}
+
+/* Light theme btn-outline-primary styles */
+[data-bs-theme="light"] .btn-outline-primary,
+[data-bs-theme="light"] .btn-outline-info {
+    --bs-btn-bg: #ffffff !important;
+    --bs-btn-color: #000000 !important;
+    --bs-btn-border-color: #000000 !important;
+    --bs-btn-hover-color: #ffffff !important;
+    --bs-btn-hover-bg: #000000 !important;
+    --bs-btn-hover-border-color: #ffffff !important;
+}
+
+[data-bs-theme="light"] .btn-outline-primary {
+    --bs-btn-active-bg: #000000 !important;
+    --bs-btn-active-border-color: #ffffff !important;
 }
 
 
@@ -285,27 +321,86 @@
 
 .accordion-button {
     color: #ffffff !important;
-    background-color: #892ec5 !important;
-    --bs-accordion-btn-focus-box-shadow: 0 0 0 0.25rem #7a0bc43d !important;
+    background-color: #000000 !important;
+    border: 1px solid #ffffff !important;
+    --bs-accordion-btn-focus-box-shadow: 0 0 0 0.25rem #ffffff20 !important;
+    transition: all 0.2s ease-in-out !important;
+}
+
+.accordion-button:hover {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #000000 !important;
 }
 
 .accordion-button::after {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M2 5L8 11L14 5'/%3e%3c/svg%3e") !important;
 }
 
+.accordion-button:hover::after {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000000' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M2 5L8 11L14 5'/%3e%3c/svg%3e") !important;
+}
+
 .accordion-button:not(.collapsed) {
-    color: #ffffff !important;
-    background-color: var(--bs-accordion-active-bg);
+    color: #000000 !important;
+    background-color: #ffffff !important;
+    border: 1px solid #000000 !important;
     box-shadow: inset 0 calc(-1* var(--bs-accordion-border-width)) 0 var(--bs-accordion-border-color);
 }
 
 [data-bs-theme="dark"] .accordion-button {
-    background-color: #200035 !important;
-    --bs-accordion-btn-focus-box-shadow: 0 0 0 0.25rem #7a0bc43d !important;
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border: 1px solid #ffffff !important;
+    --bs-accordion-btn-focus-box-shadow: 0 0 0 0.25rem #ffffff20 !important;
+}
+
+[data-bs-theme="dark"] .accordion-button:hover {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #000000 !important;
+}
+
+[data-bs-theme="dark"] .accordion-button:hover::after {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000000' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M2 5L8 11L14 5'/%3e%3c/svg%3e") !important;
+}
+
+[data-bs-theme="dark"] .accordion-button:not(.collapsed) {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #000000 !important;
 }
 
 [data-bs-theme="dark"] .accordion-button::after {
     background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M2 5L8 11L14 5'/%3e%3c/svg%3e") !important;
+}
+
+/* Light theme accordion button styles */
+[data-bs-theme="light"] .accordion-button {
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border: 1px solid #000000 !important;
+    --bs-accordion-btn-focus-box-shadow: 0 0 0 0.25rem #00000020 !important;
+}
+
+[data-bs-theme="light"] .accordion-button:hover {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border: 1px solid #ffffff !important;
+}
+
+[data-bs-theme="light"] .accordion-button:hover::after {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M2 5L8 11L14 5'/%3e%3c/svg%3e") !important;
+}
+
+[data-bs-theme="light"] .accordion-button:not(.collapsed) {
+    background-color: #000000 !important;
+    color: #ffffff !important;
+    border: 1px solid #ffffff !important;
+}
+
+[data-bs-theme="light"] .accordion-button::after {
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23000000' stroke-linecap='round' stroke-linejoin='round'%3e%3cpath d='M2 5L8 11L14 5'/%3e%3c/svg%3e") !important;
 }
 
 

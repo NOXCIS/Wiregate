@@ -486,9 +486,9 @@ export default {
 }
 
 [data-bs-theme="dark"] .nav-tabs .nav-link.active {
-	background-color: var(--brandColor4);
-	color: white;
-	border-color: var(--brandColor4);
+	background-color: #000000;
+	color: #ffffff;
+	border-color: #ffffff;
 }
 
 [data-bs-theme="light"] .nav-tabs .nav-link {
@@ -501,9 +501,9 @@ export default {
 }
 
 [data-bs-theme="light"] .nav-tabs .nav-link.active {
-	background-color: var(--brandColor4);
-	color: white;
-	border-color: var(--brandColor4);
+	background-color: #ffffff;
+	color: #000000;
+	border-color: #000000;
 }
 
 /* Alert styling */
