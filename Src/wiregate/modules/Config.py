@@ -67,4 +67,4 @@ SESSION_TIMEOUT = int(os.getenv('SESSION_TIMEOUT', '3600'))  # 1 hour
 SECURE_SESSION = os.getenv('SECURE_SESSION', 'true').lower() == 'true'
 
 # Database Type Settings
-DASHBOARD_TYPE = os.getenv('DASHBOARD_TYPE', 'scale')  # simple (SQLite), scale (PostgreSQL + Redis)
+DASHBOARD_TYPE = os.getenv('DASHBOARD_TYPE', 'simple')  # simple (SQLite), scale (PostgreSQL + Redis)

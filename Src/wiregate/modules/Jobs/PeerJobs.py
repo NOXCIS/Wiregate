@@ -104,6 +104,7 @@ class PeerJobs:
 
             # Prepare job data
             job_data = {
+                'id': Job.JobID,  # Use JobID as the primary key
                 'JobID': Job.JobID,
                 'Configuration': Job.Configuration,
                 'Peer': Job.Peer,

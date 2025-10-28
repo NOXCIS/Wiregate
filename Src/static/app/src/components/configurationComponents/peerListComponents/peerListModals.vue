@@ -42,6 +42,7 @@ const PeerRateLimitSettings = defineAsyncComponent(() => import("@/components/co
 			@refresh="emits('refresh')"
 			v-if="configurationModals.peerScheduleJobs.modalOpen"
 			:selectedPeer="configurationModalSelectedPeer"
+			:configurationInfo="configurationInfo"
 			@close="configurationModals.peerScheduleJobs.modalOpen = false">
 		</PeerJobsModal>
 		<PeerShareLinkModal

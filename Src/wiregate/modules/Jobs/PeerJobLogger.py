@@ -37,6 +37,7 @@ class PeerJobLogger:
             
             # Prepare log data
             log_data = {
+                'id': log_id,  # Use LogID as the primary key
                 'LogID': log_id,
                 'JobID': JobID,
                 'LogDate': log_date,

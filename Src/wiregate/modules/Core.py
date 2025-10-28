@@ -2136,11 +2136,16 @@ class Peer:
         
 
     def toJson(self):
-        self.getJobs()
+        self.getJobs(force_refresh=True)
         self.getShareLink()
         # Create a copy of __dict__ without the configuration reference to avoid circular serialization
         peer_dict = self.__dict__.copy()
         peer_dict.pop('configuration', None)  # Remove circular reference
+        
+        # Convert jobs to serializable format
+        if 'jobs' in peer_dict and peer_dict['jobs']:
+            peer_dict['jobs'] = [job.toJson() for job in peer_dict['jobs']]
+        
         return peer_dict
 
     def __repr__(self):

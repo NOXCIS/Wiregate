@@ -246,7 +246,7 @@ async def save_peer_schedule_job(
     ))
     
     if s:
-        return StandardResponse(status=True, data=p)
+        return StandardResponse(status=True, data=[])
     return StandardResponse(status=False, message=p)
 
 
@@ -298,7 +298,7 @@ async def delete_peer_schedule_job(
     ))
     
     if s:
-        return StandardResponse(status=True, data=p)
+        return StandardResponse(status=True, data=[])
     return StandardResponse(status=False, message=p)
 
 

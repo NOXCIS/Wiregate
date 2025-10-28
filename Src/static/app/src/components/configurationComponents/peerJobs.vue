@@ -11,7 +11,8 @@ export default {
 		return {store}
 	},
 	props:{
-		selectedPeer: Object
+		selectedPeer: Object,
+		configurationInfo: Object
 	},
 	components:{
 		LocaleText,
@@ -33,7 +34,7 @@ export default {
 		addJob(){
 			this.selectedPeer.jobs.unshift(JSON.parse(JSON.stringify({
 				JobID: v4().toString(),
-				Configuration: this.selectedPeer.configuration.Name,
+				Configuration: this.configurationInfo.Name,
 				Peer: this.selectedPeer.id,
 				Field: this.store.PeerScheduleJobs.dropdowns.Field[0].value,
 				Operator: this.store.PeerScheduleJobs.dropdowns.Operator[0].value,

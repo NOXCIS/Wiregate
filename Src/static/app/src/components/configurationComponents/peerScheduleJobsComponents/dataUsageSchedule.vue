@@ -87,6 +87,9 @@ export default {
             } catch (e) {
                 console.error('Error updating rate limits:', e)
             }
+        },
+        isDataField() {
+            return ['total_receive', 'total_sent', 'total_data'].includes(this.job.Field)
         }
     }
 }
