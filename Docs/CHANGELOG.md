@@ -111,4 +111,16 @@ sol-beta-v2.5.3:
   - bug fixes
 
 
+flat-bridge-v0.0.1:
+  - STABLE BETA (USE AT OWN RISK)
+  - Dockerfile & Nuitka.Dockerfile: Auto-fetch latest Go version (removed hardcoded 1.24.x)
+  - Security (CSP) - fastapi_middleware.py:
+  - Added default-src, base-uri, worker-src, child-src directives
+  - Added upgrade-insecure-requests & block-all-mixed-content (prod)
+  - Removed redundant script-src 'self'
+  - Added middleware to block JS files outside /assets/ and backup directories
+  - Frontend:
+  - Converted 5 Vue components to dynamic imports (defineAsyncComponent)
+  - Fixed Vite code-splitting warnings, reduced initial bundle size
+
 
