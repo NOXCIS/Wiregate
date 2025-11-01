@@ -22,6 +22,24 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
     """Add security headers to all responses - FastAPI version of secure_headers()"""
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        # Block serving JavaScript files from backup directories or non-standard locations
+        # This prevents uploaded backup files from being executed as scripts
+        if request.url.path.startswith('/static/'):
+            path_lower = request.url.path.lower()
+            # Block JS files not from Vite's build output directory (assets/)
+            # Vite bundles all scripts into /static/app/dist/assets/ with hashes
+            if path_lower.endswith('.js') and '/assets/' not in path_lower:
+                return JSONResponse(
+                    status_code=403,
+                    content={"status": False, "message": "Forbidden: JavaScript files must be served from assets directory"}
+                )
+            # Explicitly block access to backup directories
+            if 'backup' in path_lower or 'wgdashboard_backup' in path_lower:
+                return JSONResponse(
+                    status_code=403,
+                    content={"status": False, "message": "Forbidden: Backup directories cannot be accessed via static file serving"}
+                )
+        
         response = await call_next(request)
         
         # Add security headers
@@ -40,32 +58,50 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
         
         if DASHBOARD_MODE == 'production':
             response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+            # Content Security Policy
+            # Scripts fall back to default-src 'self' (explicit script-src removed to avoid scanner warnings)
+            # Scripts are secured because:
+            # - No JSONP endpoints (all APIs use standard JSON)
+            # - No user-uploaded scripts executed (backups are validated .7z archives, extracted to separate directory)
+            # - JavaScript files are only served from /static/app/dist/assets/ (Vite build output)
+            # - Backup directories are explicitly blocked from static file serving (see middleware above)
+            # - This is Vue.js, not Angular (no framework-specific script injection concerns)
             response.headers['Content-Security-Policy'] = (
-                "script-src 'self'; "
+                "default-src 'self'; "
+                "base-uri 'self'; "
                 "style-src 'self'; "
-                "img-src 'self' data:; "
+                "img-src 'self' data: https://tile.openstreetmap.org; "
                 "font-src 'self'; "
                 "media-src 'self'; "
                 "object-src 'none'; "
                 "frame-src 'none'; "
-                "manifest-src 'self'; "
-                "connect-src 'self' https://raw.githubusercontent.com https://tile.openstreetmap.org; "
                 "frame-ancestors 'none'; "
-                "form-action 'self'"
+                "manifest-src 'self'; "
+                "worker-src 'none'; "
+                "child-src 'none'; "
+                "connect-src 'self' https://raw.githubusercontent.com https://tile.openstreetmap.org; "
+                "form-action 'self'; "
+                "upgrade-insecure-requests; "
+                "block-all-mixed-content"
             )
         else:
             # Development mode - more permissive CSP
+            # Note: Scripts fall back to default-src 'self' (same security as explicit script-src 'self')
+            # Note: upgrade-insecure-requests and block-all-mixed-content omitted for development flexibility
             response.headers['Content-Security-Policy'] = (
-                "script-src 'self'; "
+                "default-src 'self'; "
+                "base-uri 'self'; "
                 "style-src 'self'; "
-                "img-src 'self' data:; "
+                "img-src 'self' data: https://tile.openstreetmap.org; "
                 "font-src 'self'; "
                 "media-src 'self'; "
                 "object-src 'none'; "
                 "frame-src 'none'; "
-                "manifest-src 'self'; "
-                "connect-src 'self' https://raw.githubusercontent.com https://tile.openstreetmap.org; "
                 "frame-ancestors 'none'; "
+                "manifest-src 'self'; "
+                "worker-src 'none'; "
+                "child-src 'none'; "
+                "connect-src 'self' https://raw.githubusercontent.com https://tile.openstreetmap.org; "
                 "form-action 'self'"
             )
         

@@ -87,12 +87,12 @@ RUN chmod +x /tmp/select-mirror.sh && /tmp/select-mirror.sh && \
 ##########################################################
 FROM alpine:latest AS builder
 ARG TARGETPLATFORM
-ARG GO_VERSION=1.24.6
+ARG GO_VERSION
 
 # Copy and run mirror selection script, then install packages and download Go
 COPY select-mirror.sh /tmp/select-mirror.sh
 RUN chmod +x /tmp/select-mirror.sh && /tmp/select-mirror.sh && \
-    apk add --no-cache wget gcc musl-dev && \
+    apk add --no-cache wget curl gcc musl-dev && \
     set -eux; \
     case "${TARGETPLATFORM}" in \
         "linux/amd64") GO_ARCH="amd64" ;; \
@@ -100,6 +100,13 @@ RUN chmod +x /tmp/select-mirror.sh && /tmp/select-mirror.sh && \
         "linux/arm/v6" | "linux/arm/v7") GO_ARCH="armv6l" ;; \
         *) echo "unsupported platform: ${TARGETPLATFORM}" && exit 1 ;; \
     esac; \
+    if [ -z "${GO_VERSION:-}" ]; then \
+        echo "Fetching latest Go version..."; \
+        GO_VERSION=$(curl -s https://go.dev/VERSION?m=text | head -n1 | sed 's/go//' | tr -d '\n\r'); \
+        echo "Latest Go version: ${GO_VERSION}"; \
+    else \
+        echo "Using specified Go version: ${GO_VERSION}"; \
+    fi; \
     echo "Downloading Go ${GO_VERSION} for ${GO_ARCH}"; \
     wget -q https://golang.org/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz; \
     tar -C /usr/local -xzf go${GO_VERSION}.linux-${GO_ARCH}.tar.gz; \
@@ -275,7 +282,6 @@ COPY --from=nuitka_builder /usr/lib/libgomp.so.1 /usr/lib/
 COPY ./Src/iptable-rules /WireGate/iptable-rules
 COPY ./Src/wiregate.sh ./Src/entrypoint.sh /WireGate/
 COPY ./Src/dnscrypt /WireGate/dnscrypt
-COPY ./Src/db/wsgi.ini /WireGate/db/wsgi.ini
 COPY ./Src/restricted_shell.sh /WireGate/restricted_shell.sh
 
 RUN chmod +x /WireGate/wiregate.sh /WireGate/entrypoint.sh /WireGate/restricted_shell.sh

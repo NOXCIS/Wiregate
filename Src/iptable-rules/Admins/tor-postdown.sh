@@ -7,7 +7,7 @@ WIREGUARD_LAN=10.0.0.1/24
 MASQUERADE_INTERFACE=eth0
 DNS_SERVER=${WGD_IPTABLES_DNS}
 DNS_UDP_PORT=53
-PROXY="$(hostname -i | awk '{print $1}')"
+PROXY="$(ip -4 addr show scope global | awk '/inet /{print $2}' | cut -d/ -f1 | head -n1)"
 PROXY_PORT=59040
 
 # Flush the custom chain rules

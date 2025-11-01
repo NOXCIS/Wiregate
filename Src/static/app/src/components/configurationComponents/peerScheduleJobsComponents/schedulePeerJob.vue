@@ -1,14 +1,15 @@
 <script>
 import ScheduleDropdown from "@/components/configurationComponents/peerScheduleJobsComponents/scheduleDropdown.vue";
-import {ref, computed} from "vue";
+import {ref, computed, defineAsyncComponent} from "vue";
 import {DashboardConfigurationStore} from "@/stores/DashboardConfigurationStore.js";
 import {fetchPost} from "@/utilities/fetch.js";
 import VueDatePicker from "@vuepic/vue-datepicker";
 import dayjs from "dayjs";
 import LocaleText from "@/components/text/localeText.vue";
 import WeeklySchedule from "@/components/configurationComponents/peerScheduleJobsComponents/weeklySchedule.vue";
-import PeerRateLimitSettings from '@/components/configurationComponents/peerRateLimitSettings.vue'
 import DataUsageSchedule from "@/components/configurationComponents/peerScheduleJobsComponents/dataUsageSchedule.vue";
+
+const PeerRateLimitSettings = defineAsyncComponent(() => import('@/components/configurationComponents/peerRateLimitSettings.vue'))
 
 export default {
 	name: "schedulePeerJob",

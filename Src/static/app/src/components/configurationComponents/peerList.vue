@@ -11,12 +11,12 @@ import PeerSearch from "@/components/configurationComponents/peerSearch.vue";
 import Peer from "@/components/configurationComponents/peer.vue";
 import PeerListModals from "@/components/configurationComponents/peerListComponents/peerListModals.vue";
 import PeerIntersectionObserver from "@/components/configurationComponents/peerIntersectionObserver.vue";
-import DeleteConfiguration from "@/components/configurationComponents/deleteConfiguration.vue";
-import ConfigurationBackupRestore from "@/components/configurationComponents/configurationBackupRestore.vue";
-import EditRawConfigurationFile from "@/components/configurationComponents/editConfigurationComponents/editRawConfigurationFile.vue";
 
 
 // Async Components
+const DeleteConfiguration = defineAsyncComponent(() => import("@/components/configurationComponents/deleteConfiguration.vue"))
+const ConfigurationBackupRestore = defineAsyncComponent(() => import("@/components/configurationComponents/configurationBackupRestore.vue"))
+const EditRawConfigurationFile = defineAsyncComponent(() => import("@/components/configurationComponents/editConfigurationComponents/editRawConfigurationFile.vue"))
 const PeerSearchBar = defineAsyncComponent(() => import("@/components/configurationComponents/peerSearchBar.vue"))
 const PeerJobsAllModal = defineAsyncComponent(() => import("@/components/configurationComponents/peerJobsAllModal.vue"))
 const PeerJobsLogsModal = defineAsyncComponent(() => import("@/components/configurationComponents/peerJobsLogsModal.vue"))

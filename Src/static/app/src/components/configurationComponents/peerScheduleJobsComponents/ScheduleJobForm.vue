@@ -1,10 +1,11 @@
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { ref, computed, watch, defineAsyncComponent } from 'vue'
 import ScheduleDropdown from './scheduleDropdown.vue'
 import VueDatePicker from '@vuepic/vue-datepicker'
 import WeeklySchedule from './weeklySchedule.vue'
-import PeerRateLimitSettings from '../peerRateLimitSettings.vue'
 import LocaleText from '@/components/text/localeText.vue'
+
+const PeerRateLimitSettings = defineAsyncComponent(() => import('../peerRateLimitSettings.vue'))
 
 const props = defineProps({
   job: {

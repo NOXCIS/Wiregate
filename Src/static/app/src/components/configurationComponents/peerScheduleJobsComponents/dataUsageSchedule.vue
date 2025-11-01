@@ -1,5 +1,7 @@
 <script>
-import PeerRateLimitSettings from '@/components/configurationComponents/peerRateLimitSettings.vue'
+import { defineAsyncComponent } from 'vue'
+
+const PeerRateLimitSettings = defineAsyncComponent(() => import('@/components/configurationComponents/peerRateLimitSettings.vue'))
 
 export default {
     name: "dataUsageSchedule",

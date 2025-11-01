@@ -1,12 +1,12 @@
 <script>
-import { ref } from 'vue'
+import { ref, defineAsyncComponent } from 'vue'
 import { onClickOutside } from '@vueuse/core'
 import "animate.css"
 import PeerSettingsDropdown from "@/components/configurationComponents/peerSettingsDropdown.vue";
 import LocaleText from "@/components/text/localeText.vue";
-import PeerRateLimitSettings from '@/components/configurationComponents/peerRateLimitSettings.vue'
 import { WireguardConfigurationsStore } from "@/stores/WireguardConfigurationsStore.js"
 
+const PeerRateLimitSettings = defineAsyncComponent(() => import('@/components/configurationComponents/peerRateLimitSettings.vue'))
 
 export default {
 	name: "peer",
