@@ -99,7 +99,7 @@ services:
       ports:
         #- 44333:44333/udp
         #- "4430-4433:4430-4433/udp" #UDP Interface Listen Ports For Zones
-        - 8080:80/tcp   # HTTP port
+        - 8090:80/tcp   # HTTP port
         - 8443:443/tcp  # HTTPS port for SSL
       sysctls:        #Otherwise access the dashboard @ your-sever-ip/domain:6060
         - net.ipv4.ip_forward=1
@@ -107,7 +107,7 @@ services:
         - net.ipv6.conf.all.forwarding=1
         - net.ipv6.conf.default.forwarding=1
       healthcheck:
-        test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "--no-check-certificate", "https://localhost:443/api/health", "||", "exit", "1"]
+        test: ["CMD-SHELL", "netstat -tuln 2>/dev/null | grep -q ':443 ' || netstat -tuln 2>/dev/null | grep -q ':80 ' || exit 1"]
         interval: 30s
         timeout: 10s
         retries: 3

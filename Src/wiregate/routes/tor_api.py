@@ -47,26 +47,56 @@ async def get_tor_config(
                 configs['dns'] = f.read()
                 logger.debug(f"Read {len(configs['dns'])} bytes from DNS config")
         
-        # Get current plugin type from torrc
-        current_plugin = 'obfs4'  # default
-        logger.debug("Determining current plugin type")
+        # Get current plugin type from each config
+        plugins = {}
+        logger.debug("Determining current plugin type for each config")
+        
+        def detect_plugin(config_content):
+            """Detect plugin type from config content by checking ClientTransportPlugin directive"""
+            if not config_content:
+                return 'obfs4'
+            
+            # Search for ClientTransportPlugin directive
+            lines = config_content.split('\n')
+            for line in lines:
+                line = line.strip()
+                if line.startswith('ClientTransportPlugin'):
+                    # Extract plugin name from: ClientTransportPlugin <plugin> exec ...
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        plugin = parts[1]
+                        if plugin in ['obfs4', 'webtunnel', 'snowflake']:
+                            return plugin
+            # If no ClientTransportPlugin found, check for plugin keywords as fallback
+            if 'webtunnel' in config_content:
+                return 'webtunnel'
+            elif 'snowflake' in config_content:
+                return 'snowflake'
+            return 'obfs4'
+        
+        # Detect plugin for main config
         if configs.get('main'):
             logger.debug("Checking main config content")
-            if 'webtunnel' in configs['main']:
-                logger.debug("Found webtunnel plugin")
-                current_plugin = 'webtunnel'
-            elif 'snowflake' in configs['main']:
-                logger.debug("Found snowflake plugin")
-                current_plugin = 'snowflake'
-            else:
-                logger.debug("Using default obfs4 plugin")
+            plugins['main'] = detect_plugin(configs['main'])
+            logger.debug(f"Detected plugin for main: {plugins['main']}")
+        else:
+            plugins['main'] = 'obfs4'
         
+        # Detect plugin for DNS config
+        if configs.get('dns'):
+            logger.debug("Checking DNS config content")
+            plugins['dns'] = detect_plugin(configs['dns'])
+            logger.debug(f"Detected plugin for DNS: {plugins['dns']}")
+        else:
+            plugins['dns'] = 'obfs4'
+        
+        logger.debug(f"Detected plugins: {plugins}")
         logger.debug("Returning successful response")
         return StandardResponse(
             status=True,
             data={
                 'configs': configs,
-                'currentPlugin': current_plugin
+                'plugins': plugins
             }
         )
     except Exception as e:
@@ -428,12 +458,44 @@ async def get_tor_logs(
 ):
     """Get Tor logs"""
     try:
+        # Validate configType
+        if configType not in ['main', 'dns']:
+            return StandardResponse(
+                status=False,
+                message="Invalid config type. Must be 'main' or 'dns'"
+            )
+        
         # If no file specified, use default based on config type
         file_name = file if file else ("dnslog" if configType == 'dns' else "log")
+        
+        # Validate filename to prevent path traversal
+        from ..modules.Security import security_manager
+        is_valid, error_msg = security_manager.validate_filename(file_name)
+        if not is_valid:
+            return StandardResponse(
+                status=False,
+                message=f"Invalid log file name: {error_msg}"
+            )
+        
+        # Additional path traversal check
+        if '..' in file_name or os.path.isabs(file_name) or '/' in file_name or '\\' in file_name:
+            return StandardResponse(
+                status=False,
+                message="Invalid log file name: path traversal detected"
+            )
         
         # Use the same log directory for both config types
         log_dir = "/var/log/tor"
         log_path = os.path.join(log_dir, file_name)
+        
+        # Ensure resolved path is within log directory
+        resolved_log = os.path.abspath(log_path)
+        resolved_dir = os.path.abspath(log_dir)
+        if not resolved_log.startswith(resolved_dir):
+            return StandardResponse(
+                status=False,
+                message="Invalid log file path: path outside allowed directory"
+            )
         
         # Check if file exists
         if not os.path.exists(log_path):

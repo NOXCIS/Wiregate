@@ -1,13 +1,23 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import {cookie} from "../utilities/cookie.js";
-import {fetchGet} from "@/utilities/fetch.js";
+import {fetchGet, refreshCsrfToken} from "@/utilities/fetch.js";
 import {WireguardConfigurationsStore} from "@/stores/WireguardConfigurationsStore.js";
 import {DashboardConfigurationStore} from "@/stores/DashboardConfigurationStore.js";
 
 const checkAuth = async () => {
 	let result = false
-	await fetchGet("/api/validateAuthentication", {}, (res) => {
+	const dashboardConfigurationStore = DashboardConfigurationStore();
+	await fetchGet("/api/validateAuthentication", {}, async (res) => {
 		result = res.status
+		// Fetch CSRF token if authenticated (only fetch if we got a successful response)
+		if (result === true && res) {
+			await refreshCsrfToken();
+			// Reset session expired flag on successful auth check
+			dashboardConfigurationStore.resetSessionExpired();
+		} else {
+			// Session expired - stop intervals and set flag
+			dashboardConfigurationStore.handleSessionExpiration();
+		}
 	});
 	return result;
 }
@@ -139,6 +149,15 @@ const router = createRouter({
 			meta: {
 				title: "Share",
 				hideTopNav: true
+			}
+		},
+		{
+			path: '/privacy', 
+			component: () => import("@/views/privacy.vue"),
+			meta: {
+				title: "Privacy Policy",
+				hideTopNav: true,
+				requiresAuth: false
 			}
 		},
 		{

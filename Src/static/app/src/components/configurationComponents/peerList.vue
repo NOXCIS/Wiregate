@@ -125,15 +125,26 @@ await fetchPeerList()
 // Fetch Peer Interval =====================================
 const fetchPeerListInterval = ref(undefined)
 const setFetchPeerListInterval = () => {
-	clearInterval(fetchPeerListInterval.value)
+	// Unregister old interval if it exists
+	if (fetchPeerListInterval.value) {
+		dashboardStore.unregisterInterval(fetchPeerListInterval.value);
+		clearInterval(fetchPeerListInterval.value);
+	}
 	fetchPeerListInterval.value = setInterval(async () => {
 		await fetchPeerList()
 	},  parseInt(dashboardStore.Configuration.Server.dashboard_refresh_interval))
+	// Register the new interval with the global tracker
+	if (fetchPeerListInterval.value) {
+		dashboardStore.registerInterval(fetchPeerListInterval.value);
+	}
 }
 setFetchPeerListInterval()
 onBeforeUnmount(() => {
-	clearInterval(fetchPeerListInterval.value);
-	fetchPeerListInterval.value = undefined;
+	if (fetchPeerListInterval.value) {
+		dashboardStore.unregisterInterval(fetchPeerListInterval.value);
+		clearInterval(fetchPeerListInterval.value);
+		fetchPeerListInterval.value = undefined;
+	}
 })
 
 watch(() => {

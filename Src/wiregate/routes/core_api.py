@@ -54,21 +54,42 @@ router = APIRouter()
 
 
 def _is_safe_sql_statement(sql: str) -> bool:
-    """Validate that SQL statement is safe for execution"""
+    """
+    Validate that SQL statement is safe for execution
+    WARNING: This is a basic check. Always prefer parameterized queries.
+    This function should only be used for trusted, validated SQL statements.
+    """
+    if not sql or not isinstance(sql, str):
+        return False
+    
     sql_upper = sql.upper().strip()
     
-    allowed_operations = ['INSERT', 'UPDATE', 'DELETE', 'CREATE', 'DROP']
+    # Only allow specific operations that are safe when properly parameterized
+    allowed_operations = ['INSERT', 'UPDATE', 'DELETE']
     if not any(sql_upper.startswith(op) for op in allowed_operations):
         return False
     
+    # Block dangerous SQL patterns that could lead to injection
     dangerous_patterns = [
-        'DROP TABLE', 'DROP DATABASE', 'TRUNCATE', 'ALTER TABLE',
-        'EXEC', 'EXECUTE', 'UNION', '--', '/*', '*/', ';',
-        'INFORMATION_SCHEMA', 'SYS.', 'MYSQL.', 'PG_'
+        'DROP TABLE', 'DROP DATABASE', 'DROP SCHEMA', 'DROP INDEX',
+        'TRUNCATE', 'ALTER TABLE', 'ALTER DATABASE',
+        'EXEC', 'EXECUTE', 'EXECUTE IMMEDIATE', 'SP_EXECUTESQL',
+        'UNION', 'UNION ALL', 'UNION SELECT',
+        '--', '/*', '*/', ';',  # SQL comment and statement separators
+        'INFORMATION_SCHEMA', 'SYS.', 'MYSQL.', 'PG_', 'SYSTEM.',
+        'XP_', 'SP_', 'OPENQUERY', 'OPENROWSET',
+        'LOAD_FILE', 'INTO OUTFILE', 'INTO DUMPFILE',
+        'SCRIPT', 'EVAL', 'SELECT INTO'
     ]
     
     for pattern in dangerous_patterns:
         if pattern in sql_upper:
+            return False
+    
+    # Additional check: ensure no multiple statements (prevent stacked queries)
+    if sql.count(';') > 1 or ';' in sql_upper.split('\n')[0]:
+        # Allow one semicolon at the end, but not multiple statements
+        if sql_upper.count(';') > 1 or (sql_upper.count(';') == 1 and not sql_upper.rstrip().endswith(';')):
             return False
     
     return True
@@ -206,11 +227,39 @@ async def add_configuration(
     
     if backup_mode:
         # Existing backup mode handling
-        config_name = config_data["Backup"].split("_")[0]
+        backup_filename = config_data["Backup"]
+        
+        # Validate backup filename to prevent path traversal
+        from ..modules.Security import security_manager
+        is_valid, error_msg = security_manager.validate_filename(backup_filename)
+        if not is_valid:
+            return StandardResponse(
+                status=False,
+                message=f"Invalid backup filename: {error_msg}"
+            )
+        
+        # Additional path traversal check
+        if '..' in backup_filename or os.path.isabs(backup_filename):
+            return StandardResponse(
+                status=False,
+                message="Invalid backup filename: path traversal detected"
+            )
+        
+        config_name = backup_filename.split("_")[0]
         backup_paths = get_backup_paths(config_name)
-        backup_file = os.path.join(backup_paths['config_dir'], config_data["Backup"])
-        backup_redis = os.path.join(backup_paths['config_dir'], config_data["Backup"].replace('.conf', '.redis'))
-        backup_iptables = os.path.join(backup_paths['config_dir'], config_data["Backup"].replace('.conf', '_iptables.json'))
+        backup_file = os.path.join(backup_paths['config_dir'], backup_filename)
+        
+        # Ensure resolved path is within allowed directory
+        resolved_backup = os.path.abspath(backup_file)
+        resolved_base = os.path.abspath(backup_paths['config_dir'])
+        if not resolved_backup.startswith(resolved_base):
+            return StandardResponse(
+                status=False,
+                message="Invalid backup filename: path outside allowed directory"
+            )
+        
+        backup_redis = os.path.join(backup_paths['config_dir'], backup_filename.replace('.conf', '.redis'))
+        backup_iptables = os.path.join(backup_paths['config_dir'], backup_filename.replace('.conf', '_iptables.json'))
         
         if not os.path.exists(backup_file):
             return StandardResponse(
@@ -1664,8 +1713,8 @@ async def _get_cached_system_status():
                                         if line.strip():
                                             parts = line.split('\t')
                                             if len(parts) >= 3:
-                                                total_recv += int(parts[1])
-                                                total_sent += int(parts[2])
+                                                total_sent += int(parts[1])
+                                                total_recv += int(parts[2])
                                     
                                     network_status[name]["byte_sent"] = max(
                                         network_status[name]["byte_sent"], total_sent

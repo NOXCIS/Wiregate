@@ -1,5 +1,6 @@
 <script>
 import {WireguardConfigurationsStore} from "@/stores/WireguardConfigurationsStore.js";
+import {DashboardConfigurationStore} from "@/stores/DashboardConfigurationStore.js";
 import ConfigurationCard from "@/components/configurationListComponents/configurationCard.vue";
 import LocaleText from "@/components/text/localeText.vue";
 import SystemStatus from "@/components/systemStatusComponents/systemStatusWidget.vue";
@@ -50,12 +51,21 @@ export default {
 		// Trigger update check after configurations are loaded
 		this.triggerUpdateCheck();
 		
+		const dashboardStore = DashboardConfigurationStore();
 		this.wireguardConfigurationsStore.ConfigurationListInterval = setInterval(() => {
 			this.wireguardConfigurationsStore.getConfigurations()
 		}, 10000)
+		// Register interval with global tracker
+		if (this.wireguardConfigurationsStore.ConfigurationListInterval) {
+			dashboardStore.registerInterval(this.wireguardConfigurationsStore.ConfigurationListInterval);
+		}
 	},
 	beforeUnmount() {
-		clearInterval(this.wireguardConfigurationsStore.ConfigurationListInterval)
+		const dashboardStore = DashboardConfigurationStore();
+		if (this.wireguardConfigurationsStore.ConfigurationListInterval) {
+			dashboardStore.unregisterInterval(this.wireguardConfigurationsStore.ConfigurationListInterval);
+			clearInterval(this.wireguardConfigurationsStore.ConfigurationListInterval);
+		}
 	},
 	computed: {
 		configurations(){
@@ -148,8 +158,8 @@ export default {
 				
 			</div>
 			<div class="text-body filter mb-3 d-flex gap-2 flex-column flex-md-row" v-if="this.configurationLoaded">
-				<div class="d-flex align-items-center gap-3 align-items-center ">
-					<small class="text-muted">
+				<div class="d-flex align-items-center gap-2 gap-md-3 flex-wrap">
+					<small class="text-muted flex-shrink-0">
 						<LocaleText t="Sort By"></LocaleText>
 					</small>
 					<a role="button" 
@@ -189,13 +199,14 @@ export default {
 					   class="px-2 py-1 rounded-3">
 						<small>Tor</small>
 					</a>
-					<div class="d-flex align-items-center">
+					<div class="d-flex align-items-center flex-grow-1 flex-md-grow-0">
 						<label for="configurationSearch" class="text-muted">
 							<i class="bi bi-search me-2"></i>
 						</label>
 						<input class="form-control form-control-sm rounded-3" 
 						       v-model="this.searchKey"
-						       id="configurationSearch">
+						       id="configurationSearch"
+						       style="min-width: 150px;">
 					</div>
 				</div>
 			</div>
@@ -238,6 +249,37 @@ export default {
 <style scoped>
 .filter a{
 	text-decoration: none;
+	flex-shrink: 0; /* Prevent buttons from shrinking */
+	white-space: nowrap; /* Keep button text on one line */
+}
+
+.filter {
+	overflow-x: auto;
+	-webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+}
+
+.filter::-webkit-scrollbar {
+	height: 4px;
+}
+
+.filter::-webkit-scrollbar-track {
+	background: transparent;
+}
+
+.filter::-webkit-scrollbar-thumb {
+	background: rgba(255, 255, 255, 0.3);
+	border-radius: 2px;
+}
+
+.filter::-webkit-scrollbar-thumb:hover {
+	background: rgba(255, 255, 255, 0.5);
+}
+
+/* Ensure the sort/filter bar doesn't overflow on mobile */
+@media (max-width: 767.98px) {
+	.filter > div {
+		min-width: min-content; /* Allow horizontal scroll if content is too wide */
+	}
 }
 
 .skeleton-card {

@@ -25,6 +25,9 @@ from .SecureCommand import (
 # FastAPI components
 try:
     from .fastapi_middleware import (
+        HTTPSRedirectMiddleware,
+        BotProtectionMiddleware,
+        CSRFProtectionMiddleware,
         SecurityHeadersMiddleware,
         RequestLoggingMiddleware,
         RateLimitMiddleware,
@@ -69,6 +72,9 @@ __all__ = [
 if FASTAPI_AVAILABLE:
     __all__.extend([
         # FastAPI middleware
+        'HTTPSRedirectMiddleware',
+        'BotProtectionMiddleware',
+        'CSRFProtectionMiddleware',
         'SecurityHeadersMiddleware',
         'RequestLoggingMiddleware',
         'RateLimitMiddleware',

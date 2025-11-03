@@ -379,8 +379,29 @@ async def upload_configuration_backup(
             if filename.startswith('iptable-rules/'):
                 continue
             
-            # Handle regular backup files
-            file_path = os.path.join(backup_paths['config_dir'], filename)
+            # Validate filename to prevent path traversal
+            is_valid, error_msg = security_manager.validate_filename(filename)
+            if not is_valid:
+                logger.warning(f"Invalid filename in backup archive: {filename} - {error_msg}")
+                continue
+            
+            # Validate path to prevent directory traversal
+            normalized_filename = os.path.normpath(filename).lstrip(os.sep)
+            if '..' in normalized_filename or normalized_filename.startswith('/'):
+                logger.warning(f"Path traversal attempt detected in backup: {filename}")
+                continue
+            
+            # Handle regular backup files - ensure path is within allowed directory
+            base_path = os.path.normpath(backup_paths['config_dir'])
+            file_path = os.path.join(base_path, normalized_filename)
+            
+            # Additional security check: ensure resolved path is within base_path
+            resolved_path = os.path.abspath(file_path)
+            resolved_base = os.path.abspath(base_path)
+            if not resolved_path.startswith(resolved_base):
+                logger.warning(f"Path outside allowed directory: {filename}")
+                continue
+            
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
             
             async with aiofiles.open(file_path, 'wb') as f:

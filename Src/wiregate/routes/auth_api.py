@@ -187,7 +187,8 @@ async def security_check():
 @router.get('/validateAuthentication', response_model=StandardResponse)
 async def validate_authentication(
     request: Request,
-    user: Optional[Dict[str, Any]] = Depends(get_current_user)
+    user: Optional[Dict[str, Any]] = Depends(get_current_user),
+    security_mgr = Depends(get_security_manager)
 ):
     """Validate current authentication status"""
     if not DashboardConfig.GetConfig("Server", "auth_req")[1]:
@@ -195,6 +196,10 @@ async def validate_authentication(
     
     if user and user.get('authenticated'):
         return StandardResponse(status=True)
+    
+    # Track session expiration for grace period in rate limiting
+    client_ip = request.client.host if request.client else "unknown"
+    security_mgr.record_session_expiration(client_ip)
     
     return StandardResponse(status=False, message="Invalid authentication.")
 
@@ -216,9 +221,16 @@ async def authenticate_login(
 ):
     """Authenticate user login"""
     if not DashboardConfig.GetConfig("Server", "auth_req")[1]:
+        welcome_session = DashboardConfig.GetConfig("Other", "welcome_session")[1]
+        
+        # Return response with welcome_session data and include CSRF token
+        response_data = welcome_session if isinstance(welcome_session, bool) else welcome_session
+        # CSRF token is in session cookie, so we don't need to return it in response
+        # The frontend will fetch it via /api/csrf-token endpoint
+        
         return StandardResponse(
             status=True,
-            data=DashboardConfig.GetConfig("Other", "welcome_session")[1]
+            data=response_data
         )
     
     # Sanitize username
@@ -255,12 +267,14 @@ async def authenticate_login(
         session_data = {}
         session_id = security_mgr.generate_secure_token(32)
         auth_token = security_mgr.generate_secure_token(32)
+        csrf_token = security_mgr.generate_secure_token(32)  # Generate CSRF token at login
         
         # Store in request state for session middleware
         request.state.session = {
             'session_id': session_id,
             'username': username,
             'auth_token': auth_token,
+            'csrf_token': csrf_token,  # Include CSRF token in session
             'user_data': user_data,
             'last_activity': datetime.now().timestamp(),
             'new_session': True
@@ -301,9 +315,16 @@ async def authenticate_login(
             Message=f"LDAP Login success: {username}"
         )
         
+        welcome_session = DashboardConfig.GetConfig("Other", "welcome_session")[1]
+        
+        # Return response with welcome_session data and include CSRF token
+        response_data = welcome_session if isinstance(welcome_session, bool) else welcome_session
+        # CSRF token is in session cookie, so we don't need to return it in response
+        # The frontend will fetch it via /api/csrf-token endpoint
+        
         return StandardResponse(
             status=True,
-            data=DashboardConfig.GetConfig("Other", "welcome_session")[1]
+            data=response_data
         )
     
     # Local authentication
@@ -349,11 +370,13 @@ async def authenticate_login(
         # Create session
         session_id = security_mgr.generate_secure_token(32)
         auth_token = security_mgr.generate_secure_token(32)
+        csrf_token = security_mgr.generate_secure_token(32)  # Generate CSRF token at login
         
         request.state.session = {
             'session_id': session_id,
             'username': username,
             'auth_token': auth_token,
+            'csrf_token': csrf_token,  # Include CSRF token in session
             'last_activity': datetime.now().timestamp(),
             'new_session': True
         }
@@ -393,9 +416,16 @@ async def authenticate_login(
             Message=f"Login success: {username}"
         )
         
+        welcome_session = DashboardConfig.GetConfig("Other", "welcome_session")[1]
+        
+        # Return response with welcome_session data and include CSRF token
+        response_data = welcome_session if isinstance(welcome_session, bool) else welcome_session
+        # CSRF token is in session cookie, so we don't need to return it in response
+        # The frontend will fetch it via /api/csrf-token endpoint
+        
         return StandardResponse(
             status=True,
-            data=DashboardConfig.GetConfig("Other", "welcome_session")[1]
+            data=response_data
         )
     
     AllDashboardLogger.log(
@@ -494,13 +524,20 @@ async def welcome_verify_totp_link(
 
 @router.post('/Welcome_Finish', response_model=StandardResponse)
 async def welcome_finish(
-    welcome_data: Dict[str, str]
+    welcome_data: Dict[str, str],
+    security_mgr = Depends(get_security_manager)
 ):
     """Complete welcome setup"""
     if DashboardConfig.GetConfig("Other", "welcome_session")[1]:
         # Validate passwords match
-        if welcome_data.get('newPassword') != welcome_data.get('repeatNewPassword'):
+        new_password = welcome_data.get('newPassword', '')
+        if new_password != welcome_data.get('repeatNewPassword', ''):
             return StandardResponse(status=False, message="Passwords do not match")
+        
+        # Validate password policy
+        is_valid, error_msg = security_mgr.validate_password_policy(new_password)
+        if not is_valid:
+            return StandardResponse(status=False, message=error_msg)
         
         updateUsername, updateUsernameErr = DashboardConfig.SetConfig(
             "Account", "username", welcome_data.get('username', '')
@@ -508,7 +545,7 @@ async def welcome_finish(
         updatePassword, updatePasswordErr = DashboardConfig.SetConfig(
             "Account", "password",
             {
-                "newPassword": welcome_data.get('newPassword', ''),
+                "newPassword": new_password,
                 "repeatNewPassword": welcome_data.get('repeatNewPassword', ''),
                 "currentPassword": "admin"
             }

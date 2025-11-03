@@ -355,6 +355,33 @@ class SecurityManager:
             logger.error(f"Brute force check error: {e}")
             return False, {'attempts': 0, 'locked_until': None}
     
+    def record_session_expiration(self, identifier: str) -> None:
+        """Record session expiration time for grace period in rate limiting"""
+        if self.redis_client is None:
+            return
+        try:
+            key = f"session_expiration:{identifier}"
+            current_time = int(time.time())
+            # Store expiration timestamp, expire after 2 minutes (grace period window)
+            self.redis_client.setex(key, 120, current_time)
+        except Exception as e:
+            logger.error(f"Error recording session expiration: {e}")
+    
+    def has_recent_session_expiration(self, identifier: str, grace_period: int = 120) -> bool:
+        """Check if there was a recent session expiration (within grace period)"""
+        if self.redis_client is None:
+            return False
+        try:
+            key = f"session_expiration:{identifier}"
+            expiration_time = self.redis_client.get(key)
+            if expiration_time:
+                expiration_ts = int(expiration_time)
+                current_time = int(time.time())
+                return (current_time - expiration_ts) <= grace_period
+        except Exception as e:
+            logger.error(f"Error checking session expiration: {e}")
+        return False
+    
     def record_failed_attempt(self, identifier: str) -> None:
         """Record a failed authentication attempt"""
         if self.db_manager is None:
@@ -429,7 +456,7 @@ class SecurityManager:
         return True, filename
     
     def sanitize_input(self, input_str: str, max_length: int = 1000) -> str:
-        """Sanitize user input"""
+        """Sanitize user input - removes dangerous characters including CRLF sequences"""
         if not input_str:
             return ""
         
@@ -437,10 +464,25 @@ class SecurityManager:
         if len(input_str) > max_length:
             input_str = input_str[:max_length]
         
-        # Remove null bytes and control characters
-        input_str = ''.join(char for char in input_str if ord(char) >= 32 or char in '\t\n\r')
+        # CRLF injection prevention - remove CRLF sequences first
+        input_str = input_str.replace('\r\n', '').replace('\r', '').replace('\n', '')
+        
+        # Remove null bytes and control characters (except tab which may be needed for some inputs)
+        input_str = ''.join(char for char in input_str if ord(char) >= 32 or char == '\t')
         
         return input_str.strip()
+    
+    def sanitize_for_header(self, value: str) -> str:
+        """Sanitize value for use in HTTP headers to prevent CRLF injection"""
+        if not value:
+            return ""
+        
+        # Remove CRLF sequences and other dangerous characters for headers
+        sanitized = value.replace('\r\n', '').replace('\r', '').replace('\n', '')
+        # Remove any remaining control characters
+        sanitized = ''.join(char for char in sanitized if ord(char) >= 32)
+        
+        return sanitized.strip()
     
     def validate_ip_address(self, ip: str) -> bool:
         """Validate IP address format"""
@@ -475,6 +517,70 @@ class SecurityManager:
             return bcrypt.checkpw(password.encode('utf-8'), hashed.encode('utf-8'))
         except Exception:
             return False
+    
+    def validate_password_policy(self, password: str) -> Tuple[bool, str]:
+        """Validate password against security policy"""
+        if not password:
+            return False, "Password cannot be empty"
+        
+        # Minimum length requirement
+        if len(password) < 8:
+            return False, "Password must be at least 8 characters long"
+        
+        # Check for common weak passwords
+        common_passwords = [
+            'password', 'password123', 'admin', 'admin123', '12345678',
+            'qwerty', 'letmein', 'welcome', 'monkey', '1234567890',
+            'password1', '123456', 'admin1234', 'root', 'toor'
+        ]
+        if password.lower() in common_passwords:
+            return False, "Password is too common. Please choose a stronger password"
+        
+        # Check for complexity (at least one letter and one number)
+        has_letter = any(c.isalpha() for c in password)
+        has_number = any(c.isdigit() for c in password)
+        
+        if not (has_letter and has_number):
+            return False, "Password must contain at least one letter and one number"
+        
+        return True, ""
+    
+    def validate_redirect_url(self, redirect_url: str, allowed_domains: list = None) -> Tuple[bool, str]:
+        """Validate redirect URL to prevent open redirect attacks"""
+        if not redirect_url:
+            return False, "Redirect URL cannot be empty"
+        
+        try:
+            from urllib.parse import urlparse
+            parsed = urlparse(redirect_url)
+            
+            # Relative URLs are safe
+            if not parsed.netloc:
+                # Check for path traversal attempts
+                if '../' in redirect_url or '..\\' in redirect_url:
+                    return False, "Invalid redirect URL: path traversal detected"
+                return True, ""
+            
+            # Absolute URLs need domain validation
+            if allowed_domains:
+                domain = parsed.netloc.lower()
+                # Remove port if present
+                if ':' in domain:
+                    domain = domain.split(':')[0]
+                
+                # Check if domain is in allowed list
+                if not any(domain == allowed.lower() or domain.endswith('.' + allowed.lower()) 
+                          for allowed in allowed_domains):
+                    return False, f"Redirect URL domain not allowed: {domain}"
+            
+            # Prevent javascript: and data: schemes
+            if parsed.scheme in ['javascript', 'data', 'vbscript']:
+                return False, f"Invalid redirect URL scheme: {parsed.scheme}"
+            
+            return True, ""
+        except Exception as e:
+            logger.error(f"Error validating redirect URL: {e}")
+            return False, "Invalid redirect URL format"
 
 # Global security manager instance
 security_manager = SecurityManager()

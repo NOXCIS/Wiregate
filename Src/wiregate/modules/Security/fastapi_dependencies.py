@@ -175,31 +175,52 @@ async def validate_csrf_token(
     """
     Validate CSRF token from header
     Returns True if valid, raises HTTPException if invalid for protected methods
+    
+    Endpoints that don't require CSRF (should be minimal):
+    - /api/authenticate (no session exists yet)
+    - /api/validate-csrf (CSRF validation endpoint itself)
+    - Health checks and public endpoints
     """
     # Only validate CSRF for state-changing methods
     if request.method not in ["POST", "PUT", "DELETE", "PATCH"]:
         return True
     
+    # Exceptions: endpoints that don't need CSRF (no authenticated session)
+    csrf_exempt_paths = [
+        '/api/authenticate',
+        '/api/validate-csrf',
+        '/api/handshake',
+        '/api/health'
+    ]
+    
+    if any(request.url.path.startswith(path) for path in csrf_exempt_paths):
+        return True
+    
     # Get session data
     session_data = getattr(request.state, 'session', {})
     
-    if 'csrf_token' not in session_data:
-        # No CSRF token in session, skip validation for now
-        return True
-    
-    if not csrf_token:
-        raise HTTPException(
-            status_code=403,
-            detail="CSRF token missing"
-        )
-    
-    from .Security import security_manager
-    
-    if not security_manager.constant_time_compare(csrf_token, session_data['csrf_token']):
-        raise HTTPException(
-            status_code=403,
-            detail="Invalid CSRF token"
-        )
+    # If user is authenticated (has session), CSRF is required
+    if session_data and 'session_id' in session_data:
+        if 'csrf_token' not in session_data:
+            # Session exists but no CSRF token - generate one but still require it
+            from .Security import security_manager
+            session_data['csrf_token'] = security_manager.generate_secure_token(32)
+            request.state.session = session_data
+        
+        if not csrf_token:
+            raise HTTPException(
+                status_code=403,
+                detail="CSRF token required for authenticated requests"
+            )
+        
+        from .Security import security_manager
+        
+        if not security_manager.constant_time_compare(csrf_token, session_data['csrf_token']):
+            raise HTTPException(
+                status_code=403,
+                detail="Invalid CSRF token"
+            )
+    # If no authenticated session, allow the request (for unauthenticated endpoints)
     
     return True
 

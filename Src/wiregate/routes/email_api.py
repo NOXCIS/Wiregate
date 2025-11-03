@@ -3,7 +3,12 @@ FastAPI Email Router
 Migrated from email_api.py Flask blueprint
 """
 from fastapi import APIRouter, Depends
-from jinja2 import Template
+from jinja2 import Template, Environment, select_autoescape
+
+# Create Jinja2 environment with auto-escaping enabled for security
+jinja_env = Environment(
+    autoescape=select_autoescape(['html', 'xml'])
+)
 from typing import Dict, Any
 
 from ..models.responses import StandardResponse
@@ -50,8 +55,8 @@ async def email_send(
                 # Configure the attachment name and data
                 attachmentName = download['fileName']
                 attachmentData = download['file']
-                # Process template if needed
-                template = Template(body)
+                # Process template if needed (with auto-escaping for security)
+                template = jinja_env.from_string(body)
                 body = template.render(peer=p.toJson(), configurationFile=download)
     
     # Send email
@@ -100,7 +105,8 @@ async def email_preview_body(
         )
     
     try:
-        template = Template(body)
+        # Use auto-escaping template environment for security
+        template = jinja_env.from_string(body)
         download = p.downloadPeer()
         rendered_body = template.render(peer=p.toJson(), configurationFile=download)
         return StandardResponse(status=True, data=rendered_body)

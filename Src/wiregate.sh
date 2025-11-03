@@ -25,7 +25,7 @@ cleanup_and_exit() {
     
     # Send TERM signal to all child processes
     for pid in "${CHILD_PIDS[@]}"; do
-        if ps -p "$pid" > /dev/null 2>&1; then
+        if kill -0 "$pid" 2>/dev/null; then
             echo "[WIREGATE] Stopping child process $pid"
             secure_exec kill -TERM "$pid" 2>/dev/null || true
         fi
@@ -43,7 +43,7 @@ cleanup_and_exit() {
         # Check if any child processes are still running
         all_stopped=true
         for pid in "${CHILD_PIDS[@]}"; do
-            if ps -p "$pid" > /dev/null 2>&1; then
+            if kill -0 "$pid" 2>/dev/null; then
                 all_stopped=false
                 break
             fi
@@ -59,15 +59,14 @@ cleanup_and_exit() {
     
     # Force kill any remaining child processes
     for pid in "${CHILD_PIDS[@]}"; do
-        if ps -p "$pid" > /dev/null 2>&1; then
+        if kill -0 "$pid" 2>/dev/null; then
             echo "[WIREGATE] Force killing child process $pid"
             secure_exec kill -KILL "$pid" 2>/dev/null || true
         fi
     done
     
     # Clean up any remaining processes immediately
-    # Since we don't have ps, we'll rely on the process tracking we already have
-    # The CHILD_PIDS array should contain most processes we need to kill
+    # Using kill -0 instead of ps for process checking
     
     echo "[WIREGATE] Cleanup complete. Exiting."
     exit 0
@@ -483,12 +482,12 @@ dashboard_stop () {
     # Stop main process
     if test -f "$PID_FILE"; then
         local pid=$(cat "$PID_FILE")
-        if ps -p "$pid" > /dev/null 2>&1; then
+        if kill -0 "$pid" 2>/dev/null; then
             echo "[WIREGATE] Stopping main process (PID: $pid)"
             sudo kill -TERM "$pid" 2>/dev/null || true
             
             # Wait for graceful shutdown with timeout
-            while ps -p "$pid" > /dev/null 2>&1; do
+            while kill -0 "$pid" 2>/dev/null; do
                 current_time=$(date +%s)
                 elapsed=$((current_time - start_time))
                 if [ $elapsed -ge $timeout ]; then
@@ -505,7 +504,7 @@ dashboard_stop () {
     fi
     
     # Kill all remaining processes immediately
-    # Since we don't have ps, we'll rely on the PID file and process tracking
+    # Using kill -0 instead of ps for process checking
     # The main process should handle most cleanup through the PID file
     
     printf "[WIREGATE] All processes stopped.\n"
@@ -513,22 +512,54 @@ dashboard_stop () {
     exit 0
 }
 stop_wiregate() {
-	if test -f "$PID_FILE"; then
+    if test -f "$PID_FILE"; then
         dashboard_stop
     else
-        # Find the PID(s) of all running 'wiregate' processes
-        PIDS=$(ps aux | grep "[.]\/wiregate" | awk '{print $2}')
+        # Try to find wiregate process by checking /proc filesystem
+        # or by using the PID file if available
+        echo "[WIREGATE] No PID file found. Attempting to stop processes..."
         
-        if [ -z "$PIDS" ]; then
+        # Check if wiregate process is running by testing if we can send signal to known PIDs
+        # Since we track CHILD_PIDS in the main script, try those first
+        found_pids=""
+        if [ -n "${CHILD_PIDS:-}" ] && [ ${#CHILD_PIDS[@]} -gt 0 ]; then
+            for pid in "${CHILD_PIDS[@]}"; do
+                if kill -0 "$pid" 2>/dev/null; then
+                    found_pids="$found_pids $pid"
+                fi
+            done
+        fi
+        
+        # Also check common locations where wiregate might be running
+        # Try reading from /proc to find processes (alternative to ps)
+        for pid_dir in /proc/*/; do
+            pid=$(basename "$pid_dir" 2>/dev/null)
+            # Check if it's a numeric PID
+            case "$pid" in
+                ''|*[!0-9]*) continue ;;
+            esac
+            
+            # Check if this process is wiregate by reading cmdline
+            if [ -r "$pid_dir/cmdline" ] 2>/dev/null; then
+                cmdline=$(cat "$pid_dir/cmdline" 2>/dev/null | tr '\0' ' ')
+                if echo "$cmdline" | grep -q "[.]\/wiregate\|wiregate$"; then
+                    found_pids="$found_pids $pid"
+                fi
+            fi
+        done
+        
+        if [ -z "$found_pids" ]; then
             echo "[WIREGATE] No running wiregate processes found."
         else
-            echo "[WIREGATE] Found running wiregate processes: $PIDS"
+            echo "[WIREGATE] Found running wiregate processes:$found_pids"
             # Set timeout for graceful shutdown (2 seconds)
             timeout=2
             start_time=$(date +%s)
             
-            # Send TERM signal to all processes
-            echo "$PIDS" | xargs sudo kill -TERM 2>/dev/null || true
+            # Send TERM signal to all processes (replace xargs with loop)
+            for pid in $found_pids; do
+                sudo kill -TERM "$pid" 2>/dev/null || true
+            done
             
             # Wait for graceful shutdown with timeout
             while true; do
@@ -536,13 +567,24 @@ stop_wiregate() {
                 elapsed=$((current_time - start_time))
                 if [ $elapsed -ge $timeout ]; then
                     echo "[WIREGATE] Force killing remaining processes"
-                    echo "$PIDS" | xargs sudo kill -KILL 2>/dev/null || true
+                    for pid in $found_pids; do
+                        if kill -0 "$pid" 2>/dev/null; then
+                            sudo kill -KILL "$pid" 2>/dev/null || true
+                        fi
+                    done
                     break
                 fi
                 
                 # Check if any processes are still running
-                remaining_pids=$(ps aux | grep "[.]\/wiregate" | awk '{print $2}')
-                if [ -z "$remaining_pids" ]; then
+                all_stopped=true
+                for pid in $found_pids; do
+                    if kill -0 "$pid" 2>/dev/null; then
+                        all_stopped=false
+                        break
+                    fi
+                done
+                
+                if [ "$all_stopped" = true ]; then
                     echo "[WIREGATE] All processes stopped gracefully"
                     break
                 fi
@@ -552,7 +594,7 @@ stop_wiregate() {
         fi
         
         # Clean up any remaining processes immediately
-        # Since we don't have ps, we'll rely on the process tracking we already have
+        # Using kill -0 instead of ps for process checking
         # The main process should handle most cleanup through the PID file
     fi
 }

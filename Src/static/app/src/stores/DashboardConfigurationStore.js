@@ -1,5 +1,5 @@
 import {defineStore} from "pinia";
-import {fetchGet, fetchPost} from "@/utilities/fetch.js";
+import {fetchGet, fetchPost, clearCsrfToken} from "@/utilities/fetch.js";
 import {v4} from "uuid";
 import {GetLocale} from "@/utilities/locale.js";
 
@@ -25,7 +25,11 @@ export const DashboardConfigurationStore = defineStore('DashboardConfigurationSt
 			configuration: false,
 			configurations: false,
 			overall: false
-		}
+		},
+		// Global interval tracker to stop all polling on session expiration
+		registeredIntervals: new Set(),
+		// Flag to prevent API calls after session expiration
+		sessionExpired: false
 	}),
 	actions: {
 		initCrossServerConfiguration(){
@@ -72,10 +76,62 @@ export const DashboardConfigurationStore = defineStore('DashboardConfigurationSt
 		},
 		async signOut(){
 			await fetchGet("/api/signout", {}, () => {
+				// Clear CSRF token on logout
+				clearCsrfToken();
+				// Stop all registered intervals
+				this.stopAllIntervals();
 				this.removeActiveCrossServer();
 				document.cookie = '';
 				this.$router.go('/signin')
 			});
+		},
+		// Register an interval so it can be stopped globally on session expiration
+		registerInterval(intervalId) {
+			if (intervalId) {
+				this.registeredIntervals.add(intervalId);
+			}
+		},
+		// Unregister an interval (e.g., when component unmounts)
+		unregisterInterval(intervalId) {
+			if (intervalId) {
+				this.registeredIntervals.delete(intervalId);
+			}
+		},
+		// Stop all registered intervals (called on session expiration)
+		stopAllIntervals() {
+			this.registeredIntervals.forEach(intervalId => {
+				if (intervalId) {
+					clearInterval(intervalId);
+				}
+			});
+			this.registeredIntervals.clear();
+			// Also clear intervals stored in other stores
+			if (this.Peers.RefreshInterval) {
+				clearInterval(this.Peers.RefreshInterval);
+				this.Peers.RefreshInterval = undefined;
+			}
+			// Also clear intervals in WireguardConfigurationsStore
+			// Use dynamic import to avoid circular dependency issues
+			import("@/stores/WireguardConfigurationsStore.js").then(({ WireguardConfigurationsStore }) => {
+				const wireguardStore = WireguardConfigurationsStore();
+				if (wireguardStore.ConfigurationListInterval) {
+					clearInterval(wireguardStore.ConfigurationListInterval);
+					wireguardStore.ConfigurationListInterval = undefined;
+				}
+			}).catch(() => {
+				// Ignore errors if store not available
+			});
+		},
+		// Handle session expiration - stop intervals and set flag
+		handleSessionExpiration() {
+			if (!this.sessionExpired) {
+				this.sessionExpired = true;
+				this.stopAllIntervals();
+			}
+		},
+		// Reset session expired flag (called on successful login)
+		resetSessionExpired() {
+			this.sessionExpired = false;
 		},
 		newMessage(from, content, type){
 			this.Messages.push({

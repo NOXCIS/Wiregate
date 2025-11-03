@@ -210,12 +210,6 @@ ClientTransportPlugin ${plugin} exec /usr/local/bin/${plugin}`
             loadConfig()
         })
 
-        // Update this watch to sync currentPlugin with the selected config
-        watch(selectedConfig, (newConfig) => {
-            // Update the current plugin based on the selected config
-            currentPlugin.value = configPlugins.value[newConfig]
-        })
-
         const loadConfig = async () => {
             try {
                 reloadLoading.value = true
@@ -227,15 +221,23 @@ ClientTransportPlugin ${plugin} exec /usr/local/bin/${plugin}`
                         configContent.value = response.data?.configs?.[selectedConfig.value] || ''
                         console.log('Updated config content:', configContent.value)
                         
-                        // Update current plugin and store it in the configPlugins object
-                        if (response.data?.plugins && response.data.plugins[selectedConfig.value]) {
-                            currentPlugin.value = response.data.plugins[selectedConfig.value]
-                            configPlugins.value[selectedConfig.value] = currentPlugin.value
+                        // Update plugins for both configs if available
+                        if (response.data?.plugins) {
+                            // Update configPlugins for both main and dns
+                            if (response.data.plugins.main) {
+                                configPlugins.value.main = response.data.plugins.main
+                            }
+                            if (response.data.plugins.dns) {
+                                configPlugins.value.dns = response.data.plugins.dns
+                            }
+                            // Set current plugin based on selected config
+                            currentPlugin.value = response.data.plugins[selectedConfig.value] || configPlugins.value[selectedConfig.value] || 'obfs4'
                         } else {
-                            // Fallback to default or existing value
+                            // Fallback: try to detect from config content or use stored/default value
                             currentPlugin.value = configPlugins.value[selectedConfig.value] || 'obfs4'
                         }
                         console.log('Current plugin set to:', currentPlugin.value)
+                        console.log('All plugins:', configPlugins.value)
                     } else {
                         throw new Error(response?.message || 'Failed to load configuration')
                     }
@@ -405,16 +407,17 @@ ClientTransportPlugin ${plugin} exec /usr/local/bin/${plugin}`
                                 :disabled="reloadLoading"
                                 :class="{ 'is-loading': reloadLoading }"
                             >
-                                <i class="bi btn bi-arrow-clockwise me-1"></i>
+                                <i class="bi bi-arrow-clockwise me-1"></i>
                                 Refresh Tor Config File
                             </button>
                             <button 
-                                class="ms-md-auto py-2 text-decoration-none btn tor-footer-btn-inactive" 
+                                class="btn tor-footer-btn-inactive" 
                                 @click="saveConfig"
                                 :disabled="loading"
+                                :class="{ 'is-loading': loading }"
                             >
-                                <i class="bi" :class="loading ? 'bi-hourglass-split' : 'bi-save'"></i>
-                                {{ loading ? ' Saving...' : ' Save & Reload Tor' }}
+                                <i class="bi me-1" :class="loading ? 'bi-hourglass-split' : 'bi-save'"></i>
+                                {{ loading ? 'Saving...' : 'Save & Reload Tor' }}
                             </button>
                         </div>
                     </div>
@@ -431,14 +434,16 @@ ClientTransportPlugin ${plugin} exec /usr/local/bin/${plugin}`
 
 <style scoped>
 .bi-arrow-repeat,
-.bi-arrow-clockwise {
+.bi-arrow-clockwise,
+.bi-hourglass-split {
     display: inline-block;
     transition: transform 0.4s ease;
 }
 
 /* Only apply animation to the button that is loading */
 .btn-reload.is-loading .bi-arrow-repeat,
-.btn-outline-primary.is-loading .bi-arrow-clockwise {
+.btn-outline-primary.is-loading .bi-arrow-clockwise,
+.tor-footer-btn-inactive.is-loading .bi-hourglass-split {
     animation: spin 1s linear infinite;
 }
 
@@ -452,6 +457,15 @@ ClientTransportPlugin ${plugin} exec /usr/local/bin/${plugin}`
     color: white !important;
     border-color: var(--brandColor4) !important;
     --bs-primary-bg-subtle: var(--brandColor8) !important;
+    position: relative;
+    overflow: hidden;
+}
+
+.tor-footer-btn-inactive.is-loading {
+    opacity: 1 !important;
+    background-color: #ffffff !important;
+    color: #000000 !important;
+    border-color: #000000 !important;
     position: relative;
     overflow: hidden;
 }
@@ -485,6 +499,39 @@ ClientTransportPlugin ${plugin} exec /usr/local/bin/${plugin}`
         90deg,
         transparent,
         rgb(0, 255, 106),
+        transparent
+    );
+    animation: loading 1.5s infinite;
+    animation-delay: 0.75s;
+}
+
+.tor-footer-btn-inactive.is-loading::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(0, 0, 0, 0.3),
+        transparent
+    );
+    animation: loading 1.5s infinite;
+}
+
+.tor-footer-btn-inactive.is-loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.3),
         transparent
     );
     animation: loading 1.5s infinite;

@@ -1369,16 +1369,46 @@ class Configuration:
                 if len(data_usage[i]) == 3:
                     cur_i = self.db.search_peer(data_usage[i][0])
                     if cur_i is not None:
-                        total_sent = cur_i['total_sent']
-                        total_receive = cur_i['total_receive']
-                        cur_total_sent = float(data_usage[i][2]) / (1024 ** 3)
-                        cur_total_receive = float(data_usage[i][1]) / (1024 ** 3)
-                        cumulative_receive = cur_i['cumu_receive'] + total_receive
-                        cumulative_sent = cur_i['cumu_sent'] + total_sent
-                        if total_sent <= cur_total_sent and total_receive <= cur_total_receive:
+                        # Get correctly parsed values from WireGuard (now parsing is fixed)
+                        cur_total_sent = float(data_usage[i][1]) / (1024 ** 3)
+                        cur_total_receive = float(data_usage[i][2]) / (1024 ** 3)
+                        
+                        # Get old values from database (may be swapped from previous parsing bug)
+                        old_total_sent = cur_i['total_sent']
+                        old_total_receive = cur_i['total_receive']
+                        old_cumu_sent = cur_i['cumu_sent']
+                        old_cumu_receive = cur_i['cumu_receive']
+                        
+                        # Detect if old values are likely swapped by comparing with current WireGuard values
+                        # If old total_sent matches current total_receive better than current total_sent, they're swapped
+                        sent_matches_current = abs(old_total_sent - cur_total_sent) < abs(old_total_sent - cur_total_receive)
+                        recv_matches_current = abs(old_total_receive - cur_total_receive) < abs(old_total_receive - cur_total_sent)
+                        
+                        # If both don't match their current counterparts, likely swapped
+                        if not sent_matches_current and not recv_matches_current:
+                            # Old values were swapped - correct them
+                            corrected_total_sent = old_total_receive
+                            corrected_total_receive = old_total_sent
+                            corrected_cumu_sent = old_cumu_receive
+                            corrected_cumu_receive = old_cumu_sent
+                        else:
+                            # Old values appear correct
+                            corrected_total_sent = old_total_sent
+                            corrected_total_receive = old_total_receive
+                            corrected_cumu_sent = old_cumu_sent
+                            corrected_cumu_receive = old_cumu_receive
+                        
+                        # Calculate new totals and cumulative values with corrected old values
+                        if corrected_total_sent <= cur_total_sent and corrected_total_receive <= cur_total_receive:
+                            # Normal increment - add difference to cumulative
                             total_sent = cur_total_sent
                             total_receive = cur_total_receive
+                            cumulative_sent = corrected_cumu_sent + (cur_total_sent - corrected_total_sent)
+                            cumulative_receive = corrected_cumu_receive + (cur_total_receive - corrected_total_receive)
                         else:
+                            # Counter reset (WireGuard restarted) - add old total to cumulative
+                            cumulative_sent = corrected_cumu_sent + corrected_total_sent
+                            cumulative_receive = corrected_cumu_receive + corrected_total_receive
                             self.db.update_peer(data_usage[i][0], {
                                 'cumu_receive': cumulative_receive,
                                 'cumu_sent': cumulative_sent,
@@ -1386,6 +1416,8 @@ class Configuration:
                             })
                             total_sent = 0
                             total_receive = 0
+                        
+                        # Update database with correct values (will overwrite any swapped values)
                         found, p = self.searchPeer(data_usage[i][0])
                         if found and p and hasattr(p, 'total_receive') and hasattr(p, 'total_sent') and (p.total_receive != total_receive or p.total_sent != total_sent):
                             self.db.update_peer_transfer(data_usage[i][0], total_receive, total_sent, total_receive + total_sent)
@@ -2225,9 +2257,9 @@ class Peer:
             if not result['success']:
                 return ResponseObject(False, f"Failed to save configuration: {result.get('error', result.get('stderr', 'Unknown error'))}")
 
-            if f"{cmd_prefix} showconf {self.configuration.Name}" not in result['stdout'].strip():
-                return ResponseObject(False,
-                                      "Update peer failed when saving the configuration")
+            # wg-quick save outputs the showconf command to stderr (with [#] prefix)
+            # The success flag is the authoritative indicator - if success=True, save succeeded
+            # We don't need to validate stdout/stderr content when success=True
             self.configuration.db.update_peer(self.id, {
                 'name': name,
                 'private_key': private_key,
@@ -2519,7 +2551,7 @@ class WireGuardTrafficMonitor:
                 logger.debug(f"Failed to get transfer data for {interface_name}: {result.get('error', 'Unknown error')}")
                 return None
                 
-            # Parse output: peer_key\treceived\tsent
+            # Parse output: peer_key\tsent\treceived
             lines = result['stdout'].strip().split('\n')
             peer_data = {}
             total_recv = 0
@@ -2532,8 +2564,8 @@ class WireGuardTrafficMonitor:
                 parts = line.split('\t')
                 if len(parts) == 3:
                     peer_key = parts[0]
-                    recv_bytes = int(parts[1])
-                    sent_bytes = int(parts[2])
+                    sent_bytes = int(parts[1])
+                    recv_bytes = int(parts[2])
                     
                     peer_data[peer_key] = {
                         'recv': recv_bytes,

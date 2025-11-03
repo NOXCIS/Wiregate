@@ -18,6 +18,9 @@ from ..dashboard import startThreads, stopThreads
 # Import security components
 from .Security import (
     security_manager,
+    HTTPSRedirectMiddleware,
+    BotProtectionMiddleware,
+    CSRFProtectionMiddleware,
     SecurityHeadersMiddleware,
     RequestLoggingMiddleware,
     RateLimitMiddleware,
@@ -101,7 +104,13 @@ fastapi_app = FastAPI(
 SESSION_SECRET_KEY = secrets.token_urlsafe(64)
 
 # Add middleware in reverse order (last added = first executed)
-# 1. Security headers (outermost)
+# 0. HTTPS redirect (first - redirects HTTP to HTTPS in production)
+fastapi_app.add_middleware(HTTPSRedirectMiddleware)
+# 1. Bot protection (block AI bots and scrapers)
+fastapi_app.add_middleware(BotProtectionMiddleware)
+# 2. CSRF protection (validates CSRF tokens for state-changing methods)
+fastapi_app.add_middleware(CSRFProtectionMiddleware)
+# 3. Security headers (outermost)
 fastapi_app.add_middleware(SecurityHeadersMiddleware)
 
 # 2. Request logging
@@ -139,16 +148,25 @@ async def not_found_handler(request: Request, exc):
 @fastapi_app.exception_handler(500)
 async def internal_error_handler(request: Request, exc):
     """Handle 500 errors"""
+    # Log detailed error server-side only
     logger.error(f"Internal server error: {exc}", exc_info=True)
     
     if request.url.path.startswith(f'{APP_PREFIX}/api'):
+        # Production: generic error message, no path disclosure
+        error_message = "Internal server error"
+        error_detail = "500 Internal Server Error"
+        
+        # Development: include error details for debugging
+        if DASHBOARD_MODE == 'development':
+            error_detail = str(exc)
+        
         return JSONResponse(
             status_code=500,
             content={
                 "status": False,
-                "message": "Internal server error",
+                "message": error_message,
                 "data": None,
-                "error": "500 Internal Server Error"
+                "error": error_detail
             }
         )
     
@@ -158,15 +176,26 @@ async def internal_error_handler(request: Request, exc):
 @fastapi_app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
     """Handle all unhandled exceptions"""
+    # Log detailed error server-side only (includes full traceback)
     logger.error(f"Unhandled exception: {exc}", exc_info=True)
     
     if request.url.path.startswith(f'{APP_PREFIX}/api'):
-        error_detail = str(exc) if DASHBOARD_MODE == 'development' else "Internal Server Error"
+        # Production: generic error, no path or stack trace disclosure
+        error_message = "An unexpected error occurred"
+        error_detail = "Internal Server Error"
+        
+        # Development: include error details for debugging
+        if DASHBOARD_MODE == 'development':
+            error_detail = str(exc)
+            # In development, also log the traceback
+            import traceback
+            logger.debug(f"Exception traceback:\n{traceback.format_exc()}")
+        
         return JSONResponse(
             status_code=500,
             content={
                 "status": False,
-                "message": "An unexpected error occurred",
+                "message": error_message,
                 "data": None,
                 "error": error_detail
             }
@@ -233,16 +262,81 @@ try:
 except Exception as e:
     logger.warning(f"Could not mount static files: {e}")
 
+# Serve robots.txt at root level
+@fastapi_app.get("/robots.txt")
+async def robots_txt():
+    """Serve robots.txt file"""
+    robots_path = os.path.abspath("./static/app/public/robots.txt")
+    if os.path.exists(robots_path):
+        return FileResponse(robots_path, media_type="text/plain")
+    # Return default robots.txt if file doesn't exist
+    from fastapi.responses import Response as FastAPIResponse
+    return FastAPIResponse(
+        content="User-agent: *\nDisallow: /",
+        media_type="text/plain"
+    )
+
 # Serve index.html for root and all non-API/non-static routes (Vue.js SPA routing)
 @fastapi_app.get("/{full_path:path}")
-async def catch_all(full_path: str):
+async def catch_all(request: Request, full_path: str):
     """Catch-all route to serve Vue.js SPA for all non-API routes"""
     # If it's an API route that doesn't exist, let the 404 handler deal with it
     if full_path.startswith("api/"):
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="API endpoint not found")
     
-    # For all other routes, serve the Vue.js SPA
-    return FileResponse(os.path.abspath("./static/app/dist/index.html"))
+    # Get CSP nonce from request state (set by SecurityHeadersMiddleware)
+    csp_nonce = getattr(request.state, 'csp_nonce', None)
+    
+    # Read the HTML file
+    html_path = os.path.abspath("./static/app/dist/index.html")
+    if os.path.exists(html_path):
+        with open(html_path, 'r', encoding='utf-8') as f:
+            html_content = f.read()
+        
+        # If we have a nonce, inject it into script tags for strict-dynamic support
+        # Also extract SRI hashes from script tags for CSP hash-based fallback
+        script_hashes = []
+        if csp_nonce:
+            import re
+            # Add nonce to all script tags that don't already have one
+            # Also extract integrity hashes for CSP hash-based allowlist (backup method)
+            def add_nonce(match):
+                script_tag = match.group(0)
+                # Extract integrity hash if present (from SRI plugin)
+                integrity_match = re.search(r'integrity=["\']([^"\']+)["\']', script_tag)
+                if integrity_match:
+                    hash_value = integrity_match.group(1)
+                    # CSP uses 'sha256-', 'sha384-', or 'sha512-' format
+                    # SRI plugin uses 'sha384-' - extract just the hash part
+                    if hash_value.startswith('sha384-'):
+                        script_hashes.append(f"'{hash_value}'")
+                
+                # Skip if nonce already present
+                if 'nonce=' in script_tag:
+                    return script_tag
+                # Insert nonce attribute before closing >
+                # Find the position of the closing > or />
+                if script_tag.rstrip().endswith('/>'):
+                    # Self-closing tag
+                    return script_tag.rstrip()[:-2] + f' nonce="{csp_nonce}" />'
+                else:
+                    # Regular closing tag
+                    # Insert nonce before the final >
+                    return script_tag[:-1] + f' nonce="{csp_nonce}">'
+            
+            # Match all script tags (including type="module", inline scripts, etc.)
+            # This pattern matches <script followed by any attributes and >
+            html_content = re.sub(r'<script[^>]*>', add_nonce, html_content)
+            
+            # Store hashes in request state for CSP header generation
+            if script_hashes:
+                request.state.script_hashes = script_hashes
+        
+        from fastapi.responses import HTMLResponse
+        return HTMLResponse(content=html_content)
+    
+    # Fallback to FileResponse if HTML file doesn't exist
+    return FileResponse(html_path)
 
 logger.info("FastAPI application initialized - Pure FastAPI mode (Flask disabled)")

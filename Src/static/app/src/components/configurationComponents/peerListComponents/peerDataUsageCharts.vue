@@ -101,6 +101,7 @@ const toggleFetchRealtimeTraffic = () => {
 	// Clear existing interval
 	if (fetchRealtimeTrafficInterval.value) {
 		console.log('Clearing existing interval') // Debug log
+		dashboardStore.unregisterInterval(fetchRealtimeTrafficInterval.value);
 		clearInterval(fetchRealtimeTrafficInterval.value)
 		fetchRealtimeTrafficInterval.value = undefined
 	}
@@ -112,6 +113,10 @@ const toggleFetchRealtimeTraffic = () => {
 		fetchRealtimeTrafficInterval.value = setInterval(() => {
 			fetchRealtimeTraffic()
 		}, refreshInterval)
+		// Register interval with global tracker
+		if (fetchRealtimeTrafficInterval.value) {
+			dashboardStore.registerInterval(fetchRealtimeTrafficInterval.value);
+		}
 		// Fetch initial data
 		fetchRealtimeTraffic()
 	}
@@ -130,8 +135,11 @@ watch(() => dashboardStore.Configuration.Server.dashboard_refresh_interval, () =
 })
 
 onBeforeUnmount(() => {
-	clearInterval(fetchRealtimeTrafficInterval.value)
-	fetchRealtimeTrafficInterval.value = undefined;
+	if (fetchRealtimeTrafficInterval.value) {
+		dashboardStore.unregisterInterval(fetchRealtimeTrafficInterval.value);
+		clearInterval(fetchRealtimeTrafficInterval.value)
+		fetchRealtimeTrafficInterval.value = undefined;
+	}
 })
 
 // Add this at the top level of the component to maintain color mappings

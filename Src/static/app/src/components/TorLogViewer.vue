@@ -1,5 +1,5 @@
 <script>
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, onBeforeUnmount } from 'vue'
 import { fetchGet, fetchPost } from '@/utilities/fetch.js'
 import { DashboardConfigurationStore } from "@/stores/DashboardConfigurationStore.js"
 
@@ -71,9 +71,21 @@ export default {
     const toggleAutoRefresh = () => {
       autoRefresh.value = !autoRefresh.value
       if (autoRefresh.value) {
+        // Unregister old interval if it exists
+        if (refreshInterval.value) {
+          dashboardStore.unregisterInterval(refreshInterval.value);
+          clearInterval(refreshInterval.value);
+        }
         refreshInterval.value = setInterval(fetchLogs, 5000) // Refresh every 5 seconds
+        // Register interval with global tracker
+        if (refreshInterval.value) {
+          dashboardStore.registerInterval(refreshInterval.value);
+        }
       } else {
-        clearInterval(refreshInterval.value)
+        if (refreshInterval.value) {
+          dashboardStore.unregisterInterval(refreshInterval.value);
+          clearInterval(refreshInterval.value);
+        }
         refreshInterval.value = null
       }
     }
@@ -116,11 +128,12 @@ export default {
     })
 
     // Clean up interval on component unmount
-    const onBeforeUnmount = () => {
+    onBeforeUnmount(() => {
       if (refreshInterval.value) {
+        dashboardStore.unregisterInterval(refreshInterval.value);
         clearInterval(refreshInterval.value)
       }
-    }
+    })
 
     return {
       logContent,
@@ -131,8 +144,7 @@ export default {
       selectedLogFile,
       fetchLogs,
       toggleAutoRefresh,
-      clearLogs,
-      onBeforeUnmount
+      clearLogs
     }
   }
 }

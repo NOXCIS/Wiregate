@@ -1,29 +1,56 @@
-bcrypt
-psutil
-pyotp
-py7zr
-Flask
-flask-cors
-icmplib
-requests
-vanguards
-configparser
-stem
-msal
-ldap3
-paste
-uvicorn
+# Optimized requirements based on pipreqs analysis
+# Only includes packages actually imported in the codebase
+
+# Core web framework
 fastapi>=0.104.0
-python-multipart
-itsdangerous
-jinja2
-pyinstaller
-redis[hiredis]>=4.2.0
-psycopg2-binary
-sqlalchemy
-cryptography
+uvicorn
+python-multipart  # Required for FastAPI file uploads (UploadFile)
+starlette  # Dependency of FastAPI (auto-installed but explicit for clarity)
+
+# Database drivers
 asyncpg>=0.28.0
 aiosqlite>=0.19.0
+psycopg2-binary
+
+# Async file operations
 aiofiles>=23.0.0
 
+# Security & authentication
+bcrypt
+pyotp
+itsdangerous
+redis[hiredis]>=4.2.0
+ldap3
+
+# System utilities
+psutil
+icmplib
+
+# Archive & compression
+py7zr
+
+# HTTP client
+requests
+
+# Templates
+jinja2
+
+# Tor integration
+stem
+
+# Local packages
+vanguards  # Local package in ./vanguards/
+
+# Build-time only (not included in final binary)
+pyinstaller
+
+# Note: Removed unused packages:
+# - Flask, flask-cors (migrated to FastAPI)
+# - msal (not used, cryptography was only needed for msal)
+# - paste (not used)
+# - sqlalchemy (not used)
+# - cryptography (only needed for msal)
+# - configparser (built-in to Python, no need to include)
+# - pydantic (auto-installed with fastapi)
+# - typing_extensions (auto-installed with fastapi/pydantic)
 

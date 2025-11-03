@@ -4,6 +4,7 @@ import { defineConfig } from 'vite'
 import {proxy} from "./proxy.js";
 import vue from '@vitejs/plugin-vue'
 import {v1} from "uuid";
+import { vitePluginSri } from './vite-plugin-sri.js';
 
 export default defineConfig(({mode}) => {
 	// Check if DASHBOARD_MODE is set to 'prod'
@@ -47,6 +48,7 @@ export default defineConfig(({mode}) => {
 		base: "/static/app/dist",
 		plugins: [
 			vue(),
+			vitePluginSri(), // Add Subresource Integrity (SRI) attributes
 		],
 		resolve: {
 			alias: {

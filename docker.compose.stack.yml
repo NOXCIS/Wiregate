@@ -15,40 +15,34 @@ networks:
           gateway: 2001:db8:abc::1
 
 services:
-  dnscrypt:
-    depends_on: [wiregate]
-    image: "noxcis/dnscrypt:latest"
+  unbound-dnscrypt:
+    container_name: unbound-dnscrypt
+    hostname: unbound-dnscrypt
+    image: noxcis/unbound-dnscrypt:latest
     restart: unless-stopped
-    container_name: dnscrypt
     volumes:
-      - ./configs/dnscrypt:/config
-    networks:
-      private_network:
-        ipv4_address: 10.2.0.42
-        ipv6_address: 2001:db8:abc::42
-
-  unbound:
-    depends_on: [dnscrypt]
-    image: "noxcis/unbound:latest"
-    container_name: unbound
-    restart: unless-stopped
-    hostname: "unbound"
+      - ./configs/dnscrypt-unbound/dnscrypt-proxy.toml:/config/dnscrypt-proxy.toml:ro
+      - ./configs/dnscrypt-unbound/unbound.conf:/etc/unbound/unbound.conf:ro
+      - ./configs/dnscrypt-unbound/custom.conf.d:/etc/unbound/custom.conf.d:ro
+    #sysctls:
+      #- net.core.rmem_max=8388608  # 8MB (needs to be at least 2x desired buffer)
+      #- net.core.wmem_max=8388608
+      #- net.core.rmem_default=4194304
+      #- net.core.wmem_default=4194304
     cap_add:
+      - NET_BIND_SERVICE
       - NET_ADMIN
     healthcheck:
-      test: ["CMD", "drill", "@127.0.0.1", "dnssec.works"]
+      test: ["CMD", "/usr/local/bin/healthcheck"]
       interval: 30s
-      timeout: 30s
+      timeout: 3s
       retries: 3
-      start_period: 30s 
-    #volumes:
-    #  - ./Global-Configs/Unbound:/etc/unbound/custom.conf.d 
+      start_period: 10s
     networks:
-      private_network:
-        ipv4_address: 10.2.0.200
-        ipv6_address: 2001:db8:abc::200
+        private_network:
+          ipv4_address: 10.2.0.42
+          ipv6_address: 2001:db8:abc::42
 
-  
   adguard:
     depends_on: [unbound]
     container_name: adguard
@@ -152,7 +146,7 @@ services:
         - net.ipv6.conf.all.forwarding=1
         - net.ipv6.conf.default.forwarding=1
       healthcheck:
-        test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "--no-check-certificate", "https://localhost:443/api/validateAuthentication", "||", "exit", "1"]
+        test: ["CMD-SHELL", "netstat -tuln 2>/dev/null | grep -q ':443 ' || netstat -tuln 2>/dev/null | grep -q ':80 ' || exit 1"]
         interval: 30s
         timeout: 10s
         retries: 3

@@ -1,0 +1,127 @@
+# robots.txt for WireGate Dashboard
+# Block all AI bots and crawlers from accessing the dashboard
+
+# OpenAI
+User-agent: GPTBot
+Disallow: /
+
+User-agent: ChatGPT-User
+Disallow: /
+
+# Google / Gemini AI
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: Googlebot-Extended
+Disallow: /
+
+User-agent: Googlebot
+Disallow: /
+
+User-agent: Googlebot-Image
+Disallow: /
+
+User-agent: Googlebot-Video
+Disallow: /
+
+User-agent: Googlebot-News
+Disallow: /
+
+User-agent: GoogleOther
+Disallow: /
+
+User-agent: GoogleOther-Image
+Disallow: /
+
+User-agent: GoogleOther-Video
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: Claude-User
+Disallow: /
+
+User-agent: Claude-SearchBot
+Disallow: /
+
+User-agent: PerplexityBot
+Disallow: /
+
+User-agent: Perplexity-User
+Disallow: /
+
+User-agent: BingPreview
+Disallow: /
+
+User-agent: bingbot
+Disallow: /
+
+User-agent: msnbot
+Disallow: /
+
+User-agent: DeepSeekBot
+Disallow: /
+
+User-agent: Meta-ExternalAgent
+Disallow: /
+
+User-agent: Meta AI Crawler
+Disallow: /
+
+User-agent: AmazonBot
+Disallow: /
+
+User-agent: Amazonbot
+Disallow: /
+
+# Apple Intelligence
+User-agent: Applebot-Extended
+Disallow: /
+
+User-agent: Applebot
+Disallow: /
+
+User-agent: Apple-Extended
+Disallow: /
+
+User-agent: Applebot-News
+Disallow: /
+
+User-agent: Applebot-Video
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: Baiduspider
+Disallow: /
+
+User-agent: YandexBot
+Disallow: /
+
+# Custom test bots
+User-agent: Custom Bot
+Disallow: /
+
+User-agent: test-bot
+Disallow: /
+
+User-agent: scraper
+Disallow: /
+
+# All other crawlers - block everything except essential static assets
+User-agent: *
+Disallow: /api/
+Disallow: /static/
+Allow: /static/app/dist/assets/
+Allow: /static/locale/
+Allow: /favicon.png
+Allow: /robots.txt
+
+# Sitemap (optional - dashboard doesn't need indexing)
+# Sitemap: https://your-domain.com/sitemap.xml
+

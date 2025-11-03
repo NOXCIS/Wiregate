@@ -77,8 +77,16 @@ export default {
 		async auth(){
 			if (this.formValid){
 				this.loading = true
-				await fetchPost("/api/authenticate", this.data, (response) => {
+				await fetchPost("/api/authenticate", this.data, async (response) => {
 					if (response.status){
+						// Reset session expired flag on successful login
+						this.store.resetSessionExpired();
+						
+						// Fetch CSRF token after successful authentication
+						// The token was generated during login and is in the session cookie
+						const { refreshCsrfToken } = await import("@/utilities/fetch.js");
+						await refreshCsrfToken();
+						
 						this.loginError = false;
 						this.$refs["signInBtn"].classList.add("signedIn")
 						if (response.message){
@@ -498,8 +506,11 @@ export default {
 		<small class="text-primary pb-3 d-block w-100 text-center mt-3">
 			<a href="https://github.com/NOXCIS/Wiregate" target="_blank" style="color: #4a4a4a;">
 				<strong>WireGate</strong>
-			</a> 
-			
+			</a>
+			<span style="color: #4a4a4a;"> | </span>
+			<RouterLink to="/privacy" style="color: #4a4a4a; text-decoration: none;">
+				Privacy Policy
+			</RouterLink>
 		</small>
 		<div class="messageCentre text-body position-absolute end-0 m-3">
 			<TransitionGroup name="message" tag="div" class="position-relative">
