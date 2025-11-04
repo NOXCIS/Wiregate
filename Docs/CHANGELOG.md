@@ -124,3 +124,19 @@ flat-bridge-v0.0.1:
   - Fixed Vite code-splitting warnings, reduced initial bundle size
 
 
+flat-bridge-v0.0.2:
+  - Bug Fixes
+  - Security hardening with CSP
+  - SRI (Subresource Integrity) is a security feature that verifies external resources (scripts, stylesheets) haven't been tampered with.
+  - infrastructure updates for deployment and management.
+
+flat-bridge-v0.0.3:
+  - Bug Fixes
+  - Security hardening with CSP
+  - SRI (Subresource Integrity) is a security feature that verifies external resources (scripts, stylesheets) haven't been tampered with.
+  - infrastructure updates for deployment and management.
+
+flat-bridge-v1.5.0:
+  - AmneziaWG 1.5 Implimentation.
+  - Adaptive AWG decoy packets
+  - Bug Fixes
