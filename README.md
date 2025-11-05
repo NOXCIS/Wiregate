@@ -2,6 +2,8 @@
 > **Obfs4 Plugin**: Has alot of latency and connection drops, use webtunnel or snowflake plugins if possible.
 >
 > **AmneziaWG** support is fully functional but is still in devlopement under the **amneziawg** branch for those that want to use AmneziaWG with WGDashboard.
+>
+> **TLS Tunnel Support**: Optional TLS tunneling now available to bypass UDP blockings in restrictive regions. Wraps WireGuard traffic in TLS encryption to evade DPI. See [TLS Tunnel Setup Guide](./Docs/TLS-TUNNEL-SETUP.md) for configuration.
 <hr>
 
 > [!NOTE]
@@ -82,9 +84,10 @@ Give a ⭐ if this project helped you!
 - [Infrastructure Map](#infrastructure)
 - [Screenshots](#screenshots)
 - [Installation](#installation)
-	- [Quick Install](#via-quick-installer) 
-	- [Docker Compose](#install-full-stack-via-docker-compose) 
-	- [Docker Compose Standalone](#install-standalone-via-docker-compose) 
+	- [Quick Install](#via-quick-installer)
+	- [Docker Compose](#install-full-stack-via-docker-compose)
+	- [Docker Compose Standalone](#install-standalone-via-docker-compose)
+	- [TLS Tunnel Setup](./Docs/TLS-TUNNEL-SETUP.md)
 - [Additional Resourses](#additional-resourses)
 - [Acknowledgements](#acknowledgements)
 - [Contributing](#contributing)
@@ -211,9 +214,12 @@ The available options are:
 | **help**:| `Display help menu`
 | **reset**:| `Reset WireGate`
 
-  
-  
-  
+> [!TIP]
+> **TLS Tunnel Configuration**: When using **Advanced** installation mode (A-*), you'll be prompted to optionally enable TLS tunneling for UDP bypass. This feature is especially useful in regions with UDP restrictions. See the [TLS Tunnel Setup Guide](./Docs/TLS-TUNNEL-SETUP.md) for detailed client configuration.
+
+
+
+
   
   
 ---

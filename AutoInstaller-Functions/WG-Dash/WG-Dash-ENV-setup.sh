@@ -51,6 +51,25 @@ set_wiregate_env() {
         } >> "$env_file"
     fi
 
+    # Always update or add TLS variables
+    if grep -q "^WGD_TLS_ENABLED=" "$env_file"; then
+        sed -i "s|^WGD_TLS_ENABLED=.*|WGD_TLS_ENABLED=\"${WGD_TLS_ENABLED}\"|" "$env_file"
+    else
+        echo "WGD_TLS_ENABLED=\"${WGD_TLS_ENABLED}\"" >> "$env_file"
+    fi
+
+    if grep -q "^WGD_TLS_PORT=" "$env_file"; then
+        sed -i "s|^WGD_TLS_PORT=.*|WGD_TLS_PORT=\"${WGD_TLS_PORT}\"|" "$env_file"
+    else
+        echo "WGD_TLS_PORT=\"${WGD_TLS_PORT}\"" >> "$env_file"
+    fi
+
+    if grep -q "^WGD_TLS_PASSWORD=" "$env_file"; then
+        sed -i "s|^WGD_TLS_PASSWORD=.*|WGD_TLS_PASSWORD=\"${WGD_TLS_PASSWORD}\"|" "$env_file"
+    else
+        echo "WGD_TLS_PASSWORD=\"${WGD_TLS_PASSWORD}\"" >> "$env_file"
+    fi
+
     # Check if any awg_vars are missing in the .env file
     for var in "${awg_vars[@]}"; do
         if ! grep -q "^$var=" "$env_file"; then
@@ -398,9 +417,136 @@ set_wg-dash_user() {
 
 }
 
+set_tls_enabled() {
+    local timer=$TIMER_VALUE
+    local user_activity=false
+
+    while [ $timer -gt 0 ]; do
+        clear
+        echo "╔════════════════════════════════════════════════════════════╗"
+        echo "║          TLS Tunnel Configuration (UDP Bypass)             ║"
+        echo "╚════════════════════════════════════════════════════════════╝"
+        echo ""
+        echo "Enable TLS tunnel to bypass UDP blockings in restricted regions?"
+        echo ""
+        echo "$(tput setaf 3)What is TLS Tunnel?$(tput sgr0)"
+        echo "- Wraps WireGuard UDP traffic in TLS encryption"
+        echo "- Helps bypass DPI and UDP restrictions"
+        echo "- Optional feature - does not affect normal UDP operation"
+        echo ""
+        echo "Press Enter to enable TLS tunnel $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds to skip$(tput sgr0):"
+
+        timer=$((timer - 1))
+
+        if read -t 1 -n 1; then
+            user_activity=true
+            break
+        fi
+    done
+
+    if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
+        export WGD_TLS_ENABLED="false"
+        export WGD_TLS_PORT="443"
+        export WGD_TLS_PASSWORD=""
+        echo -e "$(tput setaf 2)TLS tunnel disabled (default)$(tput sgr0)"
+    fi
+
+    if [[ "$user_activity" == true ]]; then
+        while true; do
+            read -p "$(tput setaf 3)Enable TLS tunnel? (y/n):$(tput sgr0) " tls_choice
+
+            if [[ "$tls_choice" =~ ^[Yy]$ ]]; then
+                export WGD_TLS_ENABLED="true"
+                set_tls_port
+                set_tls_password
+                echo -e "$(tput setaf 2)TLS tunnel enabled$(tput sgr0)"
+                break
+            elif [[ "$tls_choice" =~ ^[Nn]$ ]]; then
+                export WGD_TLS_ENABLED="false"
+                export WGD_TLS_PORT="443"
+                export WGD_TLS_PASSWORD=""
+                echo -e "$(tput setaf 2)TLS tunnel disabled$(tput sgr0)"
+                break
+            else
+                echo -e "\033[31mInvalid choice. Please enter 'y' or 'n'.\033[0m"
+            fi
+        done
+    fi
+}
+
+set_tls_port() {
+    while true; do
+        read -p "$(tput setaf 3)Enter TLS port (default: 443):$(tput sgr0) " tls_port
+
+        if [[ -z "$tls_port" ]]; then
+            tls_port="443"
+        fi
+
+        if [[ "$tls_port" =~ ^[0-9]+$ ]] && [ "$tls_port" -ge 1 ] && [ "$tls_port" -le 65535 ]; then
+            export WGD_TLS_PORT="$tls_port"
+            echo -e "$(tput setaf 2)TLS port set to: $tls_port$(tput sgr0)"
+            break
+        else
+            echo -e "\033[31mInvalid port. Please enter a number between 1-65535.\033[0m"
+        fi
+    done
+}
+
+set_tls_password() {
+    local timer=$TIMER_VALUE
+    local user_activity=false
+
+    while [ $timer -gt 0 ]; do
+        clear
+        echo "Press Enter to set TLS tunnel password $(tput setaf 1)or wait $(tput sgr0)$(tput setaf 3)$timer$(tput sgr0)$(tput setaf 1) seconds for random password$(tput sgr0):"
+
+        timer=$((timer - 1))
+
+        if read -t 1 -n 1; then
+            user_activity=true
+            break
+        fi
+    done
+
+    if [ $timer -le 0 ] && [ "$user_activity" = false ]; then
+        tls_password=$(pwgen -s 24 1)
+        export WGD_TLS_PASSWORD="$tls_password"
+        echo -e "$(tput setaf 2)Random TLS password generated$(tput sgr0)"
+    fi
+
+    if [[ "$user_activity" == true ]]; then
+        while true; do
+            read -sp "$(tput setaf 3)Enter TLS tunnel password:$(tput sgr0) " tls_password
+            echo ""
+
+            if [[ -z "$tls_password" ]]; then
+                echo -e "\033[31mPassword cannot be empty. Please try again.\033[0m"
+                continue
+            fi
+
+            read -sp "$(tput setaf 3)Confirm TLS tunnel password:$(tput sgr0) " confirm_tls_password
+            echo ""
+
+            if [[ "$tls_password" != "$confirm_tls_password" ]]; then
+                echo -e "\033[31mPasswords do not match. Please try again.\033[0m"
+            else
+                export WGD_TLS_PASSWORD="$tls_password"
+                echo -e "$(tput setaf 2)TLS password set successfully$(tput sgr0)"
+                break
+            fi
+        done
+    fi
+}
+
 set_wg-dash_config() {
     set_wiregate_env
-
+    if [ "$TIMER_VALUE" -gt 0 ] || [ "$mode" = "Advanced" ]; then
+        set_tls_enabled
+    else
+        export WGD_TLS_ENABLED="false"
+        export WGD_TLS_PORT="443"
+        export WGD_TLS_PASSWORD=""
+    fi
 
 }
 set_wg-dash_account() {

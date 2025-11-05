@@ -66,6 +66,23 @@ services:
         private_network:
           ipv4_address: 10.2.0.4
 
+  udptlspipe:
+    image: ghcr.io/ameshkov/udptlspipe:latest
+    container_name: udptlspipe
+    restart: unless-stopped
+    hostname: udptlspipe
+    command: >
+      --server
+      -d wiregate:${WGD_PORT_RANGE_STARTPORT}
+      -p ${WGD_TLS_PASSWORD}
+    ports:
+      - "${WGD_TLS_PORT}:8443/tcp"
+    networks:
+      private_network:
+        ipv4_address: 10.2.0.5
+    profiles:
+      - tls
+
   wiregate:
     image: noxcis/${STATE}:${TAG}
     container_name: wiregate
