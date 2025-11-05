@@ -63,3 +63,4 @@ Src/test_async_performance.py
 omv.docker-compose.yml
 /.VSCodeCounter
 git.md
+CODEBASE_EXPLORATION.md
