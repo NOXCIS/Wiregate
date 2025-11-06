@@ -22,7 +22,7 @@ COPY --from=pybuild /opt/wireguarddashboard/src/venv /opt/wireguarddashboard/src
 COPY --from=pybuild /opt/wireguarddashboard/src/log /opt/wireguarddashboard/src/log/
 COPY --from=pybuild /opt/wireguarddashboard/src/torflux /opt/wireguarddashboard/src/torflux
 
-RUN apk add --no-cache wireguard-tools sudo iptables tzdata && \
+RUN apk add --no-cache wireguard-tools sudo iptables iproute2 tzdata && \
     apk upgrade && \
     chmod u+x /opt/wireguarddashboard/src/entrypoint.sh 
 

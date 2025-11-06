@@ -82,9 +82,10 @@ Give a ⭐ if this project helped you!
 - [Infrastructure Map](#infrastructure)
 - [Screenshots](#screenshots)
 - [Installation](#installation)
-	- [Quick Install](#via-quick-installer) 
-	- [Docker Compose](#install-full-stack-via-docker-compose) 
-	- [Docker Compose Standalone](#install-standalone-via-docker-compose) 
+	- [Quick Install](#via-quick-installer)
+	- [Docker Compose](#install-full-stack-via-docker-compose)
+	- [Docker Compose Standalone](#install-standalone-via-docker-compose)
+	- [CAKE Traffic Shaping](./docs/CAKE_TRAFFIC_SHAPING.md)
 - [Additional Resourses](#additional-resourses)
 - [Acknowledgements](#acknowledgements)
 - [Contributing](#contributing)
@@ -114,8 +115,8 @@ It allows users to host web other applications on their existing server and be a
 ### Default Zone Permissions
 Wiregate is configured with 4 zones that peers can be added to. The zone a peer belongs to dictates the network access permissions of said peer.
 
-  
-  
+
+
 
 | Zone | Internet Access | WireGuard Dashboard Access | Docker Network Access | Peer to Peer Access |
 |--|--|--|--|--|
@@ -124,9 +125,39 @@ Wiregate is configured with 4 zones that peers can be added to. The zone a peer 
 | **LAN Users**|❌|❌|❌|✅|
 | **Guest**|✅|❌|❌|❌|
 
-  
-  
-  
+
+
+### CAKE Traffic Shaping (Optional)
+
+WireGate now supports **CAKE** (Common Applications Kept Enhanced) traffic shaping for advanced bandwidth management and bufferbloat control. CAKE provides:
+
+- **Reduced Latency**: Keeps latency low even under heavy load (< 20ms vs 500ms+ without shaping)
+- **Fair Bandwidth Distribution**: Ensures all VPN clients get fair access to available bandwidth
+- **Automatic Rate Adaptation**: Can automatically adjust to actual link speeds
+- **NAT-Aware Fair Queuing**: Per-host and per-flow fairness through NAT
+- **Built-in ACK Filtering**: Improves performance on asymmetric connections
+- **Minimal Configuration**: Just set bandwidth limits and CAKE handles the rest
+
+#### Quick Start
+
+1. Add to your `.env` file:
+   ```bash
+   CAKE_ENABLED=true
+   CAKE_BANDWIDTH_ADMINS=1gbit
+   CAKE_BANDWIDTH_MEMBERS=100mbit
+   CAKE_BANDWIDTH_GUESTS=50mbit
+   ```
+
+2. Rebuild and restart:
+   ```bash
+   docker-compose down
+   docker-compose up -d --build
+   ```
+
+For detailed configuration, troubleshooting, and performance tuning, see the [CAKE Traffic Shaping Documentation](./docs/CAKE_TRAFFIC_SHAPING.md).
+
+Example configurations can be found in [`examples/cake-config.env.example`](./examples/cake-config.env.example).
+
 
 ## Infrastructure
 

@@ -67,3 +67,9 @@ iptables -A $CHAIN_NAME -s $WIREGUARD_LAN -i $WIREGUARD_INTERFACE -j ACCEPT
 iptables -A $CHAIN_NAME -i $WIREGUARD_INTERFACE -j DROP
 # Return to FORWARD chain
 iptables -A $CHAIN_NAME -j RETURN
+
+# Apply CAKE traffic shaping if enabled
+SCRIPT_DIR="$(dirname "$0")"
+if [ -f "$SCRIPT_DIR/cake-setup.sh" ]; then
+    bash "$SCRIPT_DIR/cake-setup.sh"
+fi

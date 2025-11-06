@@ -1,3 +1,15 @@
+UNRELEASED:
+  - Added CAKE (Common Applications Kept Enhanced) traffic shaping support
+  - New Python traffic_control module for managing tc commands
+  - CAKE setup/teardown scripts for all WireGuard zones (ADMINS, MEMBERS, GUESTS, LANP2P)
+  - Added iproute2 package to Docker image for tc command support
+  - Comprehensive CAKE documentation and example configurations
+  - Per-zone bandwidth limits with sensible defaults (ADMINS: 1Gbit, MEMBERS: 100Mbit, GUESTS: 50Mbit, LANP2P: 100Mbit)
+  - Optional CAKE feature - disabled by default, zero impact when not enabled
+  - Automatic integration with existing PostUp/PostDown scripts
+  - Environment variable-based configuration (CAKE_ENABLED, CAKE_BANDWIDTH_*, CAKE_OPTIONS)
+  - Addresses upstream issue #77 - CAKE traffic shaper request
+
 acid-rain-beta-v0.4:
   - Bug Fixes
   - Awg Kernel Module Support if installed on host

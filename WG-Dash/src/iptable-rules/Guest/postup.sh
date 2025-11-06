@@ -55,3 +55,9 @@ iptables -A $CHAIN_NAME -i $WIREGUARD_INTERFACE -j DROP
 iptables -A $CHAIN_NAME -j RETURN
 #END OF GUEST RULES
 ##############################################################################################################
+
+# Apply CAKE traffic shaping if enabled
+SCRIPT_DIR="$(dirname "$0")"
+if [ -f "$SCRIPT_DIR/cake-setup.sh" ]; then
+    bash "$SCRIPT_DIR/cake-setup.sh"
+fi
