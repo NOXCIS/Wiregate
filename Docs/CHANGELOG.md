@@ -136,6 +136,21 @@ flat-bridge-v0.0.3:
   - SRI (Subresource Integrity) is a security feature that verifies external resources (scripts, stylesheets) haven't been tampered with.
   - infrastructure updates for deployment and management.
 
+UNRELEASED:
+  - Added Cloudflare Warp integration for enhanced privacy and performance
+  - New wgcf binary built into Docker image for Warp credential generation
+  - warp-manager.sh script for complete Warp lifecycle management
+  - Per-zone Warp routing via warp-postup.sh and warp-postdown.sh scripts
+  - Policy-based routing for selective traffic routing through Cloudflare
+  - Support for free and Warp+ premium tiers
+  - Environment variable configuration (WGD_WARP_ENABLED, WGD_WARP_ZONES, etc.)
+  - Comprehensive documentation and examples in docs/CLOUDFLARE_WARP_INTEGRATION.md
+  - Example configuration in examples/warp-config.env.example
+  - Optional feature - disabled by default, zero impact when not enabled
+  - Automatic Warp initialization during container startup
+  - Health checks and connectivity validation
+  - Addresses upstream issue #66 - Cloudflare Warp tunnel support
+
 flat-bridge-v1.5.0:
   - AmneziaWG 1.5 Implimentation.
   - Adaptive AWG decoy packets

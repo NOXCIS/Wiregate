@@ -8,6 +8,14 @@ RUN chmod u+x ./builder.sh && ./builder.sh \
     && go build -buildmode=pie -ldflags="-s -w" -o torflux
 
 
+# wgcf-builder: Build wgcf for Cloudflare Warp support
+FROM alpine:latest AS wgcf-builder
+LABEL maintainer="NOXCIS"
+RUN apk add --no-cache git go upx
+WORKDIR /build
+RUN git clone https://github.com/ViRb3/wgcf.git . && \
+    go build -buildmode=pie -ldflags="-s -w" -o wgcf && \
+    upx --best --lzma wgcf
 
 
 # Stage 3: Final image
@@ -18,6 +26,7 @@ COPY ./src /opt/wireguarddashboard/src/
 COPY --from=noxcis/tor-bins:latest /lyrebird /usr/local/bin/lyrebird
 COPY --from=noxcis/tor-bins:latest /webtunnel /usr/local/bin/webtunnel
 COPY --from=noxcis/tor-bins:latest /snowflake /usr/local/bin/snowflake
+COPY --from=wgcf-builder /build/wgcf /usr/local/bin/wgcf
 COPY --from=pybuild /opt/wireguarddashboard/src/venv /opt/wireguarddashboard/src/venv
 COPY --from=pybuild /opt/wireguarddashboard/src/log /opt/wireguarddashboard/src/log/
 COPY --from=pybuild /opt/wireguarddashboard/src/torflux /opt/wireguarddashboard/src/torflux

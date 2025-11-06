@@ -235,6 +235,24 @@ if [[ "$WGD_TOR_PROXY" == "true" ]]; then
         sed -i "s/^\(proxy = 'socks5:\/\/wiregate:9053'\)/#\1/" "$dnscrypt_conf"
 fi
 
+# Initialize Cloudflare Warp if enabled
+if [[ "$WGD_WARP_ENABLED" == "true" ]]; then
+    printf "%s\n" "$dashes"
+    echo "[WARP] Cloudflare Warp is enabled. Initializing..."
+    printf "%s\n" "$dashes"
+    if /opt/wireguarddashboard/src/warp-manager.sh setup; then
+        printf "%s\n" "$dashes"
+        echo "[WARP] ✓ Cloudflare Warp initialized successfully"
+        printf "%s\n" "$dashes"
+    else
+        printf "%s\n" "$dashes"
+        echo "[WARP] WARNING: Failed to initialize Cloudflare Warp"
+        echo "[WARP] Traffic will use default routing"
+        printf "%s\n" "$dashes"
+    fi
+else
+    echo "[WARP] Cloudflare Warp is disabled. Skipping initialization."
+fi
 
 /opt/wireguarddashboard/src/wgd.sh install
 /opt/wireguarddashboard/src/wgd.sh docker_start &
