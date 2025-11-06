@@ -13,3 +13,9 @@ iptables -t nat -D POSTROUTING -o $MASQUERADE_INTERFACE -j MASQUERADE -s $WIREGU
 iptables -D FORWARD -j $CHAIN_NAME
 iptables -F $CHAIN_NAME
 iptables -X $CHAIN_NAME
+
+# Remove CAKE traffic shaping if it was enabled
+SCRIPT_DIR="$(dirname "$0")"
+if [ -f "$SCRIPT_DIR/cake-teardown.sh" ]; then
+    bash "$SCRIPT_DIR/cake-teardown.sh"
+fi
