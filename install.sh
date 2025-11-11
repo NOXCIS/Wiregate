@@ -17,6 +17,9 @@ export WGD_TOR_DNSCRYPT="false"
 export AMNEZIA_WG="false"
 export PROTOCOL_TYPE="WireGuard"
 export DEPLOY_STATE="STATIC"
+export WGD_TLS_ENABLED="false"
+export WGD_TLS_PORT="443"
+export WGD_TLS_PASSWORD=""
 
 #CORE_IMPORTS
 source ./AutoInstaller-Functions/OS-Reqs.sh
@@ -200,12 +203,19 @@ is_alpine() {
 compose_up() {
     set_tag --stable
     run_docker_title
+
+    # Determine which profiles to use
+    local compose_profiles=""
+    if [[ "${WGD_TLS_ENABLED}" == "true" ]]; then
+        compose_profiles="--profile tls"
+    fi
+
     if is_alpine; then
         $DEPLOY_SYSTEM-compose pull
-        $DEPLOY_SYSTEM-compose up -d --build
+        $DEPLOY_SYSTEM-compose $compose_profiles up -d --build
     else
         $DEPLOY_SYSTEM compose pull
-        $DEPLOY_SYSTEM compose up -d --build
+        $DEPLOY_SYSTEM compose $compose_profiles up -d --build
     fi
 }
 
