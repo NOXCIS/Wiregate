@@ -129,6 +129,21 @@ RUN mkdir -p /build/torflux-build /build/traffic_weir && \
     -ldflags="-X main.version=v1.0.0 -s -w" \
     -o /build/traffic-weir
 
+# wgcf-builder: Build wgcf for Cloudflare Warp support
+##########################################################
+FROM alpine:latest AS wgcf-builder
+ARG TARGETPLATFORM
+LABEL maintainer="NOXCIS"
+
+# Copy and run mirror selection script, then install packages and build wgcf
+COPY select-mirror.sh /tmp/select-mirror.sh
+RUN chmod +x /tmp/select-mirror.sh && /tmp/select-mirror.sh && \
+    apk add --no-cache git go upx
+WORKDIR /build
+RUN git clone https://github.com/ViRb3/wgcf.git . && \
+    go build -buildmode=pie -ldflags="-s -w" -o wgcf && \
+    upx --best --lzma wgcf
+
 # pybuilder: Python binary builder
 ##########################################################
 FROM base_dependencies AS pybuilder
@@ -267,6 +282,9 @@ COPY --from=noxcis/tor-bins:latest /lyrebird /webtunnel /snowflake /usr/local/bi
 RUN mv /usr/local/bin/lyrebird /usr/local/bin/obfs4
 
 COPY --from=noxcis/awg-bins:latest /amneziawg-go /awg /awg-quick /usr/bin/
+
+# Copy wgcf for Cloudflare Warp support
+COPY --from=wgcf-builder /build/wgcf /usr/local/bin/
 
 # Copy built binaries and set permissions
 COPY --from=pybuilder /build/dist/wiregate /build/dist/vanguards /WireGate/

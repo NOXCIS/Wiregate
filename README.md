@@ -78,10 +78,11 @@ Give a ⭐ if this project helped you!
 - [Infrastructure Map](#infrastructure)
 - [Screenshots](#screenshots)
 - [Installation](#installation)
-	- [Quick Install](#via-quick-installer) 
-	- [Docker Compose](#install-full-stack-via-docker-compose) 
-	- [Docker Compose Standalone](#install-standalone-via-docker-compose) 
+	- [Quick Install](#via-quick-installer)
+	- [Docker Compose](#install-full-stack-via-docker-compose)
+	- [Docker Compose Standalone](#install-standalone-via-docker-compose)
 	- [Kubernetes](#install-via-kubernetes)
+	- [Cloudflare Warp Integration](./docs/CLOUDFLARE_WARP_INTEGRATION.md)
 - [Additional Resourses](#additional-resourses)
 - [Acknowledgements](#acknowledgements)
 - [Contributing](#contributing)
@@ -121,9 +122,44 @@ Wiregate is configured with 4 zones that peers can be added to. The zone a peer 
 | **LAN Users**|❌|❌|❌|✅|
 | **Guest**|✅|❌|❌|❌|
 
-  
-  
-  
+### Cloudflare Warp Integration (Optional)
+
+WireGate now supports **Cloudflare Warp** integration, allowing you to route VPN traffic through Cloudflare's global network for enhanced privacy, performance, and security.
+
+**Key Benefits:**
+- 🔒 **Enhanced Privacy**: Hide your server's IP through Cloudflare's network
+- ⚡ **Improved Performance**: Leverage Cloudflare's 310+ edge locations worldwide
+- 🛡️ **Built-in DDoS Protection**: Automatic protection against network attacks
+- 🌐 **Global Reach**: Optimized routing to any destination
+- 🆓 **Free & Premium Tiers**: Free unlimited usage or Warp+ ($4.99/month) for priority routing
+
+#### Quick Start
+
+1. Add to your `.env` file:
+   ```bash
+   WGD_WARP_ENABLED=true
+   WGD_WARP_ZONES=ADMINS,MEMBERS
+   # Optional: Add Warp+ license key for premium features
+   WGD_WARP_LICENSE_KEY=
+   ```
+
+2. Rebuild and restart:
+   ```bash
+   docker-compose down
+   docker-compose up -d --build
+   ```
+
+3. Verify Warp is working:
+   ```bash
+   docker logs wiregate | grep WARP
+   docker exec -it wiregate wgcf trace  # Should show "warp=on"
+   ```
+
+**Traffic Flow**: `VPN Client → Wiregate → Cloudflare Warp → Internet`
+
+For detailed configuration, troubleshooting, and advanced features, see the [Cloudflare Warp Integration Documentation](./docs/CLOUDFLARE_WARP_INTEGRATION.md).
+
+Example configurations can be found in [`examples/warp-config.env.example`](./examples/warp-config.env.example).
 
 ## Infrastructure
 

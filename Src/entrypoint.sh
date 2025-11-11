@@ -84,9 +84,24 @@ if [ ! -d "log" ]
 
 secure_exec chmod u+x wiregate.sh
 
-
-
-
+# Initialize Cloudflare Warp if enabled
+if [[ "$WGD_WARP_ENABLED" == "true" ]]; then
+    printf "%s\n" "$dashes"
+    echo "[WARP] Cloudflare Warp is enabled. Initializing..."
+    printf "%s\n" "$dashes"
+    if /WireGate/warp-manager.sh setup; then
+        printf "%s\n" "$dashes"
+        echo "[WARP] ✓ Cloudflare Warp initialized successfully"
+        printf "%s\n" "$dashes"
+    else
+        printf "%s\n" "$dashes"
+        echo "[WARP] WARNING: Failed to initialize Cloudflare Warp"
+        echo "[WARP] Traffic will use default routing"
+        printf "%s\n" "$dashes"
+    fi
+else
+    echo "[WARP] Cloudflare Warp is disabled. Skipping initialization."
+fi
 
 ./wiregate.sh install
 
