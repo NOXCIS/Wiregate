@@ -1,8 +1,7 @@
 > [!NOTE]
 > **Obfs4 Plugin**: Has alot of latency and connection drops, use webtunnel or snowflake plugins if possible.
 >
-> **AmneziaWG** support is fully functional but is still in devlopement under the **amneziawg** branch for those that want to use AmneziaWG with WGDashboard.
-<hr>
+> **AmneziaWG 1.5** support is fully functional but is still in devlopement in flat-bridge builds.<hr>
 
 > [!NOTE]
 **DOCKER INSTALL**
