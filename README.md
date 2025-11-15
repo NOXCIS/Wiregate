@@ -74,14 +74,15 @@ Give a ⭐ if this project helped you!
 ## Table of Contents
 
 - [About](#About)
-
+- [Key Features](#key-features)
 - [Infrastructure Map](#infrastructure)
 - [Screenshots](#screenshots)
 - [Installation](#installation)
-	- [Quick Install](#via-quick-installer) 
-	- [Docker Compose](#install-full-stack-via-docker-compose) 
-	- [Docker Compose Standalone](#install-standalone-via-docker-compose) 
+	- [Quick Install](#via-quick-installer)
+	- [Docker Compose](#install-full-stack-via-docker-compose)
+	- [Docker Compose Standalone](#install-standalone-via-docker-compose)
 	- [Kubernetes](#install-via-kubernetes)
+- [Traffic Shaping](#traffic-shaping)
 - [Additional Resourses](#additional-resourses)
 - [Acknowledgements](#acknowledgements)
 - [Contributing](#contributing)
@@ -108,11 +109,47 @@ It allows users to host web other applications on their existing server and be a
 
   
 
+## Key Features
+
+### Advanced Traffic Shaping with CAKE
+
+WireGate includes **traffic-weir**, an integrated traffic control system supporting multiple schedulers:
+
+- **CAKE (Common Applications Kept Enhanced)** - Recommended ⭐
+  - Automatic bufferbloat mitigation
+  - Per-flow fairness and NAT-aware queuing
+  - Keeps latency under 20ms even under heavy load
+  - Perfect for gaming, video calls, and mixed traffic
+
+- **HTB (Hierarchical Token Bucket)** - Legacy/Simple
+  - Basic rate limiting with low CPU overhead
+  - Compatible with older kernels
+
+- **HFSC (Hierarchical Fair Service Curve)** - Guaranteed Bandwidth
+  - Service-level agreements with minimum guarantees
+  - Low-latency traffic prioritization
+
+**Quick Start:**
+```bash
+# Via API - Set CAKE rate limits for a peer
+curl -X POST http://your-server:8000/api/set_peer_rate_limit \
+  -H "Content-Type: application/json" \
+  -d '{
+    "interface": "ADMINS",
+    "peer_key": "peer_public_key",
+    "upload_rate": 5000,
+    "download_rate": 10000,
+    "scheduler_type": "cake"
+  }'
+```
+
+**📖 Full Documentation:** See [Traffic Shaping Guide](./docs/TRAFFIC_SHAPING.md) for detailed configuration, performance comparisons, and troubleshooting.
+
 ### Default Zone Permissions
 Wiregate is configured with 4 zones that peers can be added to. The zone a peer belongs to dictates the network access permissions of said peer.
 
-  
-  
+
+
 
 | Zone | Internet Access | WireGuard Dashboard Access | Docker Network Access | Peer to Peer Access |
 |--|--|--|--|--|
@@ -121,9 +158,9 @@ Wiregate is configured with 4 zones that peers can be added to. The zone a peer 
 | **LAN Users**|❌|❌|❌|✅|
 | **Guest**|✅|❌|❌|❌|
 
-  
-  
-  
+
+
+
 
 ## Infrastructure
 
@@ -525,8 +562,50 @@ kubectl port-forward -n wiregate service/wiregate 8000:80
 - `kustomize` (installed automatically by script)
 - Cluster with support for privileged containers and host networking
 
-  
-  
+
+
+## Traffic Shaping
+
+WireGate provides advanced per-peer traffic control through the integrated **traffic-weir** module.
+
+### Supported Schedulers
+
+- **CAKE (Common Applications Kept Enhanced)** ⭐ Recommended
+- **HTB (Hierarchical Token Bucket)** - Simple rate limiting
+- **HFSC (Hierarchical Fair Service Curve)** - Guaranteed bandwidth
+
+### Features
+
+- Per-peer upload and download rate limits
+- Dynamic configuration without service interruption
+- Automatic bufferbloat mitigation (CAKE)
+- IPv4 and IPv6 support
+- NAT-aware fairness (CAKE)
+- Persistent configuration across restarts
+
+### Quick Example
+
+Set rate limits via the dashboard UI or API:
+
+```bash
+POST /api/set_peer_rate_limit
+{
+  "interface": "ADMINS",
+  "peer_key": "your_peer_public_key",
+  "upload_rate": 5000,     # 5 Mbps
+  "download_rate": 10000,  # 10 Mbps
+  "scheduler_type": "cake"
+}
+```
+
+### Documentation
+
+For comprehensive configuration guide, performance comparisons, and troubleshooting:
+- **[Traffic Shaping Guide](./docs/TRAFFIC_SHAPING.md)** - Complete documentation
+- **[API Documentation](./Docs/API_DOCUMENTATION.md)** - API reference
+
+
+
 ## Additional Resourses
 > [!NOTE]
 > All configs can be found in ./configs
