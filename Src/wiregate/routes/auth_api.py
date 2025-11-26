@@ -17,7 +17,7 @@ from ..models.responses import StandardResponse, AuthenticationResponse
 from ..models.requests import LoginRequest, WelcomeFinish
 from ..modules.DashboardConfig import DashboardConfig
 from ..modules.Config import SESSION_TIMEOUT
-from ..modules.Logger import AllDashboardLogger
+from ..modules.Logger import AllDashboardLogger, log_with_context
 from ..modules.Security.fastapi_dependencies import (
     get_security_manager,
     check_brute_force,
@@ -190,18 +190,16 @@ async def validate_authentication(
     user: Optional[Dict[str, Any]] = Depends(get_current_user),
     security_mgr = Depends(get_security_manager)
 ):
-    """Validate current authentication status"""
+    """Validate current authentication status - public endpoint to check auth"""
+    # Check if auth is required (if not, return true for backward compatibility)
     if not DashboardConfig.GetConfig("Server", "auth_req")[1]:
-        return StandardResponse(status=True)
+        return StandardResponse(status=True, data=True)
     
+    # Check if user is authenticated
     if user and user.get('authenticated'):
-        return StandardResponse(status=True)
-    
-    # Track session expiration for grace period in rate limiting
-    client_ip = request.client.host if request.client else "unknown"
-    security_mgr.record_session_expiration(client_ip)
-    
-    return StandardResponse(status=False, message="Invalid authentication.")
+        return StandardResponse(status=True, data=True)
+    else:
+        return StandardResponse(status=False, data=False)
 
 
 @router.get('/requireAuthentication', response_model=StandardResponse)
@@ -256,6 +254,16 @@ async def authenticate_login(
                 str(request.url),
                 client_ip,
                 Message=f"LDAP Login failed: {username}"
+            )
+            log_with_context(
+                logger, logging.WARNING,
+                "LDAP authentication failed",
+                event_type="auth_failure",
+                auth_method="ldap",
+                username=username,
+                client_ip=client_ip,
+                url=str(request.url),
+                error=error
             )
             security_mgr.record_failed_attempt(client_ip)
             return StandardResponse(
@@ -314,6 +322,15 @@ async def authenticate_login(
             client_ip,
             Message=f"LDAP Login success: {username}"
         )
+        log_with_context(
+            logger, logging.INFO,
+            "LDAP authentication successful",
+            event_type="auth_success",
+            auth_method="ldap",
+            username=username,
+            client_ip=client_ip,
+            url=str(request.url)
+        )
         
         welcome_session = DashboardConfig.GetConfig("Other", "welcome_session")[1]
         
@@ -328,21 +345,59 @@ async def authenticate_login(
         )
     
     # Local authentication
-    stored_password = DashboardConfig.GetConfig("Account", "password")[1]
+    stored_password = DashboardConfig.GetConfig("Account", "password", masked=False)[1]
     
-    # Verify password against hash
-    if not stored_password.startswith('$2b$'):
-        AllDashboardLogger.log(
-            str(request.url),
-            client_ip,
-            Message="CRITICAL: Password is not in hashed format"
+    # Safety check: ensure stored_password is not None or empty
+    if not stored_password:
+        log_with_context(
+            logger, logging.ERROR,
+            "Stored password is empty or None",
+            event_type="auth_error",
+            auth_method="local",
+            client_ip=client_ip,
+            url=str(request.url),
+            severity="critical"
         )
         return StandardResponse(
             status=False,
             message="Authentication system error. Please contact administrator."
         )
     
-    valid = security_mgr.verify_password(password, stored_password)
+    # Handle password migration: if password is not hashed, auto-hash it on successful login
+    password_needs_hashing = not stored_password.startswith('$2b$')
+    
+    if password_needs_hashing:
+        # Backward compatibility: compare plaintext password directly
+        if stored_password == password:
+            # Password matches, hash it and save it back
+            # Pass plaintext password - SetConfig will hash it when init=True
+            success, msg = DashboardConfig.SetConfig("Account", "password", password, init=True)
+            if success:
+                DashboardConfig.SaveConfig()
+                log_with_context(
+                    logger, logging.INFO,
+                    "Password automatically migrated to hashed format",
+                    event_type="password_migration",
+                    auth_method="local",
+                    client_ip=client_ip,
+                    url=str(request.url)
+                )
+                valid = True
+            else:
+                log_with_context(
+                    logger, logging.ERROR,
+                    f"Failed to migrate password: {msg}",
+                    event_type="password_migration_error",
+                    auth_method="local",
+                    client_ip=client_ip,
+                    url=str(request.url)
+                )
+                valid = False
+        else:
+            valid = False
+    else:
+        # Normal password verification with hash
+        valid = security_mgr.verify_password(password, stored_password)
     
     totpEnabled = DashboardConfig.GetConfig("Account", "enable_totp")[1]
     totpValid = False
@@ -415,6 +470,16 @@ async def authenticate_login(
             client_ip,
             Message=f"Login success: {username}"
         )
+        log_with_context(
+            logger, logging.INFO,
+            "Local authentication successful",
+            event_type="auth_success",
+            auth_method="local",
+            username=username,
+            client_ip=client_ip,
+            url=str(request.url),
+            totp_enabled=totpEnabled
+        )
         
         welcome_session = DashboardConfig.GetConfig("Other", "welcome_session")[1]
         
@@ -432,6 +497,16 @@ async def authenticate_login(
         str(request.url),
         client_ip,
         Message=f"Login failed: {username}"
+    )
+    log_with_context(
+        logger, logging.WARNING,
+        "Local authentication failed",
+        event_type="auth_failure",
+        auth_method="local",
+        username=username,
+        client_ip=client_ip,
+        url=str(request.url),
+        totp_enabled=totpEnabled
     )
     
     security_mgr.record_failed_attempt(client_ip)
@@ -650,7 +725,7 @@ async def get_rate_limit_metrics(
     if not DashboardConfig.APIAccessed:
         return StandardResponse(status=False, message="Unauthorized")
     
-    from ..modules.RateLimitMetrics import rate_limit_metrics
+    from ..modules.Security.RateLimitMetrics import rate_limit_metrics
     metrics = rate_limit_metrics.get_metrics_summary(window)
     
     return StandardResponse(status=True, data=metrics)
@@ -659,7 +734,7 @@ async def get_rate_limit_metrics(
 @router.get('/rate-limit-health', response_model=StandardResponse)
 async def get_rate_limit_health():
     """Get rate limiting system health status"""
-    from ..modules.RateLimitMetrics import rate_limit_metrics
+    from ..modules.Security.RateLimitMetrics import rate_limit_metrics
     health = rate_limit_metrics.get_health_status()
     return StandardResponse(status=True, data=health)
 
@@ -673,7 +748,7 @@ async def get_top_limited_identifiers(
     if not DashboardConfig.APIAccessed:
         return StandardResponse(status=False, message="Unauthorized")
     
-    from ..modules.RateLimitMetrics import rate_limit_metrics
+    from ..modules.Security.RateLimitMetrics import rate_limit_metrics
     top_limited = rate_limit_metrics.get_top_limited_identifiers(limit)
     
     return StandardResponse(status=True, data=top_limited)
@@ -687,7 +762,7 @@ async def cleanup_rate_limit_metrics(
     if not DashboardConfig.APIAccessed:
         return StandardResponse(status=False, message="Unauthorized")
     
-    from ..modules.RateLimitMetrics import rate_limit_metrics
+    from ..modules.Security.RateLimitMetrics import rate_limit_metrics
     cleaned_count = rate_limit_metrics.cleanup_old_metrics()
     
     return StandardResponse(

@@ -106,16 +106,19 @@ const fetchPeerList = async () => {
 				configurationPeers.value.push(x)
 			})
 
-			// Fetch rate limits for all peers
-			try {
-				for (const peer of configurationPeers.value) {
+			// Fetch rate limits for all peers (ignore errors for missing peers)
+			for (const peer of configurationPeers.value) {
+				try {
 					await wireguardConfigurationStore.fetchPeerRateLimit(
 						configurationInfo.value.Name,
 						peer.id
 					);
+				} catch (error) {
+					// Silently handle missing peers - this is expected when peers are deleted
+					if (!error.message?.includes('not found')) {
+						console.warn('Failed to fetch rate limit for peer:', peer.id, error);
+					}
 				}
-			} catch (error) {
-				console.error('Failed to fetch rate limits:', error);
 			}
 		}
 	})
@@ -228,15 +231,19 @@ const searchPeers = computed(() => {
 // Add watch for peers to update rate limits when peers change
 watch(() => configurationPeers.value, async (newPeers) => {
 	if (configurationInfo.value?.Name && newPeers?.length) {
-		try {
-			for (const peer of newPeers) {
+		// Fetch rate limits for all peers (ignore errors for missing peers)
+		for (const peer of newPeers) {
+			try {
 				await wireguardConfigurationStore.fetchPeerRateLimit(
 					configurationInfo.value.Name,
 					peer.id
 				);
+			} catch (error) {
+				// Silently handle missing peers - this is expected when peers are deleted
+				if (!error.message?.includes('not found')) {
+					console.warn('Failed to fetch rate limit for peer:', peer.id, error);
+				}
 			}
-		} catch (error) {
-			console.error('Failed to fetch rate limits:', error);
 		}
 	}
 })

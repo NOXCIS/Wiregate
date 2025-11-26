@@ -3,7 +3,7 @@ import socket
 
 
 # Import Enviorment
-DASHBOARD_VERSION = 'flat-bridge-v0.0.3'
+DASHBOARD_VERSION = 'blowfish-beta-v1.0.0'
 DASHBOARD_MODE = None
 CONFIGURATION_PATH = os.getenv('CONFIGURATION_PATH', '.')
 DB_PATH = os.path.join(CONFIGURATION_PATH, 'db')
@@ -31,6 +31,7 @@ wgd_peer_endpoint_allowed_ip = os.environ.get('WGD_PEER_ENDPOINT_ALLOWED_IP') or
 wgd_keep_alive = os.environ.get('WGD_KEEP_ALIVE') or "21"
 wgd_mtu = os.environ.get('WGD_MTU') or "1420"
 wgd_remote_endpoint = os.environ.get('WGD_REMOTE_ENDPOINT') or "0.0.0.0"
+wgd_app_prefix = os.environ.get('WGD_APP_PREFIX') or ""
 
 if wgd_remote_endpoint == '0.0.0.0':
     try:

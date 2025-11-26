@@ -38,16 +38,38 @@ export default {
 				}
 			})
 		},
+		handleKeyCreated(data){
+			console.log('[dashboardAPIKeys] Keys updated after create:', data);
+			if (data) {
+				this.apiKeys = data;
+			} else {
+				// Refresh the keys list to get masked keys
+				fetchGet("/api/getDashboardAPIKeys", {}, (res) => {
+					if(res.status){
+						console.log('[dashboardAPIKeys] Refreshed keys:', res.data);
+						this.apiKeys = res.data;
+					}
+				});
+			}
+		},
+		handleKeyDeleted(nkeys){
+			console.log('[dashboardAPIKeys] Keys updated after delete:', nkeys);
+			this.apiKeys = nkeys;
+		}
 	},
 	watch: {
 		value:{
 			immediate: true,
 			handler(newValue){
 				if (newValue){
+					console.log('[dashboardAPIKeys] Fetching API keys...');
 					fetchGet("/api/getDashboardAPIKeys", {}, (res) => {
+						console.log('[dashboardAPIKeys] getDashboardAPIKeys response:', res);
 						if(res.status){
+							console.log('[dashboardAPIKeys] Received keys:', res.data);
 							this.apiKeys = res.data
 						}else{
+							console.error('[dashboardAPIKeys] Failed to fetch keys:', res.message);
 							this.apiKeys = []
 							this.store.newMessage("Server", res.message, "danger")
 						}
@@ -96,16 +118,19 @@ export default {
 			</div>
 			<div class="d-flex flex-column gap-2 position-relative" v-else style="min-height: 300px">
 				<TransitionGroup name="apiKey">
-					<DashboardAPIKey v-for="key in this.apiKeys" :apiKey="key"
-					                 :key="key.Key"
-					                 @deleted="(nkeys) => this.apiKeys = nkeys"></DashboardAPIKey>
+					<DashboardAPIKey 
+						v-for="(key, index) in this.apiKeys" 
+						:apiKey="key"
+						:key="key.Key || `api-key-${index}`"
+						@deleted="this.handleKeyDeleted">
+					</DashboardAPIKey>
 				</TransitionGroup>
 			</div>
 			<Transition name="zoomReversed">
 				<NewDashboardAPIKey v-if="this.newDashboardAPIKey"
-				                    @created="(data) => this.apiKeys = data"
-				                    @close="this.newDashboardAPIKey = false"
-				></NewDashboardAPIKey>
+				                    @created="this.handleKeyCreated"
+				                    @close="this.newDashboardAPIKey = false">
+				</NewDashboardAPIKey>
 			</Transition>
 			
 		</div>

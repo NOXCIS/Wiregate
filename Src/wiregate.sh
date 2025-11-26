@@ -5,7 +5,7 @@
 
 # Execute commands through restricted shell for security
 secure_exec() {
-    /WireGate/restricted_shell.sh "$@"
+    ./restricted_shell.sh "$@"
 }
 
 # Set up signal handling for the main script
@@ -100,6 +100,70 @@ else
 fi
 svr_config="${WGD_CONF_PATH}/ADMINS.conf"
 
+# Log rotation function - keeps only the N most recent log files
+rotate_logs() {
+    local keep_count="${WGD_LOG_KEEP_COUNT:-10}"  # Default: keep last 10 files
+    local pattern="$1"
+    
+    if [ -z "$pattern" ] || [ ! -d "$log_dir" ]; then
+        return
+    fi
+    
+    # Count files
+    local file_count=$(find "$log_dir" -name "$pattern" -type f 2>/dev/null | wc -l | tr -d ' ')
+    
+    # Only remove if we have more than keep_count
+    if [ "$file_count" -gt "$keep_count" ]; then
+        # Find all matching files, sort by modification time (newest first), remove oldest
+        # Use a temporary approach that works on both Linux and macOS
+        find "$log_dir" -name "$pattern" -type f 2>/dev/null | \
+            while IFS= read -r file; do
+                echo "$(stat -f%m "$file" 2>/dev/null || stat -c%Y "$file" 2>/dev/null || echo 0) $file"
+            done | \
+            sort -rn | \
+            tail -n +$((keep_count + 1)) | \
+            cut -d' ' -f2- | \
+            while IFS= read -r file; do
+                rm -f "$file" 2>/dev/null || true
+            done || \
+        find "$log_dir" -name "$pattern" -type f 2>/dev/null | \
+            while IFS= read -r file; do
+                echo "$(stat -f%m "$file" 2>/dev/null || stat -c%Y "$file" 2>/dev/null || echo 0) $file"
+            done | \
+            sort -rn | \
+            tail -n +$((keep_count + 1)) | \
+            cut -d' ' -f2- | \
+            while IFS= read -r file; do
+                rm -f "$file" 2>/dev/null || true
+            done || true
+    fi
+}
+
+# Clean up old startup logs
+cleanup_old_logs() {
+    if [ ! -d "$log_dir" ]; then
+        return
+    fi
+    
+    echo "[WIREGATE] Cleaning up old log files..."
+    
+    # Rotate each log type
+    rotate_logs "tor_startup_log_*.txt"
+    rotate_logs "dns_tor_startup_log_*.txt"
+    rotate_logs "interface_startup_log_*.txt"
+    
+    # Clean up tor_circuit_refresh_log.txt if it's too large (keep it but truncate if > 10MB)
+    local refresh_log="$log_dir/tor_circuit_refresh_log.txt"
+    if [ -f "$refresh_log" ]; then
+        local size=$(stat -f%z "$refresh_log" 2>/dev/null || stat -c%s "$refresh_log" 2>/dev/null || echo 0)
+        if [ "$size" -gt 10485760 ]; then  # 10MB in bytes
+            echo "[WIREGATE] Truncating large tor_circuit_refresh_log.txt"
+            tail -n 1000 "$refresh_log" > "$refresh_log.tmp" && mv "$refresh_log.tmp" "$refresh_log" 2>/dev/null || true
+        fi
+    fi
+    
+    echo "[WIREGATE] Log cleanup complete"
+}
 
 help() {
     echo "Usage: ./wiregate.sh [command]"
@@ -110,33 +174,77 @@ help() {
 }
 
 get_obfs4_bridges() {
-    BRIDGEDB_URL="https://bridges.torproject.org/bridges?transport=obfs4"
-    
     printf "[TOR] Fetching obfs4 bridges from Tor's BridgeDB...\n"
     
-    response=$(secure_exec wget -qO- "$BRIDGEDB_URL")
-    bridges=$(echo "$response" | secure_exec sed -n 's/.*\(obfs4 [^<]*\)<br\/>.*/\1/p' | secure_exec sed 's/&#43;/+/g')
+    # Use torflux Go program to fetch bridges
+    if [ ! -f "./torflux" ]; then
+        echo "[TOR-DEBUG] ERROR: ./torflux not found"
+        echo "[TOR] No obfs4 bridges found or request failed."
+        export bridges=""
+        return 1
+    fi
     
-    if [[ $response == *"obfs4"* ]]; then
+    local fetched_bridges=$(secure_exec ./torflux --get-bridges=obfs4 2>&1)
+    torflux_exit_code=$?
+    
+    if [ $torflux_exit_code -ne 0 ]; then
+        printf "[TOR-DEBUG] torflux error output: $fetched_bridges\n"
+        echo "[TOR] No obfs4 bridges found or request failed."
+        export bridges=""
+        return 1
+    fi
+    
+    bridges_count=$(echo "$fetched_bridges" | grep -c "obfs4" 2>/dev/null || echo "0")
+    printf "[TOR-DEBUG] Extracted bridges count: $bridges_count\n"
+    
+    if [ "$bridges_count" -gt 0 ]; then
         printf "[TOR] Bridges fetched successfully!\n"
-        echo "[TOR-BRIDGE] $bridges"
+        echo "$fetched_bridges" | while read -r bridge; do
+            if [ -n "$bridge" ]; then
+                echo "[TOR-BRIDGE] $bridge"
+            fi
+        done
+        export bridges="$fetched_bridges"
     else
         echo "[TOR] No obfs4 bridges found or request failed."
+        export bridges=""
     fi
 }
 get_webtunnel_bridges() {
-    BRIDGEDB_URL="https://bridges.torproject.org/bridges?transport=webtunnel"
-    
     printf "[TOR] Fetching WebTunnel bridges from Tor's BridgeDB...\n"
 
-    response=$(secure_exec wget -qO- "$BRIDGEDB_URL")
-    bridges=$(echo "$response" | secure_exec sed -n 's/.*\(webtunnel [^<]*\)<br\/>.*/\1/p')
+    # Use torflux Go program to fetch bridges
+    if [ ! -f "./torflux" ]; then
+        echo "[TOR-DEBUG] ERROR: ./torflux not found"
+        echo "[TOR] No WebTunnel bridges found or request failed."
+        export bridges=""
+        return 1
+    fi
     
-    if [[ $response == *"webtunnel"* ]]; then
+    local fetched_bridges=$(secure_exec ./torflux --get-bridges=webtunnel 2>&1)
+    torflux_exit_code=$?
+    
+    if [ $torflux_exit_code -ne 0 ]; then
+        printf "[TOR-DEBUG] torflux error output: $fetched_bridges\n"
+        echo "[TOR] No WebTunnel bridges found or request failed."
+        export bridges=""
+        return 1
+    fi
+    
+    bridges_count=$(echo "$fetched_bridges" | grep -c "webtunnel" 2>/dev/null || echo "0")
+    printf "[TOR-DEBUG] Extracted bridges count: $bridges_count\n"
+    
+    if [ "$bridges_count" -gt 0 ]; then
         printf "[TOR] Bridges fetched successfully!\n"
-        echo "[TOR-BRIDGE] $bridges"
+        echo "$fetched_bridges" | while read -r bridge; do
+            if [ -n "$bridge" ]; then
+                echo "[TOR-BRIDGE] $bridge"
+            fi
+        done
+        export bridges="$fetched_bridges"
     else
         echo "[TOR] No WebTunnel bridges found or request failed."
+        export bridges=""
     fi
 }
 make_torrc() {
@@ -386,7 +494,228 @@ generate_awgd_values() {
             fi
             done
         done
+        
+        # Generate CPS packets if not manually provided
+        if [[ -z "$WGD_I1" ]]; then
+            generate_cps_packets_from_library
+        fi
+        
+        # Debug: Verify I parameters were generated
+        if [[ "$AMNEZIA_WG" == "true" ]]; then
+            echo "[WIREGATE] AmneziaWG I parameter status:"
+            [[ -n "$WGD_I1" ]] && echo "[WIREGATE]   WGD_I1 = $WGD_I1" || echo "[WIREGATE]   WGD_I1 = (not set)"
+            [[ -n "$WGD_I2" ]] && echo "[WIREGATE]   WGD_I2 = $WGD_I2" || echo "[WIREGATE]   WGD_I2 = (not set)"
+            [[ -n "$WGD_I3" ]] && echo "[WIREGATE]   WGD_I3 = $WGD_I3" || echo "[WIREGATE]   WGD_I3 = (not set)"
+            [[ -n "$WGD_I4" ]] && echo "[WIREGATE]   WGD_I4 = $WGD_I4" || echo "[WIREGATE]   WGD_I4 = (not set)"
+            [[ -n "$WGD_I5" ]] && echo "[WIREGATE]   WGD_I5 = $WGD_I5" || echo "[WIREGATE]   WGD_I5 = (not set)"
+        fi
 }
+
+# Generate CPS (Custom Protocol Signature) packets from JSON library
+generate_cps_packets_from_library() {
+    local patterns_file="/WireGate/configs/cps_patterns/patterns.json"
+    local protocol_map="I1:quic I2:http_get I3:dns I4:json I5:http_response"
+    
+    # Check if patterns file exists
+    if [[ ! -f "$patterns_file" ]]; then
+        echo "[WIREGATE] CPS pattern library not found at $patterns_file, skipping CPS generation"
+        echo "[WIREGATE] I1-I5 parameters will not be added to configs"
+        return
+    fi
+    
+    # Cryptographically secure random integer in range
+    secure_rand_range() {
+        local min=$1
+        local max=$2
+        local range=$((max - min + 1))
+        local bytes_needed=4
+        local random_bytes=$(od -An -N$bytes_needed -tu4 /dev/urandom | tr -d ' ')
+        local random_value=$((random_bytes % range))
+        echo $((min + random_value))
+    }
+    
+    # Randomize CPS pattern (similar to frontend logic)
+    randomize_cps_pattern() {
+        local pattern="$1"
+        
+        if [[ -z "$pattern" ]]; then
+            echo ""
+            return
+        fi
+        
+        # Check if pattern is a full hexstream (single <b 0x...> tag)
+        if [[ "$pattern" =~ ^\<b\ 0x([0-9a-fA-F]+)\>$ ]]; then
+            local hex_string="${BASH_REMATCH[1]}"
+            local hex_len=${#hex_string}
+            
+            # Randomly modify 5-15% of hex characters
+            local percent_change=$(secure_rand_range 5 15)
+            local num_changes=$(( (hex_len * percent_change + 99) / 100 ))
+            if [[ $num_changes -lt 1 ]]; then
+                num_changes=1
+            fi
+            
+            # Convert hex string to array (character by character)
+            local hex_array=()
+            local i=0
+            while [[ $i -lt $hex_len ]]; do
+                hex_array[$i]="${hex_string:$i:1}"
+                i=$((i + 1))
+            done
+            
+            # Randomly select positions to modify
+            local positions=()
+            local j=0
+            while [[ $j -lt $num_changes ]]; do
+                local pos=$(secure_rand_range 0 $((hex_len - 1)))
+                # Check if position already selected
+                local found=0
+                local k=0
+                while [[ $k -lt $j ]]; do
+                    if [[ "${positions[$k]}" == "$pos" ]]; then
+                        found=1
+                        break
+                    fi
+                    k=$((k + 1))
+                done
+                if [[ $found -eq 0 ]]; then
+                    positions[$j]=$pos
+                    # Generate random hex character (0-9, a-f)
+                    local new_char=$(secure_rand_range 0 15)
+                    new_char=$(printf "%x" $new_char)
+                    hex_array[$pos]=$new_char
+                    j=$((j + 1))
+                fi
+            done
+            
+            # Reconstruct hex string
+            local result=""
+            i=0
+            while [[ $i -lt $hex_len ]]; do
+                result="${result}${hex_array[$i]}"
+                i=$((i + 1))
+            done
+            
+            echo "<b 0x${result}>"
+            return
+        fi
+        
+        # For tag-based patterns, randomize length tags (<r N>, <rc N>, <rd N>)
+        local result="$pattern"
+        
+        # Randomize <r N> tags
+        while [[ "$result" =~ \<r\ ([0-9]+)\> ]]; do
+            local original_len="${BASH_REMATCH[1]}"
+            local min_len=$(( (original_len * 75 + 99) / 100 ))
+            if [[ $min_len -lt 1 ]]; then
+                min_len=1
+            fi
+            local max_len=$(( (original_len * 125 + 99) / 100 ))
+            if [[ $max_len -gt 1000 ]]; then
+                max_len=1000
+            fi
+            local new_len=$(secure_rand_range $min_len $max_len)
+            result="${result//<r ${original_len}>/<r ${new_len}>}"
+        done
+        
+        # Randomize <rc N> tags
+        while [[ "$result" =~ \<rc\ ([0-9]+)\> ]]; do
+            local original_len="${BASH_REMATCH[1]}"
+            local min_len=$(( (original_len * 75 + 99) / 100 ))
+            if [[ $min_len -lt 1 ]]; then
+                min_len=1
+            fi
+            local max_len=$(( (original_len * 125 + 99) / 100 ))
+            if [[ $max_len -gt 1000 ]]; then
+                max_len=1000
+            fi
+            local new_len=$(secure_rand_range $min_len $max_len)
+            result="${result//<rc ${original_len}>/<rc ${new_len}>}"
+        done
+        
+        # Randomize <rd N> tags
+        while [[ "$result" =~ \<rd\ ([0-9]+)\> ]]; do
+            local original_len="${BASH_REMATCH[1]}"
+            local min_len=$(( (original_len * 75 + 99) / 100 ))
+            if [[ $min_len -lt 1 ]]; then
+                min_len=1
+            fi
+            local max_len=$(( (original_len * 125 + 99) / 100 ))
+            if [[ $max_len -gt 1000 ]]; then
+                max_len=1000
+            fi
+            local new_len=$(secure_rand_range $min_len $max_len)
+            result="${result//<rd ${original_len}>/<rd ${new_len}>}"
+        done
+        
+        echo "$result"
+    }
+    
+    # Check if we have jq or can parse JSON with awk/sed
+    if command -v jq >/dev/null 2>&1; then
+        # Use jq to extract patterns
+        for mapping in $protocol_map; do
+            local var_name="${mapping%%:*}"
+            local protocol="${mapping##*:}"
+            
+            # Get all patterns for this protocol
+            local patterns=$(jq -r ".patterns[] | select(.protocol == \"$protocol\") | .cps_pattern" "$patterns_file" 2>/dev/null)
+            
+            if [[ -n "$patterns" ]]; then
+                # Count patterns and pick a random one
+                local pattern_count=$(echo "$patterns" | grep -c "^" || echo "0")
+                if [[ "$pattern_count" -gt 0 ]]; then
+                    local random_line=$(od -An -N2 -tu2 /dev/urandom | tr -d ' ')
+                    local line_num=$(( (random_line % pattern_count) + 1 ))
+                    local selected_pattern=$(echo "$patterns" | sed -n "${line_num}p")
+                    
+                    if [[ -n "$selected_pattern" ]]; then
+                        # Use the pattern directly from library without randomization
+                        export "WGD_${var_name}=$selected_pattern"
+                        echo "[WIREGATE] Loaded CPS pattern for $var_name from library (protocol: $protocol)"
+                    fi
+                fi
+            fi
+        done
+    else
+        # Fallback: parse JSON with awk/sed (more fragile but works without jq)
+        for mapping in $protocol_map; do
+            local var_name="${mapping%%:*}"
+            local protocol="${mapping##*:}"
+            
+            # Extract patterns using awk/sed
+            local patterns=$(awk -v protocol="$protocol" '
+                BEGIN { in_pattern = 0; current_protocol = ""; pattern = ""; }
+                /"protocol"/ { 
+                    match($0, /"protocol"\s*:\s*"([^"]+)"/, arr); 
+                    current_protocol = arr[1]; 
+                }
+                /"cps_pattern"/ { 
+                    if (current_protocol == protocol) {
+                        match($0, /"cps_pattern"\s*:\s*"([^"]+)"/, arr); 
+                        if (arr[1] != "") print arr[1];
+                    }
+                }
+            ' "$patterns_file" 2>/dev/null)
+            
+            if [[ -n "$patterns" ]]; then
+                local pattern_count=$(echo "$patterns" | grep -c "^" || echo "0")
+                if [[ "$pattern_count" -gt 0 ]]; then
+                    local random_line=$(od -An -N2 -tu2 /dev/urandom | tr -d ' ')
+                    local line_num=$(( (random_line % pattern_count) + 1 ))
+                    local selected_pattern=$(echo "$patterns" | sed -n "${line_num}p")
+                    
+                    if [[ -n "$selected_pattern" ]]; then
+                        # Use the pattern directly from library without randomization
+                        export "WGD_${var_name}=$selected_pattern"
+                        echo "[WIREGATE] Loaded CPS pattern for $var_name from library (protocol: $protocol)"
+                    fi
+                fi
+            fi
+        done
+    fi
+}
+
 _checkWireguard(){
 	if ! secure_exec wg -h > /dev/null 2>&1
 	then
@@ -400,18 +729,13 @@ _checkWireguard(){
 	fi
 }
 check_dashboard_status(){
-  # Use netstat to find listening port and wget to test connectivity
-  # This method works in Docker containers that don't have ps
-  PORT=$(netstat -tulpn 2>/dev/null | grep ":80 " | head -n1 | awk "{print \$4}" | cut -d: -f2)
-  
-  if [ -n "$PORT" ]; then
-    # Try to connect to the port using wget
-    if wget -q --spider http://127.0.0.1:$PORT/ 2>/dev/null; then
+  # Use netstat to find listening ports (works in Docker containers that don't have ps)
+  # Check for HTTP on port 80
+  if netstat -tulpn 2>/dev/null | grep -q ":80 "; then
       return 0
-    fi
   fi
   
-  # Fallback: check for HTTPS on port 443
+  # Check for HTTPS on port 443
   if netstat -tulpn 2>/dev/null | grep -q ":443 "; then
     return 0
   fi
@@ -828,47 +1152,6 @@ set_proxy () {
 	LANpostdown="./iptable-rules/LAN-only-users/postdown.sh"
 	MEMpostdown="./iptable-rules/Members/${postType}down.sh"
 }
-generate_awgd_values() {
-        # Cryptographically secure random generator for a range
-        secure_rand_range() {
-            local min=$1
-            local max=$2
-            local range=$((max - min + 1))
-            local bytes_needed=4  # Use 4 bytes for good entropy
-            local random_bytes=$(od -An -N$bytes_needed -tu4 /dev/urandom | tr -d ' ')
-            local random_value=$((random_bytes % range))
-            echo $((min + random_value))
-        }
-
-        # Generate WGD_JC (1 ≤ Jc ≤ 128; recommended 3 to 10)
-        export WGD_JC=$(secure_rand_range 3 10)
-
-            # Generate WGD_JMIN and WGD_JMAX (Jmin < Jmax; Jmax ≤ 1280; recommended Jmin=50, Jmax=1000)
-            export WGD_JMIN=$(secure_rand_range 50 500)
-            export WGD_JMAX=$(secure_rand_range $((WGD_JMIN + 1)) 1000)
-
-        # Generate WGD_S1 and WGD_S2 (S1 < 1280, S2 < 1280; S1 + 56 ≠ S2; recommended 15 ≤ S1, S2 ≤ 150)
-        while :; do
-            S1=$(secure_rand_range 15 150)
-            S2=$(secure_rand_range 15 150)
-            [ $((S1 + 56)) -ne $S2 ] && break
-        done
-        export WGD_S1=$S1
-        export WGD_S2=$S2
-
-        # Generate unique H1, H2, H3, and H4 (5 ≤ H ≤ 2147483647)
-        declare -A unique_hashes
-        for h in H1 H2 H3 H4; do
-            while :; do
-            val=$(secure_rand_range 5 2147483647)
-            if [[ -z ${unique_hashes[$val]} ]]; then
-                unique_hashes[$val]=1
-                export "WGD_$h=$val"
-                break
-            fi
-            done
-        done
-}
 newconf_wgd() {
   for i in {0..3}; do
     wg_config_zones "$i"
@@ -927,6 +1210,58 @@ EOF
     echo "H2 = $WGD_H2" >> "$config_file"
     echo "H3 = $WGD_H3" >> "$config_file"
     echo "H4 = $WGD_H4" >> "$config_file"
+    
+    # Normalize CPS format function (convert raw hex 0x... to <b 0x...> format)
+    normalize_cps_format() {
+        local cps_value="$1"
+        if [[ -z "$cps_value" ]]; then
+            echo ""
+            return
+        fi
+        
+        # Trim whitespace (leading and trailing)
+        cps_value=$(echo "$cps_value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        
+        # If it's already in CPS tag format (contains < and >), return as-is
+        if [[ "$cps_value" =~ \<.*\> ]]; then
+            echo "$cps_value"
+            return
+        fi
+        
+        # Check if it's a raw hex value (starts with 0x)
+        if [[ "$cps_value" =~ ^0x[0-9a-fA-F]+$ ]]; then
+            # Remove the 0x prefix and wrap in <b 0x...> tag
+            hex_content="${cps_value#0x}"
+            echo "<b 0x${hex_content}>"
+            return
+        fi
+        
+        # If it doesn't match any known format, return as-is
+        echo "$cps_value"
+    }
+    
+    # Add I1-I5 if present (AmneziaWG 1.5)
+    # Normalize raw hex values (0x...) to CPS tag format (<b 0x...>)
+    if [[ -n "$WGD_I1" ]]; then
+        normalized_i1=$(normalize_cps_format "$WGD_I1")
+        echo "I1 = $normalized_i1" >> "$config_file"
+    fi
+    if [[ -n "$WGD_I2" ]]; then
+        normalized_i2=$(normalize_cps_format "$WGD_I2")
+        echo "I2 = $normalized_i2" >> "$config_file"
+    fi
+    if [[ -n "$WGD_I3" ]]; then
+        normalized_i3=$(normalize_cps_format "$WGD_I3")
+        echo "I3 = $normalized_i3" >> "$config_file"
+    fi
+    if [[ -n "$WGD_I4" ]]; then
+        normalized_i4=$(normalize_cps_format "$WGD_I4")
+        echo "I4 = $normalized_i4" >> "$config_file"
+    fi
+    if [[ -n "$WGD_I5" ]]; then
+        normalized_i5=$(normalize_cps_format "$WGD_I5")
+        echo "I5 = $normalized_i5" >> "$config_file"
+    fi
   fi
 
   [ "$index" -eq 0 ] && make_master_config
@@ -1004,7 +1339,61 @@ make_master_config() {
             echo "H1 = $WGD_H1"
             echo "H2 = $WGD_H2"
             echo "H3 = $WGD_H3"
-            echo -e "H4 = $WGD_H4\n"
+            echo "H4 = $WGD_H4"
+            
+            # Normalize CPS format function (convert raw hex 0x... to <b 0x...> format)
+            normalize_cps_format() {
+                local cps_value="$1"
+                if [[ -z "$cps_value" ]]; then
+                    echo ""
+                    return
+                fi
+                
+                # Trim whitespace (leading and trailing)
+                cps_value=$(echo "$cps_value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+                
+                # If it's already in CPS tag format (contains < and >), return as-is
+                if [[ "$cps_value" =~ \<.*\> ]]; then
+                    echo "$cps_value"
+                    return
+                fi
+                
+                # Check if it's a raw hex value (starts with 0x)
+                if [[ "$cps_value" =~ ^0x[0-9a-fA-F]+$ ]]; then
+                    # Remove the 0x prefix and wrap in <b 0x...> tag
+                    hex_content="${cps_value#0x}"
+                    echo "<b 0x${hex_content}>"
+                    return
+                fi
+                
+                # If it doesn't match any known format, return as-is
+                echo "$cps_value"
+            }
+            
+            # Add I1-I5 if present (AmneziaWG 1.5)
+            # Normalize raw hex values (0x...) to CPS tag format (<b 0x...>)
+            if [[ -n "$WGD_I1" ]]; then
+                normalized_i1=$(normalize_cps_format "$WGD_I1")
+                echo "I1 = $normalized_i1"
+            fi
+            if [[ -n "$WGD_I2" ]]; then
+                normalized_i2=$(normalize_cps_format "$WGD_I2")
+                echo "I2 = $normalized_i2"
+            fi
+            if [[ -n "$WGD_I3" ]]; then
+                normalized_i3=$(normalize_cps_format "$WGD_I3")
+                echo "I3 = $normalized_i3"
+            fi
+            if [[ -n "$WGD_I4" ]]; then
+                normalized_i4=$(normalize_cps_format "$WGD_I4")
+                echo "I4 = $normalized_i4"
+            fi
+            if [[ -n "$WGD_I5" ]]; then
+                normalized_i5=$(normalize_cps_format "$WGD_I5")
+                echo "I5 = $normalized_i5"
+            fi
+            
+            echo ""
         fi
 
         echo "[Peer]"
@@ -1050,6 +1439,9 @@ run_pre_install_setup(){
 
 }
 run_pre_start_setup() {
+
+	# Clean up old log files before starting
+	cleanup_old_logs
 
 	# Create and set ownership for Tor directories
 	secure_exec mkdir -p /var/lib/tor /var/log/tor

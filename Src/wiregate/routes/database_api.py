@@ -73,7 +73,7 @@ async def get_database_stats(
 ):
     """Get database statistics"""
     try:
-        stats = DatabaseAPI.get_stats()
+        stats = await DatabaseAPI.get_stats()
         return StandardResponse(status=True, data=stats)
     except Exception as e:
         logger.error(f"Failed to get database stats: {e}")
@@ -117,7 +117,7 @@ async def clear_database_cache(
 ):
     """Clear database cache"""
     try:
-        result = DatabaseAPI.clear_cache()
+        result = await DatabaseAPI.clear_cache()
         if result['success']:
             return StandardResponse(status=True, message=result['message'])
         else:

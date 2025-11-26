@@ -93,8 +93,10 @@ def redis_bulk_operations(operations: List[tuple]) -> List[Any]:
     from ..DataBase import get_redis_manager
     
     def execute_redis_op(operation):
+        import asyncio
+        from ..DataBase import get_redis_manager
         op_type, key, value = operation
-        redis_manager = get_redis_manager()
+        redis_manager = asyncio.run(get_redis_manager())
         
         try:
             if op_type == 'get':

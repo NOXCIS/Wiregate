@@ -28,6 +28,7 @@ const PeerRateLimitSettings = defineAsyncComponent(() => import("@/components/co
 			v-if="configurationModals.peerSetting.modalOpen"
 			key="PeerSettingsModal"
 			:selectedPeer="configurationModalSelectedPeer"
+			:configurationInfo="configurationInfo"
 			@refresh="emits('refresh')"
 			@close="configurationModals.peerSetting.modalOpen = false">
 		</PeerSettingsModal>

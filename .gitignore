@@ -63,3 +63,11 @@ Src/test_async_performance.py
 omv.docker-compose.yml
 /.VSCodeCounter
 git.md
+*.pcap
+I1-I5-DOCUMENTATION.md
+scripts/process_captured_packets.sh
+scripts/import_wireshark_capture.py
+scripts/capture_cps_patterns.sh
+scripts/add_raw_captures.py
+Src/static/app/public/img/logoo.png
+/test-results

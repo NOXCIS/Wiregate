@@ -26,7 +26,7 @@ from ..Config import (
     DASHBOARD_MODE, ALLOWED_ORIGINS
 )
 from ..DataBase.DataBaseManager import get_redis_manager
-from ..RateLimitMetrics import rate_limit_metrics
+from .RateLimitMetrics import rate_limit_metrics
 
 class SecurityManager:
     """Centralized security management for Wiregate"""
@@ -83,7 +83,9 @@ class SecurityManager:
         
         # Initialize PostgreSQL database manager for brute force protection
         try:
-            self.db_manager = get_redis_manager()
+            import asyncio
+            from wiregate.modules.DataBase import get_redis_manager
+            self.db_manager = asyncio.run(get_redis_manager())
             # Create brute force table if it doesn't exist using existing create_table method
             brute_force_schema = {
                 'id': 'SERIAL PRIMARY KEY',

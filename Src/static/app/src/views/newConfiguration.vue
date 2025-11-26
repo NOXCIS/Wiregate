@@ -2,7 +2,7 @@
 import { parse } from "cidr-tools";
 import "@/utilities/wireguard.js";
 import { WireguardConfigurationsStore } from "@/stores/WireguardConfigurationsStore.js";
-import { fetchPost } from "@/utilities/fetch.js";
+import { fetchPost, getUrl } from "@/utilities/fetch.js";
 import LocaleText from "@/components/text/localeText.vue";
 import { 
   generateTorIPTables, 
@@ -50,7 +50,13 @@ export default {
         H2: "",
         H3: "",
         H4: "",
-        Protocol: "wg"
+        I1: "",
+        I2: "",
+        I3: "",
+        I4: "",
+        I5: "",
+        Protocol: "wg",
+        autoGenerateCPS: true
       },
       previousIPTables: {
         PreUp: "",
@@ -68,7 +74,12 @@ export default {
         H1: "Custom type for Handshake Initiation. Must be unique and between 5 and 2147483647.",
         H2: "Custom type for Handshake Response. Must be unique and between 5 and 2147483647.",
         H3: "Custom type for another WireGuard message. Must be unique and between 5 and 2147483647.",
-        H4: "Custom type for yet another WireGuard message. Must be unique and between 5 and 2147483647."
+        H4: "Custom type for yet another WireGuard message. Must be unique and between 5 and 2147483647.",
+        I1: "Primary CPS packet for QUIC obfuscation. Auto-generates QUIC-style large hex blob. Tags: <b 0xHEX> (binary), <c> (counter), <t> (timestamp), <r N> (random), <rc N> (ASCII), <rd N> (digits).",
+        I2: "Secondary CPS packet. Auto-generates HTTP GET-like pattern. Available tags: <b 0xHEX>, <c>, <t>, <r N>, <rc N>, <rd N>.",
+        I3: "Tertiary CPS packet. Auto-generates DNS query-like pattern. Available tags: <b 0xHEX>, <c>, <t>, <r N>, <rc N>, <rd N>.",
+        I4: "Quaternary CPS packet. Auto-generates JSON-like pattern. Available tags: <b 0xHEX>, <c>, <t>, <r N>, <rc N>, <rd N>.",
+        I5: "Fifth CPS packet. Auto-generates HTTP Response-like pattern. Available tags: <b 0xHEX>, <c>, <t>, <r N>, <rc N>, <rd N>."
       },
       numberOfAvailableIPs: "0",
       error: false,
@@ -77,9 +88,14 @@ export default {
       loading: false
     };
   },
-  created() {
+  async created() {
+    console.log('[DEBUG] Component created - checking methods');
+    console.log('[DEBUG] validateCPSFormat available:', typeof this.validateCPSFormat);
+    console.log('[DEBUG] getCPSValidationClass available:', typeof this.getCPSValidationClass);
+    console.log('[DEBUG] All methods:', Object.keys(this.$options.methods || {}));
+    
     this.wireguardGenerateKeypair();
-    this.generateRandomValues();
+    await this.generateRandomValues();
     
     // Only set default IPTables scripts for brand new configurations if not uploading a file
     if (!this.newConfiguration.PostUp && !this.newConfiguration.PreDown) {
@@ -88,6 +104,8 @@ export default {
       this.newConfiguration.PreUp = generateBlankIPTables(this.newConfiguration);
       this.newConfiguration.PostDown = generateBlankIPTables(this.newConfiguration);
     }
+    
+    console.log('[DEBUG] After initialization - validateCPSFormat available:', typeof this.validateCPSFormat);
   },
   methods: {
     wireguardGenerateKeypair() {
@@ -96,7 +114,7 @@ export default {
       this.newConfiguration.PublicKey = wg.publicKey;
       this.newConfiguration.PresharedKey = wg.presharedKey;
     },
-    generateRandomValues() {
+    async generateRandomValues() {
       // Use cryptographically secure random number generation
       this.newConfiguration.Jc = this.secureRandomInt(3, 10); // 3 to 10 inclusive
       this.newConfiguration.Jmin = this.secureRandomInt(50, 500);
@@ -115,6 +133,126 @@ export default {
         hValues.add(this.secureRandomInt(5, 2147483647));
       }
       [this.newConfiguration.H1, this.newConfiguration.H2, this.newConfiguration.H3, this.newConfiguration.H4] = [...hValues];
+      
+      // Generate CPS packets if autoGenerateCPS is enabled
+      if (this.newConfiguration.autoGenerateCPS) {
+        await this.generateCPSPackets();
+      }
+    },
+    
+    async generateCPSPackets() {
+      // Generate cryptographically secure random hex bytes
+      // Enhanced with pattern library support (70% library, 30% current generation)
+      const randomHexByte = () => {
+        const bytes = new Uint8Array(1);
+        window.crypto.getRandomValues(bytes);
+        return bytes[0].toString(16).padStart(2, '0');
+      };
+      
+      const randomHexBytes = (count) => {
+        const bytes = new Uint8Array(count);
+        window.crypto.getRandomValues(bytes);
+        return Array.from(bytes)
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join('');
+      };
+      
+      // Helper to try getting pattern from library
+      // Always try library first (100% chance), only use synthetic as fallback
+      const tryGetLibraryPattern = async (protocol) => {
+        try {
+          const url = getUrl(`/api/cps-patterns/${protocol}`);
+          const res = await fetch(url, {
+            method: 'GET',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include'
+          });
+          if (res.ok) {
+            const jsonData = await res.json();
+            if (jsonData.status && jsonData.data && jsonData.data.cps_pattern) {
+              console.debug(`✓ Retrieved ${protocol} pattern from library`);
+              return jsonData.data.cps_pattern;
+            } else {
+              console.debug(`✗ Library returned no pattern for ${protocol}`);
+            }
+          } else {
+            console.debug(`✗ Library fetch failed for ${protocol}: ${res.status}`);
+          }
+        } catch (e) {
+          // Fallback to generation
+          console.debug(`Pattern library not available for ${protocol}, using generation:`, e);
+        }
+        return null;
+      };
+      
+      // Helper to randomize pattern (applies to both library and synthetic patterns)
+      const randomizePattern = (pattern) => {
+        if (!pattern) return pattern;
+        
+        // Check if pattern is a full hexstream (single <b 0x...> tag)
+        const fullHexMatch = pattern.trim().match(/^<b\s+0x([0-9a-fA-F]+)>$/);
+        if (fullHexMatch) {
+          // For full hexstreams, randomly modify 5-15% of the hex characters
+          // This maintains the overall structure while adding variation
+          const hexString = fullHexMatch[1];
+          const hexArray = hexString.split('');
+          const numChanges = Math.max(1, Math.floor(hexArray.length * this.secureRandomInt(5, 15) / 100));
+          
+          // Randomly select positions to modify
+          const positions = new Set();
+          while (positions.size < numChanges) {
+            positions.add(this.secureRandomInt(0, hexArray.length - 1));
+          }
+          
+          // Modify selected hex characters
+          positions.forEach(pos => {
+            const currentChar = hexArray[pos];
+            // Generate random hex character (0-9, a-f)
+            const newChar = this.secureRandomInt(0, 15).toString(16);
+            hexArray[pos] = newChar;
+          });
+          
+          return `<b 0x${hexArray.join('')}>`;
+        }
+        
+        // For tag-based patterns, randomize length tags
+        return pattern
+          .replace(/<r\s+(\d+)>/g, (match, len) => {
+            const originalLen = parseInt(len);
+            const variation = this.secureRandomInt(Math.max(1, Math.floor(originalLen * 0.75)), Math.min(1000, Math.floor(originalLen * 1.25)));
+            return `<r ${variation}>`;
+          })
+          .replace(/<rc\s+(\d+)>/g, (match, len) => {
+            const originalLen = parseInt(len);
+            const variation = this.secureRandomInt(Math.max(1, Math.floor(originalLen * 0.75)), Math.min(1000, Math.floor(originalLen * 1.25)));
+            return `<rc ${variation}>`;
+          })
+          .replace(/<rd\s+(\d+)>/g, (match, len) => {
+            const originalLen = parseInt(len);
+            const variation = this.secureRandomInt(Math.max(1, Math.floor(originalLen * 0.75)), Math.min(1000, Math.floor(originalLen * 1.25)));
+            return `<rd ${variation}>`;
+          });
+      };
+      
+      // I1: QUIC (only use library patterns, randomize if found)
+      let i1Pattern = await tryGetLibraryPattern('quic');
+      this.newConfiguration.I1 = i1Pattern ? randomizePattern(i1Pattern) : "";
+      
+      // I2: HTTP GET (only use library patterns, randomize if found)
+      let i2Pattern = await tryGetLibraryPattern('http_get');
+      this.newConfiguration.I2 = i2Pattern ? randomizePattern(i2Pattern) : "";
+      
+      // I3: DNS (only use library patterns, randomize if found)
+      let i3Pattern = await tryGetLibraryPattern('dns');
+      this.newConfiguration.I3 = i3Pattern ? randomizePattern(i3Pattern) : "";
+      
+      // I4: JSON (only use library patterns, randomize if found)
+      let i4Pattern = await tryGetLibraryPattern('json');
+      this.newConfiguration.I4 = i4Pattern ? randomizePattern(i4Pattern) : "";
+      
+      // I5: HTTP Response (only use library patterns, randomize if found)
+      let i5Pattern = await tryGetLibraryPattern('http_response');
+      this.newConfiguration.I5 = i5Pattern ? randomizePattern(i5Pattern) : "";
     },
     
     // Cryptographically secure random number generator
@@ -123,32 +261,48 @@ export default {
         throw new Error('min must be less than or equal to max');
       }
       
+      // Ensure min and max are integers
+      min = Math.floor(min);
+      max = Math.floor(max);
+      
       // Calculate the range
       const range = max - min + 1;
       
-      // Calculate the number of bytes needed
-      const bytesNeeded = Math.ceil(Math.log2(range) / 8);
+      // Use rejection sampling to avoid modulo bias
+      // Always use 32-bit unsigned integers for consistency
+      const maxRandomValue = 0xFFFFFFFF; // 32-bit unsigned max
+      const threshold = maxRandomValue - (maxRandomValue % range);
       
-      // Generate random bytes
-      const randomBytes = new Uint8Array(bytesNeeded);
+      let randomValue;
+      let attempts = 0;
+      const maxAttempts = 100; // Prevent infinite loops
+      
+      do {
+        // Generate 4 random bytes (32 bits)
+        const randomBytes = new Uint8Array(4);
       window.crypto.getRandomValues(randomBytes);
       
-      // Convert to integer
-      let randomValue = 0;
-      for (let i = 0; i < bytesNeeded; i++) {
-        randomValue = (randomValue << 8) + randomBytes[i];
-      }
+        // Convert to 32-bit unsigned integer safely
+        // Use multiplication instead of bit shifting to avoid sign issues
+        randomValue = (randomBytes[0] * 0x1000000) + 
+                      (randomBytes[1] * 0x10000) + 
+                      (randomBytes[2] * 0x100) + 
+                      randomBytes[3];
+        
+        // Ensure it's unsigned (though multiplication should already give us this)
+        randomValue = randomValue >>> 0;
+        
+        attempts++;
+        if (attempts > maxAttempts) {
+          // Fallback: use Math.random if rejection sampling fails too many times
+          console.warn('secureRandomInt: Too many rejection attempts, using fallback');
+          return min + Math.floor(Math.random() * range);
+        }
+      } while (randomValue >= threshold);
       
-      // Ensure the value is within the range
-      const maxValue = Math.pow(2, bytesNeeded * 8) - 1;
-      const threshold = maxValue - (maxValue % range);
-      
-      // Reject values that would cause bias
-      if (randomValue >= threshold) {
-        return this.secureRandomInt(min, max);
-      }
-      
-      return min + (randomValue % range);
+      // Calculate result and ensure it's within bounds
+      const result = min + (randomValue % range);
+      return Math.max(min, Math.min(max, result));
     },
     validateHValues() {
       let hValues = [
@@ -627,6 +781,11 @@ export default {
           H2,
           H3,
           H4,
+          I1: this.newConfiguration.I1,
+          I2: this.newConfiguration.I2,
+          I3: this.newConfiguration.I3,
+          I4: this.newConfiguration.I4,
+          I5: this.newConfiguration.I5,
         });
       }
 
@@ -686,6 +845,38 @@ export default {
         [...document.querySelectorAll("input[required]")]
           .every(input => !input.classList.contains("is-invalid"))
       );
+    },
+    
+    // CPS validation helper - returns a function that can be used in template
+    cpsValidation() {
+      return (key) => {
+        const value = this.newConfiguration[key];
+        if (!value || value === "") return {};
+        
+        const isValid = this.validateCPSFormat(value);
+        return {
+          'is-invalid': !isValid,
+          'is-valid': isValid
+        };
+      };
+    },
+    
+    // Computed property for CPS validation classes
+    cpsValidationClasses() {
+      const classes = {};
+      ['I1', 'I2', 'I3', 'I4', 'I5'].forEach(key => {
+        const value = this.newConfiguration[key];
+        if (value && this.validateCPSFormat) {
+          if (this.validateCPSFormat(value)) {
+            classes[key] = { 'is-valid': true };
+          } else {
+            classes[key] = { 'is-invalid': true };
+          }
+        } else {
+          classes[key] = {};
+        }
+      });
+      return classes;
     },
   },
   watch: {
@@ -906,6 +1097,127 @@ export default {
     },
 
     // Handle manual IPTables toggle
+    async handleCPSToggle() {
+      if (this.newConfiguration.autoGenerateCPS) {
+        await this.generateCPSPackets();
+      } else {
+        // Clear CPS fields when manual mode is enabled
+        this.newConfiguration.I1 = "";
+        this.newConfiguration.I2 = "";
+        this.newConfiguration.I3 = "";
+        this.newConfiguration.I4 = "";
+        this.newConfiguration.I5 = "";
+      }
+    },
+    
+    isCPSParamInvalid(key) {
+      const value = this.newConfiguration[key];
+      if (!value || value === "") return false;
+      
+      return !this.validateCPSFormat(value);
+    },
+    
+    isCPSParamValid(key) {
+      const value = this.newConfiguration[key];
+      if (!value || value === "") return false;
+      
+      return this.validateCPSFormat(value);
+    },
+    
+    getCPSValidation(key) {
+      const value = this.newConfiguration[key];
+      if (!value || value === "") return null;
+      
+      if (this.validateCPSFormat(value)) {
+        return 'valid';
+      } else {
+        return 'invalid';
+      }
+    },
+    
+    getCPSInputClass(key) {
+      const value = this.newConfiguration[key];
+      if (!value || value === "") return {};
+      
+      const isValid = this.validateCPSFormat(value);
+      return {
+        'is-invalid': !isValid,
+        'is-valid': isValid
+      };
+    },
+    
+    getCPSValidationClass(key) {
+      console.log('[DEBUG] getCPSValidationClass called for key:', key);
+      console.log('[DEBUG] validateCPSFormat available:', typeof this.validateCPSFormat);
+      console.log('[DEBUG] methods object:', Object.keys(this.$options.methods || {}));
+      
+      const value = this.newConfiguration[key];
+      if (!value || value === "") {
+        return {};
+      }
+      
+      // Safely call validateCPSFormat
+      if (typeof this.validateCPSFormat === 'function') {
+        const isValid = this.validateCPSFormat(value);
+        return {
+          'is-invalid': !isValid,
+          'is-valid': isValid
+        };
+      } else {
+        console.error('[ERROR] validateCPSFormat is not a function!', this.validateCPSFormat);
+        return {};
+      }
+    },
+    
+    validateCPSFormat(value) {
+      console.log('[DEBUG] validateCPSFormat called with:', value);
+      console.log('[DEBUG] validateCPSFormat method exists:', typeof this.validateCPSFormat);
+      console.log('[DEBUG] this context:', this);
+      
+      if (!value || value === "") return true;
+      
+      // Pattern for individual tags
+      const hexTag = /<b\s+0x[0-9a-fA-F]+>/g;
+      const counterTag = /<c>/g;
+      const timestampTag = /<t>/g;
+      const randomTag = /<r\s+(\d+)>/g;
+      const randomAsciiTag = /<rc\s+(\d+)>/g;  // Random ASCII characters (a-z, A-Z)
+      const randomDigitTag = /<rd\s+(\d+)>/g;  // Random digits (0-9)
+      
+      // Check if the string only contains valid tags
+      let testString = value;
+      testString = testString.replace(hexTag, '');
+      testString = testString.replace(counterTag, '');
+      testString = testString.replace(timestampTag, '');
+      testString = testString.replace(randomTag, '');
+      testString = testString.replace(randomAsciiTag, '');
+      testString = testString.replace(randomDigitTag, '');
+      
+      // If there's anything left, it's invalid
+      if (testString.trim() !== '') {
+        console.log('[DEBUG] validateCPSFormat: invalid - leftover text:', testString.trim());
+        return false;
+      }
+      
+      // Validate random length constraints for all variable-length tags
+      const allLengthTags = [
+        ...value.matchAll(/<r\s+(\d+)>/g),
+        ...value.matchAll(/<rc\s+(\d+)>/g),
+        ...value.matchAll(/<rd\s+(\d+)>/g)
+      ];
+      
+      for (const match of allLengthTags) {
+        const length = parseInt(match[1]);
+        if (length <= 0 || length > 1000) {
+          console.log('[DEBUG] validateCPSFormat: invalid - length out of range:', length);
+          return false;
+        }
+      }
+      
+      console.log('[DEBUG] validateCPSFormat: valid');
+      return true;
+    },
+    
     handleManualIPTablesToggle() {
       if (this.isManualIPTables) {
         // User opts to manage IPTables scripts manually
@@ -926,8 +1238,15 @@ export default {
   },
  
   mounted() {
+    console.log('[DEBUG] Component mounted - checking methods');
+    console.log('[DEBUG] validateCPSFormat available:', typeof this.validateCPSFormat);
+    console.log('[DEBUG] getCPSValidationClass available:', typeof this.getCPSValidationClass);
+    console.log('[DEBUG] Component instance methods:', Object.getOwnPropertyNames(Object.getPrototypeOf(this)).filter(name => name !== 'constructor'));
+    
     const fileUpload = document.querySelector("#fileUpload");
-    fileUpload.addEventListener("change", this.readFile, false)
+    if (fileUpload) {
+      fileUpload.addEventListener("change", this.readFile, false);
+    }
   }
 };
 </script>
@@ -1198,6 +1517,60 @@ export default {
                 </div>
                 <div class="valid-feedback">
                   <LocaleText :t="`Valid value for ${key}`"></LocaleText>
+                </div>
+              </div>
+              
+              <!-- CPS Packets Section -->
+              <hr class="my-4">
+              <div class="d-flex align-items-center mb-3">
+                <h6 class="mb-0">
+                  <LocaleText t="AmneziaWG 1.5 CPS Packets (Optional)"></LocaleText>
+                </h6>
+                <div class="form-check form-switch ms-auto">
+                  <input 
+                    class="form-check-input" 
+                    type="checkbox" 
+                    role="switch" 
+                    id="autoGenerateCPS"
+                    v-model="newConfiguration.autoGenerateCPS"
+                    @change="handleCPSToggle"
+                  >
+                  <label class="form-check-label" for="autoGenerateCPS">
+                    <small><LocaleText t="Auto-generate CPS packets"></LocaleText></small>
+                  </label>
+                </div>
+              </div>
+              
+              <div class="alert alert-info py-2 px-3" v-if="newConfiguration.I1 || newConfiguration.autoGenerateCPS">
+                <small>
+                  <i class="bi bi-info-circle me-2"></i>
+                  <LocaleText t="CPS packets enable protocol obfuscation by mimicking other protocols. Leave empty to use AmneziaWG 1.0."></LocaleText>
+                </small>
+              </div>
+              
+              <div v-for="key in ['I1', 'I2', 'I3', 'I4', 'I5']" :key="key" class="mb-3">
+                <label :for="key" class="text-muted fw-bold mb-1">
+                  <small>{{ key }}</small>
+                </label>
+                <div v-if="descriptions[key]" class="form-text text-muted">
+                  <small>{{ descriptions[key] }}</small>
+                </div>
+                <input
+                  type="text"
+                  class="form-control"
+                  :class="cpsValidationClasses[key] || {}"
+                  v-model="newConfiguration[key]"
+                  :id="key"
+                  :placeholder="key === 'I1' ? '<b 0xc0><c><t><r 16>' : key"
+                  autocomplete="off"
+                  :aria-label="key"
+                  :disabled="newConfiguration.autoGenerateCPS"
+                />
+                <div class="invalid-feedback">
+                  <LocaleText :t="`Invalid CPS format for ${key}`"></LocaleText>
+                </div>
+                <div class="valid-feedback">
+                  <LocaleText :t="`Valid CPS format for ${key}`"></LocaleText>
                 </div>
               </div>
             </div>

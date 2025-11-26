@@ -16,7 +16,7 @@ RUN pnpm install --frozen-lockfile && pnpm run build
 FROM alpine:latest AS utils_extractor
 
 # Copy and run mirror selection script
-COPY select-mirror.sh /tmp/select-mirror.sh
+COPY scripts/select-mirror.sh /tmp/select-mirror.sh
 RUN chmod +x /tmp/select-mirror.sh && /tmp/select-mirror.sh
 
 RUN apk add --no-cache coreutils findutils gawk util-linux grep sed
@@ -54,9 +54,9 @@ RUN /bin/echo "root:x:0:0:root:/root:/bin/sh" > /etc/passwd && \
     /bin/chmod 1777 /tmp /var/tmp && \
     /bin/chmod 755 /etc
 
-# base_cve_patch: Security-hardened minimal base (BusyBox-free)
+# bedrock: Security-hardened minimal base (BusyBox-free)
 ##########################################################
-FROM minimal-base AS base_cve_patch
+FROM minimal-base AS bedrock
 
 # Create device files and set permissions in single layer
 RUN [ ! -e /dev/null ] && /sbin/mknod /dev/null c 1 3 || true && \
@@ -74,11 +74,11 @@ WORKDIR /build
 COPY ./Src/requirements.txt .
 
 # Copy and run mirror selection script, then install packages
-COPY select-mirror.sh /tmp/select-mirror.sh
+COPY scripts/select-mirror.sh /tmp/select-mirror.sh
 RUN chmod +x /tmp/select-mirror.sh && /tmp/select-mirror.sh && \
     apk add --no-cache \
         py3-virtualenv py3-pip musl-dev build-base zlib-dev libffi-dev openssl-dev \
-        linux-headers rust cargo upx wget openldap-dev ccache && \
+        linux-headers rust cargo upx wget openldap-dev ccache postgresql-dev && \
     python3 -m venv venv && \
     venv/bin/pip install --upgrade pip && \
     venv/bin/pip install -r requirements.txt
@@ -90,7 +90,7 @@ ARG TARGETPLATFORM
 ARG GO_VERSION
 
 # Copy and run mirror selection script, then install packages and download Go
-COPY select-mirror.sh /tmp/select-mirror.sh
+COPY scripts/select-mirror.sh /tmp/select-mirror.sh
 RUN chmod +x /tmp/select-mirror.sh && /tmp/select-mirror.sh && \
     apk add --no-cache wget curl gcc musl-dev && \
     set -eux; \
@@ -118,8 +118,9 @@ WORKDIR /build
 # Copy source files and build binaries in single layer
 COPY ./Src/torflux/torflux.go ./Src/torflux/go.mod /build/torflux-build/
 COPY ./Src/traffic_weir/ /build/traffic_weir/
+COPY ./Src/healthcheck/ /build/healthcheck/
 
-RUN mkdir -p /build/torflux-build /build/traffic_weir && \
+RUN mkdir -p /build/torflux-build /build/traffic_weir /build/healthcheck && \
     cd /build/torflux-build && \
     GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
     -ldflags="-X main.version=v1.0.0 -s -w" \
@@ -127,7 +128,11 @@ RUN mkdir -p /build/torflux-build /build/traffic_weir && \
     cd /build/traffic_weir && \
     GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
     -ldflags="-X main.version=v1.0.0 -s -w" \
-    -o /build/traffic-weir
+    -o /build/traffic-weir && \
+    cd /build/healthcheck && \
+    GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
+    -ldflags="-X main.version=v1.0.0 -s -w" \
+    -o /build/healthcheck
 
 # pybuilder: Python binary builder
 ##########################################################
@@ -153,11 +158,11 @@ RUN venv/bin/pyinstaller \
 FROM alpine:latest AS runtime-deps
 
 # Copy and run mirror selection script, then install packages and create directories
-COPY select-mirror.sh /tmp/select-mirror.sh
+COPY scripts/select-mirror.sh /tmp/select-mirror.sh
 RUN chmod +x /tmp/select-mirror.sh && /tmp/select-mirror.sh && \
     apk add --no-cache \
         wireguard-tools iptables ip6tables iproute2 tzdata sudo tor ca-certificates \
-        net-tools bash && \
+        net-tools bash openssl && \
     mkdir -p /runtime-files/bin /runtime-files/sbin /runtime-files/usr/bin /runtime-files/usr/sbin \
              /runtime-files/lib /runtime-files/usr/lib /runtime-files/etc /runtime-files/usr/share && \
     # Verify Tor installation includes GEOIP files
@@ -172,7 +177,7 @@ RUN chmod +x /tmp/select-mirror.sh && /tmp/select-mirror.sh && \
 
 # Final stage: Minimal WireGate container
 ##########################################################
-FROM base_cve_patch AS final
+FROM bedrock AS final
 
 LABEL maintainer="NOXCIS"
 
@@ -185,23 +190,16 @@ WORKDIR /WireGate
 
 # Copy runtime binaries in grouped operations
 COPY --from=runtime-deps \
-    /usr/bin/wg /usr/bin/wg-quick /usr/bin/sudo /usr/bin/tor /usr/bin/wget \
+    /usr/bin/wg /usr/bin/wg-quick /usr/bin/sudo /usr/bin/tor \
     /usr/bin/
 
 COPY --from=runtime-deps \
     /usr/sbin/iptables /usr/sbin/ip6tables /usr/sbin/iptables-restore /usr/sbin/ip6tables-restore \
-    /sbin/
-
-COPY --from=runtime-deps \
-    /bin/netstat /bin/bash /bin/hostname /bin/sleep /bin/date /bin/stat /bin/base64 /bin/sync \
-    /bin/
-
-
-COPY --from=runtime-deps \
     /sbin/modprobe /sbin/lsmod /sbin/ip /sbin/tc \
     /sbin/
 
 COPY --from=runtime-deps \
+    /bin/netstat /bin/bash /bin/hostname /bin/sleep /bin/date /bin/stat /bin/base64 /bin/sync \
     /usr/bin/readlink /usr/bin/od /usr/bin/tr /usr/bin/basename \
     /bin/
 
@@ -211,14 +209,8 @@ COPY --from=runtime-deps /lib/ld-musl-*.so.1 /lib/
 COPY --from=runtime-deps \
     /usr/lib/libevent-2.1.so.7 /usr/lib/libz.so.1 \
     /usr/lib/libssl.so.3 /usr/lib/libcrypto.so.3 \
-    /usr/lib/
-
-COPY --from=runtime-deps \
     /usr/lib/libmnl.so.0 /usr/lib/libnftnl.so.11 /usr/lib/libreadline.so.8 /usr/lib/libncursesw.so.6 \
     /usr/lib/liblzma.so.5 /usr/lib/libzstd.so.1 \
-    /usr/lib/
-
-COPY --from=runtime-deps \
     /usr/lib/libseccomp.so.2 /usr/lib/libcap.so.2 /usr/lib/libelf.so.1 /usr/lib/libxtables.so.12 \
     /usr/lib/
 
@@ -249,11 +241,19 @@ RUN echo "Verifying GEOIP files in final image:" && \
         exit 1; \
     fi
 
+# Remove build-only utilities that aren't needed at runtime
+# These utilities are only used in minimal-base/bedrock build stages, not at runtime
+# cp, gawk, id, whoami are not in restricted_shell.sh allowed commands and not used in wiregate.sh
+RUN rm -f /bin/cp /bin/gawk /usr/bin/gawk /usr/bin/id /usr/bin/whoami 2>/dev/null || true
+
 # Copy application files and set permissions in single layer
 COPY ./Src/iptable-rules /WireGate/iptable-rules
 COPY ./Src/wiregate.sh ./Src/entrypoint.sh /WireGate/
 COPY ./Src/dnscrypt /WireGate/dnscrypt
 COPY ./Src/restricted_shell.sh /WireGate/restricted_shell.sh
+
+# Copy CPS pattern library into container
+COPY ./configs/cps_patterns /WireGate/configs/cps_patterns
 
 RUN chmod +x /WireGate/wiregate.sh /WireGate/entrypoint.sh /WireGate/restricted_shell.sh
 
@@ -270,14 +270,14 @@ COPY --from=noxcis/awg-bins:latest /amneziawg-go /awg /awg-quick /usr/bin/
 
 # Copy built binaries and set permissions
 COPY --from=pybuilder /build/dist/wiregate /build/dist/vanguards /WireGate/
-COPY --from=builder /build/torflux /build/traffic-weir /WireGate/
+COPY --from=builder /build/torflux /build/traffic-weir /build/healthcheck /WireGate/
 
 
 
-RUN chmod +x /WireGate/wiregate /WireGate/vanguards /WireGate/torflux /WireGate/traffic-weir
+RUN chmod +x /WireGate/wiregate /WireGate/vanguards /WireGate/torflux /WireGate/traffic-weir /WireGate/healthcheck
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 CMD \
-    sh -c 'netstat -tuln 2>/dev/null | grep -q ":443 " || netstat -tuln 2>/dev/null | grep -q ":80 " || exit 1'
+    /WireGate/healthcheck --dashboard || exit 1
 
 # Set shorter stop timeout for faster container shutdown
 ENV DOCKER_STOP_TIMEOUT=10

@@ -13,7 +13,27 @@ import os
 logger = logging.getLogger(__name__)
 
 # Import only what we need for background threads (no Flask app needed)
-from ..dashboard import startThreads, stopThreads
+# Lazy import for PyInstaller compatibility - import when needed
+def _get_dashboard_functions():
+    """Get dashboard functions with fallback for PyInstaller"""
+    try:
+        from wiregate.dashboard import startThreads, stopThreads
+        return startThreads, stopThreads
+    except ImportError:
+        try:
+            from ..dashboard import startThreads, stopThreads
+            return startThreads, stopThreads
+        except ImportError:
+            # Stub functions if module not available
+            logger.warning("Dashboard module not available, using stubs")
+            async def startThreads():
+                pass
+            async def stopThreads():
+                pass
+            return startThreads, stopThreads
+
+# Import functions lazily
+startThreads, stopThreads = _get_dashboard_functions()
 
 # Import security components
 from .Security import (
@@ -29,7 +49,8 @@ from .Security import (
 )
 
 # Import core modules
-from .Core import APP_PREFIX, InitWireguardConfigurationsList, InitRateLimits
+from .Core import InitWireguardConfigurationsList, InitRateLimits
+from .Config import wgd_app_prefix as APP_PREFIX
 from .Config import DASHBOARD_MODE
 from .DataBase import check_and_migrate_sqlite_databases
 
@@ -43,6 +64,20 @@ async def lifespan(app: FastAPI):
     logger.info("FastAPI application starting up...")
     
     try:
+        # Run startup validation
+        from .StartupValidation import validate_startup_config
+        validation_valid, validation_report = await validate_startup_config()
+        
+        if not validation_valid:
+            logger.error("Startup validation failed with critical issues:")
+            for issue in validation_report.get('issues', []):
+                if issue.get('severity') == 'critical':
+                    logger.error(f"  - {issue.get('component')}: {issue.get('message')}")
+            # Continue startup but log the issues
+            logger.warning("Continuing startup despite validation issues - some features may not work")
+        else:
+            logger.info("✓ Startup validation passed")
+        
         # Initialize async database manager
         from .DataBase.AsyncDataBaseManager import init_async_db
         await init_async_db()
@@ -60,11 +95,11 @@ async def lifespan(app: FastAPI):
             logger.info(f"✓ Using SQLite database (simple mode: DASHBOARD_TYPE={DASHBOARD_TYPE})")
         
         # Initialize WireGuard configurations
-        InitWireguardConfigurationsList(startup=True)
+        await InitWireguardConfigurationsList(startup=True)
         await InitRateLimits()
         
         # Start background threads
-        startThreads()
+        await startThreads()
         logger.info("✓ Background threads started")
         
         yield  # Application is running
@@ -104,6 +139,7 @@ fastapi_app = FastAPI(
 SESSION_SECRET_KEY = secrets.token_urlsafe(64)
 
 # Add middleware in reverse order (last added = first executed)
+# See Docs/ARCHITECTURE.md for detailed middleware execution order documentation
 # 0. HTTPS redirect (first - redirects HTTP to HTTPS in production)
 fastapi_app.add_middleware(HTTPSRedirectMiddleware)
 # 1. Bot protection (block AI bots and scrapers)
@@ -113,16 +149,16 @@ fastapi_app.add_middleware(CSRFProtectionMiddleware)
 # 3. Security headers (outermost)
 fastapi_app.add_middleware(SecurityHeadersMiddleware)
 
-# 2. Request logging
+# 4. Request logging
 fastapi_app.add_middleware(RequestLoggingMiddleware)
 
-# 3. Rate limiting (before authentication)
+# 5. Rate limiting (before authentication)
 fastapi_app.add_middleware(RateLimitMiddleware, security_manager=security_manager)
 
-# 4. Session management
+# 6. Session management
 fastapi_app.add_middleware(SessionMiddleware, secret_key=SESSION_SECRET_KEY)
 
-# 5. CORS (must be last middleware added = first executed)
+# 7. CORS (must be last middleware added = first executed)
 configure_cors(fastapi_app)
 
 
@@ -204,13 +240,6 @@ async def general_exception_handler(request: Request, exc: Exception):
     return FileResponse(os.path.abspath("./static/app/dist/index.html"))
 
 
-# Health check endpoint
-@fastapi_app.get("/api/health")
-async def health_check():
-    """Health check endpoint for Docker and monitoring"""
-    return {"status": "ok", "message": "Wiregate is running"}
-
-
 # Import and register FastAPI routers as they are created
 from ..routes.locale_api import router as locale_router
 fastapi_app.include_router(locale_router, prefix=f"{APP_PREFIX}/api", tags=["locale"])
@@ -247,6 +276,17 @@ fastapi_app.include_router(auth_router, prefix=f"{APP_PREFIX}/api", tags=["auth"
 
 from ..routes.core_api import router as main_api_router
 fastapi_app.include_router(main_api_router, prefix=f"{APP_PREFIX}/api", tags=["main"])
+
+from ..routes.cps_adaptation_api import router as cps_adaptation_router
+from ..routes.cps_patterns_api import router as cps_patterns_router
+fastapi_app.include_router(cps_adaptation_router, prefix=f"{APP_PREFIX}/api", tags=["cps_adaptation"])
+fastapi_app.include_router(cps_patterns_router, prefix=f"{APP_PREFIX}/api", tags=["cps_patterns"])
+
+from ..routes.health_api import router as health_router
+fastapi_app.include_router(health_router, prefix=f"{APP_PREFIX}/api", tags=["health"])
+
+from ..routes.metrics_api import router as metrics_router
+fastapi_app.include_router(metrics_router, prefix=f"{APP_PREFIX}/api", tags=["metrics"])
 
 # All Flask blueprints have been migrated to FastAPI routers!
 logger.info("All FastAPI routers registered successfully")

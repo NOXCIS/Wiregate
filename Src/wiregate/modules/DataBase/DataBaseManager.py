@@ -2,12 +2,14 @@ import redis
 import json
 import os
 import re
-import sqlite3
+import aiosqlite
+import sqlite3  # Still needed for migration functions
 import psycopg2
 import psycopg2.extras
 from typing import Dict, List, Any, Optional, Union
 from datetime import datetime
 import logging
+import asyncio
 from ..Config import (
     redis_host, redis_port, redis_db, redis_password,
     postgres_host, postgres_port, postgres_db, postgres_user, postgres_password, postgres_ssl_mode,
@@ -18,10 +20,16 @@ from ..Config import (
 logger = logging.getLogger('wiregate')
 
 class SQLiteDatabaseManager:
-    """SQLite database manager for simple deployments"""
+    """
+    Async SQLite database manager for simple deployments
+    Uses aiosqlite for thread-safe async operations
+    
+    All methods are async to ensure thread-safe access when used from async contexts.
+    See Docs/ARCHITECTURE.md for database architecture documentation.
+    """
     
     def __init__(self, db_path=None):
-        """Initialize SQLite connection"""
+        """Initialize SQLite connection (async initialization required)"""
         if db_path is None:
             # Default SQLite database path
             db_path = os.path.join(os.getcwd(), 'db', 'wgdashboard.db')
@@ -31,17 +39,38 @@ class SQLiteDatabaseManager:
         
         self.db_path = db_path
         self.conn = None
-        self._init_sqlite()
+        self._init_event = None
+        # Note: Connection will be initialized asynchronously via _init_sqlite()
         
-    def _init_sqlite(self):
-        """Initialize SQLite connection"""
+    async def _init_sqlite(self):
+        """Initialize async SQLite connection"""
         try:
-            self.conn = sqlite3.connect(self.db_path, check_same_thread=False)
-            self.conn.row_factory = sqlite3.Row  # Enable dict-like access
-            logger.info(f"Successfully connected to SQLite database: {self.db_path}")
+            self.conn = await aiosqlite.connect(self.db_path)
+            self.conn.row_factory = aiosqlite.Row  # Enable dict-like access
+            logger.info(f"Successfully connected to async SQLite database: {self.db_path}")
         except Exception as e:
-            logger.error(f"Failed to connect to SQLite database: {e}")
+            logger.error(f"Failed to connect to async SQLite database: {e}")
             raise
+    
+    def _ensure_initialized(self):
+        """Ensure database connection is initialized (for sync compatibility)"""
+        if self.conn is None:
+            # Try to initialize synchronously if not already done
+            if self._init_event is None:
+                self._init_event = asyncio.Event()
+                try:
+                    # Try to get running event loop
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # If loop is running, we need to wait for async init
+                        # This is a fallback - ideally all code should use async methods
+                        logger.warning("SQLiteDatabaseManager used synchronously - connection may not be initialized")
+                    else:
+                        # No running loop, can initialize directly
+                        loop.run_until_complete(self._init_sqlite())
+                except RuntimeError:
+                    # No event loop, create one
+                    asyncio.run(self._init_sqlite())
     
     @property
     def redis_client(self):
@@ -65,26 +94,32 @@ class SQLiteDatabaseManager:
                 deserialized_data['traffic'] = []
         return deserialized_data
     
-    def create_table(self, table_name: str, schema: Dict[str, str]) -> bool:
+    async def create_table(self, table_name: str, schema: Dict[str, str]) -> bool:
         """Create a table with the given schema"""
         try:
+            if self.conn is None:
+                await self._init_sqlite()
+            
             columns = []
             for column_name, column_type in schema.items():
                 columns.append(f"{column_name} {column_type}")
             
             create_sql = f"CREATE TABLE IF NOT EXISTS {table_name} ({', '.join(columns)})"
             
-            with self.conn:
-                self.conn.execute(create_sql)
+            await self.conn.execute(create_sql)
+            await self.conn.commit()
             logger.debug(f"Created table {table_name}")
             return True
         except Exception as e:
             logger.error(f"Failed to create table {table_name}: {e}")
             return False
     
-    def insert_record(self, table_name: str, record_id: str, data: Dict[str, Any]) -> bool:
+    async def insert_record(self, table_name: str, record_id: str, data: Dict[str, Any]) -> bool:
         """Insert a record into the table"""
         try:
+            if self.conn is None:
+                await self._init_sqlite()
+            
             # Ensure the record_id is in the data
             data['id'] = record_id
             
@@ -97,16 +132,19 @@ class SQLiteDatabaseManager:
             
             insert_sql = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(placeholders)})"
             
-            with self.conn:
-                self.conn.execute(insert_sql, values)
+            await self.conn.execute(insert_sql, values)
+            await self.conn.commit()
             return True
         except Exception as e:
             logger.error(f"Failed to insert record into {table_name}: {e}")
             return False
     
-    def update_record(self, table_name: str, record_id: str, data: Dict[str, Any]) -> bool:
+    async def update_record(self, table_name: str, record_id: str, data: Dict[str, Any]) -> bool:
         """Update a record in the table"""
         try:
+            if self.conn is None:
+                await self._init_sqlite()
+            
             # Serialize data for database storage
             serialized_data = self._serialize_data_for_db(data)
             
@@ -115,19 +153,22 @@ class SQLiteDatabaseManager:
             
             update_sql = f"UPDATE {table_name} SET {', '.join(set_clauses)} WHERE id = ?"
             
-            with self.conn:
-                cursor = self.conn.execute(update_sql, values)
-                return cursor.rowcount > 0
+            cursor = await self.conn.execute(update_sql, values)
+            await self.conn.commit()
+            return cursor.rowcount > 0
         except Exception as e:
             logger.error(f"Failed to update record in {table_name}: {e}")
             return False
     
-    def get_record(self, table_name: str, record_id: str) -> Optional[Dict[str, Any]]:
+    async def get_record(self, table_name: str, record_id: str) -> Optional[Dict[str, Any]]:
         """Get a single record by ID"""
         try:
+            if self.conn is None:
+                await self._init_sqlite()
+            
             select_sql = f"SELECT * FROM {table_name} WHERE id = ?"
-            cursor = self.conn.execute(select_sql, (record_id,))
-            row = cursor.fetchone()
+            cursor = await self.conn.execute(select_sql, (record_id,))
+            row = await cursor.fetchone()
             
             if row:
                 data = dict(row)
@@ -137,64 +178,80 @@ class SQLiteDatabaseManager:
             logger.error(f"Failed to get record from {table_name}: {e}")
             return None
     
-    def get_all_records(self, table_name: str) -> List[Dict[str, Any]]:
+    async def get_all_records(self, table_name: str) -> List[Dict[str, Any]]:
         """Get all records from a table"""
         try:
+            if self.conn is None:
+                await self._init_sqlite()
+            
             select_sql = f"SELECT * FROM {table_name}"
-            cursor = self.conn.execute(select_sql)
-            rows = cursor.fetchall()
+            cursor = await self.conn.execute(select_sql)
+            rows = await cursor.fetchall()
             
             return [self._deserialize_data_from_db(dict(row)) for row in rows]
         except Exception as e:
             logger.error(f"Failed to get records from {table_name}: {e}")
             return []
     
-    def delete_record(self, table_name: str, record_id: str) -> bool:
+    async def delete_record(self, table_name: str, record_id: str) -> bool:
         """Delete a record from the table"""
         try:
+            if self.conn is None:
+                await self._init_sqlite()
+            
             delete_sql = f"DELETE FROM {table_name} WHERE id = ?"
             
-            with self.conn:
-                cursor = self.conn.execute(delete_sql, (record_id,))
-                return cursor.rowcount > 0
+            cursor = await self.conn.execute(delete_sql, (record_id,))
+            await self.conn.commit()
+            return cursor.rowcount > 0
         except Exception as e:
             logger.error(f"Failed to delete record from {table_name}: {e}")
             return False
     
-    def drop_table(self, table_name: str) -> bool:
+    async def drop_table(self, table_name: str) -> bool:
         """Drop a table"""
         try:
+            if self.conn is None:
+                await self._init_sqlite()
+            
             drop_sql = f"DROP TABLE IF EXISTS {table_name}"
             
-            with self.conn:
-                self.conn.execute(drop_sql)
+            await self.conn.execute(drop_sql)
+            await self.conn.commit()
             logger.debug(f"Dropped table {table_name}")
             return True
         except Exception as e:
             logger.error(f"Failed to drop table {table_name}: {e}")
             return False
     
-    def table_exists(self, table_name: str) -> bool:
+    async def table_exists(self, table_name: str) -> bool:
         """Check if table exists in SQLite"""
         try:
-            cursor = self.conn.execute("""
+            if self.conn is None:
+                await self._init_sqlite()
+            
+            cursor = await self.conn.execute("""
                 SELECT name FROM sqlite_master 
                 WHERE type='table' AND name=?
             """, (table_name,))
-            result = cursor.fetchone()
+            result = await cursor.fetchone()
             return result is not None
         except Exception as e:
             logger.error(f"Failed to check if table {table_name} exists: {e}")
             return False
     
-    def get_all_keys(self) -> List[str]:
+    async def get_all_keys(self) -> List[str]:
         """Get all table names from SQLite"""
         try:
-            cursor = self.conn.execute("""
+            if self.conn is None:
+                await self._init_sqlite()
+            
+            cursor = await self.conn.execute("""
                 SELECT name FROM sqlite_master 
                 WHERE type='table' AND name LIKE 'wiregate_%'
             """)
-            tables = [row[0] for row in cursor.fetchall()]
+            rows = await cursor.fetchall()
+            tables = [row[0] for row in rows]
             return tables
         except Exception as e:
             logger.error(f"Failed to get table names: {e}")
@@ -205,10 +262,10 @@ class SQLiteDatabaseManager:
         # SQLite doesn't use Redis cache, so this is a no-op
         return True
     
-    def dump_table(self, table_name: str) -> List[str]:
+    async def dump_table(self, table_name: str) -> List[str]:
         """Dump table data as SQL INSERT statements (for compatibility)"""
         try:
-            records = self.get_all_records(table_name)
+            records = await self.get_all_records(table_name)
             sql_statements = []
             
             for record in records:
@@ -233,25 +290,28 @@ class SQLiteDatabaseManager:
             logger.error(f"Failed to dump table {table_name}: {e}")
             return []
     
-    def import_sql_statements(self, sql_statements: List[str]) -> bool:
+    async def import_sql_statements(self, sql_statements: List[str]) -> bool:
         """Import SQL statements into SQLite"""
         try:
-            with self.conn:
-                for sql in sql_statements:
-                    if sql.strip().startswith('INSERT INTO'):
-                        try:
-                            self.conn.execute(sql)
-                        except Exception as e:
-                            logger.warning(f"Failed to execute SQL statement: {sql[:100]}... Error: {e}")
-                            continue
+            if self.conn is None:
+                await self._init_sqlite()
             
+            for sql in sql_statements:
+                if sql.strip().startswith('INSERT INTO'):
+                    try:
+                        await self.conn.execute(sql)
+                    except Exception as e:
+                        logger.warning(f"Failed to execute SQL statement: {sql[:100]}... Error: {e}")
+                        continue
+            
+            await self.conn.commit()
             logger.debug(f"Imported {len(sql_statements)} SQL statements")
             return True
         except Exception as e:
             logger.error(f"Failed to import SQL statements: {e}")
             return False
     
-    def create_jobs_table(self) -> bool:
+    async def create_jobs_table(self) -> bool:
         """Create jobs table in SQLite"""
         try:
             schema = {
@@ -267,12 +327,12 @@ class SQLiteDatabaseManager:
                 'Action': 'TEXT',
                 'created_at': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
             }
-            return self.create_table('PeerJobs', schema)
+            return await self.create_table('PeerJobs', schema)
         except Exception as e:
             logger.error(f"Failed to create jobs table: {e}")
             return False
     
-    def create_logs_table(self) -> bool:
+    async def create_logs_table(self) -> bool:
         """Create logs table in SQLite"""
         try:
             schema = {
@@ -284,12 +344,12 @@ class SQLiteDatabaseManager:
                 'Message': 'TEXT',
                 'created_at': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
             }
-            return self.create_table('PeerJobLogs', schema)
+            return await self.create_table('PeerJobLogs', schema)
         except Exception as e:
             logger.error(f"Failed to create logs table: {e}")
             return False
     
-    def _ensure_brute_force_table(self) -> bool:
+    async def _ensure_brute_force_table(self) -> bool:
         """Ensure brute_force_attempts table exists"""
         try:
             schema = {
@@ -299,21 +359,24 @@ class SQLiteDatabaseManager:
                 'last_attempt': 'TIMESTAMP',
                 'updated_at': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
             }
-            return self.create_table('brute_force_attempts', schema)
+            return await self.create_table('brute_force_attempts', schema)
         except Exception as e:
             logger.error(f"Failed to create brute force table: {e}")
             return False
     
-    def get_brute_force_attempts(self, identifier: str) -> Dict[str, Any]:
+    async def get_brute_force_attempts(self, identifier: str) -> Dict[str, Any]:
         """Get brute force attempts for an identifier from SQLite"""
         try:
-            self._ensure_brute_force_table()
-            cursor = self.conn.execute("""
+            if self.conn is None:
+                await self._init_sqlite()
+            
+            await self._ensure_brute_force_table()
+            cursor = await self.conn.execute("""
                 SELECT attempts, locked_until, last_attempt 
                 FROM brute_force_attempts 
                 WHERE identifier = ?
             """, (identifier,))
-            result = cursor.fetchone()
+            result = await cursor.fetchone()
             
             if result:
                 return {
@@ -326,20 +389,22 @@ class SQLiteDatabaseManager:
             logger.error(f"Failed to get brute force attempts: {e}")
             return {'attempts': 0, 'locked_until': None, 'last_attempt': None}
     
-    def record_brute_force_attempt(self, identifier: str, max_attempts: int, lockout_time: int) -> bool:
+    async def record_brute_force_attempt(self, identifier: str, max_attempts: int, lockout_time: int) -> bool:
         """Record a brute force attempt in SQLite"""
         try:
-            self._ensure_brute_force_table()
-            cursor = self.conn.cursor()
+            if self.conn is None:
+                await self._init_sqlite()
+            
+            await self._ensure_brute_force_table()
             
             # Check if record exists
-            cursor.execute("SELECT attempts FROM brute_force_attempts WHERE identifier = ?", (identifier,))
-            result = cursor.fetchone()
+            cursor = await self.conn.execute("SELECT attempts FROM brute_force_attempts WHERE identifier = ?", (identifier,))
+            result = await cursor.fetchone()
             
             if result:
                 # Update existing record
                 attempts = result[0] + 1
-                cursor.execute("""
+                await self.conn.execute("""
                     UPDATE brute_force_attempts 
                     SET attempts = ?, last_attempt = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP
                     WHERE identifier = ?
@@ -347,66 +412,74 @@ class SQLiteDatabaseManager:
             else:
                 # Insert new record
                 attempts = 1
-                cursor.execute("""
+                await self.conn.execute("""
                     INSERT INTO brute_force_attempts (identifier, attempts, last_attempt)
                     VALUES (?, ?, CURRENT_TIMESTAMP)
                 """, (identifier, attempts))
             
             # If max attempts reached, set lockout
             if attempts >= max_attempts:
-                cursor.execute("""
+                await self.conn.execute("""
                     UPDATE brute_force_attempts 
                     SET locked_until = datetime('now', '+' || ? || ' seconds')
                     WHERE identifier = ?
                 """, (lockout_time, identifier))
             
-            self.conn.commit()
+            await self.conn.commit()
             return True
         except Exception as e:
             logger.error(f"Failed to record brute force attempt: {e}")
             return False
     
-    def clear_brute_force_attempts(self, identifier: str) -> bool:
+    async def clear_brute_force_attempts(self, identifier: str) -> bool:
         """Clear brute force attempts for successful authentication"""
         try:
-            self._ensure_brute_force_table()
-            self.conn.execute("DELETE FROM brute_force_attempts WHERE identifier = ?", (identifier,))
-            self.conn.commit()
+            if self.conn is None:
+                await self._init_sqlite()
+            
+            await self._ensure_brute_force_table()
+            await self.conn.execute("DELETE FROM brute_force_attempts WHERE identifier = ?", (identifier,))
+            await self.conn.commit()
             return True
         except Exception as e:
             logger.error(f"Failed to clear brute force attempts: {e}")
             return False
     
-    def cleanup_expired_brute_force(self) -> int:
+    async def cleanup_expired_brute_force(self) -> int:
         """Clean up expired brute force records"""
         try:
-            self._ensure_brute_force_table()
-            cursor = self.conn.cursor()
-            cursor.execute("""
+            if self.conn is None:
+                await self._init_sqlite()
+            
+            await self._ensure_brute_force_table()
+            cursor = await self.conn.execute("""
                 DELETE FROM brute_force_attempts 
                 WHERE locked_until IS NOT NULL AND locked_until < CURRENT_TIMESTAMP
             """)
-            self.conn.commit()
+            await self.conn.commit()
             return cursor.rowcount
         except Exception as e:
             logger.error(f"Failed to cleanup expired brute force records: {e}")
             return 0
     
-    def execute_query(self, query: str, params: tuple = None) -> List[Dict[str, Any]]:
+    async def execute_query(self, query: str, params: tuple = None) -> List[Dict[str, Any]]:
         """Execute a custom query"""
         try:
-            cursor = self.conn.execute(query, params or ())
-            rows = cursor.fetchall()
+            if self.conn is None:
+                await self._init_sqlite()
+            
+            cursor = await self.conn.execute(query, params or ())
+            rows = await cursor.fetchall()
             return [dict(row) for row in rows]
         except Exception as e:
             logger.error(f"Failed to execute query: {e}")
             return []
     
-    def close(self):
+    async def close(self):
         """Close the database connection"""
         if self.conn:
-            self.conn.close()
-            logger.info("SQLite database connection closed")
+            await self.conn.close()
+            logger.info("Async SQLite database connection closed")
 
 class DatabaseManager:
     """PostgreSQL primary database with Redis cache layer for WireGate"""
@@ -1092,95 +1165,169 @@ class DatabaseManager:
     def execute_query(self, query: str, params: tuple = None) -> List[Dict[str, Any]]:
         """Execute a custom query"""
         try:
-            cursor = self.conn.execute(query, params or ())
-            rows = cursor.fetchall()
-            return [dict(row) for row in rows]
+            with self.postgres_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                cursor.execute(query, params or ())
+                rows = cursor.fetchall()
+                # Convert RealDictRow objects to regular dicts
+                return [dict(row) for row in rows]
         except Exception as e:
             logger.error(f"Failed to execute query: {e}")
             return []
     
     def close(self):
         """Close the database connection"""
-        if self.conn:
-            self.conn.close()
-            logger.info("SQLite database connection closed")
+        if self.postgres_conn:
+            self.postgres_conn.close()
+            logger.info("PostgreSQL database connection closed")
+        if hasattr(self, 'redis_client') and self.redis_client:
+            self.redis_client.close()
+            logger.info("Redis connection closed")
 
 # Global database manager instance
 _db_manager = None
+_db_manager_init_lock = asyncio.Lock()
 
-def get_redis_manager():
-    """Get or create global database manager instance based on DASHBOARD_TYPE"""
+async def get_redis_manager():
+    """Get or create global database manager instance based on DASHBOARD_TYPE (async)"""
     global _db_manager
     if _db_manager is None:
-        if DASHBOARD_TYPE.lower() == 'simple':
-            logger.info("Using SQLite database manager (simple mode)")
-            _db_manager = SQLiteDatabaseManager()
-        else:
-            logger.info("Using PostgreSQL + Redis database manager (scale mode)")
-            _db_manager = DatabaseManager()
+        async with _db_manager_init_lock:
+            if _db_manager is None:  # Double-check after acquiring lock
+                if DASHBOARD_TYPE.lower() == 'simple':
+                    logger.info("Using async SQLite database manager (simple mode)")
+                    _db_manager = SQLiteDatabaseManager()
+                    await _db_manager._init_sqlite()
+                else:
+                    logger.info("Using PostgreSQL + Redis database manager (scale mode)")
+                    _db_manager = DatabaseManager()
     return _db_manager
 
+def get_redis_manager_sync():
+    """Safely get redis manager synchronously, handling both running and non-running event loops"""
+    import asyncio
+    import threading
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # If loop is running, create a new event loop in a thread
+            result = None
+            exception = None
+            
+            def run_in_thread():
+                nonlocal result, exception
+                try:
+                    new_loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(new_loop)
+                    result = new_loop.run_until_complete(get_redis_manager())
+                    new_loop.close()
+                except Exception as e:
+                    exception = e
+            
+            thread = threading.Thread(target=run_in_thread)
+            thread.start()
+            thread.join()
+            
+            if exception:
+                raise exception
+            return result
+        else:
+            return loop.run_until_complete(get_redis_manager())
+    except RuntimeError:
+        # No event loop exists, create a new one
+        return get_redis_manager_sync()
+
 # Compatibility functions for existing code
-def sqlSelect(query: str, params: tuple = None):
-    """SQL SELECT compatibility function"""
-    manager = get_redis_manager()
+async def sqlSelect(query: str, params: tuple = None):
+    """SQL SELECT compatibility function (async)"""
+    manager = await get_redis_manager()
     if isinstance(manager, SQLiteDatabaseManager):
         # For SQLite, return a cursor-like object for compatibility
-        return SQLiteCursor(query, params)
+        return await SQLiteCursor.create_async(query, params)
     else:
         # For PostgreSQL, return cursor
         return PostgreSQLCursor(query, params)
 
-def sqlUpdate(query: str, params: tuple = None) -> bool:
-    """SQL UPDATE/INSERT/DELETE compatibility function"""
-    manager = get_redis_manager()
+async def sqlUpdate(query: str, params: tuple = None) -> bool:
+    """SQL UPDATE/INSERT/DELETE compatibility function (async)"""
+    manager = await get_redis_manager()
     
     if isinstance(manager, SQLiteDatabaseManager):
-        # For SQLite, execute query directly
+        # For SQLite, convert PostgreSQL-style %s placeholders to ? placeholders
         try:
-            manager.conn.execute(query, params or ())
-            manager.conn.commit()
+            sqlite_query = query.replace('%s', '?')
+            if manager.conn is None:
+                await manager._init_sqlite()
+            await manager.conn.execute(sqlite_query, params or ())
+            await manager.conn.commit()
             return True
         except Exception as e:
             logger.error(f"SQLite query execution failed: {e}")
             return False
     else:
         # For PostgreSQL, use existing logic
+        # Note: PostgreSQL connection has autocommit=True, so commit is automatic
         try:
             with manager.postgres_conn.cursor() as cursor:
+                # Ensure params is a tuple or list, and handle None values properly
+                if params is None:
+                    params = ()
+                elif not isinstance(params, (tuple, list)):
+                    params = (params,)
                 cursor.execute(query, params)
+                # Commit is not needed with autocommit=True, but explicit commit ensures consistency
+                if not manager.postgres_conn.autocommit:
+                    manager.postgres_conn.commit()
                 return True
         except Exception as e:
             logger.error(f"PostgreSQL query execution failed: {e}")
+            if not manager.postgres_conn.autocommit:
+                manager.postgres_conn.rollback()
             return False
 
 
 class SQLiteCursor:
     """Cursor-like object for SQLite queries to maintain compatibility"""
     
-    def __init__(self, query: str, params: tuple = None):
+    def __init__(self, query: str, params: tuple = None, results: list = None):
         self.query = query
         self.params = params or ()
-        self.results = []
+        self.results = results or []
         self.current_index = 0
-        self._execute_query()
     
-    def _execute_query(self):
+    @classmethod
+    async def create_async(cls, query: str, params: tuple = None):
+        """Async factory method to create and initialize cursor"""
+        instance = cls(query, params)
+        await instance._execute_query()
+        return instance
+    
+    async def _execute_query(self):
         """Execute the query and store results"""
-        manager = get_redis_manager()
+        manager = await get_redis_manager()
         
         try:
-            # Execute query using SQLite manager
-            raw_results = manager.execute_query(self.query, self.params)
+            # Execute query using SQLite manager (async method)
+            raw_results = await manager.execute_query(self.query, self.params)
             
             # Convert results to dict-like objects for compatibility
             converted_results = []
             for row in raw_results:
+                # Ensure row is a dict with string keys
+                if not isinstance(row, dict):
+                    # Convert Row or tuple to dict
+                    if hasattr(row, 'keys'):
+                        row = {str(k): row[k] for k in row.keys()}
+                    else:
+                        # Tuple - convert to dict using column names
+                        # This shouldn't happen with aiosqlite.Row, but handle it
+                        row = dict(row)
+                
                 # Create a dict-like object that supports both attribute and key access
                 class DictLikeRecord:
                     def __init__(self, data):
+                        # Ensure all keys are strings
                         for key, value in data.items():
-                            setattr(self, key, value)
+                            setattr(self, str(key), value)
                     
                     def __getitem__(self, key):
                         return getattr(self, key)
@@ -1224,16 +1371,48 @@ class SQLiteCursor:
 class PostgreSQLCursor:
     """Cursor-like object for PostgreSQL queries to maintain compatibility"""
     
-    def __init__(self, query: str, params: tuple = None):
+    def __init__(self, query: str, params: tuple = None, results: list = None):
         self.query = query
         self.params = params or ()
-        self.results = []
+        self.results = results or []
         self.current_index = 0
+        # PostgreSQL queries are sync, so we can execute immediately
         self._execute_query()
     
     def _execute_query(self):
         """Execute the query and store results"""
-        manager = get_redis_manager()
+        # For PostgreSQL, we still need to get the manager synchronously
+        # This is a limitation - PostgreSQL operations are sync in this codebase
+        import asyncio
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # If loop is running, create a new event loop in a thread
+                import threading
+                result = None
+                exception = None
+                
+                def run_in_thread():
+                    nonlocal result, exception
+                    try:
+                        new_loop = asyncio.new_event_loop()
+                        asyncio.set_event_loop(new_loop)
+                        result = new_loop.run_until_complete(get_redis_manager())
+                        new_loop.close()
+                    except Exception as e:
+                        exception = e
+                
+                thread = threading.Thread(target=run_in_thread)
+                thread.start()
+                thread.join()
+                
+                if exception:
+                    raise exception
+                manager = result
+            else:
+                manager = loop.run_until_complete(get_redis_manager())
+        except RuntimeError:
+            manager = get_redis_manager_sync()
         
         try:
             with manager.postgres_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
@@ -1243,11 +1422,21 @@ class PostgreSQLCursor:
                 # Convert results to dict-like objects for compatibility
                 converted_results = []
                 for row in rows:
+                    # Ensure row is a dict with string keys
+                    if not isinstance(row, dict):
+                        # Convert Row or tuple to dict
+                        if hasattr(row, 'keys'):
+                            row = {str(k): row[k] for k in row.keys()}
+                        else:
+                            # Tuple - convert to dict using column names
+                            row = dict(row)
+                    
                     # Create a dict-like object that supports both attribute and key access
                     class DictLikeRecord:
                         def __init__(self, data):
+                            # Ensure all keys are strings
                             for key, value in data.items():
-                                setattr(self, key, value)
+                                setattr(self, str(key), value)
                         
                         def __getitem__(self, key):
                             return getattr(self, key)
@@ -1290,23 +1479,39 @@ class PostgreSQLCursor:
 
 # Configuration-specific database methods (moved from Core.py)
 class ConfigurationDatabase:
-    """Database methods specific to Configuration class"""
+    """Database methods specific to Configuration class - now async"""
     
     def __init__(self, configuration_name: str):
         self.configuration_name = configuration_name
-        self.manager = get_redis_manager()
-        
-        # Ensure global job and log tables exist
-        try:
-            if not self.manager.table_exists('PeerJobs'):
-                self.manager.create_jobs_table()
-            if not self.manager.table_exists('PeerJobLogs'):
-                self.manager.create_logs_table()
-        except Exception as e:
-            logger.warning(f"Could not create job/log tables: {e}")
+        self.manager = None  # Will be initialized asynchronously
+        self._init_done = False
     
-    def drop_database(self):
+    async def _ensure_initialized(self):
+        """Ensure database manager is initialized"""
+        if not self._init_done:
+            self.manager = await get_redis_manager()
+            
+            # Ensure global job and log tables exist
+            try:
+                if isinstance(self.manager, SQLiteDatabaseManager):
+                    if not await self.manager.table_exists('PeerJobs'):
+                        await self.manager.create_jobs_table()
+                    if not await self.manager.table_exists('PeerJobLogs'):
+                        await self.manager.create_logs_table()
+                else:
+                    # PostgreSQL
+                    if not self.manager.table_exists('PeerJobs'):
+                        self.manager.create_jobs_table()
+                    if not self.manager.table_exists('PeerJobLogs'):
+                        self.manager.create_logs_table()
+            except Exception as e:
+                logger.warning(f"Could not create job/log tables: {e}")
+            
+            self._init_done = True
+    
+    async def drop_database(self):
         """Drop all tables for this configuration"""
+        await self._ensure_initialized()
         tables = [
             self.configuration_name,
             f"{self.configuration_name}_restrict_access",
@@ -1315,16 +1520,20 @@ class ConfigurationDatabase:
         ]
         
         for table in tables:
-            self.manager.drop_table(table)
+            if isinstance(self.manager, SQLiteDatabaseManager):
+                await self.manager.drop_table(table)
+            else:
+                self.manager.drop_table(table)
             # Invalidate cache for this table
             self.manager._invalidate_cache(table)
     
-    def create_database(self, db_name=None):
+    async def create_database(self, db_name=None):
         """Create database tables for this configuration"""
+        await self._ensure_initialized()
         if db_name is None:
             db_name = self.configuration_name
         
-        # Define table schemas for PostgreSQL
+        # Define table schemas
         main_table_schema = {
             'id': 'VARCHAR PRIMARY KEY',
             'private_key': 'TEXT',
@@ -1354,29 +1563,40 @@ class ConfigurationDatabase:
         }
         
         # Create main table
-        self.manager.create_table(db_name, main_table_schema)
-        
-        # Create restrict_access table
-        self.manager.create_table(f"{db_name}_restrict_access", main_table_schema)
-        
-        # Create transfer table
-        transfer_schema = {
-            'id': 'VARCHAR PRIMARY KEY',
-            'total_receive': 'REAL',
-            'total_sent': 'REAL',
-            'total_data': 'REAL',
-            'cumu_receive': 'REAL',
-            'cumu_sent': 'REAL',
-            'cumu_data': 'REAL',
-            'time': 'TIMESTAMP'
-        }
-        self.manager.create_table(f"{db_name}_transfer", transfer_schema)
-        
-        # Create deleted table
-        self.manager.create_table(f"{db_name}_deleted", main_table_schema)
+        if isinstance(self.manager, SQLiteDatabaseManager):
+            await self.manager.create_table(db_name, main_table_schema)
+            await self.manager.create_table(f"{db_name}_restrict_access", main_table_schema)
+            transfer_schema = {
+                'id': 'VARCHAR PRIMARY KEY',
+                'total_receive': 'REAL',
+                'total_sent': 'REAL',
+                'total_data': 'REAL',
+                'cumu_receive': 'REAL',
+                'cumu_sent': 'REAL',
+                'cumu_data': 'REAL',
+                'time': 'TIMESTAMP'
+            }
+            await self.manager.create_table(f"{db_name}_transfer", transfer_schema)
+            await self.manager.create_table(f"{db_name}_deleted", main_table_schema)
+        else:
+            self.manager.create_table(db_name, main_table_schema)
+            self.manager.create_table(f"{db_name}_restrict_access", main_table_schema)
+            transfer_schema = {
+                'id': 'VARCHAR PRIMARY KEY',
+                'total_receive': 'REAL',
+                'total_sent': 'REAL',
+                'total_data': 'REAL',
+                'cumu_receive': 'REAL',
+                'cumu_sent': 'REAL',
+                'cumu_data': 'REAL',
+                'time': 'TIMESTAMP'
+            }
+            self.manager.create_table(f"{db_name}_transfer", transfer_schema)
+            self.manager.create_table(f"{db_name}_deleted", main_table_schema)
     
-    def migrate_database(self):
+    async def migrate_database(self):
         """Add missing columns to existing tables and update existing records with default values"""
+        await self._ensure_initialized()
         tables = [
             self.configuration_name,
             f"{self.configuration_name}_restrict_access",
@@ -1394,7 +1614,12 @@ class ConfigurationDatabase:
         }
         
         for table in tables:
-            if not self.manager.table_exists(table):
+            if isinstance(self.manager, SQLiteDatabaseManager):
+                table_exists = await self.manager.table_exists(table)
+            else:
+                table_exists = self.manager.table_exists(table)
+            
+            if not table_exists:
                 logger.debug(f"Table {table} does not exist, skipping migration")
                 continue
             
@@ -1403,35 +1628,34 @@ class ConfigurationDatabase:
             try:
                 # Get appropriate cursor based on database type
                 if isinstance(self.manager, SQLiteDatabaseManager):
-                    # SQLite - use cursor for proper rowcount tracking
-                    cursor = self.manager.conn.cursor()
+                    # SQLite - async operations
                     updated_count = 0
                     
-                    try:
-                        # Add missing columns
-                        for field, field_info in new_fields.items():
+                    # Add missing columns
+                    for field, field_info in new_fields.items():
+                        try:
+                            # Check if column exists by trying to select it
                             try:
-                                cursor.execute(f'ALTER TABLE "{table}" ADD COLUMN "{field}" {field_info["type"]}')
+                                await self.manager.execute_query(f'SELECT "{field}" FROM "{table}" LIMIT 1')
+                            except Exception:
+                                # Column doesn't exist, add it
+                                await self.manager.conn.execute(f'ALTER TABLE "{table}" ADD COLUMN "{field}" {field_info["type"]}')
+                                await self.manager.conn.commit()
                                 logger.debug(f"Added column {field} to table {table}")
-                            except Exception as e:
-                                # Column might already exist, which is fine
-                                logger.debug(f"Column {field} might already exist in table {table}: {e}")
-                        
-                        # Update existing records with default values
-                        for field, field_info in new_fields.items():
-                            if field_info['default'] is not None:
-                                cursor.execute(f'''
-                                    UPDATE "{table}" 
-                                    SET "{field}" = ? 
-                                    WHERE "{field}" IS NULL
-                                ''', (field_info['default'],))
-                                updated_count += cursor.rowcount
-                        
-                        # Commit changes for SQLite
-                        cursor.connection.commit()
-                        
-                    finally:
-                        cursor.close()
+                        except Exception as e:
+                            # Column might already exist, which is fine
+                            logger.debug(f"Column {field} might already exist in table {table}: {e}")
+                    
+                    # Update existing records with default values
+                    for field, field_info in new_fields.items():
+                        if field_info['default'] is not None:
+                            cursor = await self.manager.conn.execute(f'''
+                                UPDATE "{table}" 
+                                SET "{field}" = ? 
+                                WHERE "{field}" IS NULL
+                            ''', (field_info['default'],))
+                            updated_count += cursor.rowcount
+                            await self.manager.conn.commit()
                     
                 else:
                     # PostgreSQL - use connection context manager
@@ -1465,8 +1689,9 @@ class ConfigurationDatabase:
                 logger.error(f"Error migrating table {table}: {e}")
                 # Continue with other tables even if one fails
     
-    def dump_database(self):
-        """Dump database data as SQL statements"""
+    async def dump_database(self):
+        """Dump database data as SQL statements (async generator)"""
+        await self._ensure_initialized()
         tables = [
             self.configuration_name,
             f"{self.configuration_name}_restrict_access",
@@ -1476,7 +1701,10 @@ class ConfigurationDatabase:
         
         for table in tables:
             try:
-                sql_statements = self.manager.dump_table(table)
+                if isinstance(self.manager, SQLiteDatabaseManager):
+                    sql_statements = await self.manager.dump_table(table)
+                else:
+                    sql_statements = self.manager.dump_table(table)
                 for statement in sql_statements:
                     yield statement
             except Exception as e:
@@ -1484,19 +1712,20 @@ class ConfigurationDatabase:
                 # Continue with other tables even if one fails
                 continue
     
-    def import_database(self, sql_file_path: str) -> bool:
+    async def import_database(self, sql_file_path: str) -> bool:
         """Import database from SQL file"""
+        await self._ensure_initialized()
         try:
             import os
             if not os.path.exists(sql_file_path):
                 return False
             
             # Drop existing tables
-            self.drop_database()
+            await self.drop_database()
             
             # Create new tables
-            self.create_database()
-            self.migrate_database()
+            await self.create_database()
+            await self.migrate_database()
             
             # Read and import SQL statements
             with open(sql_file_path, 'r') as f:
@@ -1506,109 +1735,165 @@ class ConfigurationDatabase:
                     if len(line) > 0:
                         sql_statements.append(line)
                 
-                return self.manager.import_sql_statements(sql_statements)
+                if isinstance(self.manager, SQLiteDatabaseManager):
+                    return await self.manager.import_sql_statements(sql_statements)
+                else:
+                    return self.manager.import_sql_statements(sql_statements)
                 
         except Exception as e:
             logger.error(f"Failed to import database: {e}")
             return False
     
-    def get_restricted_peers(self):
+    async def get_restricted_peers(self):
         """Get restricted peers"""
-        return self.manager.get_all_records(f"{self.configuration_name}_restrict_access")
+        await self._ensure_initialized()
+        if isinstance(self.manager, SQLiteDatabaseManager):
+            return await self.manager.get_all_records(f"{self.configuration_name}_restrict_access")
+        else:
+            return self.manager.get_all_records(f"{self.configuration_name}_restrict_access")
     
-    def get_peers(self):
+    async def get_peers(self):
         """Get all peers"""
-        return self.manager.get_all_records(self.configuration_name)
+        await self._ensure_initialized()
+        if isinstance(self.manager, SQLiteDatabaseManager):
+            return await self.manager.get_all_records(self.configuration_name)
+        else:
+            return self.manager.get_all_records(self.configuration_name)
     
-    def search_peer(self, peer_id: str):
+    async def search_peer(self, peer_id: str):
         """Search for a specific peer"""
-        return self.manager.get_record(self.configuration_name, peer_id)
+        await self._ensure_initialized()
+        if isinstance(self.manager, SQLiteDatabaseManager):
+            return await self.manager.get_record(self.configuration_name, peer_id)
+        else:
+            return self.manager.get_record(self.configuration_name, peer_id)
     
-    def insert_peer(self, peer_data: dict):
+    async def insert_peer(self, peer_data: dict):
         """Insert a new peer"""
+        await self._ensure_initialized()
         peer_id = peer_data.get('id')
         if peer_id:
-            result = self.manager.insert_record(self.configuration_name, peer_id, peer_data)
+            if isinstance(self.manager, SQLiteDatabaseManager):
+                result = await self.manager.insert_record(self.configuration_name, peer_id, peer_data)
+            else:
+                result = self.manager.insert_record(self.configuration_name, peer_id, peer_data)
             # Invalidate cache for this peer
             self.manager._invalidate_cache(self.configuration_name, peer_id)
             return result
         return False
     
-    def update_peer(self, peer_id: str, peer_data: dict):
+    async def update_peer(self, peer_id: str, peer_data: dict):
         """Update a peer"""
-        result = self.manager.update_record(self.configuration_name, peer_id, peer_data)
+        await self._ensure_initialized()
+        if isinstance(self.manager, SQLiteDatabaseManager):
+            result = await self.manager.update_record(self.configuration_name, peer_id, peer_data)
+        else:
+            result = self.manager.update_record(self.configuration_name, peer_id, peer_data)
         # Invalidate cache for this peer
         self.manager._invalidate_cache(self.configuration_name, peer_id)
         return result
     
-    def delete_peer(self, peer_id: str):
+    async def delete_peer(self, peer_id: str):
         """Delete a peer"""
-        result = self.manager.delete_record(self.configuration_name, peer_id)
+        await self._ensure_initialized()
+        if isinstance(self.manager, SQLiteDatabaseManager):
+            result = await self.manager.delete_record(self.configuration_name, peer_id)
+        else:
+            result = self.manager.delete_record(self.configuration_name, peer_id)
         # Invalidate cache for this peer
         self.manager._invalidate_cache(self.configuration_name, peer_id)
         return result
     
-    def move_peer_to_restricted(self, peer_id: str):
+    async def move_peer_to_restricted(self, peer_id: str):
         """Move peer to restricted access table"""
-        peer_data = self.manager.get_record(self.configuration_name, peer_id)
+        await self._ensure_initialized()
+        if isinstance(self.manager, SQLiteDatabaseManager):
+            peer_data = await self.manager.get_record(self.configuration_name, peer_id)
+        else:
+            peer_data = self.manager.get_record(self.configuration_name, peer_id)
+        
         if peer_data:
             # Insert into restricted table
-            self.manager.insert_record(f"{self.configuration_name}_restrict_access", peer_id, peer_data)
-            # Delete from main table
-            self.manager.delete_record(self.configuration_name, peer_id)
+            if isinstance(self.manager, SQLiteDatabaseManager):
+                await self.manager.insert_record(f"{self.configuration_name}_restrict_access", peer_id, peer_data)
+                await self.manager.delete_record(self.configuration_name, peer_id)
+            else:
+                self.manager.insert_record(f"{self.configuration_name}_restrict_access", peer_id, peer_data)
+                self.manager.delete_record(self.configuration_name, peer_id)
             # Invalidate cache for both tables
             self.manager._invalidate_cache(self.configuration_name, peer_id)
             self.manager._invalidate_cache(f"{self.configuration_name}_restrict_access", peer_id)
             return True
         return False
     
-    def move_peer_from_restricted(self, peer_id: str):
+    async def move_peer_from_restricted(self, peer_id: str):
         """Move peer from restricted access table back to main table"""
-        peer_data = self.manager.get_record(f"{self.configuration_name}_restrict_access", peer_id)
+        await self._ensure_initialized()
+        if isinstance(self.manager, SQLiteDatabaseManager):
+            peer_data = await self.manager.get_record(f"{self.configuration_name}_restrict_access", peer_id)
+        else:
+            peer_data = self.manager.get_record(f"{self.configuration_name}_restrict_access", peer_id)
+        
         if peer_data:
             # Insert into main table
-            self.manager.insert_record(self.configuration_name, peer_id, peer_data)
-            # Delete from restricted table
-            self.manager.delete_record(f"{self.configuration_name}_restrict_access", peer_id)
+            if isinstance(self.manager, SQLiteDatabaseManager):
+                await self.manager.insert_record(self.configuration_name, peer_id, peer_data)
+                await self.manager.delete_record(f"{self.configuration_name}_restrict_access", peer_id)
+            else:
+                self.manager.insert_record(self.configuration_name, peer_id, peer_data)
+                self.manager.delete_record(f"{self.configuration_name}_restrict_access", peer_id)
             # Invalidate cache for both tables
             self.manager._invalidate_cache(self.configuration_name, peer_id)
             self.manager._invalidate_cache(f"{self.configuration_name}_restrict_access", peer_id)
             return True
         return False
     
-    def update_peer_handshake(self, peer_id: str, handshake_time: str, status: str):
+    async def update_peer_handshake(self, peer_id: str, handshake_time: str, status: str):
         """Update peer handshake information"""
+        await self._ensure_initialized()
         updates = {
             'latest_handshake': handshake_time,
             'status': status
         }
-        result = self.manager.update_record(self.configuration_name, peer_id, updates)
+        if isinstance(self.manager, SQLiteDatabaseManager):
+            result = await self.manager.update_record(self.configuration_name, peer_id, updates)
+        else:
+            result = self.manager.update_record(self.configuration_name, peer_id, updates)
         # Invalidate cache for this peer
         self.manager._invalidate_cache(self.configuration_name, peer_id)
         return result
     
-    def update_peer_transfer(self, peer_id: str, total_receive: float, total_sent: float, total_data: float):
+    async def update_peer_transfer(self, peer_id: str, total_receive: float, total_sent: float, total_data: float):
         """Update peer transfer data"""
+        await self._ensure_initialized()
         updates = {
             'total_receive': total_receive,
             'total_sent': total_sent,
             'total_data': total_data
         }
-        result = self.manager.update_record(self.configuration_name, peer_id, updates)
+        if isinstance(self.manager, SQLiteDatabaseManager):
+            result = await self.manager.update_record(self.configuration_name, peer_id, updates)
+        else:
+            result = self.manager.update_record(self.configuration_name, peer_id, updates)
         # Invalidate cache for this peer
         self.manager._invalidate_cache(self.configuration_name, peer_id)
         return result
     
-    def update_peer_endpoint(self, peer_id: str, endpoint: str):
+    async def update_peer_endpoint(self, peer_id: str, endpoint: str):
         """Update peer endpoint"""
+        await self._ensure_initialized()
         updates = {'endpoint': endpoint}
-        result = self.manager.update_record(self.configuration_name, peer_id, updates)
+        if isinstance(self.manager, SQLiteDatabaseManager):
+            result = await self.manager.update_record(self.configuration_name, peer_id, updates)
+        else:
+            result = self.manager.update_record(self.configuration_name, peer_id, updates)
         # Invalidate cache for this peer
         self.manager._invalidate_cache(self.configuration_name, peer_id)
         return result
     
-    def reset_peer_data_usage(self, peer_id: str, reset_type: str):
+    async def reset_peer_data_usage(self, peer_id: str, reset_type: str):
         """Reset peer data usage"""
+        await self._ensure_initialized()
         if reset_type == "total":
             updates = {
                 'total_data': 0,
@@ -1631,13 +1916,17 @@ class ConfigurationDatabase:
         else:
             return False
         
-        result = self.manager.update_record(self.configuration_name, peer_id, updates)
+        if isinstance(self.manager, SQLiteDatabaseManager):
+            result = await self.manager.update_record(self.configuration_name, peer_id, updates)
+        else:
+            result = self.manager.update_record(self.configuration_name, peer_id, updates)
         # Invalidate cache for this peer
         self.manager._invalidate_cache(self.configuration_name, peer_id)
         return result
     
-    def copy_database_to(self, new_configuration_name: str):
+    async def copy_database_to(self, new_configuration_name: str):
         """Copy database to new configuration name"""
+        await self._ensure_initialized()
         tables = [
             self.configuration_name,
             f"{self.configuration_name}_restrict_access",
@@ -1649,18 +1938,43 @@ class ConfigurationDatabase:
             new_table = table.replace(self.configuration_name, new_configuration_name)
             
             # Get all records from source table
-            records = self.manager.get_all_records(table)
+            if isinstance(self.manager, SQLiteDatabaseManager):
+                records = await self.manager.get_all_records(table)
+            else:
+                records = self.manager.get_all_records(table)
             
             # Insert records into new table
             for record in records:
                 record_id = record.get('id')
                 if record_id:
-                    self.manager.insert_record(new_table, record_id, record)
+                    if isinstance(self.manager, SQLiteDatabaseManager):
+                        await self.manager.insert_record(new_table, record_id, record)
+                    else:
+                        self.manager.insert_record(new_table, record_id, record)
             
             # Invalidate cache for the new table
             self.manager._invalidate_cache(new_table)
         
         return True
+    
+    async def bulk_insert_peers(self, peers_data: list[dict]):
+        """Bulk insert multiple peers into the database"""
+        await self._ensure_initialized()
+        for peer_data in peers_data:
+            peer_id = peer_data.get('id')
+            if peer_id:
+                if isinstance(self.manager, SQLiteDatabaseManager):
+                    await self.manager.insert_record(self.configuration_name, peer_id, peer_data)
+                else:
+                    self.manager.insert_record(self.configuration_name, peer_id, peer_data)
+                # Invalidate cache for this peer
+                self.manager._invalidate_cache(self.configuration_name, peer_id)
+    
+    async def bulk_move_peers_from_restricted(self, peer_ids: list[str]):
+        """Bulk move peers from restricted access table back to main table"""
+        await self._ensure_initialized()
+        for peer_id in peer_ids:
+            await self.move_peer_from_restricted(peer_id)
 
 # Static methods for API compatibility
 class DatabaseAPI:
@@ -1704,16 +2018,17 @@ class DatabaseAPI:
                 }
             
             # Get from DashboardConfig
+            # Use masked=False for passwords to get actual values needed for database connections
             redis_host = DashboardConfig.GetConfig("Database", "redis_host")[1]
             redis_port = DashboardConfig.GetConfig("Database", "redis_port")[1]
             redis_db = DashboardConfig.GetConfig("Database", "redis_db")[1]
-            redis_password = DashboardConfig.GetConfig("Database", "redis_password")[1]  # Will return "***"
+            redis_password = DashboardConfig.GetConfig("Database", "redis_password", masked=False)[1]
             
             postgres_host = DashboardConfig.GetConfig("Database", "postgres_host")[1]
             postgres_port = DashboardConfig.GetConfig("Database", "postgres_port")[1]
             postgres_db = DashboardConfig.GetConfig("Database", "postgres_db")[1]
             postgres_user = DashboardConfig.GetConfig("Database", "postgres_user")[1]
-            postgres_password = DashboardConfig.GetConfig("Database", "postgres_password")[1]  # Will return "***"
+            postgres_password = DashboardConfig.GetConfig("Database", "postgres_password", masked=False)[1]
             postgres_ssl_mode = DashboardConfig.GetConfig("Database", "postgres_ssl_mode")[1]
             
             cache_enabled = DashboardConfig.GetConfig("Database", "cache_enabled")[1]
@@ -1725,14 +2040,14 @@ class DatabaseAPI:
                     'host': redis_host,
                     'port': redis_port,
                     'db': redis_db,
-                    'password': redis_password  # Will be "***"
+                    'password': redis_password  # Actual password for internal use
                 },
                 'postgres': {
                     'host': postgres_host,
                     'port': postgres_port,
                     'db': postgres_db,
                     'user': postgres_user,
-                    'password': postgres_password,  # Will be "***"
+                    'password': postgres_password,  # Actual password for internal use
                     'ssl_mode': postgres_ssl_mode
                 },
                 'cache': {
@@ -1800,10 +2115,10 @@ class DatabaseAPI:
             return False
     
     @staticmethod
-    def get_stats():
+    async def get_stats():
         """Get database statistics"""
         try:
-            manager = get_redis_manager()
+            manager = await get_redis_manager()
             
             # Get basic stats
             stats = {
@@ -1818,7 +2133,8 @@ class DatabaseAPI:
                 if manager.redis_client:
                     manager.redis_client.ping()
                     stats['redis_connected'] = True
-            except:
+            except Exception as e:
+                logger.debug(f"Redis connection check failed: {e}")
                 stats['redis_connected'] = False
             
             # Check PostgreSQL connection
@@ -1826,7 +2142,8 @@ class DatabaseAPI:
                 with manager.postgres_conn.cursor() as cursor:
                     cursor.execute("SELECT 1")
                     stats['postgres_connected'] = True
-            except:
+            except Exception as e:
+                logger.debug(f"PostgreSQL connection check failed: {e}")
                 stats['postgres_connected'] = False
             
             # Get configuration count and total peers
@@ -1938,10 +2255,10 @@ class DatabaseAPI:
     
     
     @staticmethod
-    def clear_cache():
+    async def clear_cache():
         """Clear database cache"""
         try:
-            manager = get_redis_manager()
+            manager = await get_redis_manager()
             
             if manager.redis_client:
                 # Clear all cache keys
@@ -1967,7 +2284,7 @@ class DatabaseAPI:
 
 # Initialize database manager on module import
 try:
-    manager = get_redis_manager()
+    manager = get_redis_manager_sync()
     if isinstance(manager, SQLiteDatabaseManager):
         logger.info("SQLite database manager initialized successfully")
     else:
@@ -1996,7 +2313,7 @@ def migrate_sqlite_to_postgres():
     
     # Get database manager to check migration status
     try:
-        db_manager = get_redis_manager()
+        db_manager = get_redis_manager_sync()
         
         # Check if migration has already been completed
         if db_manager.is_migration_completed('sqlite_to_postgres'):
@@ -2057,7 +2374,7 @@ def migrate_sqlite_to_postgres():
     # Set migration flag if any databases were migrated
     if migrated_count > 0:
         try:
-            db_manager = get_redis_manager()
+            db_manager = get_redis_manager_sync()
             db_manager.set_migration_flag('sqlite_to_postgres', f"{migrated_count} databases")
             logger.info(f"Migration completed: {migrated_count} SQLite databases migrated to PostgreSQL")
         except Exception as e:
@@ -2071,7 +2388,7 @@ def migrate_sqlite_file_to_postgres(sqlite_path: str) -> bool:
     """Migrate a specific SQLite file to PostgreSQL"""
     try:
         # Get database manager to check if this specific file has been migrated
-        db_manager = get_redis_manager()
+        db_manager = get_redis_manager_sync()
         
         # Create a unique migration key for this specific file
         file_basename = os.path.basename(sqlite_path)
@@ -2198,7 +2515,7 @@ def check_and_migrate_sqlite_databases():
             return False
         
         # Only run migration if PostgreSQL is available (scale mode)
-        db_manager = get_redis_manager()
+        db_manager = get_redis_manager_sync()
         if db_manager is None:
             logger.warning("Database manager not available, skipping SQLite migration")
             return False
@@ -2223,7 +2540,7 @@ def check_and_migrate_sqlite_databases():
 def reset_sqlite_migration_flags():
     """Reset all SQLite migration flags to allow re-migration"""
     try:
-        db_manager = get_redis_manager()
+        db_manager = get_redis_manager_sync()
         if db_manager is None:
             logger.warning("Database manager not available, cannot reset migration flags")
             return False
@@ -2247,7 +2564,7 @@ def reset_sqlite_migration_flags():
 def get_migration_status():
     """Get current migration status"""
     try:
-        db_manager = get_redis_manager()
+        db_manager = get_redis_manager_sync()
         if db_manager is None:
             return {"error": "Database manager not available"}
         

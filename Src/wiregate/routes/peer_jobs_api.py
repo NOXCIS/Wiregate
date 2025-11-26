@@ -233,7 +233,7 @@ async def save_peer_schedule_job(
             message="Peer does not exist"
         )
     
-    s, p = AllPeerJobs.saveJob(PeerJob(
+    s, p = await AllPeerJobs.saveJob(PeerJob(
         job_dict.get('JobID'),
         job_dict['Configuration'],
         job_dict['Peer'],
@@ -285,7 +285,7 @@ async def delete_peer_schedule_job(
             message="Peer does not exist"
         )
     
-    s, p = AllPeerJobs.deleteJob(PeerJob(
+    s, p = await AllPeerJobs.deleteJob(PeerJob(
         job_dict.get('JobID'),
         job_dict['Configuration'],
         job_dict['Peer'],
@@ -317,7 +317,7 @@ async def get_peer_schedule_job_logs(
         )
     
     request_all = requestAll == "true"
-    logs = JobLogger.getLogs(request_all, configName)
+    logs = await JobLogger.getLogs(request_all, configName)
     
     return StandardResponse(
         status=True,

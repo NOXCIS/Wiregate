@@ -104,7 +104,7 @@ async def get_configurations(
     user: Dict[str, Any] = Depends(require_authentication)
 ):
     """Get all WireGuard configurations"""
-    InitWireguardConfigurationsList()
+    await InitWireguardConfigurationsList()
     
     # Process configurations in parallel for better performance
     async def process_config(config):
@@ -164,7 +164,7 @@ async def cleanup_orphaned_configurations(
             if RegexMatch("^(.{1,}).(conf)$", i):
                 existing_config_files.add(i.replace('.conf', ''))
         
-        cleanup_orphaned_configurations(existing_config_files)
+        await cleanup_orphaned_configurations(existing_config_files)
         
         return StandardResponse(
             status=True,
@@ -183,12 +183,47 @@ async def add_configuration(
     user: Dict[str, Any] = Depends(require_authentication)
 ):
     """Add a new WireGuard configuration"""
-    required_keys = ["ConfigurationName", "Address", "ListenPort", "PrivateKey"]
+    logger.error(f"[API] DEBUG: Received addConfiguration - PrivateKey in data: {'PrivateKey' in config_data}, value: {repr(config_data.get('PrivateKey'))}")
+    logger.debug(f"[API] Received addConfiguration request for: {config_data.get('ConfigurationName', 'UNKNOWN')}")
+    logger.debug(f"[API] Full config_data received: {json.dumps({k: v for k, v in config_data.items() if k != 'PrivateKey'}, indent=2)}")
+    logger.debug(f"[API] Protocol in request: {config_data.get('Protocol', 'NOT PROVIDED')}")
+    logger.debug(f"[API] I1-I5 parameters present: I1={bool(config_data.get('I1'))}, I2={bool(config_data.get('I2'))}, I3={bool(config_data.get('I3'))}, I4={bool(config_data.get('I4'))}, I5={bool(config_data.get('I5'))}")
+    
+    required_keys = ["ConfigurationName", "Address", "ListenPort"]
     for key in required_keys:
         if key not in config_data:
+            logger.warning(f"[API] Missing required key: {key}")
             return StandardResponse(
                 status=False,
                 message="Please provide all required parameters."
+            )
+    
+    # Generate private key if not provided or empty
+    private_key_value = config_data.get("PrivateKey", "")
+    logger.error(f"[API] DEBUG: Checking PrivateKey - value: {repr(private_key_value)}, type: {type(private_key_value)}, empty check: {not private_key_value or (isinstance(private_key_value, str) and private_key_value.strip() == '')}")
+    if not private_key_value or (isinstance(private_key_value, str) and private_key_value.strip() == ""):
+        logger.error("[API] DEBUG: PrivateKey not provided or empty, generating new key")
+        try:
+            private_success, generated_private_key = GenerateWireguardPrivateKey()
+            if not private_success:
+                logger.error(f"[API] GenerateWireguardPrivateKey returned success=False")
+                return StandardResponse(
+                    status=False,
+                    message="Failed to generate private key"
+                )
+            if not generated_private_key:
+                logger.error(f"[API] GenerateWireguardPrivateKey returned None/empty key")
+                return StandardResponse(
+                    status=False,
+                    message="Failed to generate private key"
+                )
+            config_data["PrivateKey"] = generated_private_key
+            logger.debug(f"[API] Generated private key (length: {len(generated_private_key)})")
+        except Exception as e:
+            logger.error(f"[API] Exception generating private key: {e}", exc_info=True)
+            return StandardResponse(
+                status=False,
+                message=f"Failed to generate private key: {str(e)}"
             )
     
     # Check duplicates
@@ -286,7 +321,7 @@ async def add_configuration(
         
         # Create and initialize configuration
         try:
-            Configurations[config_data['ConfigurationName']] = Configuration(
+            Configurations[config_data['ConfigurationName']] = await Configuration.create_async(
                 name=config_data['ConfigurationName']
             )
         except Exception as e:
@@ -313,9 +348,9 @@ async def add_configuration(
                                 f'"{config_data["Backup"].split("_")[0]}"',
                                 f'"{config_data["ConfigurationName"]}"'
                             )
-                            sqlUpdate(line)
+                            await sqlUpdate(line)
             except Exception as e:
-                Configurations[config_data['ConfigurationName']].deleteConfiguration()
+                await Configurations[config_data['ConfigurationName']].deleteConfiguration()
                 Configurations.pop(config_data['ConfigurationName'])
                 return StandardResponse(
                     status=False,
@@ -349,7 +384,7 @@ async def add_configuration(
                             script_path
                         )
             except Exception as e:
-                Configurations[config_data['ConfigurationName']].deleteConfiguration()
+                await Configurations[config_data['ConfigurationName']].deleteConfiguration()
                 Configurations.pop(config_data['ConfigurationName'])
                 return StandardResponse(
                     status=False,
@@ -357,6 +392,8 @@ async def add_configuration(
                 )
     else:
         # Handle new configuration creation
+        script_paths = {}  # Initialize before try block to ensure cleanup can access it
+        config_script_dir = None  # Initialize before try block to ensure cleanup can access it
         try:
             config_name = config_data['ConfigurationName']
             
@@ -370,7 +407,6 @@ async def add_configuration(
             config_script_dir = os.path.join(iptables_dir, config_name)
             os.makedirs(config_script_dir, exist_ok=True)
             
-            script_paths = {}
             for script_type, script_name in script_types.items():
                 if script_type in config_data and config_data.get(script_type):
                     script_path = os.path.join(config_script_dir, f"{script_name}.sh")
@@ -385,22 +421,54 @@ async def add_configuration(
             for script_type, path in script_paths.items():
                 config_data[script_type] = path
             
-            Configurations[config_name] = Configuration(data=config_data)
+            logger.debug(f"[API] Calling create_async for configuration: {config_name}")
+            logger.debug(f"[API] Protocol being passed to create_async: {config_data.get('Protocol', 'NOT PROVIDED')}")
+            logger.debug(f"[API] PrivateKey in config_data before create_async: present={bool(config_data.get('PrivateKey'))}, length={len(config_data.get('PrivateKey', '')) if config_data.get('PrivateKey') else 0}")
+            logger.debug(f"[API] Data being passed to create_async (excluding PrivateKey): {json.dumps({k: v for k, v in config_data.items() if k != 'PrivateKey'}, indent=2)}")
+            
+            Configurations[config_name] = await Configuration.create_async(
+                name=config_name,
+                data=config_data
+            )
+            
+            logger.info(f"[API] Successfully created configuration: {config_name}")
+            logger.debug(f"[API] Final Protocol value: {Configurations[config_name].Protocol}")
             
         except Exception as e:
+            logger.error(f"[API] Error creating configuration {config_name}: {str(e)}", exc_info=True)
+            logger.error(f"[API] Error type: {type(e).__name__}")
+            logger.error(f"[API] Protocol value at error time: {config_data.get('Protocol', 'NOT PROVIDED')}")
+            original_error = e  # Preserve the original exception
+            # Cleanup any script files that were created before the error
             for script_path in script_paths.values():
                 if os.path.exists(script_path):
                     try:
                         os.remove(script_path)
-                    except:
-                        pass
+                    except OSError as cleanup_error:
+                        logger.warning(f"Failed to remove script file {script_path}: {cleanup_error}")
+                    except Exception as cleanup_error:
+                        logger.warning(f"Unexpected error removing script file {script_path}: {cleanup_error}")
+            
+            # Cleanup the config directory if it exists and is empty
+            if config_script_dir and os.path.exists(config_script_dir):
+                try:
+                    if not os.listdir(config_script_dir):
+                        os.rmdir(config_script_dir)
+                        logger.debug(f"Removed empty config directory: {config_script_dir}")
+                except OSError as cleanup_error:
+                    logger.warning(f"Failed to remove config directory {config_script_dir}: {cleanup_error}")
+                except Exception as cleanup_error:
+                    logger.warning(f"Unexpected error removing config directory {config_script_dir}: {cleanup_error}")
+            
             return StandardResponse(
                 status=False,
-                message=f"Failed to create configuration: {str(e)}"
+                message=f"Failed to create configuration: {str(original_error)}"
             )
     
     # Handle AmneziaWG symlink
+    logger.debug(f"[API] Checking Protocol for symlink creation: {config_data.get('Protocol', 'NOT PROVIDED')}")
     if config_data.get("Protocol") == "awg":
+        logger.debug(f"[API] Creating AmneziaWG symlink for configuration: {config_data['ConfigurationName']}")
         try:
             conf_file_path = os.path.join(wgd_config_path, f'{config_data["ConfigurationName"]}.conf')
             symlink_path = os.path.join("/etc/amnezia/amneziawg", f'{config_data["ConfigurationName"]}.conf')
@@ -440,26 +508,45 @@ async def update_configuration(
     user: Dict[str, Any] = Depends(require_authentication)
 ):
     """Update configuration settings"""
-    if "Name" not in update_data:
+    try:
+        if "Name" not in update_data:
+            return StandardResponse(
+                status=False,
+                message="Please provide Name field"
+            )
+        
+        name = update_data.get("Name")
+        if name not in Configurations.keys():
+            return StandardResponse(
+                status=False,
+                message="Configuration does not exist"
+            )
+        
+        status, msg = Configurations[name].updateConfigurationSettings(update_data)
+        
+        # Safely get JSON data
+        try:
+            json_data = Configurations[name].toJson()
+        except Exception as e:
+            logger.error(f"Failed to serialize configuration {name} to JSON: {e}", exc_info=True)
+            # Return success but without data if toJson fails
+            return StandardResponse(
+                status=status,
+                message=msg,
+                data=None
+            )
+        
+        return StandardResponse(
+            status=status,
+            message=msg,
+            data=json_data
+        )
+    except Exception as e:
+        logger.error(f"Error updating configuration: {e}", exc_info=True)
         return StandardResponse(
             status=False,
-            message="Please provide Name field"
+            message=f"Failed to update configuration: {str(e)}"
         )
-    
-    name = update_data.get("Name")
-    if name not in Configurations.keys():
-        return StandardResponse(
-            status=False,
-            message="Configuration does not exist"
-        )
-    
-    status, msg = Configurations[name].updateConfigurationSettings(update_data)
-    
-    return StandardResponse(
-        status=status,
-        message=msg,
-        data=Configurations[name].toJson()
-    )
 
 
 @router.get('/getConfigurationRawFile', response_model=StandardResponse)
@@ -504,7 +591,7 @@ async def update_configuration_raw_file(
             message="Please provide content"
         )
     
-    status, err = Configurations[configurationName].updateRawConfigurationFile(rawConfiguration)
+    status, err = await Configurations[configurationName].updateRawConfigurationFile(rawConfiguration)
     
     return StandardResponse(status=status, message=err)
 
@@ -555,7 +642,7 @@ async def delete_configuration(
                 logger.warning(f"Failed to delete iptables script {script_path}: {str(e)}")
     
     # Delete the configuration
-    status = Configurations[config_name].deleteConfiguration()
+    status = await Configurations[config_name].deleteConfiguration()
     
     if status:
         Configurations.pop(config_name)
@@ -578,13 +665,14 @@ async def rename_configuration(
                 message="Please provide the configuration name you want to rename"
             )
     
-    status, message = Configurations[rename_data.get("Name")].renameConfiguration(
+    status, message = await Configurations[rename_data.get("Name")].renameConfigurationAsync(
         rename_data.get("NewConfigurationName")
     )
     if status:
         Configurations.pop(rename_data.get("Name"))
-        Configurations[rename_data.get("NewConfigurationName")] = Configuration(
-            rename_data.get("NewConfigurationName")
+        # Create new configuration using async factory
+        Configurations[rename_data.get("NewConfigurationName")] = await Configuration.create_async(
+            name=rename_data.get("NewConfigurationName")
         )
     
     return StandardResponse(status=status, message=message)
@@ -607,25 +695,44 @@ async def get_wireguard_configuration_info(
     # Refresh peer jobs
     from ..modules.Jobs import AllPeerJobs
     logger.debug(f"Refreshing AllPeerJobs data...")
-    AllPeerJobs._PeerJobs__getJobs()
+    await AllPeerJobs._ensure_initialized()  # Ensure initialized and refresh jobs
     logger.debug(f"AllPeerJobs now has {len(AllPeerJobs.Jobs)} total jobs")
     
     # Get configuration and peers
     config = Configurations[configurationName]
-    peers = config.getPeersList()
-    restricted_peers = config.getRestrictedPeersList()
+    peers = await config.getPeersList()
+    restricted_peers = await config.getRestrictedPeersList()
     
     logger.debug(f"Found {len(peers)} peers for configuration {configurationName}")
     
     # Convert peers to JSON
     peers_json = []
     for i, peer in enumerate(peers):
-        logger.debug(f"Processing peer {i+1}: {peer.id}")
-        peer_json = peer.toJson()
-        logger.debug(f"Peer {peer.id} jobs: {len(peer_json.get('jobs', []))}")
-        peers_json.append(peer_json)
+        try:
+            logger.debug(f"Processing peer {i+1}: {peer.id}")
+            # Handle async getShareLink before toJson
+            try:
+                await peer.getShareLink()
+            except Exception as e:
+                logger.warning(f"Failed to get share link for peer {peer.id}: {e}")
+            peer_json = peer.toJson()
+            logger.debug(f"Peer {peer.id} jobs: {len(peer_json.get('jobs', []))}")
+            peers_json.append(peer_json)
+        except Exception as e:
+            logger.error(f"Error processing peer {i+1} ({getattr(peer, 'id', 'unknown')}): {e}", exc_info=True)
+            # Continue with other peers even if one fails
     
-    restricted_peers_json = [peer.toJson() for peer in restricted_peers]
+    restricted_peers_json = []
+    for peer in restricted_peers:
+        try:
+            # Handle async getShareLink before toJson
+            try:
+                await peer.getShareLink()
+            except Exception as e:
+                logger.warning(f"Failed to get share link for restricted peer {peer.id}: {e}")
+            restricted_peers_json.append(peer.toJson())
+        except Exception as e:
+            logger.error(f"Error processing restricted peer {getattr(peer, 'id', 'unknown')}: {e}", exc_info=True)
     
     logger.debug(f"Returning {len(peers_json)} peers with jobs data")
     
@@ -696,7 +803,7 @@ async def add_peers(
         if not config.getStatus():
             config.toggleConfiguration()
         
-        availableIps = config.getAvailableIP()
+        availableIps = await config.getAvailableIP()
         
         if bulkAdd:
             if type(preshared_key_bulkAdd) is not bool:
@@ -761,9 +868,9 @@ async def add_peers(
                     message="Generating key pairs by bulk failed"
                 )
             
-            logger.debug(f"API: Calling addPeers with {len(keyPairs)} bulk peers")
-            result = config.addPeers(keyPairs)
-            logger.debug(f"API: addPeers result: {result}")
+            logger.debug(f"API: Calling addPeersAsync with {len(keyPairs)} bulk peers")
+            result = await config.addPeersAsync(keyPairs)
+            logger.debug(f"API: addPeersAsync result: {result}")
             return StandardResponse(status=True)
         else:
             if config.searchPeer(public_key)[0] is True:
@@ -777,7 +884,7 @@ async def add_peers(
             
             # Validate peer name uniqueness
             if name:
-                existing_peers = config.getPeersList()
+                existing_peers = await config.getPeersList()
                 for existing_peer in existing_peers:
                     if existing_peer.name == name:
                         return StandardResponse(
@@ -792,8 +899,8 @@ async def add_peers(
                         message=f"This IP is not available: {i}"
                     )
             
-            logger.debug(f"API: Calling addPeers with single peer: {public_key[:8]}...")
-            status = config.addPeers([{
+            logger.debug(f"API: Calling addPeersAsync with single peer: {public_key[:8]}...")
+            status = await config.addPeersAsync([{
                 "name": name,
                 "id": public_key,
                 "private_key": private_key,
@@ -832,15 +939,21 @@ async def update_peer_settings(
     foundPeer, peer = wireguardConfig.searchPeer(peer_id)
     
     if foundPeer:
-        result = peer.updatePeer(
-            peer_update.get('name'),
-            peer_update.get('private_key'),
-            peer_update.get('preshared_key'),
-            peer_update.get('DNS'),
-            peer_update.get('allowed_ip'),
-            peer_update.get('endpoint_allowed_ip'),
-            peer_update.get('mtu'),
-            peer_update.get('keepalive')
+        # Use current values if not provided in update
+        result = await peer.updatePeerAsync(
+            peer_update.get('name') if peer_update.get('name') is not None else peer.name,
+            peer_update.get('private_key') if peer_update.get('private_key') is not None else "",
+            peer_update.get('preshared_key') if peer_update.get('preshared_key') is not None else "",
+            peer_update.get('DNS') if peer_update.get('DNS') is not None else peer.DNS,
+            peer_update.get('allowed_ip') if peer_update.get('allowed_ip') is not None else peer.allowed_ip,
+            peer_update.get('endpoint_allowed_ip') if peer_update.get('endpoint_allowed_ip') is not None else peer.endpoint_allowed_ip,
+            peer_update.get('mtu') if peer_update.get('mtu') is not None else peer.mtu,
+            peer_update.get('keepalive') if peer_update.get('keepalive') is not None else peer.keepalive,
+            peer_update.get('I1'),
+            peer_update.get('I2'),
+            peer_update.get('I3'),
+            peer_update.get('I4'),
+            peer_update.get('I5')
         )
         result_dict = convert_response_object_to_dict(result)
         return StandardResponse(**result_dict)
@@ -873,7 +986,12 @@ async def reset_peer_data(
             message="Configuration/Peer does not exist"
         )
     
-    return StandardResponse(status=peer.resetDataUsage(reset_type))
+    # resetDataUsage calls async database method, need to await it
+    # Default to "total" if type not provided
+    if not reset_type:
+        reset_type = "total"
+    result = await wgc.db.reset_peer_data_usage(peer_id, reset_type)
+    return StandardResponse(status=result)
 
 
 @router.post('/deletePeers/{configName}', response_model=StandardResponse)
@@ -896,7 +1014,7 @@ async def delete_peers(
         )
     
     configuration = Configurations.get(configName)
-    result = configuration.deletePeers(delete_data.peers)
+    result = await configuration.deletePeersAsync(delete_data.peers)
     result_dict = convert_response_object_to_dict(result)
     return StandardResponse(**result_dict)
 
@@ -921,7 +1039,7 @@ async def restrict_peers(
         )
     
     configuration = Configurations.get(configName)
-    result = configuration.restrictPeers(restrict_data.peers)
+    result = await configuration.restrictPeersAsync(restrict_data.peers)
     result_dict = convert_response_object_to_dict(result)
     return StandardResponse(**result_dict)
 
@@ -947,7 +1065,7 @@ async def allow_access_peers(
             )
         
         configuration = Configurations.get(configName)
-        result = configuration.allowAccessPeers(allow_data.peers)
+        result = await configuration.allowAccessPeersAsync(allow_data.peers)
         result_dict = convert_response_object_to_dict(result)
         return StandardResponse(**result_dict)
         
@@ -1025,7 +1143,7 @@ async def get_available_ips(
             message="Configuration does not exist"
         )
     
-    status, ips = Configurations.get(configName).getAvailableIP()
+    status, ips = await Configurations.get(configName).getAvailableIP()
     return StandardResponse(status=status, data=ips)
 
 
@@ -1049,7 +1167,7 @@ async def share_peer_create(
             message="Please specify configuration and peers"
         )
     
-    activeLink = AllPeerShareLinks.getLink(Configuration, Peer)
+    activeLink = await AllPeerShareLinks.getLink(Configuration, Peer)
     if len(activeLink) > 0:
         return StandardResponse(
             status=True,
@@ -1057,11 +1175,11 @@ async def share_peer_create(
             data=activeLink[0].toJson()
         )
     
-    status, message = AllPeerShareLinks.addLink(Configuration, Peer, ExpireDate)
+    status, message = await AllPeerShareLinks.addLink(Configuration, Peer, ExpireDate)
     if not status:
         return StandardResponse(status=status, message=message)
     
-    links = AllPeerShareLinks.getLinkByID(message)
+    links = await AllPeerShareLinks.getLinkByID(message)
     return StandardResponse(status=True, data=[link.toJson() for link in links])
 
 
@@ -1080,17 +1198,17 @@ async def share_peer_update(
             message="Please specify ShareID"
         )
     
-    if len(AllPeerShareLinks.getLinkByID(ShareID)) == 0:
+    if len(await AllPeerShareLinks.getLinkByID(ShareID)) == 0:
         return StandardResponse(
             status=False,
             message="ShareID does not exist"
         )
     
-    status, message = AllPeerShareLinks.updateLinkExpireDate(ShareID, ExpireDate)
+    status, message = await AllPeerShareLinks.updateLinkExpireDate(ShareID, ExpireDate)
     if not status:
         return StandardResponse(status=status, message=message)
     
-    links = AllPeerShareLinks.getLinkByID(ShareID)
+    links = await AllPeerShareLinks.getLinkByID(ShareID)
     return StandardResponse(status=True, data=[link.toJson() for link in links])
 
 
@@ -1161,7 +1279,7 @@ async def update_dashboard_configuration_item(
     if update_data.section == "Server":
         if update_data.key == 'wg_conf_path':
             Configurations.clear()
-            InitWireguardConfigurationsList()
+            await InitWireguardConfigurationsList()
     
     return StandardResponse(
         status=True,
@@ -1173,16 +1291,37 @@ async def update_dashboard_configuration_item(
 async def get_dashboard_api_keys(
     user: Dict[str, Any] = Depends(require_authentication)
 ):
-    """Get dashboard API keys"""
+    """Get dashboard API keys (all keys are masked for security)"""
+    logger.debug(f"[getDashboardAPIKeys] Request received from user: {user.get('username', 'unknown')}")
     if DashboardConfig.GetConfig('Server', 'dashboard_api_key')[1]:
+        # Refresh API keys from database to ensure we have the latest
+        DashboardConfig.DashboardAPIKeys = await DashboardConfig._api_key_manager._get_api_keys()
+        logger.debug(f"[getDashboardAPIKeys] Found {len(DashboardConfig.DashboardAPIKeys)} API keys")
+        
+        # Mask all keys for security - keys should only be shown once during creation
+        keys_data = []
+        for key in DashboardConfig.DashboardAPIKeys:
+            key_json = key.toJson()
+            key_json['Key'] = _mask_api_key(key.Key)
+            keys_data.append(key_json)
+        
+        logger.debug(f"[getDashboardAPIKeys] Returning {len(keys_data)} masked keys")
         return StandardResponse(
             status=True,
-            data=[key.toJson() for key in DashboardConfig.DashboardAPIKeys]
+            data=keys_data
         )
+    logger.warning("[getDashboardAPIKeys] API Keys function is disabled")
     return StandardResponse(
         status=False,
         message="WGDashboard API Keys function is disabled"
     )
+
+
+def _mask_api_key(key: str) -> str:
+    """Mask an API key, showing only first 8 and last 4 characters"""
+    if not key or len(key) < 12:
+        return "•" * 8  # If key is too short, just show dots
+    return f"{key[:8]}...{key[-4:]}"
 
 
 @router.post('/newDashboardAPIKey', response_model=StandardResponse)
@@ -1191,21 +1330,50 @@ async def new_dashboard_api_key(
     user: Dict[str, Any] = Depends(require_authentication)
 ):
     """Create a new dashboard API key"""
+    logger.debug(f"[newDashboardAPIKey] Request received from user: {user.get('username', 'unknown')}")
+    logger.debug(f"[newDashboardAPIKey] Request data: {key_data}")
+    
     if DashboardConfig.GetConfig('Server', 'dashboard_api_key')[1]:
         try:
             if key_data.get('neverExpire'):
                 expiredAt = None
+                logger.debug("[newDashboardAPIKey] Creating API key with no expiration")
             else:
-                expiredAt = datetime.strptime(key_data['ExpiredAt'], '%Y-%m-%d %H:%M:%S')
+                # Convert datetime to string format for database storage
+                expiredAt = datetime.strptime(key_data['ExpiredAt'], '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
+                logger.debug(f"[newDashboardAPIKey] Creating API key with expiration: {expiredAt}")
             
-            DashboardConfig.createAPIKeys(expiredAt)
+            logger.debug("[newDashboardAPIKey] Calling createAPIKeys...")
+            new_key_value = await DashboardConfig._api_key_manager.create_api_key(expiredAt)
+            logger.debug(f"[newDashboardAPIKey] API key created: {new_key_value[:20]}...")
+            
+            # Refresh to ensure we have the latest
+            DashboardConfig.DashboardAPIKeys = await DashboardConfig._api_key_manager._get_api_keys()
+            
+            # Return the newly created key with full value, and mask all other keys
+            keys_data = []
+            for key in DashboardConfig.DashboardAPIKeys:
+                key_json = key.toJson()
+                # Only show the full key if it's the one we just created
+                if key.Key == new_key_value:
+                    key_json['_isNew'] = True  # Flag to indicate this is the newly created key
+                else:
+                    # Mask all other keys
+                    key_json['Key'] = _mask_api_key(key.Key)
+                keys_data.append(key_json)
+            
+            logger.debug(f"[newDashboardAPIKey] Returning {len(keys_data)} keys (1 new, {len(keys_data)-1} masked)")
+            
             return StandardResponse(
                 status=True,
-                data=[key.toJson() for key in DashboardConfig.DashboardAPIKeys]
+                data=keys_data,
+                message=new_key_value  # Include the new key in message for one-time display
             )
         except Exception as e:
+            logger.error(f"[newDashboardAPIKey] Error creating API key: {e}", exc_info=True)
             return StandardResponse(status=False, message=str(e))
     
+    logger.warning("[newDashboardAPIKey] API Keys function is disabled")
     return StandardResponse(
         status=False,
         message="Dashboard API Keys function is disabled"
@@ -1214,19 +1382,69 @@ async def new_dashboard_api_key(
 
 @router.post('/deleteDashboardAPIKey', response_model=StandardResponse)
 async def delete_dashboard_api_key(
-    key_data: Dict[str, str],
+    key_data: Dict[str, Any],
     user: Dict[str, Any] = Depends(require_authentication)
 ):
     """Delete a dashboard API key"""
-    if DashboardConfig.GetConfig('Server', 'dashboard_api_key')[1]:
-        key = key_data.get('Key')
-        if key and any(x.Key == key for x in DashboardConfig.DashboardAPIKeys):
-            DashboardConfig.deleteAPIKey(key)
-            return StandardResponse(
-                status=True,
-                data=[key.toJson() for key in DashboardConfig.DashboardAPIKeys]
-            )
+    logger.debug(f"[deleteDashboardAPIKey] Request received from user: {user.get('username', 'unknown')}")
+    logger.debug(f"[deleteDashboardAPIKey] Request data: {key_data}")
     
+    if DashboardConfig.GetConfig('Server', 'dashboard_api_key')[1]:
+        try:
+            key = key_data.get('Key')
+            logger.debug(f"[deleteDashboardAPIKey] Attempting to delete key: {key}")
+            
+            if not key:
+                logger.warning("[deleteDashboardAPIKey] No key provided in request")
+                return StandardResponse(
+                    status=False,
+                    message="API key is required"
+                )
+            
+            # Refresh API keys from database before checking
+            DashboardConfig.DashboardAPIKeys = await DashboardConfig._api_key_manager._get_api_keys()
+            logger.debug(f"[deleteDashboardAPIKey] Current API keys count: {len(DashboardConfig.DashboardAPIKeys)}")
+            
+            # Check if key exists (compare with masked versions too, in case frontend sends masked key)
+            key_found = False
+            actual_key = None
+            for k in DashboardConfig.DashboardAPIKeys:
+                # Check if the provided key matches (could be full or masked)
+                if k.Key == key or k.Key.startswith(key[:8]) or _mask_api_key(k.Key) == key:
+                    key_found = True
+                    actual_key = k.Key
+                    break
+            
+            if key_found:
+                logger.debug(f"[deleteDashboardAPIKey] Key found, deleting...")
+                await DashboardConfig.deleteAPIKey(actual_key)
+                logger.debug(f"[deleteDashboardAPIKey] Key deleted. Refreshing list...")
+                
+                # Refresh to ensure we have the latest
+                DashboardConfig.DashboardAPIKeys = await DashboardConfig._api_key_manager._get_api_keys()
+                # Mask all keys in response
+                keys_data = []
+                for api_key in DashboardConfig.DashboardAPIKeys:
+                    key_json = api_key.toJson()
+                    key_json['Key'] = _mask_api_key(api_key.Key)
+                    keys_data.append(key_json)
+                logger.debug(f"[deleteDashboardAPIKey] Successfully deleted. Remaining keys: {len(keys_data)}")
+                
+                return StandardResponse(
+                    status=True,
+                    data=keys_data
+                )
+            else:
+                logger.warning(f"[deleteDashboardAPIKey] Key not found in current API keys list")
+                return StandardResponse(
+                    status=False,
+                    message="API key not found"
+                )
+        except Exception as e:
+            logger.error(f"[deleteDashboardAPIKey] Error deleting API key: {e}", exc_info=True)
+            return StandardResponse(status=False, message=str(e))
+    
+    logger.warning("[deleteDashboardAPIKey] API Keys function is disabled")
     return StandardResponse(
         status=False,
         message="Dashboard API Keys function is disabled"

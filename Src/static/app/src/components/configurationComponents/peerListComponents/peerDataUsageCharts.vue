@@ -57,14 +57,25 @@ const fetchRealtimeTraffic = async () => {
 		configurationName: props.configurationInfo.Name
 	}, (res) => {
 		console.log('Received traffic data:', res.data) // Debug log
+		
+		// Check if response is valid and has data
+		if (!res || !res.status || !res.data) {
+			console.warn('Invalid traffic data response:', res)
+			return
+		}
+		
 		let timestamp = dayjs().format("hh:mm:ss A")
 		
-		if (res.data.sent !== 0 || res.data.recv !== 0) {
+		// Ensure sent and recv are numbers (default to 0 if missing)
+		const sent = res.data.sent ?? 0
+		const recv = res.data.recv ?? 0
+		
+		if (sent !== 0 || recv !== 0) {
 			// Add new data points
 			historySentData.value.timestamp.push(timestamp)
-			historySentData.value.data.push(res.data.sent)
+			historySentData.value.data.push(sent)
 			historyReceivedData.value.timestamp.push(timestamp)
-			historyReceivedData.value.data.push(res.data.recv)
+			historyReceivedData.value.data.push(recv)
 
 			console.log('Updated chart data:', { // Debug log
 				sent: historySentData.value,

@@ -2,6 +2,7 @@
 FastAPI Middleware for Security Features
 Converts Flask-based security to FastAPI middleware
 """
+import os
 import time
 import logging
 import asyncio
@@ -16,6 +17,7 @@ from starlette.middleware.cors import CORSMiddleware
 from ..Config import (
     DASHBOARD_MODE, ALLOWED_ORIGINS, SECURE_SESSION, SESSION_TIMEOUT
 )
+from ..Logger import log_with_context
 
 logger = logging.getLogger(__name__)
 
@@ -44,8 +46,7 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
             csrf_exempt_paths = [
                 '/api/authenticate',
                 '/api/validate-csrf',
-                '/api/handshake',
-                '/api/health'
+                '/api/handshake'
             ]
             
             if not any(request.url.path.startswith(path) for path in csrf_exempt_paths):
@@ -93,6 +94,17 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
                                 pass  # Allow this request
                             else:
                                 # Session is older, token should exist - require it
+                                client_ip = request.client.host if request.client else "unknown"
+                                log_with_context(
+                                    logger, logging.WARNING,
+                                    "CSRF token missing",
+                                    event_type="security_block",
+                                    block_type="csrf",
+                                    client_ip=client_ip,
+                                    url=str(request.url),
+                                    path=request.url.path,
+                                    method=request.method
+                                )
                                 return JSONResponse(
                                     status_code=403,
                                     content={
@@ -117,6 +129,17 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
                             session_csrf_token = session_data['csrf_token']
                         
                         if not security_manager.constant_time_compare(csrf_token, session_csrf_token):
+                            client_ip = request.client.host if request.client else "unknown"
+                            log_with_context(
+                                logger, logging.WARNING,
+                                "CSRF token validation failed",
+                                event_type="security_block",
+                                block_type="csrf",
+                                client_ip=client_ip,
+                                url=str(request.url),
+                                path=request.url.path,
+                                method=request.method
+                            )
                             return JSONResponse(
                                 status_code=403,
                                 content={
@@ -187,7 +210,18 @@ class BotProtectionMiddleware(BaseHTTPMiddleware):
         # Check if request is from a blocked bot (case-insensitive match)
         for blocked_agent in self.BLOCKED_USER_AGENTS:
             if blocked_agent.lower() in user_agent_lower:
-                logger.info(f"Blocked bot request from {blocked_agent}: {request.url.path} (IP: {request.client.host if request.client else 'unknown'})")
+                client_ip = request.client.host if request.client else 'unknown'
+                logger.info(f"Blocked bot request from {blocked_agent}: {request.url.path} (IP: {client_ip})")
+                log_with_context(
+                    logger, logging.WARNING,
+                    "Bot request blocked",
+                    event_type="security_block",
+                    block_type="bot",
+                    user_agent=blocked_agent,
+                    client_ip=client_ip,
+                    url=str(request.url),
+                    path=request.url.path
+                )
                 return JSONResponse(
                     status_code=403,
                     content={
@@ -463,6 +497,10 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         self.security_manager = security_manager
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
+        # Skip rate limiting in test mode
+        if os.getenv('TESTING_MODE', 'false').lower() == 'true':
+            return await call_next(request)
+        
         # Skip rate limiting for static files
         if request.url.path.startswith('/static/'):
             return await call_next(request)
@@ -473,7 +511,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         
         # Skip rate limiting for public endpoints
         public_endpoints = [
-            '/api/validateAuthentication',
             '/api/handshake',
             '/api/getDashboardTheme',
             '/api/sharePeer/get',
@@ -483,29 +520,36 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         if any(request.url.path.startswith(endpoint) for endpoint in public_endpoints):
             return await call_next(request)
         
-        # Check if session is expired before rate limiting
-        # This prevents rate limiting requests that will return 401 anyway
+        # Check if user is authenticated (has valid session)
         session_data = getattr(request.state, 'session', {})
-        if not session_data or 'session_id' not in session_data:
-            # No session or expired session - check if this endpoint requires auth
-            # If it requires auth, it will return 401, so don't rate limit it
-            # This prevents rate limit lockout when session expires
-            auth_required_endpoints = [
-                '/api/csrf-token',
-                '/api/getDashboardConfiguration',
-                '/api/getWireguardConfigurations'
-            ]
-            if any(request.url.path.startswith(endpoint) for endpoint in auth_required_endpoints):
-                # This will likely return 401 - don't count towards rate limit
-                # But still apply a minimal rate limit to prevent abuse
-                identifier = request.client.host if request.client else "unknown"
-                is_limited, info = self.security_manager.is_distributed_rate_limited(
-                    identifier, 
-                    limit=30,  # More lenient limit for expired session requests
-                    window=60  # 1 minute window
-                )
+        is_authenticated = (session_data and 
+                           'session_id' in session_data and 
+                           'username' in session_data)
+        
+        # For unauthenticated requests: rate limit authentication and auth-check endpoints
+        # Other endpoints will return 401 anyway, so rate limiting is pointless and causes lockout
+        if not is_authenticated:
+            identifier = request.client.host if request.client else "unknown"
+            
+            if request.url.path.startswith('/api/authenticate'):
+                # Rate limit login attempts to prevent brute force
+                if self.security_manager:
+                    has_recent_expiration = self.security_manager.has_recent_session_expiration(identifier)
+                    
+                    if has_recent_expiration:
+                        is_limited, info = self.security_manager.is_distributed_rate_limited(
+                            identifier, 
+                            limit=20,
+                            window=300
+                        )
+                    else:
+                        is_limited, info = self.security_manager.is_distributed_rate_limited(
+                            identifier, 
+                            limit=10,
+                            window=300
+                        )
+                    
                 if is_limited:
-                    # Still apply rate limit but more lenient
                     limit_type = "rate"
                     if info.get('is_burst_limited', False):
                         limit_type = "burst"
@@ -521,35 +565,51 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                             }
                         }
                     )
-                # Don't count this request in normal rate limiting
-                return await call_next(request)
-        
-        if self.security_manager:
-            # Get identifier (client IP)
-            identifier = request.client.host if request.client else "unknown"
+            elif request.url.path.startswith('/api/validateAuthentication'):
+                # Light rate limiting for auth check endpoint to prevent abuse
+                # But lenient enough for normal frontend polling (60 requests per minute)
+                if self.security_manager:
+                    is_limited, info = self.security_manager.is_distributed_rate_limited(
+                        identifier,
+                        limit=60,  # 60 checks per minute (1 per second average)
+                        window=60,
+                        burst_limit=30  # Allow burst of 30 for simultaneous frontend requests
+                    )
+                    
+                    if is_limited:
+                        limit_type = "rate"
+                        if info.get('is_burst_limited', False):
+                            limit_type = "burst"
+                        
+                        return JSONResponse(
+                            status_code=429,
+                            content={
+                                'status': False,
+                                'message': f'Rate limit exceeded ({limit_type})',
+                                'data': {
+                                    'retry_after': max(0, info.get('reset_time', 0) - int(time.time())),
+                                    'limit': info.get('limit', 0)
+                                }
+                            }
+                        )
             
-            # Apply stricter rate limits for authentication endpoints
-            if request.url.path.startswith('/api/authenticate'):
-                # Check if there was a recent session expiration (grace period)
-                has_recent_expiration = self.security_manager.has_recent_session_expiration(identifier)
-                
-                if has_recent_expiration:
-                    # More lenient limit if session expired recently (20 requests per 5 minutes)
-                    is_limited, info = self.security_manager.is_distributed_rate_limited(
-                        identifier, 
-                        limit=20,  # 20 attempts per window (more lenient)
-                        window=300  # 5 minutes window
-                    )
-                else:
-                    # Stricter limits for normal login attempts: 10 requests per 5 minutes
-                    is_limited, info = self.security_manager.is_distributed_rate_limited(
-                        identifier, 
-                        limit=10,  # 10 attempts per window
-                        window=300  # 5 minutes window
-                    )
-            else:
-                # Standard rate limit for other endpoints
-                is_limited, info = self.security_manager.is_distributed_rate_limited(identifier)
+            # For all other unauthenticated requests, skip rate limiting
+            # They will return 401 anyway, which is sufficient protection
+            return await call_next(request)
+        
+        # For authenticated users, apply rate limiting
+        if self.security_manager:
+            # Use session-based identifier for authenticated users
+            # This gives each user their own rate limit pool
+            identifier = f"session:{session_data.get('session_id', 'unknown')}"
+            
+            # Higher limits for authenticated users (300 requests per minute)
+            # This prevents legitimate users from hitting rate limits during normal usage
+            is_limited, info = self.security_manager.is_distributed_rate_limited(
+                identifier,
+                limit=1000,  # 300 requests per window for authenticated users
+                window=60   # 1 minute window
+            )
             
             if is_limited:
                 # Determine limit type
@@ -558,6 +618,22 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                     limit_type = "burst"
                 elif info.get('is_sliding_limited', False):
                     limit_type = "sliding"
+                
+                client_ip = request.client.host if request.client else "unknown"
+                log_with_context(
+                    logger, logging.WARNING,
+                    "Rate limit exceeded",
+                    event_type="rate_limit",
+                    limit_type=limit_type,
+                    identifier=identifier,
+                    client_ip=client_ip,
+                    url=str(request.url),
+                    path=request.url.path,
+                    method=request.method,
+                    limit=info.get('limit', 0),
+                    current_requests=info.get('current_requests', 0),
+                    is_authenticated=is_authenticated
+                )
                 
                 return JSONResponse(
                     status_code=429,
@@ -658,8 +734,6 @@ class SessionMiddleware(BaseHTTPMiddleware):
 
 def configure_cors(app):
     """Configure CORS middleware for FastAPI"""
-    from ..Core import APP_PREFIX
-    
     # Define allowed headers including CSRF token
     allowed_headers = [
         "Content-Type", 

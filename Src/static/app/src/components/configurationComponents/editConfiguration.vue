@@ -2,7 +2,7 @@
 import LocaleText from "@/components/text/localeText.vue";
 import {onMounted, reactive, ref, useTemplateRef, watch} from "vue";
 import {WireguardConfigurationsStore} from "@/stores/WireguardConfigurationsStore.js";
-import {fetchPost, fetchGet} from "@/utilities/fetch.js";
+import {fetchPost, fetchGet, getUrl} from "@/utilities/fetch.js";
 import {DashboardConfigurationStore} from "@/stores/DashboardConfigurationStore.js";
 import UpdateConfigurationName
 	from "@/components/configurationComponents/editConfigurationComponents/updateConfigurationName.vue";
@@ -138,7 +138,15 @@ const viewScript = (type) => {
 const wgStore = WireguardConfigurationsStore()
 const store = DashboardConfigurationStore()
 const saving = ref(false)
-const data = reactive(JSON.parse(JSON.stringify(props.configurationInfo)))
+const data = reactive({
+	...JSON.parse(JSON.stringify(props.configurationInfo)),
+	// Initialize I1-I5 if not present
+	I1: props.configurationInfo.I1 || "",
+	I2: props.configurationInfo.I2 || "",
+	I3: props.configurationInfo.I3 || "",
+	I4: props.configurationInfo.I4 || "",
+	I5: props.configurationInfo.I5 || ""
+})
 const editPrivateKey = ref(false)
 const dataChanged = ref(false)
 const confirmChanges = ref(false)
@@ -156,9 +164,202 @@ const genKey = () => {
 		reqField.PrivateKey = false;
 	}
 }
+const validateCPSFormat = (value) => {
+	if (!value || value === "") return true;
+	
+	// Pattern for individual tags
+	const hexTag = /<b\s+0x[0-9a-fA-F]+>/g;
+	const counterTag = /<c>/g;
+	const timestampTag = /<t>/g;
+	const randomTag = /<r\s+(\d+)>/g;
+	const randomAsciiTag = /<rc\s+(\d+)>/g;  // Random ASCII characters (a-z, A-Z)
+	const randomDigitTag = /<rd\s+(\d+)>/g;  // Random digits (0-9)
+	
+	// Check if the string only contains valid tags
+	let testString = value;
+	testString = testString.replace(hexTag, '');
+	testString = testString.replace(counterTag, '');
+	testString = testString.replace(timestampTag, '');
+	testString = testString.replace(randomTag, '');
+	testString = testString.replace(randomAsciiTag, '');
+	testString = testString.replace(randomDigitTag, '');
+	
+	// If there's anything left, it's invalid
+	if (testString.trim() !== '') return false;
+	
+	// Validate random length constraints for all variable-length tags
+	const allLengthTags = [
+		...value.matchAll(/<r\s+(\d+)>/g),
+		...value.matchAll(/<rc\s+(\d+)>/g),
+		...value.matchAll(/<rd\s+(\d+)>/g)
+	];
+	
+	for (const match of allLengthTags) {
+		const length = parseInt(match[1]);
+		if (length <= 0 || length > 1000) return false;
+	}
+	
+	return true;
+}
+
+const generateSingleCPS = async (key) => {
+	// Generate cryptographically secure random CPS patterns
+	// Enhanced with pattern library support (70% library, 30% current generation)
+	const randomHexByte = () => {
+		const bytes = new Uint8Array(1);
+		window.crypto.getRandomValues(bytes);
+		return bytes[0].toString(16).padStart(2, '0');
+	};
+	
+	const randomHexBytes = (count) => {
+		const bytes = new Uint8Array(count);
+		window.crypto.getRandomValues(bytes);
+		return Array.from(bytes)
+			.map(b => b.toString(16).padStart(2, '0'))
+			.join('');
+	};
+	
+	const secureRandomInt = (min, max) => {
+		const range = max - min + 1;
+		const bytesNeeded = Math.ceil(Math.log2(range) / 8);
+		let randomValue;
+		do {
+			const randomBytes = new Uint8Array(bytesNeeded);
+			window.crypto.getRandomValues(randomBytes);
+			randomValue = 0;
+			for (let i = 0; i < bytesNeeded; i++) {
+				randomValue = (randomValue << 8) + randomBytes[i];
+			}
+			const maxValue = Math.pow(2, bytesNeeded * 8) - 1;
+			const threshold = maxValue - (maxValue % range);
+			if (randomValue < threshold) {
+				break;
+			}
+		} while (true); // Retry if biased
+		return min + (randomValue % range);
+	};
+	
+	// Map I1-I5 to protocol types for pattern library
+	const protocolMap = {
+		'I1': 'quic',
+		'I2': 'http_get',
+		'I3': 'dns',
+		'I4': 'json',
+		'I5': 'http_response'
+	};
+	
+	// Always try library first (100% chance), only use synthetic as fallback
+	const protocol = protocolMap[key];
+	let libraryPattern = null;
+	if (protocol) {
+		// Use fetch directly for async/await
+		try {
+			const url = getUrl(`/api/cps-patterns/${protocol}`);
+			const res = await fetch(url, {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				credentials: 'include'
+			});
+			if (res.ok) {
+				const jsonData = await res.json();
+				console.debug(`[${protocol}] API response:`, {
+					status: jsonData?.status,
+					hasData: !!jsonData?.data,
+					dataKeys: jsonData?.data ? Object.keys(jsonData.data) : [],
+					hasPattern: !!jsonData?.data?.cps_pattern,
+					patternLength: jsonData?.data?.cps_pattern?.length || 0,
+					message: jsonData?.message
+				});
+				
+				if (jsonData.status && jsonData.data && jsonData.data.cps_pattern) {
+					libraryPattern = jsonData.data.cps_pattern;
+					console.debug(`✓ Retrieved ${protocol} pattern from library (ID: ${jsonData.data.pattern_id || 'unknown'}, ${libraryPattern.length} chars)`);
+				} else {
+					console.debug(`✗ Library returned no pattern for ${protocol}:`, {
+						status: jsonData?.status,
+						hasData: !!jsonData?.data,
+						hasPattern: !!jsonData?.data?.cps_pattern,
+						message: jsonData?.message
+					});
+				}
+			} else {
+				const errorText = await res.text().catch(() => '');
+				console.debug(`✗ Library fetch failed for ${protocol}: ${res.status}`, errorText);
+			}
+		} catch (e) {
+			// Fallback to generation if library fetch fails
+			console.debug(`Pattern library not available for ${protocol}, using generation:`, e);
+		}
+	}
+	
+	// Helper to randomize pattern (applies to both library and synthetic patterns)
+	const randomizePattern = (pattern) => {
+		if (!pattern) return pattern;
+		
+		// Check if pattern is a full hexstream (single <b 0x...> tag)
+		const fullHexMatch = pattern.trim().match(/^<b\s+0x([0-9a-fA-F]+)>$/);
+		if (fullHexMatch) {
+			// For full hexstreams, randomly modify 5-15% of the hex characters
+			// This maintains the overall structure while adding variation
+			const hexString = fullHexMatch[1];
+			const hexArray = hexString.split('');
+			const numChanges = Math.max(1, Math.floor(hexArray.length * secureRandomInt(5, 15) / 100));
+			
+			// Randomly select positions to modify
+			const positions = new Set();
+			while (positions.size < numChanges) {
+				positions.add(secureRandomInt(0, hexArray.length - 1));
+			}
+			
+			// Modify selected hex characters
+			positions.forEach(pos => {
+				// Generate random hex character (0-9, a-f)
+				const newChar = secureRandomInt(0, 15).toString(16);
+				hexArray[pos] = newChar;
+			});
+			
+			return `<b 0x${hexArray.join('')}>`;
+		}
+		
+		// For tag-based patterns, randomize length tags
+		return pattern
+			.replace(/<r\s+(\d+)>/g, (match, len) => {
+				const originalLen = parseInt(len);
+				const variation = secureRandomInt(Math.max(1, Math.floor(originalLen * 0.75)), Math.min(1000, Math.floor(originalLen * 1.25)));
+				return `<r ${variation}>`;
+			})
+			.replace(/<rc\s+(\d+)>/g, (match, len) => {
+				const originalLen = parseInt(len);
+				const variation = secureRandomInt(Math.max(1, Math.floor(originalLen * 0.75)), Math.min(1000, Math.floor(originalLen * 1.25)));
+				return `<rc ${variation}>`;
+			})
+			.replace(/<rd\s+(\d+)>/g, (match, len) => {
+				const originalLen = parseInt(len);
+				const variation = secureRandomInt(Math.max(1, Math.floor(originalLen * 0.75)), Math.min(1000, Math.floor(originalLen * 1.25)));
+				return `<rd ${variation}>`;
+			});
+	};
+	
+	// If we have a library pattern, randomize it and use it
+	// If no library pattern available, return empty (user can enter manually)
+	if (libraryPattern) {
+		return randomizePattern(libraryPattern);
+	}
+	return "";
+}
+
 const resetForm = () => {
 	dataChanged.value = false;
-	Object.assign(data, JSON.parse(JSON.stringify(props.configurationInfo)))
+	Object.assign(data, {
+		...JSON.parse(JSON.stringify(props.configurationInfo)),
+		I1: props.configurationInfo.I1 || "",
+		I2: props.configurationInfo.I2 || "",
+		I3: props.configurationInfo.I3 || "",
+		I4: props.configurationInfo.I4 || "",
+		I5: props.configurationInfo.I5 || ""
+	})
 }
 const emit = defineEmits(["changed", "close", "backupRestore", "deleteConfiguration", "editRaw"])
 const saveForm = ()  => {
@@ -333,6 +534,54 @@ watch(data, () => {
 										<pre v-else class="mb-0 resizable-preview"><code>{{ content }}</code></pre>
 										</div>
 									</div>
+									</div>
+								</div>
+
+								<!-- AmneziaWG 1.5 CPS Packets Section -->
+								<div v-if="data.Protocol === 'awg' || data.Jc || data.H1" class="mt-4">
+									<h6 class="mb-3">
+										<LocaleText t="AmneziaWG 1.5 CPS Packets (Optional)"></LocaleText>
+									</h6>
+									<div class="alert alert-info py-2 px-3">
+										<small>
+											<i class="bi bi-info-circle me-2"></i>
+											<LocaleText t="Add CPS support to upgrade to AmneziaWG 1.5. Leave empty to use AmneziaWG 1.0."></LocaleText>
+										</small>
+									</div>
+									
+									<div v-for="key in ['I1', 'I2', 'I3', 'I4', 'I5']" :key="key" class="mb-3">
+										<label :for="'edit_' + key" class="form-label">
+											<small class="text-muted">
+												<LocaleText :t="key"></LocaleText>
+											</small>
+										</label>
+										<div class="form-text text-muted mb-1">
+											<small v-if="key === 'I1'">Primary CPS packet. Tags: &lt;b 0xHEX&gt; (binary), &lt;c&gt; (counter), &lt;t&gt; (timestamp), &lt;r N&gt; (random), &lt;rc N&gt; (ASCII), &lt;rd N&gt; (digits)</small>
+											<small v-else>{{ key }} CPS packet. Available tags: &lt;b 0xHEX&gt;, &lt;c&gt;, &lt;t&gt;, &lt;r N&gt;, &lt;rc N&gt;, &lt;rd N&gt;</small>
+										</div>
+										<div class="input-group">
+											<input 
+												type="text" 
+												class="form-control form-control-sm rounded-3"
+												:class="{'is-invalid': data[key] && !validateCPSFormat(data[key])}"
+												:disabled="saving"
+												v-model="data[key]"
+												:id="'edit_' + key"
+												:placeholder="key === 'I1' ? '<b 0xLARGE_HEX_BLOB>' : ''"
+											>
+											<button
+												v-if="!data[key]"
+												class="btn btn-sm bg-primary-subtle border-primary-subtle text-primary-emphasis"
+												@click="async () => { data[key] = await generateSingleCPS(key); dataChanged = true; }"
+												type="button"
+												:disabled="saving"
+											>
+												<i class="bi bi-magic"></i> Auto
+											</button>
+										</div>
+										<div class="invalid-feedback" v-if="data[key] && !validateCPSFormat(data[key])">
+											<LocaleText t="Invalid CPS format"></LocaleText>
+										</div>
 									</div>
 								</div>
 

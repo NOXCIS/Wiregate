@@ -124,8 +124,61 @@ export const ValidationRules = {
              value >= 15 && 
              value <= 150 && 
              (!s1 || s1Value + 56 !== value);
-    }
+    },
+    
+    /**
+     * Validates I1-I5 (CPS packets) using CPS format validation
+     */
+    I1: (val) => validateCPSFormat(val),
+    I2: (val) => validateCPSFormat(val),
+    I3: (val) => validateCPSFormat(val),
+    I4: (val) => validateCPSFormat(val),
+    I5: (val) => validateCPSFormat(val)
   }
+};
+
+/**
+ * Validates CPS (Custom Protocol Signature) format
+ * @param {string} value - The CPS string to validate
+ * @returns {boolean} - Whether the CPS format is valid
+ */
+export const validateCPSFormat = (value) => {
+  // Empty string is valid (optional field)
+  if (!value || value === "") return true;
+  
+  // Pattern for individual tags
+  const hexTag = /<b\s+0x[0-9a-fA-F]+>/g;
+  const counterTag = /<c>/g;
+  const timestampTag = /<t>/g;
+  const randomTag = /<r\s+(\d+)>/g;
+  const randomAsciiTag = /<rc\s+(\d+)>/g;  // Random ASCII characters (a-z, A-Z)
+  const randomDigitTag = /<rd\s+(\d+)>/g;  // Random digits (0-9)
+  
+  // Check if the string only contains valid tags
+  let testString = value;
+  testString = testString.replace(hexTag, '');
+  testString = testString.replace(counterTag, '');
+  testString = testString.replace(timestampTag, '');
+  testString = testString.replace(randomTag, '');
+  testString = testString.replace(randomAsciiTag, '');
+  testString = testString.replace(randomDigitTag, '');
+  
+  // If there's anything left, it's invalid
+  if (testString.trim() !== '') return false;
+  
+  // Validate random length constraints for all variable-length tags
+  const allLengthTags = [
+    ...value.matchAll(/<r\s+(\d+)>/g),
+    ...value.matchAll(/<rc\s+(\d+)>/g),
+    ...value.matchAll(/<rd\s+(\d+)>/g)
+  ];
+  
+  for (const match of allLengthTags) {
+    const length = parseInt(match[1]);
+    if (length <= 0 || length > 1000) return false;
+  }
+  
+  return true;
 };
 
 /**
@@ -211,6 +264,14 @@ export const validateConfiguration = (config, existingConfigs) => {
     const hValidation = validateHValues(hValues);
     if (!hValidation.isValid) {
       errors.push(...hValidation.errors);
+    }
+    
+    // Validate I1-I5 CPS packets if present
+    const cpsFields = ['I1', 'I2', 'I3', 'I4', 'I5'];
+    for (const field of cpsFields) {
+      if (config[field] && !ValidationRules.awgParams[field](config[field])) {
+        errors.push(`Invalid ${field} CPS format`);
+      }
     }
   }
   

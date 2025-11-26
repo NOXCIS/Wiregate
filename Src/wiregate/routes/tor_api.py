@@ -386,7 +386,8 @@ async def get_tor_status(
             conn.connect(('127.0.0.1', 9051))
             conn.close()
             status_dict['main'] = True
-        except:
+        except (socket.error, OSError, ConnectionRefusedError) as e:
+            logger.debug(f"Tor main process not accessible: {e}")
             pass
             
         # Check if DNS Tor process is running
@@ -396,7 +397,8 @@ async def get_tor_status(
             conn.connect(('127.0.0.1', 9054))
             conn.close()
             status_dict['dns'] = True
-        except:
+        except (socket.error, OSError, ConnectionRefusedError) as e:
+            logger.debug(f"Tor DNS process not accessible: {e}")
             pass
             
         return StandardResponse(

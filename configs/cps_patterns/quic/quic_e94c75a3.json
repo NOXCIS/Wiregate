@@ -1,0 +1,11 @@
+{
+  "protocol": "quic",
+  "cps_pattern": "<b 0x5a154fe041b9500238bcfb1086dd602f7cf9002a113a262001490a18100000000000000004e12607fe681000f593adab2d1e95ed30cb01bbff95002a72d45f865e477e64f09aca141688a05841e02fd85f88335e37c7b582e77de1861c7ef45d>",
+  "metadata": {
+    "source": "raw_capture",
+    "capture_date": "2024-11-04T00:00:00",
+    "original_length": 96,
+    "hex_preview": "5a154fe041b9500238bcfb1086dd602f7cf9002a113a262001490a18100000000000000004e12607fe681000f593adab2d1e95ed30cb01bbff95002a72d45f86"
+  },
+  "id": "quic_e94c75a3"
+}

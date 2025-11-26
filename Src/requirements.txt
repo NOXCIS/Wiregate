@@ -35,8 +35,20 @@ requests
 # Templates
 jinja2
 
+# Structured logging
+python-json-logger>=2.0.7
+
+# Testing framework
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+httpx>=0.24.0
+
 # Tor integration
 stem
+
+# Packet parsing for CPS pattern extraction
+dpkt>=1.9.8
 
 # Local packages
 vanguards  # Local package in ./vanguards/

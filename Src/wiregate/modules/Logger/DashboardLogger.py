@@ -60,7 +60,9 @@ class DashboardLogger:
         """Ensure Redis connection is established"""
         if self.redis_manager is None:
             try:
-                self.redis_manager = get_redis_manager()
+                import asyncio
+                from wiregate.modules.DataBase import get_redis_manager
+                self.redis_manager = asyncio.run(get_redis_manager())
                 self.__initialize_redis()
                 self._initialized = True
             except Exception as e:

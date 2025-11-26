@@ -116,3 +116,11 @@ class AuthenticationResponse(BaseModel):
     data: Optional[Dict[str, Any]] = None
     welcome_session: Optional[bool] = None
 
+
+class HealthCheckResponse(BaseModel):
+    """Health check response for Docker and monitoring"""
+    status: str = Field(description="Overall health status: healthy, degraded, or unhealthy")
+    uptime_seconds: float = Field(description="Application uptime in seconds")
+    checks: Dict[str, Any] = Field(description="Individual health check results")
+    timestamp: str = Field(description="ISO timestamp of the health check")
+

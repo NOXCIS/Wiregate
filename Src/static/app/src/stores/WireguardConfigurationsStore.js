@@ -165,7 +165,26 @@ export const WireguardConfigurationsStore = defineStore('WireguardConfigurations
 					console.log('[DEBUG] Rate limit response:', response);
 					
 					if (!response?.status) {
-						throw new Error(response?.message || 'Failed to fetch rate limits');
+						// Handle expected errors gracefully (peer not found, etc.)
+						const errorMsg = response?.message || 'Failed to fetch rate limits';
+						if (errorMsg.includes('not found')) {
+							// Peer doesn't exist - this is expected, just use defaults
+							console.debug('[DEBUG] Peer not found, using default rate limits');
+							this.peerRateLimits[peerKey] = { 
+								upload_rate: 0, 
+								download_rate: 0,
+								scheduler_type: 'htb' 
+							};
+							return;
+						}
+						// For other errors, still log but don't throw
+						console.warn('[DEBUG] Rate limit fetch warning:', errorMsg);
+						this.peerRateLimits[peerKey] = { 
+							upload_rate: 0, 
+							download_rate: 0,
+							scheduler_type: 'htb' 
+						};
+						return;
 					}
 					
 					this.peerRateLimits[peerKey] = {
@@ -177,8 +196,13 @@ export const WireguardConfigurationsStore = defineStore('WireguardConfigurations
 					console.log('[DEBUG] Updated peerRateLimits:', this.peerRateLimits[peerKey]);
 				});
 			} catch (error) {
-				console.error('[DEBUG] Fetch error:', error);
-				this.rateLimitError = error.message || 'Failed to fetch rate limits';
+				// Only log unexpected errors, not expected "peer not found" cases
+				if (!error.message?.includes('not found')) {
+					console.error('[DEBUG] Fetch error:', error);
+					this.rateLimitError = error.message || 'Failed to fetch rate limits';
+				} else {
+					console.debug('[DEBUG] Peer not found (expected):', error.message);
+				}
 				this.peerRateLimits[peerKey] = { 
 					upload_rate: 0, 
 					download_rate: 0,

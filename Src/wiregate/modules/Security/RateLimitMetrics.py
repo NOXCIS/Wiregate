@@ -7,7 +7,7 @@ import json
 import logging
 from typing import Dict, List, Any, Optional
 from datetime import datetime, timedelta
-from ..modules.DistributedRateLimitConfig import distributed_rate_limit_config
+from .DistributedRateLimitConfig import distributed_rate_limit_config
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -214,3 +214,4 @@ class RateLimitMetrics:
 
 # Global metrics instance
 rate_limit_metrics = RateLimitMetrics()
+

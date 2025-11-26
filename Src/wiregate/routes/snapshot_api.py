@@ -127,13 +127,29 @@ async def create_configuration_backup(
             message="Configuration does not exist"
         )
     
-    success, backup_info = Configurations[configurationName].backupConfigurationFile()
-    
-    if success:
-        backups = Configurations[configurationName].getBackups()
-        return StandardResponse(status=True, data=backups)
-    else:
-        return StandardResponse(status=False, message="Failed to create backup")
+    try:
+        # backupConfigurationFile is sync but uses async database operations internally
+        # Run it in a thread pool to avoid blocking
+        import asyncio
+        loop = asyncio.get_event_loop()
+        success, backup_info = await loop.run_in_executor(
+            None, 
+            Configurations[configurationName].backupConfigurationFile
+        )
+        
+        if success:
+            backups = Configurations[configurationName].getBackups()
+            return StandardResponse(status=True, data=backups)
+        else:
+            # Extract detailed error message if available
+            error_msg = backup_info.get('error', 'Failed to create backup') if isinstance(backup_info, dict) else 'Failed to create backup'
+            return StandardResponse(status=False, message=error_msg)
+    except Exception as e:
+        logger.error(f"Error creating backup: {e}", exc_info=True)
+        return StandardResponse(
+            status=False,
+            message=f"Unexpected backup error: {str(e)}"
+        )
 
 
 @router.post('/deleteConfigurationBackup', response_model=StandardResponse)
@@ -207,7 +223,7 @@ async def restore_configuration_backup(
                 message="Configuration does not exist"
             )
         
-        success = Configurations[configuration_name].restoreBackup(backup_file_name)
+        success = await Configurations[configuration_name].restoreBackup(backup_file_name)
         if not success:
             return StandardResponse(
                 status=False,
@@ -215,14 +231,15 @@ async def restore_configuration_backup(
             )
         
         # Force refresh of peers list
-        Configurations[configuration_name].getPeersList()
+        await Configurations[configuration_name].getPeersList()
         
+        peers = await Configurations[configuration_name].getPeersList()
         return StandardResponse(
             status=True,
             message="Backup restored successfully",
             data={
                 "configuration": Configurations[configuration_name].toJson(),
-                "peers": [peer.toJson() for peer in Configurations[configuration_name].getPeersList()]
+                "peers": [peer.toJson() for peer in peers]
             }
         )
         
@@ -250,7 +267,18 @@ async def download_configuration_backup(
             )
         
         # Get timestamp from backup filename
-        timestamp = backupFileName.split('_')[1].split('.')[0]
+        # Filename format: {config_name}_{timestamp}.conf
+        # Extract timestamp (last part before .conf, after the last underscore in the config name)
+        # Example: TEST_BACKUP_CONFIG_123_20241216123456.conf -> timestamp is 20241216123456
+        import re
+        # Match pattern: {config_name}_{14_digit_timestamp}.conf
+        timestamp_match = re.search(r'_(\d{14})\.conf$', backupFileName)
+        if not timestamp_match:
+            return StandardResponse(
+                status=False,
+                message="Invalid backup filename format"
+            )
+        timestamp = timestamp_match.group(1)
         backup_paths = get_backup_paths(configurationName, timestamp)
         
         if not os.path.exists(backup_paths['conf_file']):

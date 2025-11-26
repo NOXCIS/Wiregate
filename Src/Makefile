@@ -13,18 +13,31 @@ STATIC_DIR_LOCALE = $(WIREGATE_SRC)/static
 AWG_GO_DIR = /usr/bin
 
 # Go settings
-GO_VERSION = 1.24.6
+GO_VERSION_FALLBACK = 1.24.6
 GO_ARCH ?= $(shell uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 GO_LDFLAGS = -X main.version=v1.0.0 -s -w
 
+# Python builder selection (pyinstaller or nuitka)
+PY_BUILDER ?= pyinstaller
+
 # Add Tor pluggable transports targets
-.PHONY: all install clean deps frontend go-deps python-deps go-bins py-bins lyrebird snowflake webtunnel tor-plugins builder-deps
+.PHONY: all install clean deps frontend go-deps python-deps go-bins py-bins nuitka-deps lyrebird snowflake webtunnel tor-plugins builder-deps
 
 # Update the 'all' target to include tor-plugins
+# Allow skipping tor-plugins with SKIP_TOR_PLUGINS=1
+ifeq ($(SKIP_TOR_PLUGINS),1)
+all: deps frontend go-bins py-bins
+	@echo "Skipping tor-plugins build (SKIP_TOR_PLUGINS=1)"
+else
 all: deps frontend go-bins py-bins tor-plugins
+endif
 
 # Install dependencies
-deps: builder-deps frontend-deps go-deps amneziawg-deps python-deps 
+ifeq ($(PY_BUILDER),nuitka)
+deps: builder-deps frontend-deps go-deps amneziawg-deps python-deps nuitka-deps
+else
+deps: builder-deps frontend-deps go-deps amneziawg-deps python-deps
+endif 
 
 amneziawg-deps:
 	mkdir -p $(BUILD_DIR)/amneziawg-tools $(BUILD_DIR)/amneziawg-go
@@ -108,18 +121,24 @@ builder-deps:
 frontend-deps:
 	@echo "Installing Node.js dependencies with pnpm..."
 	cd $(STATIC_DIR) && \
-	rm -rf node_modules pnpm-lock.yaml && \
+	rm -rf node_modules && \
 	PATH="$(abspath $(NODE_DIST_DIR))/bin:$$PATH" \
-	$(NODE_DIST_DIR)/bin/npm install -g pnpm && \
-	pnpm install --frozen-lockfile
+	$(abspath $(NODE_DIST_DIR))/bin/npm install -g pnpm && \
+	if [ -f pnpm-lock.yaml ]; then \
+		PATH="$(abspath $(NODE_DIST_DIR))/bin:$$PATH" \
+		$(abspath $(NODE_DIST_DIR))/bin/pnpm install --frozen-lockfile; \
+	else \
+		PATH="$(abspath $(NODE_DIST_DIR))/bin:$$PATH" \
+		$(abspath $(NODE_DIST_DIR))/bin/pnpm install; \
+	fi
 
 frontend: frontend-deps
 	@echo "Building frontend..."
 	cd $(STATIC_DIR) && \
 	PATH="$(abspath $(NODE_DIST_DIR))/bin:$$PATH" \
-	pnpm run build && \
-	mkdir -p $(BUILD_DIR)/app && \
-	mv dist $(BUILD_DIR)/app/dist && \
+	$(abspath $(NODE_DIST_DIR))/bin/pnpm run build && \
+	mkdir -p $(abspath $(BUILD_DIR))/app && \
+	mv dist $(abspath $(BUILD_DIR))/app/dist && \
 	rm -rf node_modules
 
 # Go dependencies
@@ -127,10 +146,15 @@ go-deps:
 	@echo "Setting up Go environment..."
 	mkdir -p $(BUILD_DIR)/go
 	if ! command -v go > /dev/null; then \
-		echo "Installing Go $(GO_VERSION)..."; \
-		wget -q https://golang.org/dl/go$(GO_VERSION).linux-$(GO_ARCH).tar.gz; \
-		tar -C $(BUILD_DIR) -xzf go$(GO_VERSION).linux-$(GO_ARCH).tar.gz; \
-		rm go$(GO_VERSION).linux-$(GO_ARCH).tar.gz; \
+		echo "Fetching latest Go version..."; \
+		GO_VERSION=$$(curl -s https://go.dev/VERSION?m=text 2>/dev/null | head -n1 | sed 's/go//' | tr -d '\n\r' || echo "$(GO_VERSION_FALLBACK)"); \
+		if [ -z "$$GO_VERSION" ]; then \
+			GO_VERSION="$(GO_VERSION_FALLBACK)"; \
+		fi; \
+		echo "Using Go version: $$GO_VERSION"; \
+		wget -q https://golang.org/dl/go$$GO_VERSION.linux-$(GO_ARCH).tar.gz; \
+		tar -C $(BUILD_DIR) -xzf go$$GO_VERSION.linux-$(GO_ARCH).tar.gz; \
+		rm go$$GO_VERSION.linux-$(GO_ARCH).tar.gz; \
 		export PATH="$(BUILD_DIR)/go/bin:$$PATH"; \
 	fi
 
@@ -140,17 +164,42 @@ python-deps:
 	python3 -m venv $(BUILD_DIR)/venv
 	$(BUILD_DIR)/venv/bin/pip install --upgrade pip
 	$(BUILD_DIR)/venv/bin/pip install -r $(WIREGATE_SRC)/requirements.txt
+ifeq ($(PY_BUILDER),pyinstaller)
 	$(BUILD_DIR)/venv/bin/pip install pyinstaller
+endif
+
+# Nuitka dependencies
+nuitka-deps: python-deps
+	@echo "Installing Nuitka and build tools..."
+	$(BUILD_DIR)/venv/bin/pip install nuitka ordered-set zstandard
+	@echo "Installing C compiler and build tools for Nuitka..."
+	if grep -q "Alpine" /etc/os-release 2>/dev/null; then \
+		apk add --no-cache gcc g++ ccache patchelf clang || true; \
+	elif grep -q "Debian\|Ubuntu\|Mint" /etc/os-release 2>/dev/null; then \
+		apt-get update && apt-get install -y gcc g++ ccache patchelf clang || true; \
+	elif grep -q "Arch\|Manjaro" /etc/os-release 2>/dev/null; then \
+		pacman -Sy --noconfirm gcc gcc-libs ccache patchelf clang || true; \
+	elif grep -q "Fedora" /etc/os-release 2>/dev/null; then \
+		dnf install -y gcc gcc-c++ ccache patchelf clang || true; \
+	elif grep -q "SUSE" /etc/os-release 2>/dev/null; then \
+		zypper install -y gcc gcc-c++ ccache patchelf clang || true; \
+	elif grep -q "CentOS\|RHEL" /etc/os-release 2>/dev/null; then \
+		yum install -y gcc gcc-c++ ccache patchelf clang || true; \
+	else \
+		echo "WARNING: Unsupported distribution. Please install gcc, g++, ccache, patchelf, clang manually for Nuitka."; \
+	fi
+	mkdir -p $(BUILD_DIR)/nuitka-cache
 
 # Build Go binaries
 go-bins: go-deps
 	@echo "Building Go binaries..."
-	mkdir -p $(BUILD_DIR)/torflux-build $(BUILD_DIR)/traffic_weir
+	mkdir -p $(BUILD_DIR)/torflux-build $(BUILD_DIR)/traffic_weir $(BUILD_DIR)/healthcheck
 	
 	# Copy Go source files
 	cp ./torflux/torflux.go $(BUILD_DIR)/torflux-build/
 	cp ./torflux/go.mod $(BUILD_DIR)/torflux-build/
 	cp -r ./traffic_weir/* $(BUILD_DIR)/traffic_weir/
+	cp -r ./healthcheck/* $(BUILD_DIR)/healthcheck/
 	
 	# Build torflux
 	cd $(BUILD_DIR)/torflux-build && \
@@ -167,8 +216,60 @@ go-bins: go-deps
 		-ldflags="$(GO_LDFLAGS)" \
 		-buildvcs=false \
 		-o ../traffic-weir
+	
+	# Build healthcheck
+	cd $(BUILD_DIR)/healthcheck && \
+		export PATH="$(abspath $(BUILD_DIR))/go/bin:$$PATH" && \
+		GOOS=linux GOARCH=$(GO_ARCH) CGO_ENABLED=0 go build \
+		-ldflags="$(GO_LDFLAGS)" \
+		-buildvcs=false \
+		-o ../healthcheck-bin && \
+		cd .. && \
+		rm -rf healthcheck && \
+		mv healthcheck-bin healthcheck
 
 # Build Python binaries
+ifeq ($(PY_BUILDER),nuitka)
+py-bins: nuitka-deps
+	@echo "Building Python binaries with Nuitka..."
+	mkdir -p $(BUILD_DIR)/dist
+	mkdir -p $(BUILD_DIR)/wiregate
+	mkdir -p $(BUILD_DIR)/vanguards
+	
+	# Copy Python source files
+	cp -r $(WIREGATE_SRC)/wiregate/* $(BUILD_DIR)/wiregate/
+	cp $(WIREGATE_SRC)/wiregate.py $(BUILD_DIR)/
+	cp -r $(WIREGATE_SRC)/vanguards/* $(BUILD_DIR)/vanguards/
+	cp $(WIREGATE_SRC)/vanguards.py $(BUILD_DIR)/
+	
+	# Build wiregate binary with Nuitka
+	cd $(BUILD_DIR) && \
+		$(abspath $(BUILD_DIR))/venv/bin/python -m nuitka \
+		--onefile \
+		--standalone \
+		--follow-imports \
+		--assume-yes-for-downloads \
+		--output-dir=$(abspath $(BUILD_DIR))/dist \
+		--output-filename=wiregate \
+		--nofollow-import-to=pytest,test,unittest \
+		--python-flag=no_site \
+		--jobs=$$(nproc) \
+		wiregate.py
+	
+	# Build vanguards binary with Nuitka
+	cd $(BUILD_DIR) && \
+		$(abspath $(BUILD_DIR))/venv/bin/python -m nuitka \
+		--onefile \
+		--standalone \
+		--follow-imports \
+		--assume-yes-for-downloads \
+		--output-dir=$(abspath $(BUILD_DIR))/dist \
+		--output-filename=vanguards \
+		--nofollow-import-to=pytest,test,unittest \
+		--python-flag=no_site \
+		--jobs=$$(nproc) \
+		vanguards.py
+else
 py-bins: python-deps
 	@echo "Building Python binaries with PyInstaller..."
 	mkdir -p $(BUILD_DIR)/dist
@@ -189,6 +290,7 @@ py-bins: python-deps
 		--hidden-import=gunicorn.glogging \
 		--hidden-import=gunicorn.workers.sync \
 		--hidden-import=gunicorn.workers.gthread \
+		--hidden-import=wiregate.dashboard \
 		--distpath=$(abspath $(BUILD_DIR))/dist \
 		--name=wiregate \
 		wiregate.py
@@ -201,15 +303,46 @@ py-bins: python-deps
 		--distpath=$(abspath $(BUILD_DIR))/dist \
 		--name=vanguards \
 		vanguards.py
+endif
 
 # Tor pluggable transports
+# Use -k flag to continue on errors, or set SKIP_TOR_PLUGINS=1 to skip entirely
 tor-plugins: lyrebird snowflake webtunnel
+	@echo "All tor-plugins built successfully"
 
 # Build lyrebird (obfs4)
 lyrebird: go-deps
 	@echo "Building lyrebird (obfs4)..."
 	mkdir -p $(BUILD_DIR)
-	git clone --depth=1 https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/lyrebird.git $(BUILD_DIR)/lyrebird
+	@if [ -d "$(BUILD_DIR)/lyrebird" ] && [ -d "$(BUILD_DIR)/lyrebird/.git" ]; then \
+		echo "Lyrebird directory exists with valid git repo, skipping clone"; \
+	else \
+		if [ -d "$(BUILD_DIR)/lyrebird" ]; then \
+			echo "Removing incomplete lyrebird directory..."; \
+			rm -rf $(BUILD_DIR)/lyrebird; \
+		fi; \
+		echo "Cloning lyrebird repository (with retries)..."; \
+		retries=3; \
+		delay=2; \
+		for i in $$(seq 1 $$retries); do \
+			echo "Attempt $$i of $$retries..."; \
+			if git clone --depth=1 https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/lyrebird.git $(BUILD_DIR)/lyrebird; then \
+				echo "Clone successful"; \
+				break; \
+			else \
+				if [ $$i -lt $$retries ]; then \
+					echo "Clone failed, waiting $$delay seconds before retry..."; \
+					sleep $$delay; \
+					delay=$$((delay * 2)); \
+				else \
+					echo "ERROR: Failed to clone lyrebird after $$retries attempts"; \
+					echo "This may be due to GitLab being temporarily unavailable (502 error)"; \
+					echo "You can try building again later, or skip tor-plugins by setting SKIP_TOR_PLUGINS=1"; \
+					exit 1; \
+				fi; \
+			fi; \
+		done; \
+	fi
 	cd $(BUILD_DIR)/lyrebird && \
 	PATH="$(abspath $(BUILD_DIR))/go/bin:$$PATH" \
 	VERSION=$$(git describe --tags 2>/dev/null | sed 's/lyrebird-//' || echo "dev") \
@@ -222,7 +355,33 @@ lyrebird: go-deps
 snowflake: go-deps
 	@echo "Building snowflake..."
 	mkdir -p $(BUILD_DIR)
-	git clone --depth=1 https://git.torproject.org/pluggable-transports/snowflake.git $(BUILD_DIR)/snowflake
+	@if [ -d "$(BUILD_DIR)/snowflake" ] && [ -d "$(BUILD_DIR)/snowflake/.git" ]; then \
+		echo "Snowflake directory exists with valid git repo, skipping clone"; \
+	else \
+		if [ -d "$(BUILD_DIR)/snowflake" ]; then \
+			echo "Removing incomplete snowflake directory..."; \
+			rm -rf $(BUILD_DIR)/snowflake; \
+		fi; \
+		echo "Cloning snowflake repository (with retries)..."; \
+		retries=3; \
+		delay=2; \
+		for i in $$(seq 1 $$retries); do \
+			echo "Attempt $$i of $$retries..."; \
+			if git clone --depth=1 https://git.torproject.org/pluggable-transports/snowflake.git $(BUILD_DIR)/snowflake; then \
+				echo "Clone successful"; \
+				break; \
+			else \
+				if [ $$i -lt $$retries ]; then \
+					echo "Clone failed, waiting $$delay seconds before retry..."; \
+					sleep $$delay; \
+					delay=$$((delay * 2)); \
+				else \
+					echo "ERROR: Failed to clone snowflake after $$retries attempts"; \
+					exit 1; \
+				fi; \
+			fi; \
+		done; \
+	fi
 	cd $(BUILD_DIR)/snowflake/client && \
 	PATH="$(abspath $(BUILD_DIR))/go/bin:$$PATH" \
 	GOOS=linux GOARCH=$(GO_ARCH) CGO_ENABLED=0 \
@@ -234,7 +393,35 @@ snowflake: go-deps
 webtunnel: go-deps
 	@echo "Building webtunnel..."
 	mkdir -p $(BUILD_DIR)
-	git clone --depth=1 https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/webtunnel.git $(BUILD_DIR)/webtunnel
+	@if [ -d "$(BUILD_DIR)/webtunnel" ] && [ -d "$(BUILD_DIR)/webtunnel/.git" ]; then \
+		echo "Webtunnel directory exists with valid git repo, skipping clone"; \
+	else \
+		if [ -d "$(BUILD_DIR)/webtunnel" ]; then \
+			echo "Removing incomplete webtunnel directory..."; \
+			rm -rf $(BUILD_DIR)/webtunnel; \
+		fi; \
+		echo "Cloning webtunnel repository (with retries)..."; \
+		retries=3; \
+		delay=2; \
+		for i in $$(seq 1 $$retries); do \
+			echo "Attempt $$i of $$retries..."; \
+			if git clone --depth=1 https://gitlab.torproject.org/tpo/anti-censorship/pluggable-transports/webtunnel.git $(BUILD_DIR)/webtunnel; then \
+				echo "Clone successful"; \
+				break; \
+			else \
+				if [ $$i -lt $$retries ]; then \
+					echo "Clone failed, waiting $$delay seconds before retry..."; \
+					sleep $$delay; \
+					delay=$$((delay * 2)); \
+				else \
+					echo "ERROR: Failed to clone webtunnel after $$retries attempts"; \
+					echo "This may be due to GitLab being temporarily unavailable (502 error)"; \
+					echo "You can try building again later, or skip tor-plugins by setting SKIP_TOR_PLUGINS=1"; \
+					exit 1; \
+				fi; \
+			fi; \
+		done; \
+	fi
 	cd $(BUILD_DIR)/webtunnel/main/client && \
 	PATH="$(abspath $(BUILD_DIR))/go/bin:$$PATH" \
 	GOOS=linux GOARCH=$(GO_ARCH) CGO_ENABLED=0 \
@@ -291,12 +478,17 @@ install: all
 	cp $(BUILD_DIR)/dist/vanguards $(INSTALL_DIR)/
 	cp $(BUILD_DIR)/torflux $(INSTALL_DIR)/
 	cp $(BUILD_DIR)/traffic-weir $(INSTALL_DIR)/
-	# Copy wiregate.sh
+	cp $(BUILD_DIR)/healthcheck $(INSTALL_DIR)/
+	# Copy wiregate.sh and restricted_shell.sh
 	cp $(WIREGATE_SRC)/wiregate.sh $(INSTALL_DIR)/
-	cp $(WIREGATE_SRC)/db/wsgi.ini $(INSTALL_DIR)/db/
+	cp $(WIREGATE_SRC)/restricted_shell.sh $(INSTALL_DIR)/
 	cp -r $(WIREGATE_SRC)/iptable-rules $(INSTALL_DIR)/
 
 	cp -r $(WIREGATE_SRC)/dnscrypt $(INSTALL_DIR)/dnscrypt
+	
+	# Copy CPS patterns
+	mkdir -p $(INSTALL_DIR)/configs
+	cp -r ../configs/cps_patterns $(INSTALL_DIR)/configs/
 	
 	# Copy Tor pluggable transports
 	cp $(BUILD_DIR)/lyrebird/lyrebird $(TOR_PLUGINS_DIR)/obfs4
@@ -319,7 +511,9 @@ install: all
 	chmod +x $(INSTALL_DIR)/vanguards
 	chmod +x $(INSTALL_DIR)/torflux
 	chmod +x $(INSTALL_DIR)/traffic-weir
+	chmod +x $(INSTALL_DIR)/healthcheck
 	chmod +x $(INSTALL_DIR)/wiregate.sh
+	chmod +x $(INSTALL_DIR)/restricted_shell.sh
 	
 	
 	# Create symlinks to binaries

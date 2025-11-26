@@ -22,6 +22,16 @@ from .SecureCommand import (
     execute_grep_command
 )
 
+from .DistributedRateLimitConfig import (
+    DistributedRateLimitConfig,
+    distributed_rate_limit_config
+)
+
+from .RateLimitMetrics import (
+    RateLimitMetrics,
+    rate_limit_metrics
+)
+
 # FastAPI components
 try:
     from .fastapi_middleware import (
@@ -66,6 +76,12 @@ __all__ = [
     'execute_ip_command',
     'execute_awk_command',
     'execute_grep_command',
+    
+    # Rate limiting exports
+    'DistributedRateLimitConfig',
+    'distributed_rate_limit_config',
+    'RateLimitMetrics',
+    'rate_limit_metrics',
 ]
 
 # Add FastAPI exports if available

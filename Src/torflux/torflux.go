@@ -17,11 +17,15 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"crypto/tls"
 	"flag"
 	"fmt"
+	"io"
 	"net"
+	"net/http"
 	"os"
 	"os/exec"
+	"regexp"
 	"strings"
 	"time"
 )
@@ -161,7 +165,7 @@ func startTor(configPath string) bool {
 		logMessage(fmt.Sprintf("[TOR-FLUX] [ERROR] Failed to start Tor with config %s: %v", configPath, err), false, true)
 		return false
 	}
-	
+
 	logMessage(fmt.Sprintf("[TOR-FLUX] Started Tor with config %s", configPath), false, true)
 	return true
 }
@@ -202,11 +206,89 @@ func stopTor(port int, password string) bool {
 	return true
 }
 
+// fetchBridges fetches bridges from Tor BridgeDB for the specified transport type
+func fetchBridges(transport string) error {
+	url := fmt.Sprintf("https://bridges.torproject.org/bridges?transport=%s", transport)
+
+	// Create HTTP client with TLS support
+	client := &http.Client{
+		Timeout: 30 * time.Second,
+		Transport: &http.Transport{
+			TLSClientConfig: &tls.Config{
+				InsecureSkipVerify: false,
+			},
+		},
+	}
+
+	// Make HTTPS request
+	resp, err := client.Get(url)
+	if err != nil {
+		return fmt.Errorf("failed to fetch bridges: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("received status code %d", resp.StatusCode)
+	}
+
+	// Read response body
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response: %v", err)
+	}
+
+	// Extract bridges using regex
+	// Pattern matches: obfs4 <address> or webtunnel <address> followed by <br/>
+	var bridgePattern string
+	if transport == "obfs4" {
+		bridgePattern = `(obfs4\s+[^<]+)<br/?>`
+	} else if transport == "webtunnel" {
+		bridgePattern = `(webtunnel\s+[^<]+)<br/?>`
+	} else {
+		return fmt.Errorf("unsupported transport type: %s", transport)
+	}
+
+	re := regexp.MustCompile(bridgePattern)
+	matches := re.FindAllStringSubmatch(string(body), -1)
+
+	if len(matches) == 0 {
+		return fmt.Errorf("no bridges found in response")
+	}
+
+	// Output bridges, one per line
+	for _, match := range matches {
+		if len(match) > 1 {
+			bridge := strings.TrimSpace(match[1])
+			// Replace HTML entities
+			bridge = strings.ReplaceAll(bridge, "&#43;", "+")
+			fmt.Println(bridge)
+		}
+	}
+
+	return nil
+}
+
 func main() {
 	// Define command line flags
 	configType := flag.String("config", "", "Configuration type (main/dns) for HUP signal")
 	action := flag.String("action", "", "Action to perform (start/stop/hup/newnym)")
+	getBridges := flag.String("get-bridges", "", "Fetch bridges from BridgeDB (obfs4/webtunnel)")
 	flag.Parse()
+
+	// Handle bridge fetching first (doesn't need password)
+	if *getBridges != "" {
+		transport := strings.ToLower(*getBridges)
+		if transport != "obfs4" && transport != "webtunnel" {
+			fmt.Fprintf(os.Stderr, "[TOR-FLUX] [ERROR] Invalid transport type. Use 'obfs4' or 'webtunnel'.\n")
+			os.Exit(1)
+		}
+
+		if err := fetchBridges(transport); err != nil {
+			fmt.Fprintf(os.Stderr, "[TOR-FLUX] [ERROR] %v\n", err)
+			os.Exit(1)
+		}
+		return
+	}
 
 	password := os.Getenv("VANGUARD")
 	if password == "" {
@@ -218,7 +300,7 @@ func main() {
 	if *action != "" {
 		var port int
 		var configPath string
-		
+
 		switch strings.ToLower(*configType) {
 		case "main":
 			port = torControlPort1

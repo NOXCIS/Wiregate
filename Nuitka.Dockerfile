@@ -16,7 +16,7 @@ RUN pnpm install --frozen-lockfile && pnpm run build
 FROM alpine:latest AS utils_extractor
 
 # Copy and run mirror selection script
-COPY select-mirror.sh /tmp/select-mirror.sh
+COPY scripts/select-mirror.sh /tmp/select-mirror.sh
 RUN chmod +x /tmp/select-mirror.sh && /tmp/select-mirror.sh
 
 RUN apk add --no-cache coreutils findutils gawk util-linux grep sed
@@ -74,7 +74,7 @@ WORKDIR /build
 COPY ./Src/requirements.txt .
 
 # Copy and run mirror selection script, then install packages
-COPY select-mirror.sh /tmp/select-mirror.sh
+COPY scripts/select-mirror.sh /tmp/select-mirror.sh
 RUN chmod +x /tmp/select-mirror.sh && /tmp/select-mirror.sh && \
     apk add --no-cache \
         py3-virtualenv py3-pip musl-dev build-base zlib-dev libffi-dev openssl-dev \
@@ -90,7 +90,7 @@ ARG TARGETPLATFORM
 ARG GO_VERSION
 
 # Copy and run mirror selection script, then install packages and download Go
-COPY select-mirror.sh /tmp/select-mirror.sh
+COPY scripts/select-mirror.sh /tmp/select-mirror.sh
 RUN chmod +x /tmp/select-mirror.sh && /tmp/select-mirror.sh && \
     apk add --no-cache wget curl gcc musl-dev && \
     set -eux; \
@@ -118,8 +118,9 @@ WORKDIR /build
 # Copy source files and build binaries in single layer
 COPY ./Src/torflux/torflux.go ./Src/torflux/go.mod /build/torflux-build/
 COPY ./Src/traffic_weir/ /build/traffic_weir/
+COPY ./Src/healthcheck/ /build/healthcheck/
 
-RUN mkdir -p /build/torflux-build /build/traffic_weir && \
+RUN mkdir -p /build/torflux-build /build/traffic_weir /build/healthcheck && \
     cd /build/torflux-build && \
     GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
     -ldflags="-X main.version=v1.0.0 -s -w" \
@@ -127,7 +128,11 @@ RUN mkdir -p /build/torflux-build /build/traffic_weir && \
     cd /build/traffic_weir && \
     GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
     -ldflags="-X main.version=v1.0.0 -s -w" \
-    -o /build/traffic-weir
+    -o /build/traffic-weir && \
+    cd /build/healthcheck && \
+    GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
+    -ldflags="-X main.version=v1.0.0 -s -w" \
+    -o /build/healthcheck
 
 # nuitka_builder: Nuitka Python binary builder (replaces pybuilder)
 ##########################################################
@@ -144,14 +149,18 @@ RUN apk add --no-cache gcc g++ ccache patchelf clang
 ENV CCACHE_DIR=/build/ccache
 RUN mkdir -p /build/ccache
 
+# Set up Nuitka cache directory for incremental builds
+ENV NUITKA_CACHE_DIR=/build/nuitka-cache
+
 # Copy all source files in single operation
 COPY ./Src/wiregate /build/wiregate/
 COPY ./Src/wiregate.py ./
 COPY ./Src/vanguards /build/vanguards/
 COPY ./Src/vanguards.py ./
 
-# Build wiregate binary with Nuitka (simplified for reliability)
-RUN venv/bin/python -m nuitka \
+# Build wiregate binary with Nuitka (optimized with caching and parallelism)
+RUN --mount=type=cache,target=/build/nuitka-cache \
+    venv/bin/python -m nuitka \
     --onefile \
     --standalone \
     --follow-imports \
@@ -160,11 +169,12 @@ RUN venv/bin/python -m nuitka \
     --output-filename=wiregate \
     --nofollow-import-to=pytest,test,unittest \
     --python-flag=no_site \
-    --jobs=2 \
+    --jobs=$(nproc) \
     wiregate.py
 
-# Build vanguards binary with Nuitka (simplified for reliability)
-RUN venv/bin/python -m nuitka \
+# Build vanguards binary with Nuitka (optimized with caching and parallelism)
+RUN --mount=type=cache,target=/build/nuitka-cache \
+    venv/bin/python -m nuitka \
     --onefile \
     --standalone \
     --follow-imports \
@@ -173,7 +183,7 @@ RUN venv/bin/python -m nuitka \
     --output-filename=vanguards \
     --nofollow-import-to=pytest,test,unittest \
     --python-flag=no_site \
-    --jobs=2 \
+    --jobs=$(nproc) \
     vanguards.py
 
 # runtime-deps: Prepare runtime dependencies
@@ -181,7 +191,7 @@ RUN venv/bin/python -m nuitka \
 FROM alpine:latest AS runtime-deps
 
 # Copy and run mirror selection script, then install packages and create directories
-COPY select-mirror.sh /tmp/select-mirror.sh
+COPY scripts/select-mirror.sh /tmp/select-mirror.sh
 RUN chmod +x /tmp/select-mirror.sh && /tmp/select-mirror.sh && \
     apk add --no-cache \
         wireguard-tools iptables ip6tables iproute2 tzdata sudo tor ca-certificates \
@@ -210,7 +220,7 @@ RUN mkdir -p /WireGate /etc/wireguard /var/lib/tor /var/log/tor /proc /sys /dev/
 
 # Copy runtime binaries in grouped operations
 COPY --from=runtime-deps \
-    /usr/bin/wg /usr/bin/wg-quick /usr/bin/sudo /usr/bin/tor /usr/bin/wget \
+    /usr/bin/wg /usr/bin/wg-quick /usr/bin/sudo /usr/bin/tor \
     /usr/bin/
 
 COPY --from=runtime-deps \
@@ -284,6 +294,9 @@ COPY ./Src/wiregate.sh ./Src/entrypoint.sh /WireGate/
 COPY ./Src/dnscrypt /WireGate/dnscrypt
 COPY ./Src/restricted_shell.sh /WireGate/restricted_shell.sh
 
+# Copy CPS pattern library into container
+COPY ./configs/cps_patterns /WireGate/configs/cps_patterns
+
 RUN chmod +x /WireGate/wiregate.sh /WireGate/entrypoint.sh /WireGate/restricted_shell.sh
 
 # Copy frontend assets
@@ -300,12 +313,12 @@ COPY --from=noxcis/awg-bins:latest /amneziawg-go /awg /awg-quick /usr/bin/
 # Copy Nuitka-compiled binaries and set permissions
 COPY --from=nuitka_builder /build/dist/wiregate /WireGate/wiregate
 COPY --from=nuitka_builder /build/dist/vanguards /WireGate/vanguards
-COPY --from=builder /build/torflux /build/traffic-weir /WireGate/
+COPY --from=builder /build/torflux /build/traffic-weir /build/healthcheck /WireGate/
 
-RUN chmod +x /WireGate/wiregate /WireGate/vanguards /WireGate/torflux /WireGate/traffic-weir
+RUN chmod +x /WireGate/wiregate /WireGate/vanguards /WireGate/torflux /WireGate/traffic-weir /WireGate/healthcheck
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 CMD \
-    sh -c 'netstat -tuln 2>/dev/null | grep -q ":443 " || netstat -tuln 2>/dev/null | grep -q ":80 " || exit 1'
+    /WireGate/healthcheck --dashboard || exit 1
 
 # Set shorter stop timeout for faster container shutdown
 ENV DOCKER_STOP_TIMEOUT=10

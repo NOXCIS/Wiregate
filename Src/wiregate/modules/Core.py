@@ -4,6 +4,9 @@ import ipaddress, json, re
 import logging
 import asyncio
 import aiofiles
+import secrets
+import hashlib
+from typing import Optional, Any
 
 from datetime import datetime, timedelta
 
@@ -14,7 +17,7 @@ from .Utilities import (
     StringToBoolean, ValidateIPAddressesWithRange,
     ValidateDNSAddress, RegexMatch, strToBool,
     GenerateWireguardPublicKey, get_backup_paths,
-    ResponseObject
+    ResponseObject, ValidateCPSFormat, NormalizeCPSFormat
 )
 
 
@@ -35,8 +38,6 @@ from .Security import (
 
 from .Share.ShareLink import AllPeerShareLinks
 from .Jobs import AllPeerJobs
-
-
 
 
 class Configuration:
@@ -69,6 +70,11 @@ class Configuration:
         self.H2: str = ""
         self.H3: str = ""
         self.H4: str = ""
+        self.I1: str = ""
+        self.I2: str = ""
+        self.I3: str = ""
+        self.I4: str = ""
+        self.I5: str = ""
         self.MTU: str = ""
         self.PreUp: str = ""
         self.PostUp: str = ""
@@ -86,26 +92,24 @@ class Configuration:
 
         # Initialize database manager
         self.db = ConfigurationDatabase(self.Name)
+        
+        # Initialize CPS pattern adaptation (lightweight ML auto-adaptation)
+        try:
+            from .AwgCPS.CPSPatternAdaptation import CPSPatternAdaptation
+            self.cps_adaptation = CPSPatternAdaptation(self.Name, self.db)
+        except Exception as e:
+            logger.warning(f"Failed to initialize CPS pattern adaptation: {e}")
+            self.cps_adaptation = None
 
         if name is not None:
-            if data is not None and "Backup" in data.keys():
-                db = self.db.import_database(
-                    os.path.join(
-                        DashboardConfig.GetConfig("Server", "wg_conf_path")[1],
-                        'WGDashboard_Backup',
-                        data["Backup"].replace(".conf", ".redis")))
-            else:
-                self.db.create_database()
-                # Ensure migration happens right after database creation
-                self.db.migrate_database()
-
-            # Use async parsing if available, otherwise fall back to sync
-            if hasattr(self, '_async_initialized'):
-                # This should not happen in constructor, async parsing is handled in create_async
-                self.__parseConfigurationFileSync()
-            else:
-                self.__parseConfigurationFileSync()
-            self.__initPeersList()
+            # NOTE: Database operations and file parsing are now handled in create_async()
+            # This __init__ method is kept for backward compatibility but should not be used
+            # for new code. Use Configuration.create_async() instead.
+            # 
+            # For sync initialization (legacy code), we still parse the config file
+            # but database operations run through async helpers
+            self.__parseConfigurationFileSync()
+            asyncio.run(self.__initPeersList())
 
         else:
             self.Name = data["ConfigurationName"]
@@ -117,6 +121,18 @@ class Configuration:
                         setattr(self, i, StringToBoolean(data[i]))
                     else:
                         setattr(self, i, str(data[i]))
+            
+            # Normalize I1-I5 CPS parameters (convert raw hex 0x... to <b 0x...> format)
+            if hasattr(self, 'I1') and self.I1:
+                self.I1 = NormalizeCPSFormat(self.I1)
+            if hasattr(self, 'I2') and self.I2:
+                self.I2 = NormalizeCPSFormat(self.I2)
+            if hasattr(self, 'I3') and self.I3:
+                self.I3 = NormalizeCPSFormat(self.I3)
+            if hasattr(self, 'I4') and self.I4:
+                self.I4 = NormalizeCPSFormat(self.I4)
+            if hasattr(self, 'I5') and self.I5:
+                self.I5 = NormalizeCPSFormat(self.I5)
 
             self.__parser["Interface"] = {
                 "PrivateKey": self.PrivateKey,
@@ -147,6 +163,29 @@ class Configuration:
                 self.__parser["Interface"]["H3"] = self.H3
             if self.H4:
                 self.__parser["Interface"]["H4"] = self.H4
+            # Scramble I1-I5 for interface config to ensure it doesn't match peer configs
+            # Each configuration gets its own scrambled patterns that differ from peers
+            if self.I1 and self.I1.strip():
+                # Use configuration name as seed for interface scrambling
+                interface_seed = f"{self.Name}_interface"
+                scrambled_i1 = self._scramble_cps_pattern(self.I1, interface_seed + "_I1")
+                self.__parser["Interface"]["I1"] = scrambled_i1
+            if self.I2 and self.I2.strip():
+                interface_seed = f"{self.Name}_interface"
+                scrambled_i2 = self._scramble_cps_pattern(self.I2, interface_seed + "_I2")
+                self.__parser["Interface"]["I2"] = scrambled_i2
+            if self.I3 and self.I3.strip():
+                interface_seed = f"{self.Name}_interface"
+                scrambled_i3 = self._scramble_cps_pattern(self.I3, interface_seed + "_I3")
+                self.__parser["Interface"]["I3"] = scrambled_i3
+            if self.I4 and self.I4.strip():
+                interface_seed = f"{self.Name}_interface"
+                scrambled_i4 = self._scramble_cps_pattern(self.I4, interface_seed + "_I4")
+                self.__parser["Interface"]["I4"] = scrambled_i4
+            if self.I5 and self.I5.strip():
+                interface_seed = f"{self.Name}_interface"
+                scrambled_i5 = self._scramble_cps_pattern(self.I5, interface_seed + "_I5")
+                self.__parser["Interface"]["I5"] = scrambled_i5
 
             # Add SaveConfig at the end, it seems like it's always True
             self.__parser["Interface"]["SaveConfig"] = "true"
@@ -165,18 +204,21 @@ class Configuration:
             logger.info(f"Autostart Configuration: {name}")
 
 
-    def __initPeersList(self):
+    async def __initPeersList(self):
         self.Peers: list[Peer] = []
-        self.getPeersList()
-        self.getRestrictedPeersList()
+        await self.getPeersList()
+        await self.getRestrictedPeersList()
 
     def getRawConfigurationFile(self):
         return open(self.configPath, 'r').read()
 
-    def updateRawConfigurationFile(self, newRawConfiguration):
+    async def updateRawConfigurationFile(self, newRawConfiguration):
         backupStatus, backup = self.backupConfigurationFile()
         if not backupStatus:
-            return False, "Cannot create backup"
+            # Extract error message if available
+            error_msg = backup.get('error', 'Cannot create backup') if isinstance(backup, dict) else 'Cannot create backup'
+            logger.error(f"Failed to create backup before raw config update: {error_msg}")
+            return False, error_msg
 
         if self.Status:
             self.toggleConfiguration()
@@ -186,7 +228,7 @@ class Configuration:
 
         status, err = self.toggleConfiguration()
         if not status:
-            restoreStatus = self.restoreBackup(backup['filename'])
+            restoreStatus = await self.restoreBackup(backup['filename'])
             logger.debug(f"Restore status: {restoreStatus}")
             self.toggleConfiguration()
             return False, err
@@ -394,25 +436,25 @@ class Configuration:
                 logger.warning(f"Configuration {self.Name} has no PrivateKey, skipping public key generation")
             self.Status = self.getStatus()
 
-    def __dropDatabase(self):
+    async def __dropDatabase(self):
         """Drop database - now handled by ConfigurationDatabase"""
-        self.db.drop_database()
+        await self.db.drop_database()
 
-    def __createDatabase(self, dbName=None):
+    async def __createDatabase(self, dbName=None):
         """Create database - now handled by ConfigurationDatabase"""
-        self.db.create_database(dbName)
+        await self.db.create_database(dbName)
 
-    def __migrateDatabase(self):
+    async def __migrateDatabase(self):
         """Migrate database - now handled by ConfigurationDatabase"""
-        self.db.migrate_database()
+        await self.db.migrate_database()
 
     def __dumpDatabase(self):
         """Dump database - now handled by ConfigurationDatabase"""
         return self.db.dump_database()
 
-    def __importDatabase(self, sqlFilePath) -> bool:
+    async def __importDatabase(self, sqlFilePath) -> bool:
         """Import database - now handled by ConfigurationDatabase"""
-        return self.db.import_database(sqlFilePath)
+        return await self.db.import_database(sqlFilePath)
 
     def __getPublicKey(self) -> str:
         logger.debug(f"Generating public key for configuration {self.Name}, PrivateKey length: {len(self.PrivateKey) if self.PrivateKey else 0}")
@@ -432,9 +474,10 @@ class Configuration:
         s, d = DashboardConfig.GetConfig("WireGuardConfiguration", "autostart")
         return self.Name in d
 
-    def __getRestrictedPeers(self):
+    async def __getRestrictedPeers(self):
+        """Load restricted peers from the database"""
         self.RestrictedPeers = []
-        restricted = self.db.get_restricted_peers()
+        restricted = await self.db.get_restricted_peers()
         if restricted is not None:
             for i in restricted:
                 self.RestrictedPeers.append(Peer(i, self))
@@ -445,7 +488,8 @@ class Configuration:
         self.__configFileModifiedTime = mt
         return changed
 
-    def __getPeers(self):
+    async def __getPeers(self):
+        """Load peers from the database/config"""
         if self.configurationFileChanged():
             self.Peers = []
             
@@ -481,7 +525,7 @@ class Configuration:
 
                     for i in p:
                         if "PublicKey" in i.keys():
-                            checkIfExist = self.db.search_peer(i['PublicKey'])
+                            checkIfExist = await self.db.search_peer(i['PublicKey'])
                             if checkIfExist is None:
                                 allowed_ips = i.get("AllowedIPs", "N/A").split(',')
                                 addr_v4 = []
@@ -521,7 +565,7 @@ class Configuration:
                                     "scheduler_type": "htb"
                                 }
                                 logger.debug(f"Inserting peer with name '{newPeer['name']}' and IP '{newPeer['allowed_ip']}'")
-                                self.db.insert_peer(newPeer)
+                                await self.db.insert_peer(newPeer)
                                 self.Peers.append(Peer(newPeer, self))
                             else:
                                 # Update both allowed_ip and name if they exist in the config file
@@ -529,152 +573,17 @@ class Configuration:
                                 if i.get("name"):
                                     update_data["name"] = i.get("name")
                                     logger.debug(f"Updating peer {i['PublicKey'][:8]}... with name '{i.get('name')}'")
-                                self.db.update_peer(i['PublicKey'], update_data)
+                                await self.db.update_peer(i['PublicKey'], update_data)
                                 self.Peers.append(Peer(checkIfExist, self))
                 except Exception as e:
                     if __name__ == '__main__':
                         logger.error(f"{self.Name} Error: {str(e)}")
         else:
             self.Peers.clear()
-            checkIfExist = self.db.get_peers()
+            checkIfExist = await self.db.get_peers()
             if checkIfExist is not None:
                 for i in checkIfExist:
                     self.Peers.append(Peer(i, self))
-
-    def addPeers(self, peers: list):
-        interface_address = self.get_iface_address()
-        cmd_prefix = self.get_iface_proto()
-        try:
-            # Validate peer names for uniqueness within this configuration
-            existing_peer_names = {peer.name for peer in self.Peers}
-            for peer in peers:
-                if peer.get('name') and peer['name'] in existing_peer_names:
-                    raise ValueError(f"A peer with the name '{peer['name']}' already exists in this configuration")
-                existing_peer_names.add(peer.get('name', ''))
-            
-            # First, handle database updates and wg commands
-            for i in peers:
-                # Split addresses into v4 and v6
-                addr_v4 = []
-                addr_v6 = []
-                if 'allowed_ip' in i:
-                    for addr in i['allowed_ip'].split(','):
-                        addr = addr.strip()
-                        if ':' in addr:  # IPv6
-                            addr_v6.append(addr)
-                        else:  # IPv4
-                            addr_v4.append(addr)
-
-                newPeer = {
-                    "id": i['id'],
-                    "private_key": i['private_key'],
-                    "DNS": i['DNS'],
-                    "endpoint_allowed_ip": i['endpoint_allowed_ip'],
-                    "name": i['name'],
-                    "total_receive": 0,
-                    "total_sent": 0,
-                    "total_data": 0,
-                    "endpoint": "N/A",
-                    "status": "stopped",
-                    "latest_handshake": "N/A",
-                    "allowed_ip": i.get("allowed_ip", "N/A"),
-                    "cumu_receive": 0,
-                    "cumu_sent": 0,
-                    "cumu_data": 0,
-                    "traffic": [],
-                    "mtu": i['mtu'],
-                    "keepalive": i['keepalive'],
-                    "remote_endpoint": DashboardConfig.GetConfig("Peers", "remote_endpoint")[1],
-                    "preshared_key": i["preshared_key"],
-                    "address_v4": ','.join(addr_v4) if addr_v4 else None,
-                    "address_v6": ','.join(addr_v6) if addr_v6 else None,
-                    "upload_rate_limit": 0,
-                    "download_rate_limit": 0,
-                    "scheduler_type": "htb"  # Add default scheduler type
-                }
-
-                self.db.insert_peer(newPeer)
-
-            # Handle wg commands and config file updates
-            config_path = f"/etc/wireguard/{self.Name}.conf"
-            for i, p in enumerate(peers):
-                logger.debug(f"Adding peer {i+1}/{len(peers)}: {p['id'][:8]}...")
-                presharedKeyExist = len(p['preshared_key']) > 0
-                # Use cryptographically secure random for UUID generation
-                uid = str(uuid.uuid4())
-
-                # Handle wg command securely
-                if presharedKeyExist:
-                    with open(uid, "w+") as f:
-                        f.write(p['preshared_key'])
-                
-                try:
-                    # Use secure command execution
-                    if cmd_prefix == "awg":
-                        result = execute_awg_command(
-                            action='set',
-                            interface=self.Name,
-                            peer_key=p['id'],
-                            allowed_ips=p['allowed_ip'].replace(' ', ''),
-                            preshared_key=p['preshared_key'] if presharedKeyExist else None
-                        )
-                    else:
-                        result = execute_wg_command(
-                            action='set',
-                            interface=self.Name,
-                            peer_key=p['id'],
-                            allowed_ips=p['allowed_ip'].replace(' ', ''),
-                            preshared_key=p['preshared_key'] if presharedKeyExist else None
-                        )
-                    
-                    logger.debug(f"Peer {i+1} result: success={result['success']}, error={result.get('error', 'None')}")
-                    if not result['success']:
-                        raise Exception(f"Failed to set peer {i+1}: {result.get('error', result.get('stderr', 'Unknown error'))}")
-                finally:
-                    # Always clean up the temporary file
-                    if presharedKeyExist and os.path.exists(uid):
-                        try:
-                            os.remove(uid)
-                        except:
-                            pass
-
-                # Add name comment to config file
-                if 'name_comment' in p and p['name_comment']:
-                    with open(config_path, 'r') as f:
-                        config_lines = f.readlines()
-
-                    # Find the [Peer] section for this peer
-                    peer_index = -1
-                    for idx, line in enumerate(config_lines):
-                        if line.strip() == '[Peer]':
-                            next_lines = config_lines[idx:idx + 5]  # Look at next few lines
-                            for next_line in next_lines:
-                                if f"PublicKey = {p['id']}" in next_line:
-                                    peer_index = idx
-                                    break
-
-                    # Insert name comment if we found the peer section
-                    if peer_index != -1:
-                        config_lines.insert(peer_index + 1, p['name_comment'] + '\n')
-                        with open(config_path, 'w') as f:
-                            f.writelines(config_lines)
-
-            # Save and patch
-            if cmd_prefix == "awg":
-                result = execute_awg_quick_command('save', self.Name)
-            else:
-                result = execute_wg_quick_command('save', self.Name)
-            if not result['success']:
-                raise Exception(f"Failed to save configuration: {result.get('error', result.get('stderr', 'Unknown error'))}")
-            try_patch = self.patch_iface_address(interface_address)
-            if try_patch:
-                return try_patch
-
-            self.getPeersList()
-            return True
-        except Exception as e:
-            logger.error(f"Error in addPeers: {str(e)}")
-            return False
 
     async def addPeersAsync(self, peers: list):
         """Async version of addPeers with bulk database operations for better performance"""
@@ -737,7 +646,7 @@ class Configuration:
             else:
                 # Fallback to individual inserts
                 for peer_data in peers_data:
-                    self.db.insert_peer(peer_data)
+                    await self.db.insert_peer(peer_data)
 
             # Handle wg commands and config file updates (these still need to be sequential)
             config_path = f"/etc/wireguard/{self.Name}.conf"
@@ -779,8 +688,10 @@ class Configuration:
                     if presharedKeyExist and os.path.exists(uid):
                         try:
                             os.remove(uid)
-                        except:
-                            pass
+                        except OSError as e:
+                            logger.warning(f"Failed to remove temporary file {uid}: {e}")
+                        except Exception as e:
+                            logger.warning(f"Unexpected error removing temporary file {uid}: {e}")
 
                 # Add name comment to config file
                 if 'name_comment' in p and p['name_comment']:
@@ -814,7 +725,7 @@ class Configuration:
             if try_patch:
                 return try_patch
 
-            self.getPeersList()
+            await self.getPeersList()
             return True
         except Exception as e:
             logger.error(f"Error in addPeersAsync: {str(e)}")
@@ -833,88 +744,6 @@ class Configuration:
                 
         return False, None
 
-    def allowAccessPeers(self, listOfPublicKeys):
-        try:
-            if not self.getStatus():
-                self.toggleConfiguration()
-            interface_address = self.get_iface_address()
-            cmd_prefix = self.get_iface_proto()
-            
-            for i in listOfPublicKeys:
-                # Search in restricted table
-                restricted_peers = self.db.get_restricted_peers()
-                p = None
-                if restricted_peers is not None:
-                    for peer in restricted_peers:
-                        if peer.get('id') == i:
-                            p = peer
-                            break
-                
-                if p is not None:
-                    # Move peer from restricted table
-                    if not self.db.move_peer_from_restricted(i):
-                        return ResponseObject(False, f"Failed to move peer {i} from restricted table")
-
-                    presharedKeyExist = len(p.get('preshared_key', '')) > 0
-                    uid = None
-                    
-                    try:
-                        if presharedKeyExist:
-                            # Use cryptographically secure random for UUID generation
-                            uid = str(uuid.uuid4())
-                            with open(uid, "w+") as f:
-                                f.write(p['preshared_key'])
-
-                        # Use secure command execution with fallback
-                        # Use secure command execution with protocol check
-                        if cmd_prefix == "awg":
-                            result = execute_awg_command(
-                                action='set',
-                                interface=self.Name,
-                                peer_key=p['id'],
-                                allowed_ips=p['allowed_ip'].replace(' ', ''),
-                                preshared_key=p['preshared_key'] if presharedKeyExist else None
-                            )
-                        else:
-                            result = execute_wg_command(
-                                action='set',
-                                interface=self.Name,
-                                peer_key=p['id'],
-                                allowed_ips=p['allowed_ip'].replace(' ', ''),
-                                preshared_key=p['preshared_key'] if presharedKeyExist else None
-                            )
-                            
-                        if not result['success']:
-                            return ResponseObject(False, f"Failed to execute WireGuard command: {result.get('error', result.get('stderr', 'Unknown error'))}")
-
-                    except subprocess.CalledProcessError as e:
-                        return ResponseObject(False, f"Failed to execute WireGuard command: {str(e)}")
-                    except Exception as e:
-                        return ResponseObject(False, f"Error processing peer {i}: {str(e)}")
-                    finally:
-                        # Clean up temporary file
-                        if presharedKeyExist and uid and os.path.exists(uid):
-                            try:
-                                os.remove(uid)
-                            except Exception as e:
-                                logger.warning(f"Failed to remove temporary file {uid}: {e}")
-                else:
-                    return ResponseObject(False, "Failed to allow access of peer " + i)
-                    
-            if not self.__wgSave():
-                return ResponseObject(False, "Failed to save configuration through WireGuard")
-
-            try_patch = self.patch_iface_address(interface_address)
-            if try_patch:
-                return try_patch
-
-            self.__getPeers()
-            return ResponseObject(True, "Allow access successfully")
-            
-        except Exception as e:
-            logger.error(f"Error in allowAccessPeers: {str(e)}")
-            return ResponseObject(False, f"Internal error: {str(e)}")
-
     async def allowAccessPeersAsync(self, listOfPublicKeys):
         """Async version of allowAccessPeers with bulk database operations for better performance"""
         try:
@@ -929,11 +758,11 @@ class Configuration:
             else:
                 # Fallback to individual moves
                 for i in listOfPublicKeys:
-                    if not self.db.move_peer_from_restricted(i):
+                    if not await self.db.move_peer_from_restricted(i):
                         return ResponseObject(False, f"Failed to move peer {i} from restricted table")
             
             # Get all peer data for wg commands
-            restricted_peers = self.db.get_restricted_peers()
+            restricted_peers = await self.db.get_restricted_peers()
             peers_to_process = []
             if restricted_peers is not None:
                 for peer in restricted_peers:
@@ -994,13 +823,14 @@ class Configuration:
             if try_patch:
                 return try_patch
 
-            self.getPeersList()
+            await self.__getPeers()
             return ResponseObject(True, "All peers have been allowed access successfully")
         except Exception as e:
             logger.error(f"Error in allowAccessPeersAsync: {str(e)}")
             return ResponseObject(False, f"Error allowing access to peers: {str(e)}")
 
-    def restrictPeers(self, listOfPublicKeys):
+    async def restrictPeersAsync(self, listOfPublicKeys):
+        """Async version of restrictPeers"""
         numOfRestrictedPeers = 0
         numOfFailedToRestrictPeers = 0
         if not self.getStatus():
@@ -1028,9 +858,9 @@ class Configuration:
                     if not result['success']:
                         raise Exception(f"Failed to remove peer: {result.get('error', result.get('stderr', 'Unknown error'))}")
 
-                    self.db.move_peer_to_restricted(pf.id)
+                    await self.db.move_peer_to_restricted(pf.id)
                     # Update status to stopped
-                    self.db.update_peer(pf.id, {"status": "stopped"})
+                    await self.db.update_peer(pf.id, {"status": "stopped"})
                     numOfRestrictedPeers += 1
                 except Exception as e:
                     numOfFailedToRestrictPeers += 1
@@ -1042,15 +872,20 @@ class Configuration:
         if try_patch:
             return try_patch
 
-        self.__getPeers()
+        await self.__getPeers()
 
         if numOfRestrictedPeers == len(listOfPublicKeys):
             return ResponseObject(True, f"Restricted {numOfRestrictedPeers} peer(s)")
         return ResponseObject(False,
                               f"Restricted {numOfRestrictedPeers} peer(s) successfully. Failed to restrict {numOfFailedToRestrictPeers} peer(s)")
-        pass
 
-    def deletePeers(self, listOfPublicKeys):
+    async def deletePeersAsync(self, listOfPublicKeys):
+        """Async version of deletePeers"""
+        # Reload peers list first to ensure we have the latest state
+        # (important after restrict/allow operations that move peers between tables)
+        await self.__getPeers()
+        await self.getRestrictedPeersList()
+        
         numOfDeletedPeers = 0
         numOfFailedToDeletePeers = 0
         if not self.getStatus():
@@ -1079,7 +914,7 @@ class Configuration:
                     if not result['success']:
                         raise Exception(f"Failed to remove peer: {result.get('error', result.get('stderr', 'Unknown error'))}")
 
-                    self.db.delete_peer(pf.id)
+                    await self.db.delete_peer(pf.id)
                     numOfDeletedPeers += 1
                 except Exception as e:
                     numOfFailedToDeletePeers += 1
@@ -1091,7 +926,7 @@ class Configuration:
         if try_patch:
             return try_patch
 
-        self.__getPeers()
+        await self.__getPeers()
 
         if numOfDeletedPeers == len(listOfPublicKeys):
             return ResponseObject(True, f"Deleted {numOfDeletedPeers} peer(s)")
@@ -1320,7 +1155,8 @@ class Configuration:
         except subprocess.CalledProcessError as e:
             return False, str(e)
 
-    def getPeersLatestHandshake(self):
+    async def getPeersLatestHandshakeAsync(self):
+        """Async version of getPeersLatestHandshake"""
         if not self.getStatus():
             self.toggleConfiguration()
         try:
@@ -1346,12 +1182,13 @@ class Configuration:
             else:
                 status = "stopped"
             if int(latestHandshake[count + 1]) > 0:
-                self.db.update_peer_handshake(latestHandshake[count], str(minus).split(".", maxsplit=1)[0], status)
+                await self.db.update_peer_handshake(latestHandshake[count], str(minus).split(".", maxsplit=1)[0], status)
             else:
-                self.db.update_peer_handshake(latestHandshake[count], 'No Handshake', status)
+                await self.db.update_peer_handshake(latestHandshake[count], 'No Handshake', status)
             count += 2
 
-    def getPeersTransfer(self):
+    async def getPeersTransferAsync(self):
+        """Async version of getPeersTransfer"""
         if not self.getStatus():
             self.toggleConfiguration()
         try:
@@ -1367,7 +1204,7 @@ class Configuration:
             data_usage = [p.split("\t") for p in data_usage]
             for i in range(len(data_usage)):
                 if len(data_usage[i]) == 3:
-                    cur_i = self.db.search_peer(data_usage[i][0])
+                    cur_i = await self.db.search_peer(data_usage[i][0])
                     if cur_i is not None:
                         # Get correctly parsed values from WireGuard (now parsing is fixed)
                         cur_total_sent = float(data_usage[i][1]) / (1024 ** 3)
@@ -1409,7 +1246,7 @@ class Configuration:
                             # Counter reset (WireGuard restarted) - add old total to cumulative
                             cumulative_sent = corrected_cumu_sent + corrected_total_sent
                             cumulative_receive = corrected_cumu_receive + corrected_total_receive
-                            self.db.update_peer(data_usage[i][0], {
+                            await self.db.update_peer(data_usage[i][0], {
                                 'cumu_receive': cumulative_receive,
                                 'cumu_sent': cumulative_sent,
                                 'cumu_data': cumulative_sent + cumulative_receive
@@ -1420,11 +1257,12 @@ class Configuration:
                         # Update database with correct values (will overwrite any swapped values)
                         found, p = self.searchPeer(data_usage[i][0])
                         if found and p and hasattr(p, 'total_receive') and hasattr(p, 'total_sent') and (p.total_receive != total_receive or p.total_sent != total_sent):
-                            self.db.update_peer_transfer(data_usage[i][0], total_receive, total_sent, total_receive + total_sent)
+                            await self.db.update_peer_transfer(data_usage[i][0], total_receive, total_sent, total_receive + total_sent)
         except Exception as e:
             logger.error(f"{self.Name} Error: {str(e)} {str(e.__traceback__)}")
 
-    def getPeersEndpoint(self):
+    async def getPeersEndpointAsync(self):
+        """Async version of getPeersEndpoint"""
         if not self.getStatus():
             self.toggleConfiguration()
         try:
@@ -1442,7 +1280,7 @@ class Configuration:
             return "stopped"
         count = 0
         for _ in range(int(len(data_usage) / 2)):
-            self.db.update_peer_endpoint(data_usage[count], data_usage[count + 1])
+            await self.db.update_peer_endpoint(data_usage[count], data_usage[count + 1])
             count += 2
 
     def toggleConfiguration(self) -> tuple[bool, str]:
@@ -1451,6 +1289,9 @@ class Configuration:
         cmd_prefix = self.get_iface_proto()
 
         config_file_path = os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], f"{self.Name}.conf")
+
+        # Initialize connection_start_time for CPS adaptation tracking (only for AWG with CPS enabled)
+        connection_start_time = None
 
         if self.Status:
             try:
@@ -1468,6 +1309,13 @@ class Configuration:
             if try_patch:
                 return try_patch
         else:
+            # Check if config file exists before trying to bring interface up
+            if not os.path.exists(config_file_path):
+                return False, f"Configuration file does not exist: {config_file_path}"
+            
+            # Record connection attempt for CPS adaptation (only for AWG with CPS enabled)
+            if self.get_iface_proto() == "awg" and (self.I1 or self.I2 or self.I3 or self.I4 or self.I5):
+                connection_start_time = time.time()
             try:
                 # Extract IPv6 address from the WireGuard configuration file
                 with open(config_file_path, 'r') as f:
@@ -1516,17 +1364,76 @@ class Configuration:
                     if not result['success']:
                         return False, result.get('error', result.get('stderr', 'Unknown error'))
             except subprocess.CalledProcessError as exc:
+                # Record failed connection attempt for CPS adaptation (safely access method)
+                if connection_start_time:
+                    record_method = getattr(type(self), '_record_cps_connection_attempt', None)
+                    if record_method:
+                        try:
+                            record_method(self, success=False)
+                        except Exception:
+                            pass
                 return False, str(exc.output.strip().decode("utf-8"))
+        
+        # Record successful connection attempt for CPS adaptation
+        if connection_start_time:
+            latency_ms = (time.time() - connection_start_time) * 1000
+            # Get throughput from traffic monitor if available (safely access method)
+            throughput_method = getattr(type(self), '_get_current_throughput', None)
+            if throughput_method:
+                try:
+                    throughput_mbps = throughput_method(self)
+                except Exception:
+                    throughput_mbps = 0.0
+            else:
+                throughput_mbps = 0.0
+            # Record successful connection attempt (safely access method)
+            record_method = getattr(type(self), '_record_cps_connection_attempt', None)
+            if record_method:
+                try:
+                    record_method(self, success=True, latency_ms=latency_ms, throughput_mbps=throughput_mbps)
+                except Exception:
+                    pass
+            
+            # Real-time adaptation check (safely access methods)
+            init_method = getattr(type(self), '_ensure_cps_adaptation_initialized', None)
+            adapted_patterns = None
+            if init_method:
+                try:
+                    init_method(self)
+                    if hasattr(self, 'cps_adaptation') and self.cps_adaptation:
+                        adapt_method = getattr(self.cps_adaptation, 'adapt_pattern_real_time', None)
+                        if adapt_method:
+                            adapted_patterns = adapt_method(
+                                self.I1, self.I2, self.I3, self.I4, self.I5
+                            )
+                except Exception:
+                    pass
+            
+            # Apply adapted patterns if they differ
+            if adapted_patterns and (adapted_patterns.get('i1') != self.I1 or 
+                                     adapted_patterns.get('i2') != self.I2 or
+                                     adapted_patterns.get('i3') != self.I3 or
+                                     adapted_patterns.get('i4') != self.I4 or
+                                     adapted_patterns.get('i5') != self.I5):
+                apply_method = getattr(type(self), '_apply_cps_patterns', None)
+                if apply_method:
+                    try:
+                        logger.info(f"Adapting CPS patterns for {self.Name} based on performance")
+                        apply_method(self, adapted_patterns)
+                    except Exception:
+                        pass
+        
         self.__parseConfigurationFileSync()
         self.getStatus()
         return True, None
 
-    def getPeersList(self):
-        self.__getPeers()
+    async def getPeersList(self):
+        await self.__getPeers()
         return self.Peers
 
-    def getRestrictedPeersList(self) -> list:
-        self.__getRestrictedPeers()
+    async def getRestrictedPeersList(self) -> list:
+        """Return restricted peers list"""
+        await self.__getRestrictedPeers()
         return self.RestrictedPeers
 
     def toJson(self):
@@ -1567,7 +1474,109 @@ class Configuration:
             "TotalPeers": len(self.Peers),
             "Protocol": self.Protocol,
             "HasTor": has_tor,
+            # AmneziaWG parameters
+            "Jc": self.Jc,
+            "Jmin": self.Jmin,
+            "Jmax": self.Jmax,
+            "S1": self.S1,
+            "S2": self.S2,
+            "H1": self.H1,
+            "H2": self.H2,
+            "H3": self.H3,
+            "H4": self.H4,
+            # AmneziaWG 1.5 CPS packets
+            "I1": self.I1,
+            "I2": self.I2,
+            "I3": self.I3,
+            "I4": self.I4,
+            "I5": self.I5,
+            # CPS Pattern Adaptation stats (if available) - safely get using getattr from class
+            "CPSAdaptation": self._get_cps_stats_via_class(),
         }
+    
+    def _get_cps_stats_via_class(self) -> dict[str, Any]:
+        """Get CPS stats via class lookup - works even if method not bound to instance"""
+        try:
+            # Try to get the safe method directly from class
+            safe_method = getattr(type(self), '_get_cps_adaptation_stats_safe', None)
+            if safe_method:
+                try:
+                    return safe_method(self)
+                except Exception:
+                    pass
+            
+            # Fallback: try initialization method from class
+            init_method = getattr(type(self), '_ensure_cps_adaptation_initialized', None)
+            if init_method:
+                try:
+                    init_method(self)
+                    cps_adaptation = getattr(self, 'cps_adaptation', None)
+                    if cps_adaptation:
+                        stats_method = getattr(cps_adaptation, 'get_adaptation_stats', None)
+                        if callable(stats_method):
+                            return stats_method()
+                except Exception:
+                    pass
+            
+            # Last resort: direct initialization
+            try:
+                if not hasattr(self, 'cps_adaptation') or not getattr(self, 'cps_adaptation', None):
+                    from .AwgCPS.CPSPatternAdaptation import CPSPatternAdaptation
+                    if hasattr(self, 'Name') and hasattr(self, 'db'):
+                        self.cps_adaptation = CPSPatternAdaptation(self.Name, self.db)
+                        if self.cps_adaptation:
+                            stats_method = getattr(self.cps_adaptation, 'get_adaptation_stats', None)
+                            if callable(stats_method):
+                                return stats_method()
+            except Exception:
+                pass
+        except Exception:
+            pass
+        return {}
+    
+    def _get_cps_adaptation_stats_for_json_safe(self) -> dict[str, Any]:
+        """Get CPS stats for JSON - completely safe, works with existing instances"""
+        try:
+            # Try to get stats via class method lookup (works even if instance doesn't have it bound)
+            safe_method = getattr(type(self), '_get_cps_adaptation_stats_safe', None)
+            if safe_method:
+                try:
+                    return safe_method(self)
+                except Exception as e:
+                    logger.debug(f"Failed to get CPS stats via safe method: {e}")
+                    pass
+            
+            # Try initialization via class method
+            init_method = getattr(type(self), '_ensure_cps_adaptation_initialized', None)
+            if init_method:
+                try:
+                    init_method(self)
+                    cps_adaptation = getattr(self, 'cps_adaptation', None)
+                    if cps_adaptation:
+                        stats_method = getattr(cps_adaptation, 'get_adaptation_stats', None)
+                        if callable(stats_method):
+                            return stats_method()
+                except Exception as e:
+                    logger.debug(f"Failed to initialize CPS adaptation via class method: {e}")
+                    pass
+            
+            # Direct initialization as last resort
+            try:
+                if not hasattr(self, 'cps_adaptation') or not getattr(self, 'cps_adaptation', None):
+                    from .AwgCPS.CPSPatternAdaptation import CPSPatternAdaptation
+                    if hasattr(self, 'Name') and hasattr(self, 'db'):
+                        self.cps_adaptation = CPSPatternAdaptation(self.Name, self.db)
+                        if self.cps_adaptation:
+                            stats_method = getattr(self.cps_adaptation, 'get_adaptation_stats', None)
+                            if callable(stats_method):
+                                return stats_method()
+            except Exception as e:
+                logger.debug(f"Failed to initialize CPS adaptation directly: {e}")
+                pass
+            
+            return {}
+        except Exception:
+            return {}
 
     def backupConfigurationFile(self):
         """Enhanced backup method that includes all iptables scripts with organized directory structure"""
@@ -1576,15 +1585,67 @@ class Configuration:
             time_str = datetime.now().strftime("%Y%m%d%H%M%S")
 
             # Get organized backup paths
-            backup_paths = get_backup_paths(self.Name, time_str)
+            try:
+                backup_paths = get_backup_paths(self.Name, time_str)
+            except OSError as e:
+                error_msg = f"Failed to create backup directory: {str(e)}"
+                logger.error(error_msg)
+                return False, {"error": error_msg}
 
             # Backup main configuration file
-            shutil.copy(self.configPath, backup_paths['conf_file'])
+            try:
+                shutil.copy(self.configPath, backup_paths['conf_file'])
+            except (OSError, IOError) as e:
+                error_msg = f"Failed to copy configuration file to backup: {str(e)}"
+                logger.error(error_msg)
+                return False, {"error": error_msg}
 
             # Backup database
-            with open(backup_paths['redis_file'], 'w+') as f:
-                for l in self.__dumpDatabase():
-                    f.write(l + "\n")
+            try:
+                # __dumpDatabase() returns an async generator, so we need to handle it properly
+                # Since this is a sync method, we'll use asyncio to run the async generator
+                import asyncio
+                
+                async def collect_database_lines():
+                    """Collect all lines from the async generator"""
+                    lines = []
+                    async_gen = self.db.dump_database()
+                    async for line in async_gen:
+                        lines.append(line)
+                    return lines
+                
+                # Get or create event loop
+                try:
+                    loop = asyncio.get_event_loop()
+                except RuntimeError:
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                
+                # Collect all database lines
+                if loop.is_running():
+                    # We're in an async context, need to handle differently
+                    # Create a task and wait for it
+                    import concurrent.futures
+                    with concurrent.futures.ThreadPoolExecutor() as executor:
+                        future = executor.submit(
+                            lambda: asyncio.run(collect_database_lines())
+                        )
+                        lines = future.result()
+                else:
+                    lines = loop.run_until_complete(collect_database_lines())
+                
+                # Write all lines to backup file
+                with open(backup_paths['redis_file'], 'w+') as f:
+                    for l in lines:
+                        f.write(l + "\n")
+            except (OSError, IOError) as e:
+                error_msg = f"Failed to write database backup file: {str(e)}"
+                logger.error(error_msg)
+                return False, {"error": error_msg}
+            except Exception as e:
+                error_msg = f"Failed to dump database: {str(e)}"
+                logger.error(error_msg, exc_info=True)
+                return False, {"error": error_msg}
 
             # Backup all iptables scripts if they exist
             scripts_backup = {}
@@ -1637,18 +1698,24 @@ class Configuration:
 
             # Save iptables scripts content if any exist
             if scripts_backup:
-                with open(backup_paths['iptables_file'], 'w') as f:
-                    json.dump(scripts_backup, f, indent=2)
+                try:
+                    with open(backup_paths['iptables_file'], 'w') as f:
+                        json.dump(scripts_backup, f, indent=2)
+                except (OSError, IOError) as e:
+                    error_msg = f"Failed to write iptables backup file: {str(e)}"
+                    logger.warning(error_msg)
+                    # Don't fail the entire backup if iptables backup fails
 
             # Return success and backup details
             return True, {
-                'filename': backup_paths['conf_file'],
+                'filename': os.path.basename(backup_paths['conf_file']),
                 'database': backup_paths['redis_file'],
                 'iptables': backup_paths['iptables_file'] if scripts_backup else None
             }
         except Exception as e:
-            logger.error(f"Backup Error: {str(e)}")
-            return False, None
+            error_msg = f"Unexpected backup error: {str(e)}"
+            logger.error(error_msg, exc_info=True)
+            return False, {"error": error_msg}
 
     def getBackups(self, databaseContent: bool = False) -> list[dict[str, str]]:
         """Enhanced getBackups method with organized directory structure"""
@@ -1695,19 +1762,34 @@ class Configuration:
 
         return backups
 
-    def restoreBackup(self, backupFileName: str) -> bool:
+    async def restoreBackup(self, backupFileName: str) -> bool:
         """Enhanced restore method with pre/post up/down scripts"""
         backups = list(map(lambda x: x['filename'], self.getBackups()))
         if backupFileName not in backups:
             return False
 
         # Backup current state before restore
-        self.backupConfigurationFile()
+        # Note: backupConfigurationFile() is sync but uses async operations internally
+        # It handles the async operations itself, so we can call it directly
+        try:
+            backup_success, _ = self.backupConfigurationFile()
+            if not backup_success:
+                logger.warning(f"Failed to create backup before restore, continuing anyway")
+        except Exception as e:
+            logger.warning(f"Error creating backup before restore: {e}, continuing anyway")
+        
         if self.Status:
             self.toggleConfiguration()
 
         # Get timestamp from backup filename
-        timestamp = backupFileName.split('_')[1].split('.')[0]
+        # Filename format: {config_name}_{timestamp}.conf
+        # Extract timestamp (14 digits before .conf, after the last underscore)
+        import re
+        timestamp_match = re.search(r'_(\d{14})\.conf$', backupFileName)
+        if not timestamp_match:
+            logger.error(f"Invalid backup filename format: {backupFileName}")
+            return False
+        timestamp = timestamp_match.group(1)
         backup_paths = get_backup_paths(self.Name, timestamp)
         if not os.path.exists(backup_paths['conf_file']):
             return False
@@ -1723,11 +1805,11 @@ class Configuration:
 
         # Parse and restore database
         self.__parseConfigurationFileSync()
-        self.__dropDatabase()
-        self.__importDatabase(backup_paths['redis_file'])
+        await self.__dropDatabase()
+        await self.__importDatabase(backup_paths['redis_file'])
         
         # Force refresh of peers from database after import
-        self.__initPeersList()
+        await self.__initPeersList()
 
         # Restore iptables scripts if they exist
         if os.path.exists(backup_paths['iptables_file']):
@@ -1831,32 +1913,95 @@ class Configuration:
         return True
 
     def updateConfigurationSettings(self, newData: dict) -> tuple[bool, str]:
-        if self.Status:
+        # Store original status to restore it later
+        was_running = self.Status
+        if was_running:
             self.toggleConfiguration()
         original = []
         dataChanged = False
         with open(os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], f'{self.Name}.conf'), 'r') as f:
             original = f.readlines()
             original = [l.rstrip("\n") for l in original]
-            allowEdit = ["Address", "PreUp", "PostUp", "PreDown", "PostDown", "ListenPost", "PrivateKey"]
+            allowEdit = ["Address", "PreUp", "PostUp", "PreDown", "PostDown", "ListenPort", "PrivateKey",
+                         "I1", "I2", "I3", "I4", "I5"]
 
             start = original.index("[Interface]")
-            for line in range(start + 1, len(original)):
-                if original[line] == "[Peer]":
+            interface_end = len(original)
+            
+            # Find where the Interface section ends
+            for i in range(start + 1, len(original)):
+                if original[i] == "[Peer]":
+                    interface_end = i
                     break
+            
+            # Track which fields exist in the config
+            existing_fields = set()
+            
+            # First pass: update existing fields and handle deletions
+            lines_to_remove = []
+            for line in range(start + 1, interface_end):
                 split = re.split(r'\s*=\s*', original[line], 1)
                 if len(split) == 2:
                     key = split[0]
                     value = split[1]
-                    if key in allowEdit and key in newData.keys() and value != newData[key]:
-                        split[1] = newData[key]
-                        original[line] = " = ".join(split)
-                        if isinstance(getattr(self, key), bool):
-                            setattr(self, key, strToBool(newData[key]))
-                        else:
-                            setattr(self, key, str(newData[key]))
-                        dataChanged = True
+                    existing_fields.add(key)
+                    if key in allowEdit and key in newData.keys():
+                        # If value is empty/None, mark for removal (for I1-I5)
+                        if key in ["I1", "I2", "I3", "I4", "I5"] and (not newData[key] or newData[key].strip() == ""):
+                            lines_to_remove.append(line)
+                            setattr(self, key, "")
+                            dataChanged = True
+                        elif value != newData[key]:
+                            # For I1-I5, scramble the value before writing to interface config
+                            if key in ["I1", "I2", "I3", "I4", "I5"]:
+                                interface_seed = f"{self.Name}_interface"
+                                scrambled_value = self._scramble_cps_pattern(newData[key], interface_seed + f"_{key}")
+                                split[1] = scrambled_value
+                                original[line] = " = ".join(split)
+                                # Store the base (unscrambled) value in the object
+                                setattr(self, key, str(newData[key]))
+                            else:
+                                split[1] = newData[key]
+                                original[line] = " = ".join(split)
+                                if isinstance(getattr(self, key), bool):
+                                    setattr(self, key, strToBool(newData[key]))
+                                else:
+                                    setattr(self, key, str(newData[key]))
+                            dataChanged = True
                     logger.debug(f"Original line: {original[line]}")
+            
+            # Remove lines marked for deletion (iterate backwards to preserve indices)
+            for line_num in sorted(lines_to_remove, reverse=True):
+                del original[line_num]
+                # Adjust interface_end if we removed lines before it
+                if line_num < interface_end:
+                    interface_end -= 1
+            
+            # Second pass: add new I1-I5 fields if they don't exist and are provided
+            i_fields = ["I1", "I2", "I3", "I4", "I5"]
+            new_lines = []
+            for field in i_fields:
+                if field in newData and newData[field] and newData[field].strip() and field not in existing_fields:
+                    # Scramble I1-I5 values before writing to interface config
+                    interface_seed = f"{self.Name}_interface"
+                    scrambled_value = self._scramble_cps_pattern(newData[field], interface_seed + f"_{field}")
+                    new_lines.append(f"{field} = {scrambled_value}")
+                    # Store the base (unscrambled) value in the object
+                    setattr(self, field, str(newData[field]))
+                    dataChanged = True
+            
+            # Insert new I fields before [Peer] section if any
+            if new_lines:
+                # Find the best insertion point (after H4 or last AmneziaWG param if present)
+                insert_index = interface_end - 1
+                for i in range(interface_end - 1, start, -1):
+                    if any(original[i].startswith(f"{p} =") for p in ["H4", "H3", "H2", "H1", "S2", "S1", "Jmax", "Jmin", "Jc"]):
+                        insert_index = i + 1
+                        break
+                
+                # Insert the new lines
+                for idx, new_line in enumerate(new_lines):
+                    original.insert(insert_index + idx, new_line)
         if dataChanged:
 
             if not os.path.exists(
@@ -1871,9 +2016,13 @@ class Configuration:
                       'w') as f:
                 f.write("\n".join(original))
 
-        status, msg = self.toggleConfiguration()
-        if not status:
-            return False, msg
+        # Restore the interface to its original state (up if it was running, down if it wasn't)
+        # This will apply the new configuration if bringing it up
+        if was_running:
+            status, msg = self.toggleConfiguration()
+            if not status:
+                return False, msg
+        
         return True, ""
 
     @classmethod
@@ -1901,14 +2050,33 @@ class Configuration:
         instance.H2: str = ""
         instance.H3: str = ""
         instance.H4: str = ""
+        instance.I1: str = ""
+        instance.I2: str = ""
+        instance.I3: str = ""
+        instance.I4: str = ""
+        instance.I5: str = ""
         instance.MTU: str = ""
         instance.PreUp: str = ""
         instance.PostUp: str = ""
         instance.PreDown: str = ""
         instance.PostDown: str = ""
         instance.SaveConfig: bool = True
+        instance.Protocol: str = "wg"  # Default to wg, will be set from data or detected
         instance.Name = name
-        instance.Protocol = instance.get_iface_proto()
+        
+        logger.debug(f"[Core] create_async called for configuration: {name}")
+        logger.debug(f"[Core] Data received in create_async: {json.dumps({k: v for k, v in (data or {}).items() if k != 'PrivateKey'}, indent=2)}")
+        
+        # Set Protocol from data if provided, otherwise try to detect from existing config file
+        if data and "Protocol" in data:
+            logger.debug(f"[Core] Setting Protocol from data: {data['Protocol']}")
+            instance.Protocol = data["Protocol"]
+        else:
+            detected_proto = instance.get_iface_proto()
+            logger.debug(f"[Core] Protocol not in data, attempting to detect from existing file: {detected_proto}")
+            instance.Protocol = detected_proto or "wg"
+        
+        logger.debug(f"[Core] Final Protocol value set to: {instance.Protocol}")
 
         instance.configPath = os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], f'{instance.Name}.conf')
 
@@ -1921,31 +2089,95 @@ class Configuration:
 
         if name is not None:
             if data is not None and "Backup" in data.keys():
-                db = instance.db.import_database(
+                await instance.db.import_database(
                     os.path.join(
                         DashboardConfig.GetConfig("Server", "wg_conf_path")[1],
                         'WGDashboard_Backup',
                         data["Backup"].replace(".conf", ".redis")))
             else:
-                instance.db.create_database()
+                await instance.db.create_database()
                 # Ensure migration happens right after database creation
-                instance.db.migrate_database()
+                await instance.db.migrate_database()
 
             # Mark as async initialized and use async parsing
             instance._async_initialized = True
-            await instance.__parseConfigurationFile()
-            instance.__initPeersList()
-
+            
+            # Check if this is a new configuration (data provided but file doesn't exist)
+            is_new_config = data is not None and "Backup" not in data.keys() and not os.path.exists(instance.configPath)
+            
+            if is_new_config:
+                # This is a new configuration - skip parsing and go to file creation
+                logger.debug(f"[Core] New configuration detected, skipping file parse: {instance.Name}")
+                # Initialize empty peer lists for new configs
+                if not hasattr(instance, 'Peers') or instance.Peers is None:
+                    instance.Peers = []
+                if not hasattr(instance, 'RestrictedPeers') or instance.RestrictedPeers is None:
+                    instance.RestrictedPeers = []
+            else:
+                # Existing config or backup restore - parse the file
+                if os.path.exists(instance.configPath):
+                    await instance.__parseConfigurationFile()
+                elif data is not None and "Backup" in data.keys():
+                    # Backup restore case - file should exist after restore, parse it
+                    await instance.__parseConfigurationFile()
+            
+            # For existing configs, normalize I1-I5 CPS parameters and load peers
+            if not is_new_config:
+                # Normalize I1-I5 CPS parameters (convert raw hex 0x... to <b 0x...> format)
+                if hasattr(instance, 'I1') and instance.I1:
+                    instance.I1 = NormalizeCPSFormat(instance.I1)
+                if hasattr(instance, 'I2') and instance.I2:
+                    instance.I2 = NormalizeCPSFormat(instance.I2)
+                if hasattr(instance, 'I3') and instance.I3:
+                    instance.I3 = NormalizeCPSFormat(instance.I3)
+                if hasattr(instance, 'I4') and instance.I4:
+                    instance.I4 = NormalizeCPSFormat(instance.I4)
+                if hasattr(instance, 'I5') and instance.I5:
+                    instance.I5 = NormalizeCPSFormat(instance.I5)
+                
+                await instance.__getPeers()
+                # Use async version for restricted peers
+                await instance.getRestrictedPeersList()
+            
+            # Handle autostart if needed
+            if startup and instance.getAutostartStatus() and not instance.getStatus():
+                instance.toggleConfiguration()
+                logger.info(f"Autostart Configuration: {instance.Name}")
+            
+            logger.info(f"✓ Successfully initialized Configuration: {instance.Name}")
         else:
+                # For new configs, initialize empty peer lists (file will be created below)
+                if not hasattr(instance, 'Peers') or instance.Peers is None:
+                    instance.Peers = []
+                if not hasattr(instance, 'RestrictedPeers') or instance.RestrictedPeers is None:
+                    instance.RestrictedPeers = []
+
+        # Handle new configuration creation (when name is None or when it's a new config)
+        if name is None or (name is not None and data is not None and "Backup" not in data.keys() and not os.path.exists(instance.configPath)):
             instance.Name = data["ConfigurationName"]
             instance.configPath = os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], f'{instance.Name}.conf')
+            
+            logger.debug(f"[Core] Creating new configuration (not from file): {instance.Name}")
+            logger.debug(f"[Core] Protocol before setting attributes: {instance.Protocol}")
+            logger.debug(f"[Core] I1-I5 values in data: I1={bool(data.get('I1'))}, I2={bool(data.get('I2'))}, I3={bool(data.get('I3'))}, I4={bool(data.get('I4'))}, I5={bool(data.get('I5'))}")
+            logger.debug(f"[Core] PrivateKey in data: present={bool(data.get('PrivateKey'))}, length={len(data.get('PrivateKey', '')) if data.get('PrivateKey') else 0}")
 
             for i in dir(instance):
                 if str(i) in data.keys():
+                    old_value = getattr(instance, i, None)
                     if isinstance(getattr(instance, i), bool):
                         setattr(instance, i, StringToBoolean(data[i]))
                     else:
                         setattr(instance, i, str(data[i]))
+                    # Log important attribute changes
+                    if i in ['Protocol', 'I1', 'I2', 'I3', 'I4', 'I5', 'PrivateKey']:
+                        if i == 'PrivateKey':
+                            logger.debug(f"[Core] Set {i}: length={len(getattr(instance, i)) if getattr(instance, i) else 0}")
+                        else:
+                            logger.debug(f"[Core] Set {i}: '{old_value}' -> '{getattr(instance, i)}'")
+            
+            logger.debug(f"[Core] Protocol after setting attributes: {instance.Protocol}")
+            logger.debug(f"[Core] PrivateKey after setting attributes: length={len(instance.PrivateKey) if instance.PrivateKey else 0}")
 
             instance.__parser["Interface"] = {
                 "PrivateKey": instance.PrivateKey,
@@ -1980,36 +2212,55 @@ class Configuration:
             # Add SaveConfig at the end, it seems like it's always True
             instance.__parser["Interface"]["SaveConfig"] = "true"
 
+            # Write the configuration file
+            logger.debug(f"[Core] Writing configuration file to: {instance.configPath}")
+            logger.debug(f"[Core] Protocol value when writing file: {instance.Protocol}")
+            logger.debug(f"[Core] I1-I5 values when writing file: I1={instance.I1[:50] if instance.I1 else 'empty'}..., I2={instance.I2[:50] if instance.I2 else 'empty'}..., I3={instance.I3[:50] if instance.I3 else 'empty'}..., I4={instance.I4[:50] if instance.I4 else 'empty'}..., I5={instance.I5[:50] if instance.I5 else 'empty'}...")
+            
+            import io
+            config_buffer = io.StringIO()
+            instance.__parser.write(config_buffer)
+            async with aiofiles.open(instance.configPath, "w+") as configFile:
+                await configFile.write(config_buffer.getvalue())
+            
+            logger.debug(f"[Core] Configuration file written successfully: {instance.configPath}")
+
             instance.Status = instance.getStatus()
+            
+            # For new configs, log success after file creation
+            if is_new_config:
+                logger.info(f"✓ Successfully created new Configuration: {instance.Name}")
 
         return instance
 
-    def deleteConfiguration(self):
+    async def deleteConfiguration(self):
         if self.getStatus():
             self.toggleConfiguration()
         os.remove(self.configPath)
-        self.__dropDatabase()
+        await self.__dropDatabase()
         return True
 
-    def renameConfiguration(self, newConfigurationName) -> tuple[bool, str]:
+    async def renameConfigurationAsync(self, newConfigurationName) -> tuple[bool, str]:
+        """Async version of renameConfiguration"""
         if newConfigurationName in Configurations.keys():
             return False, "Configuration name already exist"
         try:
             if self.getStatus():
                 self.toggleConfiguration()
-            self.db.create_database(newConfigurationName)
-            self.db.copy_database_to(newConfigurationName)
-            AllPeerJobs.updateJobConfigurationName(self.Name, newConfigurationName)
+            await self.db.create_database(newConfigurationName)
+            await self.db.copy_database_to(newConfigurationName)
+            # AllPeerJobs.updateJobConfigurationName is async
+            await AllPeerJobs.updateJobConfigurationName(self.Name, newConfigurationName)
             shutil.copy(
                 self.configPath,
                 os.path.join(DashboardConfig.GetConfig("Server", "wg_conf_path")[1], f'{newConfigurationName}.conf')
             )
-            self.deleteConfiguration()
+            await self.deleteConfiguration()
         except Exception as e:
             return False, str(e)
         return True, None
 
-    def getAvailableIP(self, all: bool = False) -> tuple[bool, list[str]] | tuple[bool, None]:
+    async def getAvailableIP(self, all: bool = False) -> tuple[bool, list[str]] | tuple[bool, None]:
         if len(self.Address) < 0:
             return False, None
         
@@ -2034,7 +2285,7 @@ class Configuration:
                         logger.error(f"{self.Name} peer {p.id} have invalid ip")
         
         # Collect restricted peer addresses
-        for p in self.getRestrictedPeersList():
+        for p in await self.getRestrictedPeersList():
             if len(p.allowed_ip) > 0:
                 add = p.allowed_ip.split(',')
                 for i in add:
@@ -2134,6 +2385,103 @@ class Configuration:
         """Get real-time traffic data using native WireGuard/AmneziaWG statistics (legacy method name kept for compatibility)"""
         return self.getRealtimeTraffic()
 
+    def _scramble_cps_pattern(self, pattern: str, seed: str) -> str:
+        """
+        Scramble a CPS pattern to create variation for interface/peer obfuscation.
+        Uses seed for deterministic but different scrambling.
+        
+        Args:
+            pattern: Original CPS pattern (e.g., "<b 0x474554><c><r 16>")
+            seed: Seed for deterministic randomization
+        
+        Returns:
+            Scrambled CPS pattern with modified lengths and optional tags
+        """
+        if not pattern or not pattern.strip():
+            return pattern
+        
+        # Generate deterministic random values based on seed
+        seed_hash = hashlib.sha256(seed.encode()).digest()
+        seed_int = int.from_bytes(seed_hash[:8], 'big')
+        
+        # Use seed for random operations
+        import random
+        rng = random.Random(seed_int)
+        
+        try:
+            # Parse existing tags
+            tags = re.findall(r'<(b\s+0x[0-9a-fA-F]+|c|t|r\s+\d+|rc\s+\d+|rd\s+\d+)>', pattern)
+            
+            if not tags:
+                return pattern
+            
+            scrambled_tags = []
+            for tag in tags:
+                tag_content = tag.strip()
+                
+                # Handle <b 0x...> - modify hex value to ensure uniqueness
+                if tag_content.startswith('b 0x'):
+                    hex_val = tag_content[4:]
+                    if len(hex_val) >= 2:
+                        # Always modify hex value based on seed to ensure different patterns
+                        # For large hex blobs, modify multiple bytes at random positions
+                        hex_bytes = [hex_val[i:i+2] for i in range(0, len(hex_val), 2)]
+                        
+                        # Determine how many bytes to modify (10-30% of bytes, min 1, max 10)
+                        num_bytes_to_modify = max(1, min(10, max(1, len(hex_bytes) // 10)))
+                        if num_bytes_to_modify == 0:
+                            num_bytes_to_modify = 1
+                        
+                        # Get random positions to modify (deterministic based on seed)
+                        positions_to_modify = set()
+                        while len(positions_to_modify) < num_bytes_to_modify and len(positions_to_modify) < len(hex_bytes):
+                            pos = rng.randint(0, len(hex_bytes) - 1)
+                            positions_to_modify.add(pos)
+                        
+                        # Modify bytes at selected positions
+                        for pos in positions_to_modify:
+                            # Modify byte to a random value (deterministic based on seed)
+                            new_byte = format(rng.randint(0, 255), '02x')
+                            hex_bytes[pos] = new_byte
+                        
+                        new_hex = ''.join(hex_bytes)
+                        scrambled_tags.append(f'<b 0x{new_hex}>')
+                    else:
+                        scrambled_tags.append(f'<{tag_content}>')
+                
+                # Handle <c> and <t> - keep them
+                elif tag_content in ['c', 't']:
+                    scrambled_tags.append(f'<{tag_content}>')
+                
+                # Handle <r N>, <rc N>, <rd N> - modify length ±25%
+                elif tag_content.startswith('r ') or tag_content.startswith('rc ') or tag_content.startswith('rd '):
+                    parts = tag_content.split()
+                    if len(parts) == 2:
+                        try:
+                            length = int(parts[1])
+                            # Modify length by ±25% (min 1, max 1000)
+                            variation = int(length * 0.25)
+                            new_length = max(1, min(1000, length + rng.randint(-variation, variation)))
+                            scrambled_tags.append(f'<{parts[0]} {new_length}>')
+                        except ValueError:
+                            scrambled_tags.append(f'<{tag_content}>')
+                    else:
+                        scrambled_tags.append(f'<{tag_content}>')
+                else:
+                    scrambled_tags.append(f'<{tag_content}>')
+            
+            # 30% chance to add an extra random tag at the end
+            if rng.random() < 0.3:
+                extra_tag_type = rng.choice(['r', 'rc', 'rd'])
+                extra_length = rng.randint(8, 32)
+                scrambled_tags.append(f'<{extra_tag_type} {extra_length}>')
+            
+            return ''.join(scrambled_tags)
+        
+        except Exception as e:
+            logger.debug(f"Failed to scramble CPS pattern, using original: {e}")
+            return pattern
+
 
 class Peer:
     def __init__(self, tableData, configuration: Configuration):
@@ -2161,15 +2509,116 @@ class Peer:
         self.upload_rate_limit = tableData.get("upload_rate_limit", 0)
         self.download_rate_limit = tableData.get("download_rate_limit", 0)
         self.scheduler_type = tableData.get("scheduler_type", "htb")
-        self.jobs: list[PeerJob] = []
-        self.ShareLink: list[PeerShareLink] = []
-        self.getJobs()
-        self.getShareLink()
+        # Peer-specific I1-I5 CPS parameters (override config defaults if set)
+        # Normalize raw hex values (0x...) to CPS tag format (<b 0x...>)
+        self.I1 = NormalizeCPSFormat(tableData.get("I1", ""))
+        self.I2 = NormalizeCPSFormat(tableData.get("I2", ""))
+        self.I3 = NormalizeCPSFormat(tableData.get("I3", ""))
+        self.I4 = NormalizeCPSFormat(tableData.get("I4", ""))
+        self.I5 = NormalizeCPSFormat(tableData.get("I5", ""))
+    
+    def _scramble_cps_pattern(self, pattern: str, seed: str) -> str:
+        """
+        Scramble a CPS pattern to create variation for peer obfuscation.
+        Uses peer ID as seed for deterministic but different scrambling per peer.
+        
+        Args:
+            pattern: Original CPS pattern (e.g., "<b 0x474554><c><r 16>")
+            seed: Seed for deterministic randomization (e.g., peer ID)
+        
+        Returns:
+            Scrambled CPS pattern with modified lengths and optional tags
+        """
+        if not pattern or not pattern.strip():
+            return pattern
+        
+        # Generate deterministic random values based on seed
+        seed_hash = hashlib.sha256(seed.encode()).digest()
+        seed_int = int.from_bytes(seed_hash[:8], 'big')
+        
+        # Use seed for random operations
+        import random
+        rng = random.Random(seed_int)
+        
+        try:
+            # Parse existing tags
+            tags = re.findall(r'<(b\s+0x[0-9a-fA-F]+|c|t|r\s+\d+|rc\s+\d+|rd\s+\d+)>', pattern)
+            
+            if not tags:
+                return pattern
+            
+            scrambled_tags = []
+            for tag in tags:
+                tag_content = tag.strip()
+                
+                # Handle <b 0x...> - modify hex value to ensure uniqueness
+                if tag_content.startswith('b 0x'):
+                    hex_val = tag_content[4:]
+                    if len(hex_val) >= 2:
+                        # Always modify hex value based on seed to ensure different patterns
+                        # For large hex blobs, modify multiple bytes at random positions
+                        hex_bytes = [hex_val[i:i+2] for i in range(0, len(hex_val), 2)]
+                        
+                        # Determine how many bytes to modify (10-30% of bytes, min 1, max 10)
+                        num_bytes_to_modify = max(1, min(10, max(1, len(hex_bytes) // 10)))
+                        if num_bytes_to_modify == 0:
+                            num_bytes_to_modify = 1
+                        
+                        # Get random positions to modify (deterministic based on seed)
+                        positions_to_modify = set()
+                        while len(positions_to_modify) < num_bytes_to_modify and len(positions_to_modify) < len(hex_bytes):
+                            pos = rng.randint(0, len(hex_bytes) - 1)
+                            positions_to_modify.add(pos)
+                        
+                        # Modify bytes at selected positions
+                        for pos in positions_to_modify:
+                            # Modify byte to a random value (deterministic based on seed)
+                            new_byte = format(rng.randint(0, 255), '02x')
+                            hex_bytes[pos] = new_byte
+                        
+                        new_hex = ''.join(hex_bytes)
+                        scrambled_tags.append(f'<b 0x{new_hex}>')
+                    else:
+                        scrambled_tags.append(f'<{tag_content}>')
+                
+                # Handle <c> and <t> - keep them
+                elif tag_content in ['c', 't']:
+                    scrambled_tags.append(f'<{tag_content}>')
+                
+                # Handle <r N>, <rc N>, <rd N> - modify length ±25%
+                elif tag_content.startswith('r ') or tag_content.startswith('rc ') or tag_content.startswith('rd '):
+                    parts = tag_content.split()
+                    if len(parts) == 2:
+                        try:
+                            length = int(parts[1])
+                            # Modify length by ±25% (min 1, max 1000)
+                            variation = int(length * 0.25)
+                            new_length = max(1, min(1000, length + rng.randint(-variation, variation)))
+                            scrambled_tags.append(f'<{parts[0]} {new_length}>')
+                        except ValueError:
+                            scrambled_tags.append(f'<{tag_content}>')
+                    else:
+                        scrambled_tags.append(f'<{tag_content}>')
+                else:
+                    scrambled_tags.append(f'<{tag_content}>')
+            
+            # 30% chance to add an extra random tag at the end
+            if rng.random() < 0.3:
+                extra_tag_type = rng.choice(['r', 'rc', 'rd'])
+                extra_length = rng.randint(8, 32)
+                scrambled_tags.append(f'<{extra_tag_type} {extra_length}>')
+            
+            return ''.join(scrambled_tags)
+        
+        except Exception as e:
+            logger.debug(f"Failed to scramble CPS pattern, using original: {e}")
+            return pattern
         
 
     def toJson(self):
         self.getJobs(force_refresh=True)
-        self.getShareLink()
+        # Note: getShareLink should be called before toJson() in async contexts
+        # If ShareLink is not set, it will be None in the JSON output
         # Create a copy of __dict__ without the configuration reference to avoid circular serialization
         peer_dict = self.__dict__.copy()
         peer_dict.pop('configuration', None)  # Remove circular reference
@@ -2183,17 +2632,20 @@ class Peer:
     def __repr__(self):
         return str(self.toJson())
 
-    def updatePeer(self, name: str, private_key: str,
+    async def updatePeerAsync(self, name: str, private_key: str,
                    preshared_key: str,
                    dns_addresses: str, allowed_ip: str, endpoint_allowed_ip: str, mtu: int,
-                   keepalive: int) -> ResponseObject:
+                   keepalive: int, i1: str = None, i2: str = None, i3: str = None, 
+                   i4: str = None, i5: str = None) -> ResponseObject:
+        """Async version of updatePeer"""
         if not self.configuration.getStatus():
             self.configuration.toggleConfiguration()
         cmd_prefix = self.configuration.get_iface_proto()
+        peers_list = await self.configuration.getPeersList()
         existingAllowedIps = [item for row in list(
             map(lambda x: [q.strip() for q in x.split(',')],
                 map(lambda y: y.allowed_ip,
-                    list(filter(lambda k: k.id != self.id, self.configuration.getPeersList()))))) for item in row]
+                    list(filter(lambda k: k.id != self.id, peers_list))))) for item in row]
 
         if allowed_ip in existingAllowedIps:
             return ResponseObject(False, "Allowed IP already taken by another peer")
@@ -2205,6 +2657,16 @@ class Peer:
             return ResponseObject(False, "MTU format is not correct")
         if keepalive < 0:
             return ResponseObject(False, "Persistent Keepalive format is not correct")
+        
+        # Validate I1-I5 CPS format if provided (only for AWG protocol)
+        if cmd_prefix == "awg":
+            i_params = [("I1", i1), ("I2", i2), ("I3", i3), ("I4", i4), ("I5", i5)]
+            for param_name, param_value in i_params:
+                if param_value is not None and param_value.strip():
+                    is_valid, error_msg = ValidateCPSFormat(param_value.strip())
+                    if not is_valid:
+                        return ResponseObject(False, f"{param_name}: {error_msg}")
+        
         if len(private_key) > 0:
             pubKey = GenerateWireguardPublicKey(private_key)
             if not pubKey[0] or pubKey[1] != self.id:
@@ -2243,8 +2705,10 @@ class Peer:
                 if pskExist and os.path.exists(uid):
                     try:
                         os.remove(uid)
-                    except:
-                        pass
+                    except OSError as e:
+                        logger.warning(f"Failed to remove temporary file {uid}: {e}")
+                    except Exception as e:
+                        logger.warning(f"Unexpected error removing temporary file {uid}: {e}")
 
             if result['stderr'] and len(result['stderr'].strip()) != 0:
                 return ResponseObject(False,
@@ -2257,10 +2721,8 @@ class Peer:
             if not result['success']:
                 return ResponseObject(False, f"Failed to save configuration: {result.get('error', result.get('stderr', 'Unknown error'))}")
 
-            # wg-quick save outputs the showconf command to stderr (with [#] prefix)
-            # The success flag is the authoritative indicator - if success=True, save succeeded
-            # We don't need to validate stdout/stderr content when success=True
-            self.configuration.db.update_peer(self.id, {
+            # Build update dict with peer fields
+            update_data = {
                 'name': name,
                 'private_key': private_key,
                 'DNS': dns_addresses,
@@ -2268,7 +2730,35 @@ class Peer:
                 'mtu': mtu,
                 'keepalive': keepalive,
                 'preshared_key': preshared_key
-            })
+            }
+            
+            # Add I1-I5 if provided (only for AWG protocol)
+            # Normalize raw hex values (0x...) to CPS tag format (<b 0x...>)
+            if self.configuration.get_iface_proto() == "awg":
+                if i1 is not None:
+                    update_data['I1'] = NormalizeCPSFormat(i1.strip() if i1 else "")
+                if i2 is not None:
+                    update_data['I2'] = NormalizeCPSFormat(i2.strip() if i2 else "")
+                if i3 is not None:
+                    update_data['I3'] = NormalizeCPSFormat(i3.strip() if i3 else "")
+                if i4 is not None:
+                    update_data['I4'] = NormalizeCPSFormat(i4.strip() if i4 else "")
+                if i5 is not None:
+                    update_data['I5'] = NormalizeCPSFormat(i5.strip() if i5 else "")
+            
+            await self.configuration.db.update_peer(self.id, update_data)
+            
+            # Update local attributes (normalize raw hex to CPS format)
+            if i1 is not None:
+                self.I1 = NormalizeCPSFormat(i1.strip() if i1 else "")
+            if i2 is not None:
+                self.I2 = NormalizeCPSFormat(i2.strip() if i2 else "")
+            if i3 is not None:
+                self.I3 = NormalizeCPSFormat(i3.strip() if i3 else "")
+            if i4 is not None:
+                self.I4 = NormalizeCPSFormat(i4.strip() if i4 else "")
+            if i5 is not None:
+                self.I5 = NormalizeCPSFormat(i5.strip() if i5 else "")
             return ResponseObject()
         except subprocess.CalledProcessError as exc:
             return ResponseObject(False, exc.output.decode("UTF-8").strip())
@@ -2305,6 +2795,48 @@ H2 = {self.configuration.H2}
 H3 = {self.configuration.H3}
 H4 = {self.configuration.H4}
 '''
+            # Add I1-I5 if present (AmneziaWG 1.5)
+            # Note: I1-I5 are one-way decoy packets sent before handshake initiation.
+            # They do NOT need to match between peers/configs - each side configures
+            # independently for its own outbound traffic. The receiver silently drops
+            # these packets (expected behavior).
+            # Use peer-specific I1-I5 if set, otherwise scramble from config base values
+            seed = f"{self.configuration.Name}_{self.id}"
+            
+            # I1: Use peer-specific if set, otherwise scramble from config
+            if self.I1 and self.I1.strip():
+                peerConfiguration += f'I1 = {self.I1}\n'
+            elif self.configuration.I1 and self.configuration.I1.strip():
+                scrambled_i1 = self._scramble_cps_pattern(self.configuration.I1, seed + "_I1")
+                peerConfiguration += f'I1 = {scrambled_i1}\n'
+            
+            # I2: Use peer-specific if set, otherwise scramble from config
+            if self.I2 and self.I2.strip():
+                peerConfiguration += f'I2 = {self.I2}\n'
+            elif self.configuration.I2 and self.configuration.I2.strip():
+                scrambled_i2 = self._scramble_cps_pattern(self.configuration.I2, seed + "_I2")
+                peerConfiguration += f'I2 = {scrambled_i2}\n'
+            
+            # I3: Use peer-specific if set, otherwise scramble from config
+            if self.I3 and self.I3.strip():
+                peerConfiguration += f'I3 = {self.I3}\n'
+            elif self.configuration.I3 and self.configuration.I3.strip():
+                scrambled_i3 = self._scramble_cps_pattern(self.configuration.I3, seed + "_I3")
+                peerConfiguration += f'I3 = {scrambled_i3}\n'
+            
+            # I4: Use peer-specific if set, otherwise scramble from config
+            if self.I4 and self.I4.strip():
+                peerConfiguration += f'I4 = {self.I4}\n'
+            elif self.configuration.I4 and self.configuration.I4.strip():
+                scrambled_i4 = self._scramble_cps_pattern(self.configuration.I4, seed + "_I4")
+                peerConfiguration += f'I4 = {scrambled_i4}\n'
+            
+            # I5: Use peer-specific if set, otherwise scramble from config
+            if self.I5 and self.I5.strip():
+                peerConfiguration += f'I5 = {self.I5}\n'
+            elif self.configuration.I5 and self.configuration.I5.strip():
+                scrambled_i5 = self._scramble_cps_pattern(self.configuration.I5, seed + "_I5")
+                peerConfiguration += f'I5 = {scrambled_i5}\n'
 
         peerConfiguration += f'''
 [Peer]
@@ -2335,8 +2867,8 @@ PersistentKeepalive = {str(self.keepalive)}
         """Force refresh jobs from Redis"""
         self.getJobs(force_refresh=True)
 
-    def getShareLink(self):
-        self.ShareLink = AllPeerShareLinks.getLink(self.configuration.Name, self.id)
+    async def getShareLink(self):
+        self.ShareLink = await AllPeerShareLinks.getLink(self.configuration.Name, self.id)
 
     def resetDataUsage(self, type):
         try:
@@ -2347,9 +2879,7 @@ PersistentKeepalive = {str(self.keepalive)}
 
 
 
-_, APP_PREFIX = DashboardConfig.GetConfig("Server", "app_prefix")
-
-def cleanup_orphaned_configurations(existing_config_files: set):
+async def cleanup_orphaned_configurations(existing_config_files: set):
     """
     Clean up database entries for configurations that no longer have corresponding .conf files.
     This handles the edge case where Redis data persists but config files don't (e.g., during development).
@@ -2357,7 +2887,7 @@ def cleanup_orphaned_configurations(existing_config_files: set):
     from .DataBase import get_redis_manager
     
     try:
-        redis_manager = get_redis_manager()
+        redis_manager = await get_redis_manager()
         
         # Get all configuration names from Redis database
         all_config_keys = redis_manager.get_all_keys()
@@ -2405,11 +2935,19 @@ def cleanup_orphaned_configurations(existing_config_files: set):
     except Exception as e:
         logger.error(f"Error during orphaned configuration cleanup: {e}")
 
-def InitWireguardConfigurationsList(startup: bool = False):
+async def InitWireguardConfigurationsList(startup: bool = False):
     # Database migrations are now handled in the main application startup
     # This function focuses on configuration initialization
     
-    confs = os.listdir(DashboardConfig.GetConfig("Server", "wg_conf_path")[1])
+    wg_conf_path = DashboardConfig.GetConfig("Server", "wg_conf_path")[1]
+    logger.info(f"Loading WireGuard configurations from: {wg_conf_path}")
+    
+    try:
+        confs = os.listdir(wg_conf_path)
+    except Exception as e:
+        logger.error(f"Failed to list directory {wg_conf_path}: {e}")
+        return
+    
     confs.sort()
     
     # Get list of existing configuration files (without .conf extension)
@@ -2418,24 +2956,37 @@ def InitWireguardConfigurationsList(startup: bool = False):
         if RegexMatch("^(.{1,}).(conf)$", i):
             existing_config_files.add(i.replace('.conf', ''))
     
+    logger.info(f"Found {len(existing_config_files)} configuration file(s)")
+    
     # Clean up database entries for configurations that no longer have files
     if startup:
-        cleanup_orphaned_configurations(existing_config_files)
+        await cleanup_orphaned_configurations(existing_config_files)
     
-    # Load configurations from existing files
+    # Load configurations from existing files using async factory
+    loaded_count = 0
+    failed_count = 0
     for i in confs:
         if RegexMatch("^(.{1,}).(conf)$", i):
-            i = i.replace('.conf', '')
+            config_name = i.replace('.conf', '')
             try:
-                if i in Configurations.keys():
-                    if Configurations[i].configurationFileChanged():
-                        Configurations[i] = Configuration(i)
-                        # Don't try to call the private method directly
+                if config_name in Configurations.keys():
+                    if Configurations[config_name].configurationFileChanged():
+                        logger.info(f"Reloading configuration: {config_name}")
+                        Configurations[config_name] = await Configuration.create_async(config_name)
+                        loaded_count += 1
                 else:
-                    Configurations[i] = Configuration(i, startup=startup)
-                    # Don't try to call the private method directly
+                    logger.info(f"Loading configuration: {config_name}")
+                    Configurations[config_name] = await Configuration.create_async(config_name, startup=startup)
+                    loaded_count += 1
+                    logger.info(f"✓ Successfully loaded configuration: {config_name}")
             except Configuration.InvalidConfigurationFileException as e:
-                logger.error(f"{i} have an invalid configuration file.")
+                logger.error(f"{config_name} has an invalid configuration file: {e}")
+                failed_count += 1
+            except Exception as e:
+                logger.error(f"Failed to load configuration {config_name}: {e}", exc_info=True)
+                failed_count += 1
+    
+    logger.info(f"Configuration loading complete: {loaded_count} loaded, {failed_count} failed")
 
 def refresh_all_public_keys():
     """Force refresh public keys for all configurations"""
@@ -2465,7 +3016,7 @@ async def InitRateLimits():
             logger.debug(f"Processing rate limits for configuration: {config_name}")
             try:
                 # Get all peers with rate limits
-                all_peers = config.db.get_peers()
+                all_peers = await config.db.get_peers()
                 rate_limited_peers = [
                     peer for peer in all_peers 
                     if (peer.get('upload_rate_limit', 0) > 0 or peer.get('download_rate_limit', 0) > 0)
@@ -2515,22 +3066,7 @@ async def InitRateLimits():
 
 Configurations: dict[str, Configuration] = {}
 
-async def is_kernel_module_loaded(module_name):
-    """Check if a specific kernel module is loaded"""
-    try:
-        process = await asyncio.create_subprocess_exec(
-            'lsmod', stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE
-        )
-        stdout, stderr = await process.communicate()
-        return module_name in stdout.decode()
-    except Exception:
-        # Fallback to checking /proc/modules
-        try:
-            async with aiofiles.open('/proc/modules', 'r') as f:
-                content = await f.read()
-                return module_name in content
-        except Exception:
-            return False
+
 
 # Add this at the module level (outside any class)
 class WireGuardTrafficMonitor:
@@ -2627,6 +3163,134 @@ class WireGuardTrafficMonitor:
         # First measurement, store and return 0
         self.last_measurement[interface_name] = current_data
         return {"sent": 0, "recv": 0, "sample_period": 0}
+    
+    def _record_cps_connection_attempt(self, success: bool, latency_ms: float = 0.0, throughput_mbps: float = 0.0):
+        """Record a connection attempt for CPS pattern adaptation"""
+        if self.get_iface_proto() != "awg":
+            return
+        
+        self._ensure_cps_adaptation_initialized()
+        if not self.cps_adaptation:
+            return
+        
+        try:
+            self.cps_adaptation.metrics.record_connection_attempt(
+                self.I1 or '', self.I2 or '', self.I3 or '', self.I4 or '', self.I5 or '',
+                success, latency_ms, throughput_mbps
+            )
+        except Exception as e:
+            logger.error(f"Failed to record CPS connection attempt: {e}")
+    
+    def _get_current_throughput(self) -> float:
+        """Get current throughput in Mbps for CPS adaptation"""
+        try:
+            if hasattr(self, '_traffic_monitor'):
+                rates = self._traffic_monitor.get_peer_rates(self.Name, self.get_iface_proto())
+                if rates:
+                    # Return average throughput across all peers
+                    total_throughput = sum(r.get('sent', 0) + r.get('recv', 0) for r in rates.values())
+                    return total_throughput / len(rates) if rates else 0.0
+        except Exception as e:
+            logger.debug(f"Failed to get current throughput: {e}")
+        return 0.0
+    
+    def _apply_cps_patterns(self, patterns: dict[str, str]):
+        """Apply adapted CPS patterns to configuration"""
+        try:
+            # Normalize raw hex values (0x...) to CPS tag format (<b 0x...>)
+            if patterns.get('i1') is not None:
+                self.I1 = NormalizeCPSFormat(patterns['i1'])
+            if patterns.get('i2') is not None:
+                self.I2 = NormalizeCPSFormat(patterns['i2'])
+            if patterns.get('i3') is not None:
+                self.I3 = NormalizeCPSFormat(patterns['i3'])
+            if patterns.get('i4') is not None:
+                self.I4 = NormalizeCPSFormat(patterns['i4'])
+            if patterns.get('i5') is not None:
+                self.I5 = NormalizeCPSFormat(patterns['i5'])
+            
+            # Update configuration file
+            self.updateConfigurationSettings({
+                'I1': self.I1,
+                'I2': self.I2,
+                'I3': self.I3,
+                'I4': self.I4,
+                'I5': self.I5
+            })
+        except Exception as e:
+            logger.error(f"Failed to apply CPS patterns: {e}")
+    
+    def _ensure_cps_adaptation_initialized(self):
+        """Ensure CPS adaptation is initialized (lazy initialization)"""
+        if not hasattr(self, 'cps_adaptation') or self.cps_adaptation is None:
+            try:
+                from .AwgCPS.CPSPatternAdaptation import CPSPatternAdaptation
+                self.cps_adaptation = CPSPatternAdaptation(self.Name, self.db)
+                logger.debug(f"Lazy initialized CPS adaptation for {self.Name}")
+            except Exception as e:
+                logger.warning(f"Failed to initialize CPS adaptation for {self.Name}: {e}")
+                self.cps_adaptation = None
+    
+    def _get_cps_adaptation_stats_safe(self) -> dict[str, Any]:
+        """Safely get CPS pattern adaptation statistics (handles missing attributes)"""
+        try:
+            self._ensure_cps_adaptation_initialized()
+            if not self.cps_adaptation:
+                return {}
+            return self.cps_adaptation.get_adaptation_stats()
+        except Exception as e:
+            logger.debug(f"Failed to get CPS adaptation stats for {self.Name}: {e}")
+            return {}
+    
+    def _get_cps_adaptation_stats_for_json(self) -> dict[str, Any]:
+        """Safe wrapper for toJson - handles missing methods and initialization"""
+        try:
+            # Try to get the safe method using getattr
+            safe_method = getattr(self, '_get_cps_adaptation_stats_safe', None)
+            if safe_method and callable(safe_method):
+                return safe_method()
+            
+            # Fallback: try direct initialization if methods don't exist
+            init_method = getattr(self, '_ensure_cps_adaptation_initialized', None)
+            if init_method and callable(init_method):
+                try:
+                    init_method()
+                    if hasattr(self, 'cps_adaptation') and self.cps_adaptation:
+                        stats_method = getattr(self.cps_adaptation, 'get_adaptation_stats', None)
+                    if stats_method and callable(stats_method):
+                        return stats_method()
+                except Exception as e:
+                    logger.debug(f"Failed to get CPS adaptation stats: {e}")
+                    pass
+            return {}
+        except Exception as e:
+            logger.debug(f"Failed to get CPS adaptation stats for JSON: {e}")
+            return {}
+    
+    def get_cps_adaptation_stats(self) -> dict[str, Any]:
+        """Get CPS pattern adaptation statistics"""
+        self._ensure_cps_adaptation_initialized()
+        if not self.cps_adaptation:
+            return {}
+        return self.cps_adaptation.get_adaptation_stats()
+    
+    def periodic_cps_adaptation(self) -> Optional[dict[str, str]]:
+        """Perform periodic CPS pattern adaptation (call daily/weekly)"""
+        if self.get_iface_proto() != "awg":
+            return None
+        
+        self._ensure_cps_adaptation_initialized()
+        if not self.cps_adaptation:
+            return None
+        
+        try:
+            adapted_patterns = self.cps_adaptation.periodic_adaptation_check()
+            if adapted_patterns:
+                self._apply_cps_patterns(adapted_patterns)
+                return adapted_patterns
+        except Exception as e:
+            logger.error(f"Failed periodic CPS adaptation: {e}")
+        return None
     
     def get_peer_rates(self, interface_name, protocol='wg'):
         """Get per-peer transfer rates for detailed analysis"""

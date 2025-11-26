@@ -189,8 +189,7 @@ async def validate_csrf_token(
     csrf_exempt_paths = [
         '/api/authenticate',
         '/api/validate-csrf',
-        '/api/handshake',
-        '/api/health'
+        '/api/handshake'
     ]
     
     if any(request.url.path.startswith(path) for path in csrf_exempt_paths):

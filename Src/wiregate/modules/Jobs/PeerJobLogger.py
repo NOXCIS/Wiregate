@@ -14,23 +14,37 @@ logger = logging.getLogger(__name__)
 
 class PeerJobLogger:
     def __init__(self):
-        self.db_manager = get_redis_manager()
-        self._is_sqlite = isinstance(self.db_manager, SQLiteDatabaseManager)
+        self.db_manager = None
+        self._is_sqlite = False
         self.logs: List[Log] = []
-        self._initialize_database()
+        self._init_done = False
         
-    def _initialize_database(self):
+    async def _ensure_initialized(self):
+        """Ensure database manager is initialized"""
+        if not self._init_done:
+            self.db_manager = await get_redis_manager()
+            self._is_sqlite = isinstance(self.db_manager, SQLiteDatabaseManager)
+            await self._initialize_database()
+            self._init_done = True
+        
+    async def _initialize_database(self):
         """Initialize database tables for logs"""
         try:
             # Ensure logs table exists
-            if not self.db_manager.table_exists('PeerJobLogs'):
-                logger.info("Creating PeerJobLogs table...")
-                self.db_manager.create_logs_table()
+            if isinstance(self.db_manager, SQLiteDatabaseManager):
+                if not await self.db_manager.table_exists('PeerJobLogs'):
+                    logger.info("Creating PeerJobLogs table...")
+                    await self.db_manager.create_logs_table()
+            else:
+                if not self.db_manager.table_exists('PeerJobLogs'):
+                    logger.info("Creating PeerJobLogs table...")
+                    self.db_manager.create_logs_table()
             logger.debug("PeerJobLogs table ready")
         except Exception as e:
             logger.error(f"Failed to initialize database: {e}")
 
-    def log(self, JobID: str, Status: bool = True, Message: str = "") -> bool:
+    async def log(self, JobID: str, Status: bool = True, Message: str = "") -> bool:
+        await self._ensure_initialized()
         try:
             log_id = str(uuid.uuid4())
             log_date = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
@@ -46,14 +60,18 @@ class PeerJobLogger:
             }
             
             # Save to database
-            self.db_manager.insert_record('PeerJobLogs', log_id, log_data)
+            if isinstance(self.db_manager, SQLiteDatabaseManager):
+                await self.db_manager.insert_record('PeerJobLogs', log_id, log_data)
+            else:
+                self.db_manager.insert_record('PeerJobLogs', log_id, log_data)
             
             return True
         except Exception as e:
             logger.error(f"Peer Job Log Error: {str(e)}")
             return False
 
-    def getLogs(self, all: bool = False, configName=None) -> list[Log]:
+    async def getLogs(self, all: bool = False, configName=None) -> list[Log]:
+        await self._ensure_initialized()
         logs: list[Log] = []
         try:
             from ..Core import AllPeerJobs
@@ -61,7 +79,10 @@ class PeerJobLogger:
             allJobsID = [x.JobID for x in allJobs]
             
             # Get all logs from database
-            records = self.db_manager.get_all_records('PeerJobLogs')
+            if isinstance(self.db_manager, SQLiteDatabaseManager):
+                records = await self.db_manager.get_all_records('PeerJobLogs')
+            else:
+                records = self.db_manager.get_all_records('PeerJobLogs')
             
             for record in records:
                 try:

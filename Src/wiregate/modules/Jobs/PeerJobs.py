@@ -15,18 +15,31 @@ class PeerJobs:
 
     def __init__(self):
         self.Jobs: list[PeerJob] = []
-        self.db_manager = get_redis_manager()
-        self._is_sqlite = isinstance(self.db_manager, SQLiteDatabaseManager)
-        self._initialize_database()
-        self.__getJobs()
+        self.db_manager = None
+        self._is_sqlite = False
+        self._init_done = False
         
-    def _initialize_database(self):
+    async def _ensure_initialized(self):
+        """Ensure database manager is initialized"""
+        if not self._init_done:
+            self.db_manager = await get_redis_manager()
+            self._is_sqlite = isinstance(self.db_manager, SQLiteDatabaseManager)
+            await self._initialize_database()
+            await self.__getJobs()
+            self._init_done = True
+        
+    async def _initialize_database(self):
         """Initialize database tables for jobs"""
         try:
             # Ensure jobs table exists
-            if not self.db_manager.table_exists('PeerJobs'):
-                logger.info("Creating PeerJobs table...")
-                self.db_manager.create_jobs_table()
+            if isinstance(self.db_manager, SQLiteDatabaseManager):
+                if not await self.db_manager.table_exists('PeerJobs'):
+                    logger.info("Creating PeerJobs table...")
+                    await self.db_manager.create_jobs_table()
+            else:
+                if not self.db_manager.table_exists('PeerJobs'):
+                    logger.info("Creating PeerJobs table...")
+                    self.db_manager.create_jobs_table()
             logger.debug("PeerJobs table ready")
         except Exception as e:
             logger.error(f"Failed to initialize database: {e}")
@@ -40,12 +53,15 @@ class PeerJobs:
             logger.error(f"Failed to generate job ID: {e}")
             return str(datetime.now().timestamp())
 
-    def __getJobs(self):
+    async def __getJobs(self):
         logger.debug(f"__getJobs called, clearing {len(self.Jobs)} existing jobs")
         self.Jobs.clear()
         try:
             # Get all jobs from database
-            records = self.db_manager.get_all_records('PeerJobs')
+            if isinstance(self.db_manager, SQLiteDatabaseManager):
+                records = await self.db_manager.get_all_records('PeerJobs')
+            else:
+                records = self.db_manager.get_all_records('PeerJobs')
             
             for record in records:
                 try:
@@ -91,7 +107,8 @@ class PeerJobs:
             logger.debug(f"   Matching job {i+1}: {job.toJson()}")
         return matching_jobs
 
-    def saveJob(self, Job: PeerJob) -> tuple[bool, list] | tuple[bool, str]:
+    async def saveJob(self, Job: PeerJob) -> tuple[bool, list] | tuple[bool, str]:
+        await self._ensure_initialized()
         try:
             # Generate job ID if new or if it's a UUID (frontend generated)
             if not Job.JobID or (isinstance(Job.JobID, str) and len(Job.JobID) > 10):
@@ -117,38 +134,49 @@ class PeerJobs:
             }
 
             # Save to database
-            self.db_manager.insert_record('PeerJobs', Job.JobID, job_data)
+            if isinstance(self.db_manager, SQLiteDatabaseManager):
+                await self.db_manager.insert_record('PeerJobs', Job.JobID, job_data)
+            else:
+                self.db_manager.insert_record('PeerJobs', Job.JobID, job_data)
 
             # Log the action
             if Job.CreationDate == datetime.now().strftime('%Y-%m-%d %H:%M:%S'):
-                JobLogger.log(Job.JobID, Message=f"Job created: if {Job.Field} {Job.Operator} {Job.Value} then {Job.Action}")
+                await JobLogger.log(Job.JobID, Message=f"Job created: if {Job.Field} {Job.Operator} {Job.Value} then {Job.Action}")
             else:
-                JobLogger.log(Job.JobID, Message=f"Job updated: if {Job.Field} {Job.Operator} {Job.Value} then {Job.Action}")
+                await JobLogger.log(Job.JobID, Message=f"Job updated: if {Job.Field} {Job.Operator} {Job.Value} then {Job.Action}")
 
             # Reload jobs
-            self.__getJobs()
+            await self.__getJobs()
 
             return True, [job for job in self.Jobs if job.JobID == Job.JobID]
 
         except Exception as e:
             return False, str(e)
 
-    def deleteJob(self, Job: PeerJob) -> tuple[bool, list] | tuple[bool, str]:
+    async def deleteJob(self, Job: PeerJob) -> tuple[bool, list] | tuple[bool, str]:
+        await self._ensure_initialized()
         try:
             if not Job.JobID:
                 return False, "Job does not exist"
 
             # Check if job exists
-            record = self.db_manager.get_record('PeerJobs', Job.JobID)
+            if isinstance(self.db_manager, SQLiteDatabaseManager):
+                record = await self.db_manager.get_record('PeerJobs', Job.JobID)
+            else:
+                record = self.db_manager.get_record('PeerJobs', Job.JobID)
+            
             if record:
                 # Log the deletion before removing
-                JobLogger.log(Job.JobID, Message="Job deleted by user")
+                await JobLogger.log(Job.JobID, Message="Job deleted by user")
                 
                 # Actually remove from database
-                self.db_manager.delete_record('PeerJobs', Job.JobID)
+                if isinstance(self.db_manager, SQLiteDatabaseManager):
+                    await self.db_manager.delete_record('PeerJobs', Job.JobID)
+                else:
+                    self.db_manager.delete_record('PeerJobs', Job.JobID)
                 
                 # Reload jobs
-                self.__getJobs()
+                await self.__getJobs()
                 
                 return True, []
             else:
@@ -157,26 +185,35 @@ class PeerJobs:
         except Exception as e:
             return False, str(e)
 
-    def updateJobConfigurationName(self, ConfigurationName: str, NewConfigurationName: str) -> tuple[bool, str]:
+    async def updateJobConfigurationName(self, ConfigurationName: str, NewConfigurationName: str) -> tuple[bool, str]:
+        await self._ensure_initialized()
         try:
             # Get all jobs for this configuration
-            records = self.db_manager.get_all_records('PeerJobs')
+            if isinstance(self.db_manager, SQLiteDatabaseManager):
+                records = await self.db_manager.get_all_records('PeerJobs')
+            else:
+                records = self.db_manager.get_all_records('PeerJobs')
+            
             updated_count = 0
             
             for record in records:
                 if record.get('Configuration') == ConfigurationName:
                     record['Configuration'] = NewConfigurationName
-                    self.db_manager.update_record('PeerJobs', record.get('JobID'), record)
+                    if isinstance(self.db_manager, SQLiteDatabaseManager):
+                        await self.db_manager.update_record('PeerJobs', record.get('JobID'), record)
+                    else:
+                        self.db_manager.update_record('PeerJobs', record.get('JobID'), record)
                     updated_count += 1
 
             # Reload jobs
-            self.__getJobs()
+            await self.__getJobs()
             return True, f"Updated {updated_count} jobs"
 
         except Exception as e:
             return False, str(e)
 
-    def runJob(self):
+    async def runJob(self):
+        await self._ensure_initialized()
         from ..Core import Configurations
         needToDelete = []
         
@@ -191,24 +228,24 @@ class PeerJobs:
                     continue
                 
                 if job.Field == "weekly":
-                    self._runWeeklyJob(job, c)
+                    await self._runWeeklyJob(job, c)
                 else:
-                    should_delete = self._runNonWeeklyJob(job, c)
+                    should_delete = await self._runNonWeeklyJob(job, c)
                     if should_delete:
                         needToDelete.append(job)
                         
             except Exception as e:
                 logger.error(f"Error running job {job.JobID}: {e}")
-                JobLogger.log(job.JobID, False, f"Job execution failed: {str(e)}")
+                await JobLogger.log(job.JobID, False, f"Job execution failed: {str(e)}")
                 # Don't delete jobs that failed due to errors, just log them
 
         # Only delete non-weekly jobs that completed successfully
         for j in needToDelete:
             if j.Field != "weekly":
                 logger.debug(f"Deleting completed job {j.JobID}")
-                self.deleteJob(j)
+                await self.deleteJob(j)
     
-    def _runWeeklyJob(self, job, configuration):
+    async def _runWeeklyJob(self, job, configuration):
         """Handle weekly schedule jobs"""
         try:
             current_time = datetime.now()
@@ -234,35 +271,35 @@ class PeerJobs:
                     logger.warning(f"Error parsing schedule {schedule}: {e}")
                     continue
             
-            # Get restricted peers directly from Redis
-            restricted_peers = configuration.db.get_restricted_peers()
+            # Get restricted peers directly from database
+            restricted_peers = await configuration.db.get_restricted_peers()
             peer_in_restricted = job.Peer in [p.get('id') for p in restricted_peers]
             
             if should_restrict and not peer_in_restricted:
-                result = configuration.restrictPeers([job.Peer])
+                result = await configuration.restrictPeersAsync([job.Peer])
                 # Handle both dict (FastAPI) and Flask response
                 s = result.get_json() if hasattr(result, 'get_json') else result
                 if s['status'] is True:
-                    JobLogger.log(job.JobID, s["status"],
+                    await JobLogger.log(job.JobID, s["status"],
                               f"Peer {job.Peer} from {configuration.Name} is successfully restricted (weekly schedule)")
                 else:
-                    JobLogger.log(job.JobID, s["status"],
+                    await JobLogger.log(job.JobID, s["status"],
                               f"Failed to restrict peer {job.Peer}: {s.get('message', 'Unknown error')}")
             elif not should_restrict and peer_in_restricted:
-                result = configuration.allowAccessPeers([job.Peer])
+                result = await configuration.allowAccessPeersAsync([job.Peer])
                 # Handle both dict (FastAPI) and Flask response
                 s = result.get_json() if hasattr(result, 'get_json') else result
                 if s['status'] is True:
-                    JobLogger.log(job.JobID, s["status"],
+                    await JobLogger.log(job.JobID, s["status"],
                               f"Peer {job.Peer} from {configuration.Name} is successfully unrestricted (weekly schedule)")
                 else:
-                    JobLogger.log(job.JobID, s["status"],
+                    await JobLogger.log(job.JobID, s["status"],
                               f"Failed to unrestrict peer {job.Peer}: {s.get('message', 'Unknown error')}")
         except Exception as e:
             logger.error(f"Error in weekly job {job.JobID}: {e}")
-            JobLogger.log(job.JobID, False, f"Weekly job execution failed: {str(e)}")
+            await JobLogger.log(job.JobID, False, f"Weekly job execution failed: {str(e)}")
     
-    def _runNonWeeklyJob(self, job, configuration):
+    async def _runNonWeeklyJob(self, job, configuration):
         """Handle non-weekly jobs (data usage, date-based)"""
         try:
             f, fp = configuration.searchPeer(job.Peer)
@@ -296,11 +333,11 @@ class PeerJobs:
                 s = {"status": False, "message": "Unknown action"}
                 
                 if job.Action == "restrict":
-                    result = configuration.restrictPeers([fp.id])
+                    result = await configuration.restrictPeersAsync([fp.id])
                     # Handle both dict (FastAPI) and Flask response
                     s = result.get_json() if hasattr(result, 'get_json') else result
                 elif job.Action == "delete":
-                    result = configuration.deletePeers([fp.id])
+                    result = await configuration.deletePeersAsync([fp.id])
                     # Handle both dict (FastAPI) and Flask response
                     s = result.get_json() if hasattr(result, 'get_json') else result
                 elif job.Action == "rate_limit":
@@ -315,11 +352,11 @@ class PeerJobs:
                         s = {"status": False, "message": f"Failed to apply rate limits: {str(e)}"}
 
                 if s['status'] is True:
-                    JobLogger.log(job.JobID, s["status"],
+                    await JobLogger.log(job.JobID, s["status"],
                               f"Peer {fp.id} from {configuration.Name} is successfully {job.Action}ed.")
                     return True  # Delete completed job
                 else:
-                    JobLogger.log(job.JobID, s["status"],
+                    await JobLogger.log(job.JobID, s["status"],
                               f"Peer {fp.id} from {configuration.Name} failed {job.Action}ed: {s.get('message', 'Unknown error')}")
                     return False  # Keep job for retry
             else:
@@ -328,7 +365,7 @@ class PeerJobs:
                 
         except Exception as e:
             logger.error(f"Error in non-weekly job {job.JobID}: {e}")
-            JobLogger.log(job.JobID, False, f"Non-weekly job execution failed: {str(e)}")
+            await JobLogger.log(job.JobID, False, f"Non-weekly job execution failed: {str(e)}")
             return False  # Keep job for retry
 
     def __runJob_Compare(self, x: float | datetime | int, y: float | datetime | int, operator: str):
@@ -364,8 +401,9 @@ class PeerJobs:
         if operator == "lst":  # Less than
             return x < y
 
-    def cleanupExpiredJobs(self, max_age_days=30):
-        """Remove jobs older than max_age_days from Redis"""
+    async def cleanupExpiredJobs(self, max_age_days=30):
+        """Remove jobs older than max_age_days from database"""
+        await self._ensure_initialized()
         try:
             if not self.db_manager:
                 logger.error("Database manager not available for cleanup")
@@ -375,7 +413,11 @@ class PeerJobs:
             cutoff_date = datetime.now() - timedelta(days=max_age_days)
             cutoff_str = cutoff_date.strftime('%Y-%m-%d %H:%M:%S')
             
-            records = self.db_manager.get_all_records('PeerJobs')
+            if isinstance(self.db_manager, SQLiteDatabaseManager):
+                records = await self.db_manager.get_all_records('PeerJobs')
+            else:
+                records = self.db_manager.get_all_records('PeerJobs')
+            
             removed_count = 0
             
             for record in records:
@@ -384,7 +426,10 @@ class PeerJobs:
                     
                     # Remove jobs older than cutoff date
                     if creation_date and creation_date < cutoff_str:
-                        self.db_manager.delete_record('PeerJobs', record.get('JobID'))
+                        if isinstance(self.db_manager, SQLiteDatabaseManager):
+                            await self.db_manager.delete_record('PeerJobs', record.get('JobID'))
+                        else:
+                            self.db_manager.delete_record('PeerJobs', record.get('JobID'))
                         removed_count += 1
                         logger.debug(f" Removed expired job {record.get('JobID')} (created: {creation_date})")
                         
@@ -393,7 +438,7 @@ class PeerJobs:
                     continue
             
             # Reload jobs after cleanup
-            self.__getJobs()
+            await self.__getJobs()
             
             logger.debug(f" Cleanup completed: removed {removed_count} expired jobs")
             return True, f"Removed {removed_count} expired jobs"
@@ -402,13 +447,18 @@ class PeerJobs:
             logger.error(f"Error during job cleanup: {e}")
             return False, str(e)
 
-    def getJobStats(self):
+    async def getJobStats(self):
         """Get statistics about jobs in the system"""
+        await self._ensure_initialized()
         try:
             if not self.db_manager:
                 return {"error": "Database manager not available"}
             
-            records = self.db_manager.get_all_records('PeerJobs')
+            if isinstance(self.db_manager, SQLiteDatabaseManager):
+                records = await self.db_manager.get_all_records('PeerJobs')
+            else:
+                records = self.db_manager.get_all_records('PeerJobs')
+            
             stats = {
                 "total_jobs": len(records),
                 "active_jobs": len(self.Jobs),
@@ -449,3 +499,8 @@ class PeerJobs:
 
 JobLogger = PeerJobLogger()
 AllPeerJobs: PeerJobs = PeerJobs()
+
+# Initialize jobs asynchronously - call this at startup
+async def initialize_peer_jobs():
+    """Initialize peer jobs asynchronously"""
+    await AllPeerJobs._ensure_initialized()

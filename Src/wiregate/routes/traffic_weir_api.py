@@ -78,7 +78,7 @@ async def set_peer_rate_limit(
             )
             
         # Store rates and scheduler type in database
-        manager = get_redis_manager()
+        manager = await get_redis_manager()
         updates = {
             'upload_rate_limit': rate_limit_data.upload_rate,
             'download_rate_limit': rate_limit_data.download_rate,
@@ -148,7 +148,7 @@ async def get_peer_rate_limit(
             )
             
         # Get rate limits from database
-        manager = get_redis_manager()
+        manager = await get_redis_manager()
         
         # Try main table first
         peer_data = manager.get_record(interface, peer.id)
@@ -218,7 +218,7 @@ async def remove_peer_rate_limit(
             )
         
         # Get allowed IPs and scheduler type from database
-        manager = get_redis_manager()
+        manager = await get_redis_manager()
         peer_data = manager.get_record(config.Name, peer.id)
         
         if not peer_data:
@@ -301,7 +301,7 @@ async def get_interface_scheduler(
             )
         
         # Query for any peer with a non-zero rate limit and their scheduler type
-        manager = get_redis_manager()
+        manager = await get_redis_manager()
         
         # Get all peers from the interface
         all_peers = manager.get_all_records(interface)

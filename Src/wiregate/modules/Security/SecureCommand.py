@@ -445,8 +445,10 @@ class SecureCommandExecutor:
         if 'temp_file' in locals() and temp_file:
             try:
                 os.unlink(temp_file)
-            except:
-                pass
+            except OSError as e:
+                logger.warning(f"Failed to remove temporary file {temp_file}: {e}")
+            except Exception as e:
+                logger.warning(f"Unexpected error removing temporary file {temp_file}: {e}")
         
         return result
     

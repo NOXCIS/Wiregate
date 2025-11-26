@@ -24,3 +24,4 @@ echo "1. Run: docker compose up -d"
 echo "2. Access via: https://localhost:8443"
 echo ""
 echo "Note: You'll need to accept the self-signed certificate warning in your browser."
+

@@ -11,6 +11,7 @@ export const parseInterface = (conf) => {
   
 	// Check for AmneziaWG parameters
 	const amneziaParams = ['Jc', 'Jmin', 'Jmax', 'S1', 'S2', 'H1', 'H2', 'H3', 'H4'];
+	const cpsParams = ['I1', 'I2', 'I3', 'I4', 'I5'];
 	let hasAmneziaParams = false;
   
 	// Helper function to normalize IPTables scripts
@@ -27,6 +28,33 @@ export const parseInterface = (conf) => {
 	const validateNumericParam = (value, min, max) => {
 	  const num = parseInt(value, 10);
 	  return !isNaN(num) && num >= min && num <= max ? num : null;
+	};
+	
+	// Helper function to normalize CPS format (convert raw hex 0x... to <b 0x...> format)
+	const normalizeCPSFormat = (cpsValue) => {
+	  if (!cpsValue || !cpsValue.trim()) {
+		return cpsValue;
+	  }
+	  
+	  const trimmed = cpsValue.trim();
+	  
+	  // If it's already in CPS tag format (contains <b, <c, <t, <r, etc.), return as-is
+	  if (trimmed.includes('<') && trimmed.includes('>')) {
+		return trimmed;
+	  }
+	  
+	  // Check if it's a raw hex value (starts with 0x)
+	  if (trimmed.startsWith('0x')) {
+		// Remove the 0x prefix and wrap in <b 0x...> tag
+		const hexContent = trimmed.substring(2);
+		// Validate hex content (only hex characters)
+		if (/^[0-9a-fA-F]+$/.test(hexContent)) {
+		  return `<b 0x${hexContent}>`;
+		}
+	  }
+	  
+	  // If it doesn't match any known format, return as-is
+	  return trimmed;
 	};
   
 	for (let line of lineSplit) {
@@ -70,6 +98,14 @@ export const parseInterface = (conf) => {
 			  configuration[key] = validateNumericParam(value, 5, 2147483647);
 			  break;
 		  }
+		  continue;
+		}
+		
+		// Check if this is a CPS parameter (I1-I5)
+		if (cpsParams.includes(key)) {
+		  hasAmneziaParams = true;
+		  // Normalize raw hex values (0x...) to CPS tag format (<b 0x...>)
+		  configuration[key] = normalizeCPSFormat(value);
 		  continue;
 		}
   
@@ -140,6 +176,35 @@ export const parsePeers = (conf) => {
 	
 	const firstPeer = lineSplit.findIndex(line => line.trim() === "[Peer]");
 	if (firstPeer === -1) return false;
+	
+	// Helper function to normalize CPS format (convert raw hex 0x... to <b 0x...> format)
+	const normalizeCPSFormat = (cpsValue) => {
+	  if (!cpsValue || !cpsValue.trim()) {
+		return cpsValue;
+	  }
+	  
+	  const trimmed = cpsValue.trim();
+	  
+	  // If it's already in CPS tag format (contains <b, <c, <t, <r, etc.), return as-is
+	  if (trimmed.includes('<') && trimmed.includes('>')) {
+		return trimmed;
+	  }
+	  
+	  // Check if it's a raw hex value (starts with 0x)
+	  if (trimmed.startsWith('0x')) {
+		// Remove the 0x prefix and wrap in <b 0x...> tag
+		const hexContent = trimmed.substring(2);
+		// Validate hex content (only hex characters)
+		if (/^[0-9a-fA-F]+$/.test(hexContent)) {
+		  return `<b 0x${hexContent}>`;
+		}
+	  }
+	  
+	  // If it doesn't match any known format, return as-is
+	  return trimmed;
+	};
+	
+	const cpsParams = ['I1', 'I2', 'I3', 'I4', 'I5'];
   
 	for (let l = firstPeer; l < lineSplit.length; l++) {
 	  const line = lineSplit[l].trim();
@@ -156,7 +221,13 @@ export const parsePeers = (conf) => {
 		const firstEqualsIndex = line.indexOf('=');
 		if (firstEqualsIndex !== -1) {
 		  const key = line.substring(0, firstEqualsIndex).trim();
-		  const value = line.substring(firstEqualsIndex + 1).trim();
+		  let value = line.substring(firstEqualsIndex + 1).trim();
+		  
+		  // Normalize I1-I5 CPS parameters (convert raw hex 0x... to <b 0x...> format)
+		  if (cpsParams.includes(key)) {
+			value = normalizeCPSFormat(value);
+		  }
+		  
 		  if (key && value) {
 			peers[pCounter][key] = value;
 		  }

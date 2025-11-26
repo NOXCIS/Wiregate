@@ -5,7 +5,7 @@ import {DashboardConfigurationStore} from "@/stores/DashboardConfigurationStore.
 let csrfToken = null;
 let csrfTokenPromise = null;
 
-const getUrl = (url) => {
+export const getUrl = (url) => {
 	const store = DashboardConfigurationStore();
 	const apiKey = store.getActiveCrossServer();
 	if (apiKey){
@@ -192,7 +192,7 @@ export const fetchPost = async (url, body, callback) => {
 	const store = DashboardConfigurationStore();
 	
 	// Allow authenticate and other exempt endpoints even if session expired
-	const exemptPaths = ['/api/authenticate', '/api/validate-csrf', '/api/handshake', '/api/health'];
+	const exemptPaths = ['/api/authenticate', '/api/validate-csrf', '/api/handshake'];
 	const isExempt = exemptPaths.some(path => url.includes(path));
 	
 	// Prevent API calls if session expired (except exempt URLs)

@@ -1,9 +1,12 @@
 from datetime import datetime
 import uuid
+import logging
 
 from ..DataBase import (
     sqlSelect, sqlUpdate
 )
+
+logger = logging.getLogger(__name__)
 
 
 
@@ -28,9 +31,15 @@ class PeerShareLink:
 class PeerShareLinks:
     def __init__(self):
         self.Links: list[PeerShareLink] = []
+        # Use asyncio.run() since __init__ can't be async
+        import asyncio
+        asyncio.run(self._init_async())
+
+    async def _init_async(self):
+        """Async initialization"""
         # Check if table exists using database-agnostic approach
         from wiregate.modules.DataBase import get_redis_manager
-        manager = get_redis_manager()
+        manager = await get_redis_manager()
         
         # Use the appropriate method based on database type
         if hasattr(manager, 'table_exists'):
@@ -39,13 +48,15 @@ class PeerShareLinks:
         else:
             # SQLite manager - check using PRAGMA
             try:
-                result = sqlSelect("SELECT name FROM sqlite_master WHERE type='table' AND name='PeerShareLinks'").fetchall()
+                cursor = await sqlSelect("SELECT name FROM sqlite_master WHERE type='table' AND name='PeerShareLinks'")
+                result = cursor.fetchall()
                 table_exists = len(result) > 0
-            except:
+            except Exception as e:
+                logger.warning(f"Failed to check if PeerShareLinks table exists: {e}")
                 table_exists = False
         
         if not table_exists:
-            sqlUpdate(
+            await sqlUpdate(
                 """
                     CREATE TABLE IF NOT EXISTS PeerShareLinks (
                         ShareID VARCHAR NOT NULL PRIMARY KEY, 
@@ -56,40 +67,42 @@ class PeerShareLinks:
                     )
                 """
             )
-        self.__getSharedLinks()
+        await self.__getSharedLinks()
 
-    def __getSharedLinks(self):
+    async def __getSharedLinks(self):
         self.Links.clear()
-        allLinks = sqlSelect(
-            "SELECT * FROM PeerShareLinks WHERE ExpireDate IS NULL OR ExpireDate > CURRENT_TIMESTAMP").fetchall()
+        cursor = await sqlSelect(
+            "SELECT * FROM PeerShareLinks WHERE ExpireDate IS NULL OR ExpireDate > CURRENT_TIMESTAMP")
+        allLinks = cursor.fetchall()
         for link in allLinks:
             self.Links.append(PeerShareLink(*link))
 
-    def getLink(self, Configuration: str, Peer: str) -> list[PeerShareLink]:
-        self.__getSharedLinks()
+    async def getLink(self, Configuration: str, Peer: str) -> list[PeerShareLink]:
+        await self.__getSharedLinks()
         return list(filter(lambda x: x.Configuration == Configuration and x.Peer == Peer, self.Links))
 
-    def getLinkByID(self, ShareID: str) -> list[PeerShareLink]:
-        self.__getSharedLinks()
+    async def getLinkByID(self, ShareID: str) -> list[PeerShareLink]:
+        await self.__getSharedLinks()
         return list(filter(lambda x: x.ShareID == ShareID, self.Links))
 
-    def addLink(self, Configuration: str, Peer: str, ExpireDate: datetime = None) -> tuple[bool, str]:
+    async def addLink(self, Configuration: str, Peer: str, ExpireDate: datetime = None) -> tuple[bool, str]:
         try:
             newShareID = str(uuid.uuid4())
-            if len(self.getLink(Configuration, Peer)) > 0:
-                sqlUpdate(
+            existing_links = await self.getLink(Configuration, Peer)
+            if len(existing_links) > 0:
+                await sqlUpdate(
                     "UPDATE PeerShareLinks SET ExpireDate = CURRENT_TIMESTAMP WHERE Configuration = %s AND Peer = %s",
                     (Configuration, Peer,))
-            sqlUpdate("INSERT INTO PeerShareLinks (ShareID, Configuration, Peer, ExpireDate) VALUES (%s, %s, %s, %s)",
+            await sqlUpdate("INSERT INTO PeerShareLinks (ShareID, Configuration, Peer, ExpireDate) VALUES (%s, %s, %s, %s)",
                       (newShareID, Configuration, Peer, ExpireDate,))
-            self.__getSharedLinks()
+            await self.__getSharedLinks()
         except Exception as e:
             return False, str(e)
         return True, newShareID
 
-    def updateLinkExpireDate(self, ShareID, ExpireDate: datetime = None) -> tuple[bool, str]:
-        sqlUpdate("UPDATE PeerShareLinks SET ExpireDate = %s WHERE ShareID = %s;", (ExpireDate, ShareID,))
-        self.__getSharedLinks()
+    async def updateLinkExpireDate(self, ShareID, ExpireDate: datetime = None) -> tuple[bool, str]:
+        await sqlUpdate("UPDATE PeerShareLinks SET ExpireDate = %s WHERE ShareID = %s;", (ExpireDate, ShareID,))
+        await self.__getSharedLinks()
         return True, ""
 
 

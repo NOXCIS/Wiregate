@@ -20,13 +20,17 @@ export default {
 	},
 	methods: {
 		deleteAPIKey(){
+			console.log('[dashboardAPIKey] Attempting to delete key:', this.apiKey.Key);
 			fetchPost("/api/deleteDashboardAPIKey", {
 				Key: this.apiKey.Key
 			}, (res) => {
+				console.log('[dashboardAPIKey] Delete response:', res);
 				if (res.status){
+					console.log('[dashboardAPIKey] Success! Remaining keys:', res.data);
 					this.$emit('deleted', res.data);
 					this.store.newMessage("Server", "API Key deleted", "success");
 				}else{
+					console.error('[dashboardAPIKey] Delete failed:', res.message);
 					this.store.newMessage("Server", res.message, "danger")
 				}
 			})
@@ -42,7 +46,9 @@ export default {
 				<small class="text-muted">
 					<LocaleText t="Key"></LocaleText>
 				</small>
-				<span style="word-break: break-all">{{this.apiKey.Key}}</span>
+				<span class="font-monospace" style="word-break: break-all; user-select: none;">
+					{{this.apiKey.Key}}
+				</span>
 			</div>
 			<div class="d-flex align-items-center gap-2 ms-auto">
 				<small class="text-muted">

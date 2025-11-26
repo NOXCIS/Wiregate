@@ -39,12 +39,51 @@ class ConfigurationCreate(BaseModel):
     PostDown: Optional[str] = None
     Protocol: Optional[str] = Field(default="wg")
     Backup: Optional[str] = None
+    # AmneziaWG 1.5 CPS fields
+    I1: Optional[str] = None
+    I2: Optional[str] = None
+    I3: Optional[str] = None
+    I4: Optional[str] = None
+    I5: Optional[str] = None
     
     @field_validator('Protocol')
     @classmethod
     def validate_protocol(cls, v):
         if v not in ['wg', 'awg']:
             raise ValueError('Protocol must be "wg" or "awg"')
+        return v
+    
+    @field_validator('I1', 'I2', 'I3', 'I4', 'I5')
+    @classmethod
+    def validate_cps_format(cls, v):
+        """Validate CPS format for I1-I5 fields"""
+        if v is None or v == "":
+            return v
+        
+        # Basic CPS format validation - matches tags <b hex>, <c>, <t>, <r length>, <rc length>, <rd length>
+        import re
+        
+        # Pattern for individual tags
+        hex_tag = r'<b\s+0x[0-9a-fA-F]+>'
+        counter_tag = r'<c>'
+        timestamp_tag = r'<t>'
+        random_tag = r'<r\s+(\d+)>'
+        random_ascii_tag = r'<rc\s+(\d+)>'  # Random ASCII characters (a-z, A-Z)
+        random_digit_tag = r'<rd\s+(\d+)>'  # Random digits (0-9)
+        
+        # Combined pattern
+        pattern = f'^({hex_tag}|{counter_tag}|{timestamp_tag}|{random_tag}|{random_ascii_tag}|{random_digit_tag})+$'
+        
+        if not re.match(pattern, v):
+            raise ValueError(f'Invalid CPS format. Expected tags like <b 0xHEX>, <c>, <t>, <r LENGTH>, <rc LENGTH>, <rd LENGTH>')
+        
+        # Validate random length constraints for all variable-length tags
+        all_length_tags = re.findall(r'<(?:r|rc|rd)\s+(\d+)>', v)
+        for length_str in all_length_tags:
+            length = int(length_str)
+            if length <= 0 or length > 1000:
+                raise ValueError(f'Random length {length} must be between 1 and 1000')
+        
         return v
 
 

@@ -152,3 +152,8 @@ AutoInstaller-Functions/
 DOCKER_TESTING.md
 stackscript.sh
 Ubuntu.Dockerfile
+
+# CPS Pattern capture scripts (not needed in container)
+Src/scripts/capture_cps_patterns.sh
+Src/scripts/process_captured_packets.sh
+Src/scripts/import_wireshark_capture.py
