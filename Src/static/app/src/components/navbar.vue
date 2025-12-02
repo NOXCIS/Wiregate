@@ -532,6 +532,12 @@ export default {
 								</RouterLink>
 							</li>
 							<li class="nav-item mb-2">
+								<RouterLink to="/mesh_network" class="nav-link rounded-3" active-class="active">
+									<i class="bi bi-diagram-3 me-2"></i>
+									<LocaleText t="Mesh Networks"></LocaleText>
+								</RouterLink>
+							</li>
+							<li class="nav-item mb-2">
 								<a class="nav-link rounded-3" @click="openChangelogModal" role="button">
 									<i class="bi bi-journal-text me-2"></i>
 									<LocaleText t="Changelog"></LocaleText>

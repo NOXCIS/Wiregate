@@ -288,6 +288,9 @@ fastapi_app.include_router(health_router, prefix=f"{APP_PREFIX}/api", tags=["hea
 from ..routes.metrics_api import router as metrics_router
 fastapi_app.include_router(metrics_router, prefix=f"{APP_PREFIX}/api", tags=["metrics"])
 
+from ..routes.mesh_api import router as mesh_router
+fastapi_app.include_router(mesh_router, prefix=f"{APP_PREFIX}/api", tags=["mesh"])
+
 # All Flask blueprints have been migrated to FastAPI routers!
 logger.info("All FastAPI routers registered successfully")
 

@@ -99,6 +99,14 @@ const router = createRouter({
 					}
 				},
 				{
+					name: "Mesh Network",
+					path: '/mesh_network',
+					component: () => import("@/views/meshNetwork.vue"),
+					meta: {
+						title: "Mesh Network Builder"
+					}
+				},
+				{
 					name: "Configuration",
 					path: '/configuration/:id',
 					component: () => import('@/views/configuration.vue'),

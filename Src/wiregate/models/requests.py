@@ -298,6 +298,23 @@ class TorProcessControl(BaseModel):
         return v
 
 
+class MeshCreateRequest(BaseModel):
+    """Mesh network creation request"""
+    configurations: List[str] = Field(..., min_items=2, description="List of configuration names (minimum 2 required)")
+    name: str = Field(..., min_length=1, max_length=100, description="Mesh network name")
+    
+    @field_validator('configurations')
+    @classmethod
+    def validate_configurations(cls, v):
+        if not isinstance(v, list):
+            raise ValueError('Configurations must be a list')
+        if len(v) < 2:
+            raise ValueError('At least 2 configurations are required to create a mesh')
+        if not all(isinstance(name, str) and name for name in v):
+            raise ValueError('All configuration names must be non-empty strings')
+        return v
+
+
 class LDAPSettings(BaseModel):
     """LDAP settings update request"""
     enabled: Optional[bool] = None

@@ -378,26 +378,73 @@ if [ -n "$peer_id" ] && [ "$peer_id" != "null" ]; then
         fi
 
         # Verify via tc in container if possible
-        # Note: hfsc and cake may not be available on all systems (especially macOS host)
+        # Note: On macOS host, htb is available but hfsc/cake are not
         # The API tests above already verify the rate limits are set correctly
         if check_container; then
             tc_test_name="tc verification (${scheduler})"
-            # Wait a moment for scheduler to be applied
-            sleep 1
-            tc_cmd="tc qdisc show dev ${test_config_name} 2>/dev/null"
-            tc_output=$(container_exec "$tc_cmd" || echo "")
             
-            # Check if scheduler is found in tc output
-            if echo "$tc_output" | grep -qi "$scheduler"; then
-                test_pass "$tc_test_name"
-            else
-                # Scheduler not found - this could be because:
-                # 1. Scheduler not available in container (hfsc/cake on macOS)
-                # 2. Timing issue (scheduler not applied yet)
-                # 3. System fell back to another scheduler
-                # Since API tests passed, we skip rather than fail
+            # Check if we're running on macOS (Docker Desktop on macOS)
+            # Note: Docker containers use Linux kernel, so schedulers available depend on container kernel, not host OS
+            # Docker Desktop on macOS uses a Linux VM, so schedulers may differ from macOS host
+            is_macos_host=false
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+                is_macos_host=true
+            fi
+            
+            # Note: The container kernel may have different scheduler support than the macOS host
+            # We'll verify what's actually in the tc output rather than assuming
+                # Wait a moment for scheduler to be applied
+                sleep 1
+                tc_cmd="tc qdisc show dev ${test_config_name} 2>/dev/null"
+                tc_output=$(container_exec "$tc_cmd" || echo "")
+                
+                # Debug: show what we got
+                echo "    Checking tc output for ${scheduler} on ${test_config_name}:"
                 echo "$tc_output" | sed 's/^/    tc> /'
-                test_skip "$tc_test_name" "Scheduler ${scheduler} not found in tc output (may not be available or timing issue)"
+                
+                # Check if scheduler is found in tc output
+                # tc output format when querying specific device: "qdisc hfsc 1: root refcnt 2 default 99"
+                # or "qdisc htb 1: root refcnt 2"
+                # The scheduler name appears right after "qdisc"
+                if echo "$tc_output" | grep -qiE "qdisc ${scheduler}[[:space:]]"; then
+                    test_pass "$tc_test_name"
+                else
+                    # Scheduler not found - this could be because:
+                    # 1. Scheduler not available in container (hfsc/cake on macOS)
+                    # 2. Timing issue (scheduler not applied yet)
+                    # 3. System fell back to another scheduler
+                    # Since API tests passed, we skip rather than fail
+                    # On macOS, htb should work, so give it more time or check more carefully
+                    if [ "$is_macos_host" = "true" ] && [ "$scheduler" = "htb" ]; then
+                        # Wait a bit more and try again for htb on macOS (container may need more time)
+                        sleep 3
+                        tc_output=$(container_exec "$tc_cmd" || echo "")
+                        echo "    Retry tc output:"
+                        echo "$tc_output" | sed 's/^/    tc> /'
+                        # Check for htb in output - look for "qdisc htb" pattern
+                        if echo "$tc_output" | grep -qiE "qdisc ${scheduler}[[:space:]]"; then
+                            test_pass "$tc_test_name"
+                        else
+                            # Check if any qdisc is present for this interface
+                            if echo "$tc_output" | grep -qi "qdisc"; then
+                                # Qdisc exists but scheduler name doesn't match
+                                # Extract the actual scheduler name
+                                actual_qdisc=$(echo "$tc_output" | grep -i "qdisc" | head -1 | awk '{print $2}')
+                                test_skip "$tc_test_name" "Expected ${scheduler} but found ${actual_qdisc:-unknown} scheduler (may have fallen back)"
+                            else
+                                test_skip "$tc_test_name" "Scheduler ${scheduler} not found in tc output (timing issue or not applied)"
+                            fi
+                        fi
+                    else
+                        # For other schedulers or non-macOS, check what we actually got
+                        if echo "$tc_output" | grep -qi "qdisc"; then
+                            actual_qdisc=$(echo "$tc_output" | grep -i "qdisc" | head -1 | awk '{print $2}')
+                            test_skip "$tc_test_name" "Expected ${scheduler} but found ${actual_qdisc:-unknown} scheduler (may not be available or fell back)"
+                        else
+                            test_skip "$tc_test_name" "Scheduler ${scheduler} not found in tc output (may not be available or timing issue)"
+                        fi
+                    fi
+                fi
             fi
         fi
     done
