@@ -793,6 +793,37 @@ async def add_peers(
         if len(endpoint_allowed_ip) == 0:
             endpoint_allowed_ip = DashboardConfig.GetConfig("Peers", "peer_endpoint_allowed_ip")[1]
         
+        # TLS piping (udptlspipe) settings - use peer-provided values or config defaults
+        udptlspipe_enabled = peer_data.get('udptlspipe_enabled')
+        if udptlspipe_enabled is None:
+            default_enabled = DashboardConfig.GetConfig("Peers", "peer_udptlspipe_enabled")[1]
+            udptlspipe_enabled = default_enabled.lower() == "true" if default_enabled else False
+        
+        udptlspipe_password = peer_data.get('udptlspipe_password')
+        if udptlspipe_password is None:
+            udptlspipe_password = DashboardConfig.GetConfig("Peers", "peer_udptlspipe_password")[1] or ""
+        
+        udptlspipe_tls_server_name = peer_data.get('udptlspipe_tls_server_name')
+        if udptlspipe_tls_server_name is None:
+            udptlspipe_tls_server_name = DashboardConfig.GetConfig("Peers", "peer_udptlspipe_tls_server_name")[1] or ""
+        
+        udptlspipe_secure = peer_data.get('udptlspipe_secure')
+        if udptlspipe_secure is None:
+            default_secure = DashboardConfig.GetConfig("Peers", "peer_udptlspipe_secure")[1]
+            udptlspipe_secure = default_secure.lower() == "true" if default_secure else False
+        
+        udptlspipe_proxy = peer_data.get('udptlspipe_proxy')
+        if udptlspipe_proxy is None:
+            udptlspipe_proxy = DashboardConfig.GetConfig("Peers", "peer_udptlspipe_proxy")[1] or ""
+        
+        udptlspipe_fingerprint_profile = peer_data.get('udptlspipe_fingerprint_profile')
+        if udptlspipe_fingerprint_profile is None:
+            udptlspipe_fingerprint_profile = DashboardConfig.GetConfig("Peers", "peer_udptlspipe_fingerprint_profile")[1] or "okhttp"
+        # Validate fingerprint profile - only accept known values
+        valid_profiles = ["chrome", "firefox", "safari", "edge", "okhttp", "ios", "randomized"]
+        if udptlspipe_fingerprint_profile and udptlspipe_fingerprint_profile.lower() not in valid_profiles:
+            udptlspipe_fingerprint_profile = "okhttp"  # Default to okhttp for invalid values
+        
         config = Configurations.get(configName)
         if not bulkAdd and (len(public_key) == 0 or len(allowed_ips) == 0):
             return StandardResponse(
@@ -859,7 +890,14 @@ async def add_peers(
                     "DNS": dns_addresses,
                     "endpoint_allowed_ip": endpoint_allowed_ip,
                     "mtu": mtu,
-                    "keepalive": keep_alive
+                    "keepalive": keep_alive,
+                    # TLS piping (udptlspipe) settings
+                    "udptlspipe_enabled": 1 if udptlspipe_enabled else 0,
+                    "udptlspipe_password": udptlspipe_password,
+                    "udptlspipe_tls_server_name": udptlspipe_tls_server_name,
+                    "udptlspipe_secure": 1 if udptlspipe_secure else 0,
+                    "udptlspipe_proxy": udptlspipe_proxy,
+                    "udptlspipe_fingerprint_profile": udptlspipe_fingerprint_profile
                 })
             
             if len(keyPairs) == 0:
@@ -909,7 +947,14 @@ async def add_peers(
                 "endpoint_allowed_ip": endpoint_allowed_ip,
                 "DNS": dns_addresses,
                 "mtu": mtu,
-                "keepalive": keep_alive
+                "keepalive": keep_alive,
+                # TLS piping (udptlspipe) settings
+                "udptlspipe_enabled": 1 if udptlspipe_enabled else 0,
+                "udptlspipe_password": udptlspipe_password,
+                "udptlspipe_tls_server_name": udptlspipe_tls_server_name,
+                "udptlspipe_secure": 1 if udptlspipe_secure else 0,
+                "udptlspipe_proxy": udptlspipe_proxy,
+                "udptlspipe_fingerprint_profile": udptlspipe_fingerprint_profile
             }])
             return StandardResponse(status=status)
     except Exception as e:
@@ -939,6 +984,13 @@ async def update_peer_settings(
     foundPeer, peer = wireguardConfig.searchPeer(peer_id)
     
     if foundPeer:
+        # Validate fingerprint profile if provided
+        fingerprint_profile = peer_update.get('udptlspipe_fingerprint_profile')
+        if fingerprint_profile is not None:
+            valid_profiles = ["chrome", "firefox", "safari", "edge", "okhttp", "ios", "randomized"]
+            if fingerprint_profile.lower() not in valid_profiles:
+                fingerprint_profile = None  # Let it use current value
+        
         # Use current values if not provided in update
         result = await peer.updatePeerAsync(
             peer_update.get('name') if peer_update.get('name') is not None else peer.name,
@@ -953,7 +1005,14 @@ async def update_peer_settings(
             peer_update.get('I2'),
             peer_update.get('I3'),
             peer_update.get('I4'),
-            peer_update.get('I5')
+            peer_update.get('I5'),
+            # TLS piping (udptlspipe) settings
+            peer_update.get('udptlspipe_enabled'),
+            peer_update.get('udptlspipe_password'),
+            peer_update.get('udptlspipe_tls_server_name'),
+            peer_update.get('udptlspipe_secure'),
+            peer_update.get('udptlspipe_proxy'),
+            fingerprint_profile
         )
         result_dict = convert_response_object_to_dict(result)
         return StandardResponse(**result_dict)
@@ -2381,5 +2440,131 @@ async def process_pool_performance_test(
             }
         )
     except Exception as e:
+        return StandardResponse(status=False, message=str(e))
+
+
+# ============================================================================
+# TLS Piping (udptlspipe) Server Management
+# ============================================================================
+
+@router.post('/udptlspipe/start/{configName}', response_model=StandardResponse)
+async def start_udptlspipe_server(
+    configName: str,
+    server_config: Dict[str, Any],
+    user: Dict[str, Any] = Depends(require_authentication)
+):
+    """Start a udptlspipe server for a WireGuard configuration"""
+    try:
+        from ..modules.UdpTlsPipeManager import start_udptlspipe_for_config
+        
+        if configName not in Configurations.keys():
+            return StandardResponse(
+                status=False,
+                message="Configuration does not exist"
+            )
+        
+        config = Configurations[configName]
+        listen_port = server_config.get('listen_port', 443)
+        password = server_config.get('password', '')
+        tls_server_name = server_config.get('tls_server_name')
+        tls_cert_file = server_config.get('tls_cert_file')
+        tls_key_file = server_config.get('tls_key_file')
+        
+        if not password:
+            return StandardResponse(
+                status=False,
+                message="Password is required for udptlspipe server"
+            )
+        
+        result = start_udptlspipe_for_config(
+            config_name=configName,
+            listen_port=listen_port,
+            wireguard_port=int(config.ListenPort),
+            password=password,
+            tls_server_name=tls_server_name,
+            tls_cert_file=tls_cert_file,
+            tls_key_file=tls_key_file
+        )
+        
+        if result.get('success'):
+            return StandardResponse(
+                status=True,
+                message=f"udptlspipe server started on port {listen_port}",
+                data=result
+            )
+        else:
+            return StandardResponse(
+                status=False,
+                message=result.get('error', 'Failed to start udptlspipe server')
+            )
+    except Exception as e:
+        logger.error(f"Failed to start udptlspipe server: {e}")
+        return StandardResponse(status=False, message=str(e))
+
+
+@router.post('/udptlspipe/stop/{configName}', response_model=StandardResponse)
+async def stop_udptlspipe_server(
+    configName: str,
+    user: Dict[str, Any] = Depends(require_authentication)
+):
+    """Stop the udptlspipe server for a WireGuard configuration"""
+    try:
+        from ..modules.UdpTlsPipeManager import stop_udptlspipe_for_config
+        
+        result = stop_udptlspipe_for_config(configName)
+        
+        if result.get('success'):
+            return StandardResponse(
+                status=True,
+                message="udptlspipe server stopped",
+                data=result
+            )
+        else:
+            return StandardResponse(
+                status=False,
+                message=result.get('error', 'Failed to stop udptlspipe server')
+            )
+    except Exception as e:
+        logger.error(f"Failed to stop udptlspipe server: {e}")
+        return StandardResponse(status=False, message=str(e))
+
+
+@router.get('/udptlspipe/status/{configName}', response_model=StandardResponse)
+async def get_udptlspipe_status(
+    configName: str,
+    user: Dict[str, Any] = Depends(require_authentication)
+):
+    """Get the status of the udptlspipe server for a WireGuard configuration"""
+    try:
+        from ..modules.UdpTlsPipeManager import get_udptlspipe_status as get_status
+        
+        status = get_status(configName)
+        
+        return StandardResponse(
+            status=True,
+            data=status
+        )
+    except Exception as e:
+        logger.error(f"Failed to get udptlspipe status: {e}")
+        return StandardResponse(status=False, message=str(e))
+
+
+@router.get('/udptlspipe/status', response_model=StandardResponse)
+async def get_all_udptlspipe_status(
+    user: Dict[str, Any] = Depends(require_authentication)
+):
+    """Get the status of all udptlspipe servers"""
+    try:
+        from ..modules.UdpTlsPipeManager import get_udptlspipe_manager
+        
+        manager = get_udptlspipe_manager()
+        all_status = manager.get_all_servers_status()
+        
+        return StandardResponse(
+            status=True,
+            data=all_status
+        )
+    except Exception as e:
+        logger.error(f"Failed to get udptlspipe status: {e}")
         return StandardResponse(status=False, message=str(e))
 

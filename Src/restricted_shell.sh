@@ -51,6 +51,7 @@ ALLOWED_COMMANDS() {
         "torflux") echo "-config|-action|--help|-h" ;;
         "vanguards") echo "--one_shot_vanguards|--help|-h" ;;
         "traffic-weir") echo "-interface|-peer|-upload-rate|-download-rate|-protocol|-scheduler|-allowed-ips|-remove|-nuke|--help|-h" ;;
+        "udptlspipe") echo "--server|-s|-l|--listen|-d|--destination|-p|--password|-x|--proxy|--secure|--tls-servername|--tls-certfile|--tls-keyfile|--probe-reverseproxyurl|-v|--verbose|--help|-h" ;;
         "sh") echo "-c" ;;
         "bash") echo "-c" ;;
         "sudo") echo "" ;;
@@ -122,6 +123,7 @@ declare -a ALLOWED_COMMANDS_ARRAY=(
     ["torflux"]="-config|-action"
     ["vanguards"]="--one_shot_vanguards"
     ["traffic-weir"]="-interface|-peer|-upload-rate|-download-rate|-protocol|-scheduler|-allowed-ips|-remove|-nuke"
+    ["udptlspipe"]="--server|-s|-l|--listen|-d|--destination|-p|--password|-x|--proxy|--secure|--tls-servername|--tls-certfile|--tls-keyfile|--probe-reverseproxyurl|-v|--verbose"
     
     # System binaries
     ["sh"]="-c"

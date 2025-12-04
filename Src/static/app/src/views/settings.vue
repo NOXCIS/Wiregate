@@ -1,6 +1,7 @@
 <script>
 import {DashboardConfigurationStore} from "@/stores/DashboardConfigurationStore.js";
 import PeersDefaultSettingsInput from "@/components/settingsComponent/peersDefaultSettingsInput.vue";
+import PeersDefaultSettingsSwitch from "@/components/settingsComponent/peersDefaultSettingsSwitch.vue";
 import {ipV46RegexCheck} from "@/utilities/ipCheck.js";
 import AccountSettingsInputUsername from "@/components/settingsComponent/accountSettingsInputUsername.vue";
 import AccountSettingsInputPassword from "@/components/settingsComponent/accountSettingsInputPassword.vue";
@@ -34,7 +35,7 @@ export default {
 		DashboardSettingsInputIPAddressAndPort,
 		DashboardTheme,
 		DashboardSettingsInputWireguardConfigurationPath,
-		AccountSettingsInputPassword, AccountSettingsInputUsername, PeersDefaultSettingsInput,
+		AccountSettingsInputPassword, AccountSettingsInputUsername, PeersDefaultSettingsInput, PeersDefaultSettingsSwitch,
 		LDAPSettings,
 		DatabaseSettings
 	},
@@ -117,6 +118,52 @@ export default {
 										<PeersDefaultSettingsInput
 											targetData="remote_endpoint" title="Peer Remote Endpoint"
 											:warning="true" warningText="This will be changed globally, and will be apply to all peer's QR code and configuration file."
+										></PeersDefaultSettingsInput>
+									</div>
+								</div>
+							</div>
+							<!-- TLS Piping (udptlspipe) Default Settings -->
+							<div class="card rounded-3">
+								<div class="card-header">
+									<h6 class="my-2">
+										<i class="bi bi-shield-lock me-2"></i>
+										<LocaleText t="TLS Piping Default Settings"></LocaleText>
+									</h6>
+								</div>
+								<div class="card-body">
+									<div class="alert alert-info mb-3">
+										<small>
+											<i class="bi bi-info-circle me-1"></i>
+											<LocaleText t="TLS piping wraps WireGuard UDP traffic in TLS. Useful when UDP is blocked or unreliable. Requires udptlspipe server running on the tunnel server."></LocaleText>
+										</small>
+									</div>
+									<div>
+										<PeersDefaultSettingsSwitch
+											targetData="peer_udptlspipe_enabled" 
+											title="Enable TLS Piping by Default"
+											description="When enabled, new peers will have TLS piping enabled by default."
+										></PeersDefaultSettingsSwitch>
+										<PeersDefaultSettingsInput
+											targetData="peer_udptlspipe_password" 
+											title="Default TLS Pipe Password"
+										></PeersDefaultSettingsInput>
+										<PeersDefaultSettingsInput
+											targetData="peer_udptlspipe_tls_server_name" 
+											title="Default TLS Server Name (SNI)"
+										></PeersDefaultSettingsInput>
+										<PeersDefaultSettingsSwitch
+											targetData="peer_udptlspipe_secure" 
+											title="Verify Server Certificate by Default"
+											description="When enabled, clients will verify the TLS server certificate."
+										></PeersDefaultSettingsSwitch>
+										<PeersDefaultSettingsInput
+											targetData="peer_udptlspipe_proxy" 
+											title="Default Proxy URL"
+										></PeersDefaultSettingsInput>
+										<PeersDefaultSettingsInput
+											targetData="peer_udptlspipe_fingerprint_profile" 
+											title="Default TLS Fingerprint Profile"
+											description="TLS fingerprint to mimic (chrome, firefox, safari, edge, okhttp, ios, randomized)"
 										></PeersDefaultSettingsInput>
 									</div>
 								</div>

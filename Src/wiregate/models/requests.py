@@ -45,6 +45,13 @@ class ConfigurationCreate(BaseModel):
     I3: Optional[str] = None
     I4: Optional[str] = None
     I5: Optional[str] = None
+    # TLS piping (udptlspipe) default fields for configuration
+    udptlspipe_enabled: Optional[bool] = False
+    udptlspipe_password: Optional[str] = ""
+    udptlspipe_tls_server_name: Optional[str] = None
+    udptlspipe_secure: Optional[bool] = False
+    udptlspipe_proxy: Optional[str] = None
+    udptlspipe_fingerprint_profile: Optional[str] = None
     
     @field_validator('Protocol')
     @classmethod
@@ -101,6 +108,13 @@ class PeerCreate(BaseModel):
     bulkAdd: Optional[bool] = False
     bulkAddAmount: Optional[int] = Field(default=0, ge=0)
     preshared_key_bulkAdd: Optional[bool] = False
+    # TLS piping (udptlspipe) fields
+    udptlspipe_enabled: Optional[bool] = False
+    udptlspipe_password: Optional[str] = ""
+    udptlspipe_tls_server_name: Optional[str] = None
+    udptlspipe_secure: Optional[bool] = False
+    udptlspipe_proxy: Optional[str] = None
+    udptlspipe_fingerprint_profile: Optional[str] = None
 
 
 class PeerUpdate(BaseModel):
@@ -114,6 +128,13 @@ class PeerUpdate(BaseModel):
     endpoint_allowed_ip: str
     mtu: int = Field(..., ge=0, le=1460)
     keepalive: int = Field(..., ge=0)
+    # TLS piping (udptlspipe) fields
+    udptlspipe_enabled: Optional[bool] = False
+    udptlspipe_password: Optional[str] = ""
+    udptlspipe_tls_server_name: Optional[str] = None
+    udptlspipe_secure: Optional[bool] = False
+    udptlspipe_proxy: Optional[str] = None
+    udptlspipe_fingerprint_profile: Optional[str] = None
 
 
 class PeerBulkAction(BaseModel):

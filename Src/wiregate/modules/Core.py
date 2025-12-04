@@ -75,6 +75,13 @@ class Configuration:
         self.I3: str = ""
         self.I4: str = ""
         self.I5: str = ""
+        # TLS piping (udptlspipe) configuration defaults for peers
+        self.udptlspipe_enabled: bool = False
+        self.udptlspipe_password: str = ""
+        self.udptlspipe_tls_server_name: str = ""
+        self.udptlspipe_secure: bool = False
+        self.udptlspipe_proxy: str = ""
+        self.udptlspipe_fingerprint_profile: str = "okhttp"
         self.MTU: str = ""
         self.PreUp: str = ""
         self.PostUp: str = ""
@@ -2516,6 +2523,13 @@ class Peer:
         self.I3 = NormalizeCPSFormat(tableData.get("I3", ""))
         self.I4 = NormalizeCPSFormat(tableData.get("I4", ""))
         self.I5 = NormalizeCPSFormat(tableData.get("I5", ""))
+        # TLS piping (udptlspipe) peer-specific settings (override config defaults if set)
+        self.udptlspipe_enabled = bool(tableData.get("udptlspipe_enabled", False))
+        self.udptlspipe_password = tableData.get("udptlspipe_password", "")
+        self.udptlspipe_tls_server_name = tableData.get("udptlspipe_tls_server_name", "")
+        self.udptlspipe_secure = bool(tableData.get("udptlspipe_secure", False))
+        self.udptlspipe_proxy = tableData.get("udptlspipe_proxy", "")
+        self.udptlspipe_fingerprint_profile = tableData.get("udptlspipe_fingerprint_profile", "okhttp")
     
     def _scramble_cps_pattern(self, pattern: str, seed: str) -> str:
         """
@@ -2636,7 +2650,10 @@ class Peer:
                    preshared_key: str,
                    dns_addresses: str, allowed_ip: str, endpoint_allowed_ip: str, mtu: int,
                    keepalive: int, i1: str = None, i2: str = None, i3: str = None, 
-                   i4: str = None, i5: str = None) -> ResponseObject:
+                   i4: str = None, i5: str = None,
+                   udptlspipe_enabled: bool = None, udptlspipe_password: str = None,
+                   udptlspipe_tls_server_name: str = None, udptlspipe_secure: bool = None,
+                   udptlspipe_proxy: str = None, udptlspipe_fingerprint_profile: str = None) -> ResponseObject:
         """Async version of updatePeer"""
         if not self.configuration.getStatus():
             self.configuration.toggleConfiguration()
@@ -2746,6 +2763,20 @@ class Peer:
                 if i5 is not None:
                     update_data['I5'] = NormalizeCPSFormat(i5.strip() if i5 else "")
             
+            # Add TLS piping (udptlspipe) settings if provided
+            if udptlspipe_enabled is not None:
+                update_data['udptlspipe_enabled'] = 1 if udptlspipe_enabled else 0
+            if udptlspipe_password is not None:
+                update_data['udptlspipe_password'] = udptlspipe_password
+            if udptlspipe_tls_server_name is not None:
+                update_data['udptlspipe_tls_server_name'] = udptlspipe_tls_server_name
+            if udptlspipe_secure is not None:
+                update_data['udptlspipe_secure'] = 1 if udptlspipe_secure else 0
+            if udptlspipe_proxy is not None:
+                update_data['udptlspipe_proxy'] = udptlspipe_proxy
+            if udptlspipe_fingerprint_profile is not None:
+                update_data['udptlspipe_fingerprint_profile'] = udptlspipe_fingerprint_profile
+            
             await self.configuration.db.update_peer(self.id, update_data)
             
             # Update local attributes (normalize raw hex to CPS format)
@@ -2759,6 +2790,21 @@ class Peer:
                 self.I4 = NormalizeCPSFormat(i4.strip() if i4 else "")
             if i5 is not None:
                 self.I5 = NormalizeCPSFormat(i5.strip() if i5 else "")
+            
+            # Update TLS piping local attributes
+            if udptlspipe_enabled is not None:
+                self.udptlspipe_enabled = udptlspipe_enabled
+            if udptlspipe_password is not None:
+                self.udptlspipe_password = udptlspipe_password
+            if udptlspipe_tls_server_name is not None:
+                self.udptlspipe_tls_server_name = udptlspipe_tls_server_name
+            if udptlspipe_secure is not None:
+                self.udptlspipe_secure = udptlspipe_secure
+            if udptlspipe_proxy is not None:
+                self.udptlspipe_proxy = udptlspipe_proxy
+            if udptlspipe_fingerprint_profile is not None:
+                self.udptlspipe_fingerprint_profile = udptlspipe_fingerprint_profile
+            
             return ResponseObject()
         except subprocess.CalledProcessError as exc:
             return ResponseObject(False, exc.output.decode("UTF-8").strip())
@@ -2847,6 +2893,27 @@ PersistentKeepalive = {str(self.keepalive)}
 '''
         if len(self.preshared_key) > 0:
             peerConfiguration += f"PresharedKey = {self.preshared_key}\n"
+        
+        # TLS piping (udptlspipe) configuration
+        # Use peer-specific settings if set, otherwise fall back to config defaults
+        tls_enabled = self.udptlspipe_enabled or self.configuration.udptlspipe_enabled
+        tls_password = self.udptlspipe_password if self.udptlspipe_password else self.configuration.udptlspipe_password
+        tls_server_name = self.udptlspipe_tls_server_name if self.udptlspipe_tls_server_name else self.configuration.udptlspipe_tls_server_name
+        tls_secure = self.udptlspipe_secure or self.configuration.udptlspipe_secure
+        tls_proxy = self.udptlspipe_proxy if self.udptlspipe_proxy else self.configuration.udptlspipe_proxy
+        
+        if tls_enabled:
+            peerConfiguration += f"\n# TLS Piping Configuration\n"
+            peerConfiguration += f"UdpTlsPipe = true\n"
+            if tls_password:
+                peerConfiguration += f"UdpTlsPipePassword = {tls_password}\n"
+            if tls_server_name:
+                peerConfiguration += f"UdpTlsPipeTlsServerName = {tls_server_name}\n"
+            if tls_secure:
+                peerConfiguration += f"UdpTlsPipeSecure = true\n"
+            if tls_proxy:
+                peerConfiguration += f"UdpTlsPipeProxy = {tls_proxy}\n"
+        
         return {
             "fileName": filename,
             "file": peerConfiguration

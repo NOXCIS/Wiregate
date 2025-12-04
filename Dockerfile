@@ -119,8 +119,9 @@ WORKDIR /build
 COPY ./Src/torflux/torflux.go ./Src/torflux/go.mod /build/torflux-build/
 COPY ./Src/traffic_weir/ /build/traffic_weir/
 COPY ./Src/healthcheck/ /build/healthcheck/
+COPY ./Src/udptlspipe/ /build/udptlspipe/
 
-RUN mkdir -p /build/torflux-build /build/traffic_weir /build/healthcheck && \
+RUN mkdir -p /build/torflux-build /build/traffic_weir /build/healthcheck /build/udptlspipe && \
     cd /build/torflux-build && \
     GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
     -ldflags="-X main.version=v1.0.0 -s -w" \
@@ -132,7 +133,11 @@ RUN mkdir -p /build/torflux-build /build/traffic_weir /build/healthcheck && \
     cd /build/healthcheck && \
     GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
     -ldflags="-X main.version=v1.0.0 -s -w" \
-    -o /build/healthcheck
+    -o /build/healthcheck && \
+    cd /build/udptlspipe && \
+    GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
+    -ldflags="-X 'github.com/ameshkov/udptlspipe/internal/version.version=v1.0.0' -s -w" \
+    -o /build/udptlspipe
 
 # pybuilder: Python binary builder
 ##########################################################
@@ -270,11 +275,11 @@ COPY --from=noxcis/awg-bins:latest /amneziawg-go /awg /awg-quick /usr/bin/
 
 # Copy built binaries and set permissions
 COPY --from=pybuilder /build/dist/wiregate /build/dist/vanguards /WireGate/
-COPY --from=builder /build/torflux /build/traffic-weir /build/healthcheck /WireGate/
+COPY --from=builder /build/torflux /build/traffic-weir /build/healthcheck /build/udptlspipe /WireGate/
 
 
 
-RUN chmod +x /WireGate/wiregate /WireGate/vanguards /WireGate/torflux /WireGate/traffic-weir /WireGate/healthcheck
+RUN chmod +x /WireGate/wiregate /WireGate/vanguards /WireGate/torflux /WireGate/traffic-weir /WireGate/healthcheck /WireGate/udptlspipe
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 CMD \
     /WireGate/healthcheck --dashboard || exit 1

@@ -33,6 +33,13 @@ export default {
 				if (!this.data.I3) this.data.I3 = "";
 				if (!this.data.I4) this.data.I4 = "";
 				if (!this.data.I5) this.data.I5 = "";
+				// Initialize TLS piping (udptlspipe) fields if not present
+				if (this.data.udptlspipe_enabled === undefined) this.data.udptlspipe_enabled = false;
+				if (!this.data.udptlspipe_password) this.data.udptlspipe_password = "";
+				if (!this.data.udptlspipe_tls_server_name) this.data.udptlspipe_tls_server_name = "";
+				if (this.data.udptlspipe_secure === undefined) this.data.udptlspipe_secure = false;
+				if (!this.data.udptlspipe_proxy) this.data.udptlspipe_proxy = "";
+				if (!this.data.udptlspipe_fingerprint_profile) this.data.udptlspipe_fingerprint_profile = "okhttp";
 				this.dataChanged = false;
 			}
 		},
@@ -419,6 +426,126 @@ export default {
 													</div>
 													<small class="text-muted d-block mt-1">
 														Leave empty to use auto-scrambled values from configuration
+													</small>
+												</div>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+							<!-- TLS Piping (udptlspipe) Configuration -->
+							<div class="mt-3">
+								<div class="accordion" id="peerTlsPipeAccordion">
+									<div class="accordion-item">
+										<h2 class="accordion-header">
+											<button class="accordion-button rounded-3 collapsed" type="button"
+											        data-bs-toggle="collapse" data-bs-target="#peerTlsPipeAccordionCollapse">
+												<LocaleText t="TLS Piping Configuration"></LocaleText>
+											</button>
+										</h2>
+										<div id="peerTlsPipeAccordionCollapse" class="accordion-collapse collapse"
+										     data-bs-parent="#peerTlsPipeAccordion">
+											<div class="accordion-body d-flex flex-column gap-2 mb-2">
+												<div class="form-text text-muted mb-2">
+													<small>
+														<i class="bi bi-shield-lock me-1"></i>
+														TLS piping wraps WireGuard UDP traffic in TLS, useful when UDP is blocked or unreliable. 
+														Requires udptlspipe server running on the tunnel server.
+													</small>
+												</div>
+												<!-- Enable TLS Piping -->
+												<div class="form-check form-switch">
+													<input class="form-check-input" type="checkbox" role="switch" 
+													       id="peer_udptlspipe_enabled"
+													       v-model="this.data.udptlspipe_enabled"
+													       :disabled="this.saving">
+													<label class="form-check-label" for="peer_udptlspipe_enabled">
+														<small class="text-muted">
+															<LocaleText t="Enable TLS Piping"></LocaleText>
+														</small>
+													</label>
+												</div>
+												<!-- Password -->
+												<div v-if="this.data.udptlspipe_enabled">
+													<label for="peer_udptlspipe_password" class="form-label">
+														<small class="text-muted">
+															<LocaleText t="Password"></LocaleText>
+															<code class="ms-1">
+																<LocaleText t="(Required)"></LocaleText>
+															</code>
+														</small>
+													</label>
+													<input type="password" class="form-control form-control-sm rounded-3"
+													       :disabled="this.saving"
+													       v-model="this.data.udptlspipe_password"
+													       id="peer_udptlspipe_password"
+													       placeholder="Server authentication password">
+												</div>
+												<!-- TLS Server Name -->
+												<div v-if="this.data.udptlspipe_enabled">
+													<label for="peer_udptlspipe_tls_server_name" class="form-label">
+														<small class="text-muted">
+															<LocaleText t="TLS Server Name (SNI)"></LocaleText>
+														</small>
+													</label>
+													<input type="text" class="form-control form-control-sm rounded-3"
+													       :disabled="this.saving"
+													       v-model="this.data.udptlspipe_tls_server_name"
+													       id="peer_udptlspipe_tls_server_name"
+													       placeholder="Optional: example.com">
+													<small class="text-muted d-block mt-1">
+														Leave empty to use endpoint hostname
+													</small>
+												</div>
+												<!-- Secure Mode -->
+												<div class="form-check form-switch" v-if="this.data.udptlspipe_enabled">
+													<input class="form-check-input" type="checkbox" role="switch" 
+													       id="peer_udptlspipe_secure"
+													       v-model="this.data.udptlspipe_secure"
+													       :disabled="this.saving">
+													<label class="form-check-label" for="peer_udptlspipe_secure">
+														<small class="text-muted">
+															<LocaleText t="Verify Server Certificate"></LocaleText>
+														</small>
+													</label>
+												</div>
+												<!-- Proxy URL -->
+												<div v-if="this.data.udptlspipe_enabled">
+													<label for="peer_udptlspipe_proxy" class="form-label">
+														<small class="text-muted">
+															<LocaleText t="Proxy URL"></LocaleText>
+														</small>
+													</label>
+													<input type="text" class="form-control form-control-sm rounded-3"
+													       :disabled="this.saving"
+													       v-model="this.data.udptlspipe_proxy"
+													       id="peer_udptlspipe_proxy"
+													       placeholder="Optional: socks5://user:pass@host:port">
+													<small class="text-muted d-block mt-1">
+														Optional proxy for connecting to the TLS pipe server
+													</small>
+												</div>
+												<!-- TLS Fingerprint Profile -->
+												<div v-if="this.data.udptlspipe_enabled">
+													<label for="peer_udptlspipe_fingerprint_profile" class="form-label">
+														<small class="text-muted">
+															<LocaleText t="TLS Fingerprint Profile"></LocaleText>
+														</small>
+													</label>
+													<select class="form-select form-select-sm rounded-3"
+													        :disabled="this.saving"
+													        v-model="this.data.udptlspipe_fingerprint_profile"
+													        id="peer_udptlspipe_fingerprint_profile">
+														<option value="okhttp">okhttp (Android)</option>
+														<option value="chrome">Chrome</option>
+														<option value="firefox">Firefox</option>
+														<option value="safari">Safari</option>
+														<option value="edge">Edge</option>
+														<option value="ios">iOS App</option>
+														<option value="randomized">Randomized</option>
+													</select>
+													<small class="text-muted d-block mt-1">
+														Mimic TLS fingerprint to evade detection (JA3/JA4)
 													</small>
 												</div>
 											</div>

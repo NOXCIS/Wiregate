@@ -583,7 +583,14 @@ class AsyncConfigurationDatabase:
             'address_v6': 'TEXT',
             'upload_rate_limit': 'INTEGER DEFAULT 0',
             'download_rate_limit': 'INTEGER DEFAULT 0',
-            'scheduler_type': 'TEXT DEFAULT \'htb\''
+            'scheduler_type': 'TEXT DEFAULT \'htb\'',
+            # TLS piping (udptlspipe) fields
+            'udptlspipe_enabled': 'INTEGER DEFAULT 0',
+            'udptlspipe_password': 'TEXT',
+            'udptlspipe_tls_server_name': 'TEXT',
+            'udptlspipe_secure': 'INTEGER DEFAULT 0',
+            'udptlspipe_proxy': 'TEXT',
+            'udptlspipe_fingerprint_profile': 'TEXT DEFAULT "okhttp"'
         }
         
         # Create main table

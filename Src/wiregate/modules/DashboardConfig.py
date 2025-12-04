@@ -394,8 +394,14 @@ class DashboardConfig:
                 "peer_display_mode": "grid",
                 "remote_endpoint": wgd_remote_endpoint,
                 "peer_MTU": wgd_mtu,
-                "peer_keep_alive": wgd_keep_alive
-
+                "peer_keep_alive": wgd_keep_alive,
+                # TLS piping (udptlspipe) default settings
+                "peer_udptlspipe_enabled": "false",
+                "peer_udptlspipe_password": "",
+                "peer_udptlspipe_tls_server_name": "",
+                "peer_udptlspipe_secure": "false",
+                "peer_udptlspipe_proxy": "",
+                "peer_udptlspipe_fingerprint_profile": "okhttp"
             },
             "Other": {
                 "welcome_session": wgd_welcome

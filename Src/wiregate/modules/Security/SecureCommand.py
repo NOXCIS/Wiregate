@@ -121,6 +121,10 @@ class SecureCommandExecutor:
         'torflux': {
             'allowed_args': ['-config', '-action', '--help', '-h'],
             'max_args': 5
+        },
+        'udptlspipe': {
+            'allowed_args': ['--server', '-s', '-l', '--listen', '-d', '--destination', '-p', '--password', '-x', '--proxy', '--secure', '--tls-servername', '--tls-certfile', '--tls-keyfile', '--probe-reverseproxyurl', '-v', '--verbose', '--help', '-h'],
+            'max_args': 20
         }
     }
     
