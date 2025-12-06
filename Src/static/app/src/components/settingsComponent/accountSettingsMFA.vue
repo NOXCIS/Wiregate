@@ -22,21 +22,13 @@ export default {
 	},
 	methods: {
 		async resetMFA(){
-			await fetchPost("/api/updateDashboardConfigurationItem", {
-				section: "Account",
-				key: "totp_verified",
-				value: "false"
-			}, async (res) => {
-				await fetchPost("/api/updateDashboardConfigurationItem", {
-					section: "Account",
-					key: "enable_totp",
-					value: "false"
-				}, (res) => {
-					if (res.status){
-						this.$router.push("/2FASetup")
-					}
-				})
-			}) 
+			// Use dedicated Reset_MFA endpoint to clear pending key and reset MFA state
+			// This ensures a fresh TOTP key is generated for security
+			await fetchPost("/api/Reset_MFA", {}, (res) => {
+				if (res.status){
+					this.$router.push("/2FASetup")
+				}
+			})
 		}
 	}
 }

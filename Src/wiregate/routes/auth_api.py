@@ -574,10 +574,20 @@ async def is_totp_enabled():
 async def welcome_get_totp_link():
     """Get TOTP provisioning link for welcome setup"""
     if not DashboardConfig.GetConfig("Account", "totp_verified")[1]:
-        DashboardConfig.SetConfig("Account", "totp_key", pyotp.random_base32())
-        provisioning_uri = pyotp.totp.TOTP(
-            DashboardConfig.GetConfig("Account", "totp_key")[1]
-        ).provisioning_uri(issuer_name="WireGate")
+        # Generate new key if:
+        # 1. No key exists yet (first time setup)
+        # 2. totp_pending_key is empty (user refreshed/returned without a pending key)
+        # Using a pending key prevents regeneration on page refresh while still
+        # allowing new keys on MFA reset
+        pending_key = DashboardConfig.GetConfig("Account", "totp_pending_key")[1]
+        if not pending_key or pending_key is False:
+            new_key = pyotp.random_base32()
+            # Use SetTotpConfig to bypass hidden_attributes protection
+            DashboardConfig.SetTotpConfig("totp_pending_key", new_key)
+        else:
+            new_key = pending_key
+        
+        provisioning_uri = pyotp.totp.TOTP(new_key).provisioning_uri(issuer_name="WireGate")
         return StandardResponse(status=True, data=provisioning_uri)
     return StandardResponse(status=False)
 
@@ -587,14 +597,37 @@ async def welcome_verify_totp_link(
     verify_data: Dict[str, str]
 ):
     """Verify TOTP code during welcome setup"""
-    totp = pyotp.TOTP(DashboardConfig.GetConfig("Account", "totp_key")[1]).now()
-    is_valid = totp == verify_data.get('totp')
+    totp_code = verify_data.get('totp', '')
+    
+    # Get the pending key that was shown to the user
+    pending_key = DashboardConfig.GetConfig("Account", "totp_pending_key")[1]
+    if not pending_key or pending_key is False:
+        return StandardResponse(status=False, message="No pending TOTP setup found")
+    
+    # Use .verify() with valid_window to account for clock drift and network latency
+    # valid_window=1 allows codes from previous, current, and next 30-second windows
+    is_valid = pyotp.TOTP(pending_key).verify(totp_code, valid_window=1)
     
     if is_valid:
-        DashboardConfig.SetConfig("Account", "totp_verified", "true")
-        DashboardConfig.SetConfig("Account", "enable_totp", "true")
+        # Move pending key to active key and clear the pending key
+        # Use SetTotpConfig to bypass hidden_attributes protection
+        DashboardConfig.SetTotpConfig("totp_key", pending_key)
+        DashboardConfig.SetTotpConfig("totp_pending_key", "")
+        DashboardConfig.SetTotpConfig("totp_verified", "true")
+        DashboardConfig.SetTotpConfig("enable_totp", "true")
     
     return StandardResponse(status=is_valid)
+
+
+@router.post('/Reset_MFA', response_model=StandardResponse)
+async def reset_mfa():
+    """Reset MFA and clear pending key so a new key is generated on next setup"""
+    # Clear the pending key so Welcome_GetTotpLink generates a fresh one
+    # Use SetTotpConfig to bypass hidden_attributes protection
+    DashboardConfig.SetTotpConfig("totp_pending_key", "")
+    DashboardConfig.SetTotpConfig("totp_verified", "false")
+    DashboardConfig.SetTotpConfig("enable_totp", "false")
+    return StandardResponse(status=True)
 
 
 @router.post('/Welcome_Finish', response_model=StandardResponse)

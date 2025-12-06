@@ -2062,6 +2062,13 @@ class Configuration:
         instance.I3: str = ""
         instance.I4: str = ""
         instance.I5: str = ""
+        # TLS piping (udptlspipe) configuration defaults for peers
+        instance.udptlspipe_enabled: bool = False
+        instance.udptlspipe_password: str = ""
+        instance.udptlspipe_tls_server_name: str = ""
+        instance.udptlspipe_secure: bool = False
+        instance.udptlspipe_proxy: str = ""
+        instance.udptlspipe_fingerprint_profile: str = "okhttp"
         instance.MTU: str = ""
         instance.PreUp: str = ""
         instance.PostUp: str = ""

@@ -256,7 +256,7 @@ class ConfigManager:
     
     def __init__(self, config_path: str, default_config: dict):
         self.config_path = config_path
-        self.hidden_attributes = ["totp_key", "auth_req"]
+        self.hidden_attributes = ["totp_key", "totp_pending_key", "auth_req"]
         
         # Ensure config file exists
         if not os.path.exists(config_path):
@@ -372,7 +372,8 @@ class DashboardConfig:
                 "password": wgd_pass,
                 "enable_totp": "false",
                 "totp_verified": "false",
-                "totp_key": pyotp.random_base32()
+                "totp_key": pyotp.random_base32(),
+                "totp_pending_key": ""
             },
             "Server": {
                 "wg_conf_path": wgd_config_path,
@@ -540,6 +541,19 @@ class DashboardConfig:
                 return False, "Path does not exist"
         
         return self._config_manager.set_config(section, key, value, init)
+    
+    def SetTotpConfig(self, key: str, value: str) -> Tuple[bool, str]:
+        """
+        Internal method to set TOTP-related configuration values.
+        Bypasses hidden_attributes check for TOTP keys only.
+        Only allows specific TOTP keys: totp_key, totp_pending_key, totp_verified, enable_totp
+        """
+        allowed_totp_keys = ["totp_key", "totp_pending_key", "totp_verified", "enable_totp"]
+        if key not in allowed_totp_keys:
+            return False, f"Key {key} is not a valid TOTP configuration key"
+        
+        # Directly call ConfigManager's set_config with init=True to bypass hidden check
+        return self._config_manager.set_config("Account", key, value, init=True)
     
     def SaveConfig(self) -> bool:
         """Save configuration (backward compatible)"""
