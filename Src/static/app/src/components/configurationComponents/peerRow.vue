@@ -23,7 +23,15 @@ const emit = defineEmits(['qrcode', 'configurationFile', 'setting', 'jobs', 'ref
 <template>
 <tr>
 	<td>
-		<small>{{Peer.name ? Peer.name : 'Untitled Peer'}}</small>
+		<small class="d-flex align-items-center gap-1">
+			<span>{{Peer.name ? Peer.name : 'Untitled Peer'}}</span>
+			<span v-if="Peer.udptlspipe_enabled" 
+			      class="badge bg-info-subtle text-info-emphasis"
+			      style="font-size: 0.6rem;"
+			      title="TLS Piping Enabled">
+				<i class="bi bi-shield-lock-fill"></i>
+			</span>
+		</small>
 	</td>
 	<td>
 		<small>{{Peer.id}}</small>

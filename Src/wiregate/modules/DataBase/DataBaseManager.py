@@ -1560,13 +1560,20 @@ class ConfigurationDatabase:
             'upload_rate_limit': 'INTEGER DEFAULT 0',
             'download_rate_limit': 'INTEGER DEFAULT 0',
             'scheduler_type': 'TEXT DEFAULT \'htb\'',
+            # AmneziaWG CPS obfuscation parameters
+            'I1': 'TEXT',
+            'I2': 'TEXT',
+            'I3': 'TEXT',
+            'I4': 'TEXT',
+            'I5': 'TEXT',
             # TLS piping (udptlspipe) fields
             'udptlspipe_enabled': 'INTEGER DEFAULT 0',
             'udptlspipe_password': 'TEXT',
+            'udptlspipe_port': "TEXT DEFAULT '443'",
             'udptlspipe_tls_server_name': 'TEXT',
             'udptlspipe_secure': 'INTEGER DEFAULT 0',
             'udptlspipe_proxy': 'TEXT',
-            'udptlspipe_fingerprint_profile': 'TEXT DEFAULT "okhttp"'
+            'udptlspipe_fingerprint_profile': "TEXT DEFAULT 'okhttp'"
         }
         
         # Create main table
@@ -1618,13 +1625,20 @@ class ConfigurationDatabase:
             'upload_rate_limit': {'default': 0, 'type': 'INTEGER DEFAULT 0'},
             'download_rate_limit': {'default': 0, 'type': 'INTEGER DEFAULT 0'},
             'scheduler_type': {'default': 'htb', 'type': 'TEXT DEFAULT \'htb\''},
+            # AmneziaWG CPS obfuscation parameters
+            'I1': {'default': '', 'type': 'TEXT'},
+            'I2': {'default': '', 'type': 'TEXT'},
+            'I3': {'default': '', 'type': 'TEXT'},
+            'I4': {'default': '', 'type': 'TEXT'},
+            'I5': {'default': '', 'type': 'TEXT'},
             # TLS piping (udptlspipe) fields
             'udptlspipe_enabled': {'default': 0, 'type': 'INTEGER DEFAULT 0'},
             'udptlspipe_password': {'default': '', 'type': 'TEXT'},
+            'udptlspipe_port': {'default': '443', 'type': "TEXT DEFAULT '443'"},
             'udptlspipe_tls_server_name': {'default': '', 'type': 'TEXT'},
             'udptlspipe_secure': {'default': 0, 'type': 'INTEGER DEFAULT 0'},
             'udptlspipe_proxy': {'default': '', 'type': 'TEXT'},
-            'udptlspipe_fingerprint_profile': {'default': 'okhttp', 'type': 'TEXT DEFAULT "okhttp"'}
+            'udptlspipe_fingerprint_profile': {'default': 'okhttp', 'type': "TEXT DEFAULT 'okhttp'"}
         }
         
         for table in tables:

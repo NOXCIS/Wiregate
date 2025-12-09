@@ -100,12 +100,23 @@ RUN chmod +x /tmp/select-mirror.sh && /tmp/select-mirror.sh && \
         "linux/arm/v6" | "linux/arm/v7") GO_ARCH="armv6l" ;; \
         *) echo "unsupported platform: ${TARGETPLATFORM}" && exit 1 ;; \
     esac; \
+    echo "Fetching latest Go version to determine minimum..."; \
+    GO_VERSION_LATEST=$(curl -s "https://go.dev/VERSION?m=text" | head -n1 | sed 's/go//' | tr -d '\n\r'); \
+    if [ -z "${GO_VERSION_LATEST}" ]; then \
+        echo "ERROR: Failed to fetch latest Go version"; \
+        exit 1; \
+    fi; \
+    GO_VERSION_MIN="${GO_VERSION_LATEST}"; \
+    echo "Latest Go version (used as minimum): ${GO_VERSION_MIN}"; \
     if [ -z "${GO_VERSION:-}" ]; then \
-        echo "Fetching latest Go version..."; \
-        GO_VERSION=$(curl -s https://go.dev/VERSION?m=text | head -n1 | sed 's/go//' | tr -d '\n\r'); \
-        echo "Latest Go version: ${GO_VERSION}"; \
+        GO_VERSION="${GO_VERSION_MIN}"; \
+        echo "Using latest Go version: ${GO_VERSION}"; \
     else \
         echo "Using specified Go version: ${GO_VERSION}"; \
+        if [ "$(printf '%s\n' "${GO_VERSION_MIN}" "${GO_VERSION}" | sort -V | head -n1)" != "${GO_VERSION_MIN}" ]; then \
+            echo "ERROR: Specified Go version ${GO_VERSION} is older than minimum required ${GO_VERSION_MIN}"; \
+            exit 1; \
+        fi; \
     fi; \
     echo "Downloading Go ${GO_VERSION} for ${GO_ARCH}"; \
     wget -q https://golang.org/dl/go${GO_VERSION}.linux-${GO_ARCH}.tar.gz; \
@@ -122,14 +133,17 @@ COPY ./Src/healthcheck/ /build/healthcheck/
 
 RUN mkdir -p /build/torflux-build /build/traffic_weir /build/healthcheck && \
     cd /build/torflux-build && \
+    go get -u ./... && go mod tidy && \
     GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
     -ldflags="-X main.version=v1.0.0 -s -w" \
     -o /build/torflux && \
     cd /build/traffic_weir && \
+    go get -u ./... && go mod tidy && \
     GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
     -ldflags="-X main.version=v1.0.0 -s -w" \
     -o /build/traffic-weir && \
     cd /build/healthcheck && \
+    go get -u ./... && go mod tidy && \
     GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
     -ldflags="-X main.version=v1.0.0 -s -w" \
     -o /build/healthcheck

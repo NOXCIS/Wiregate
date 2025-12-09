@@ -130,8 +130,15 @@ export default {
 			</div>
 		</div>
 		<div class="card-body pt-1" style="font-size: 0.9rem">
-			<h6>
-				{{Peer.name ? Peer.name : 'Untitled Peer'}}
+			<h6 class="d-flex align-items-center gap-2">
+				<span>{{Peer.name ? Peer.name : 'Untitled Peer'}}</span>
+				<span v-if="Peer.udptlspipe_enabled" 
+				      class="badge bg-info-subtle text-info-emphasis d-inline-flex align-items-center gap-1"
+				      style="font-size: 0.65rem; font-weight: normal;"
+				      title="TLS Piping Enabled">
+					<i class="bi bi-shield-lock-fill"></i>
+					TLS
+				</span>
 			</h6>
 			<div class="mb-1">
 				<small class="text-muted">

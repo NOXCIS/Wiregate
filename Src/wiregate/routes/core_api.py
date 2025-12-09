@@ -803,6 +803,10 @@ async def add_peers(
         if udptlspipe_password is None:
             udptlspipe_password = DashboardConfig.GetConfig("Peers", "peer_udptlspipe_password")[1] or ""
         
+        udptlspipe_port = peer_data.get('udptlspipe_port')
+        if udptlspipe_port is None:
+            udptlspipe_port = DashboardConfig.GetConfig("Peers", "peer_udptlspipe_port")[1] or "443"
+        
         udptlspipe_tls_server_name = peer_data.get('udptlspipe_tls_server_name')
         if udptlspipe_tls_server_name is None:
             udptlspipe_tls_server_name = DashboardConfig.GetConfig("Peers", "peer_udptlspipe_tls_server_name")[1] or ""
@@ -894,6 +898,7 @@ async def add_peers(
                     # TLS piping (udptlspipe) settings
                     "udptlspipe_enabled": 1 if udptlspipe_enabled else 0,
                     "udptlspipe_password": udptlspipe_password,
+                    "udptlspipe_port": udptlspipe_port,
                     "udptlspipe_tls_server_name": udptlspipe_tls_server_name,
                     "udptlspipe_secure": 1 if udptlspipe_secure else 0,
                     "udptlspipe_proxy": udptlspipe_proxy,
@@ -951,6 +956,7 @@ async def add_peers(
                 # TLS piping (udptlspipe) settings
                 "udptlspipe_enabled": 1 if udptlspipe_enabled else 0,
                 "udptlspipe_password": udptlspipe_password,
+                "udptlspipe_port": udptlspipe_port,
                 "udptlspipe_tls_server_name": udptlspipe_tls_server_name,
                 "udptlspipe_secure": 1 if udptlspipe_secure else 0,
                 "udptlspipe_proxy": udptlspipe_proxy,
@@ -1009,6 +1015,7 @@ async def update_peer_settings(
             # TLS piping (udptlspipe) settings
             peer_update.get('udptlspipe_enabled'),
             peer_update.get('udptlspipe_password'),
+            peer_update.get('udptlspipe_port'),
             peer_update.get('udptlspipe_tls_server_name'),
             peer_update.get('udptlspipe_secure'),
             peer_update.get('udptlspipe_proxy'),

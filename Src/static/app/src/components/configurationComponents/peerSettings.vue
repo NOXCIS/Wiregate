@@ -36,6 +36,7 @@ export default {
 				// Initialize TLS piping (udptlspipe) fields if not present
 				if (this.data.udptlspipe_enabled === undefined) this.data.udptlspipe_enabled = false;
 				if (!this.data.udptlspipe_password) this.data.udptlspipe_password = "";
+				if (!this.data.udptlspipe_port) this.data.udptlspipe_port = "443";
 				if (!this.data.udptlspipe_tls_server_name) this.data.udptlspipe_tls_server_name = "";
 				if (this.data.udptlspipe_secure === undefined) this.data.udptlspipe_secure = false;
 				if (!this.data.udptlspipe_proxy) this.data.udptlspipe_proxy = "";
@@ -480,6 +481,22 @@ export default {
 													       v-model="this.data.udptlspipe_password"
 													       id="peer_udptlspipe_password"
 													       placeholder="Server authentication password">
+												</div>
+												<!-- TLS Pipe Server Port -->
+												<div v-if="this.data.udptlspipe_enabled">
+													<label for="peer_udptlspipe_port" class="form-label">
+														<small class="text-muted">
+															<LocaleText t="TLS Server Port"></LocaleText>
+														</small>
+													</label>
+													<input type="text" class="form-control form-control-sm rounded-3"
+													       :disabled="this.saving"
+													       v-model="this.data.udptlspipe_port"
+													       id="peer_udptlspipe_port"
+													       placeholder="443">
+													<small class="text-muted d-block mt-1">
+														Port where the udptlspipe server is listening (default: 443)
+													</small>
 												</div>
 												<!-- TLS Server Name -->
 												<div v-if="this.data.udptlspipe_enabled">

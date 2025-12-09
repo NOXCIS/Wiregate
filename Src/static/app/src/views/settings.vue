@@ -148,6 +148,11 @@ export default {
 											title="Default TLS Pipe Password"
 										></PeersDefaultSettingsInput>
 										<PeersDefaultSettingsInput
+											targetData="peer_udptlspipe_port" 
+											title="Default TLS Pipe Server Port"
+											description="Port where the udptlspipe server is listening (default: 443)"
+										></PeersDefaultSettingsInput>
+										<PeersDefaultSettingsInput
 											targetData="peer_udptlspipe_tls_server_name" 
 											title="Default TLS Server Name (SNI)"
 										></PeersDefaultSettingsInput>

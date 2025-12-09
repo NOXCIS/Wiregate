@@ -399,6 +399,7 @@ class DashboardConfig:
                 # TLS piping (udptlspipe) default settings
                 "peer_udptlspipe_enabled": "false",
                 "peer_udptlspipe_password": "",
+                "peer_udptlspipe_port": "443",
                 "peer_udptlspipe_tls_server_name": "",
                 "peer_udptlspipe_secure": "false",
                 "peer_udptlspipe_proxy": "",

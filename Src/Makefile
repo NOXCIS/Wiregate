@@ -13,7 +13,7 @@ STATIC_DIR_LOCALE = $(WIREGATE_SRC)/static
 AWG_GO_DIR = /usr/bin
 
 # Go settings
-GO_VERSION_FALLBACK = 1.24.6
+GO_VERSION_FALLBACK = 1.25.5
 GO_ARCH ?= $(shell uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 GO_LDFLAGS = -X main.version=v1.0.0 -s -w
 
@@ -146,12 +146,16 @@ go-deps:
 	@echo "Setting up Go environment..."
 	mkdir -p $(BUILD_DIR)/go
 	if ! command -v go > /dev/null; then \
-		echo "Fetching latest Go version..."; \
-		GO_VERSION=$$(curl -s https://go.dev/VERSION?m=text 2>/dev/null | head -n1 | sed 's/go//' | tr -d '\n\r' || echo "$(GO_VERSION_FALLBACK)"); \
-		if [ -z "$$GO_VERSION" ]; then \
-			GO_VERSION="$(GO_VERSION_FALLBACK)"; \
+		echo "Fetching latest Go version to determine minimum..."; \
+		GO_VERSION_LATEST=$$(curl -s "https://go.dev/VERSION?m=text" 2>/dev/null | head -n1 | sed 's/go//' | tr -d '\n\r'); \
+		if [ -z "$$GO_VERSION_LATEST" ]; then \
+			echo "ERROR: Failed to fetch latest Go version"; \
+			exit 1; \
 		fi; \
-		echo "Using Go version: $$GO_VERSION"; \
+		GO_VERSION_MIN="$$GO_VERSION_LATEST"; \
+		echo "Latest Go version (used as minimum): $$GO_VERSION_MIN"; \
+		GO_VERSION="$$GO_VERSION_MIN"; \
+		echo "Using latest Go version: $$GO_VERSION"; \
 		wget -q https://golang.org/dl/go$$GO_VERSION.linux-$(GO_ARCH).tar.gz; \
 		tar -C $(BUILD_DIR) -xzf go$$GO_VERSION.linux-$(GO_ARCH).tar.gz; \
 		rm go$$GO_VERSION.linux-$(GO_ARCH).tar.gz; \
@@ -205,6 +209,7 @@ go-bins: go-deps
 	# Build torflux
 	cd $(BUILD_DIR)/torflux-build && \
 		export PATH="$(abspath $(BUILD_DIR))/go/bin:$$PATH" && \
+		go get -u ./... && go mod tidy && \
 		GOOS=linux GOARCH=$(GO_ARCH) CGO_ENABLED=0 go build \
 		-ldflags="$(GO_LDFLAGS)" \
 		-buildvcs=false \
@@ -213,6 +218,7 @@ go-bins: go-deps
 	# Build traffic-weir
 	cd $(BUILD_DIR)/traffic_weir && \
 		export PATH="$(abspath $(BUILD_DIR))/go/bin:$$PATH" && \
+		go get -u ./... && go mod tidy && \
 		GOOS=linux GOARCH=$(GO_ARCH) CGO_ENABLED=0 go build \
 		-ldflags="$(GO_LDFLAGS)" \
 		-buildvcs=false \
@@ -221,6 +227,7 @@ go-bins: go-deps
 	# Build healthcheck
 	cd $(BUILD_DIR)/healthcheck && \
 		export PATH="$(abspath $(BUILD_DIR))/go/bin:$$PATH" && \
+		go get -u ./... && go mod tidy && \
 		GOOS=linux GOARCH=$(GO_ARCH) CGO_ENABLED=0 go build \
 		-ldflags="$(GO_LDFLAGS)" \
 		-buildvcs=false \
@@ -232,6 +239,7 @@ go-bins: go-deps
 	# Build udptlspipe (TLS tunnel for WireGuard UDP traffic)
 	cd $(BUILD_DIR)/udptlspipe && \
 		export PATH="$(abspath $(BUILD_DIR))/go/bin:$$PATH" && \
+		go get -u ./... && go mod tidy && \
 		GOOS=linux GOARCH=$(GO_ARCH) CGO_ENABLED=0 go build \
 		-ldflags="-X 'github.com/ameshkov/udptlspipe/internal/version.version=v1.0.0' -s -w" \
 		-buildvcs=false \

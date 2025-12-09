@@ -3,7 +3,8 @@ Dashboard Logger Class
 """
 import os, uuid, threading, logging, json
 from ...modules.Config import CONFIGURATION_PATH
-from ..DataBase import get_redis_manager
+# Note: get_redis_manager is imported inside _ensure_redis_connection to avoid
+# "coroutine was never awaited" warning when Redis is not used
 
 # Set up logger
 logger = logging.getLogger(__name__)
@@ -62,9 +63,17 @@ class DashboardLogger:
             try:
                 import asyncio
                 from wiregate.modules.DataBase import get_redis_manager
-                self.redis_manager = asyncio.run(get_redis_manager())
-                self.__initialize_redis()
-                self._initialized = True
+                
+                # Try to get or create an event loop
+                try:
+                    loop = asyncio.get_running_loop()
+                    # We're in an async context - create a task and use sync Redis instead
+                    self._use_sync_redis()
+                except RuntimeError:
+                    # No running loop, safe to use asyncio.run()
+                    self.redis_manager = asyncio.run(get_redis_manager())
+                    self.__initialize_redis()
+                    self._initialized = True
             except Exception as e:
                 logger.warning(f"Could not connect to Redis: {e}")
                 # Create a mock redis manager for fallback
@@ -73,6 +82,35 @@ class DashboardLogger:
                         self.redis_client = MockRedisClient()
                 self.redis_manager = MockRedisManager()
                 self._initialized = True
+    
+    def _use_sync_redis(self):
+        """Use synchronous Redis connection when in async context"""
+        try:
+            import redis
+            from wiregate.modules.Config import redis_host, redis_port, redis_db, redis_password
+            
+            # Create sync Redis client
+            sync_redis = redis.Redis(
+                host=redis_host,
+                port=redis_port,
+                db=redis_db,
+                password=redis_password,
+                decode_responses=True
+            )
+            # Test connection
+            sync_redis.ping()
+            
+            class SyncRedisManager:
+                def __init__(self, client):
+                    self.redis_client = client
+            
+            self.redis_manager = SyncRedisManager(sync_redis)
+            self.__initialize_redis()
+            self._initialized = True
+            logger.info("Connected to Redis using sync client")
+        except Exception as e:
+            logger.warning(f"Could not connect to Redis (sync): {e}")
+            raise
     def __initialize_redis(self):
         """Initialize Redis with log counter if not exists"""
         if not self.redis_manager.redis_client.exists(self.log_counter_key):

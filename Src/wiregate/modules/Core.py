@@ -78,6 +78,7 @@ class Configuration:
         # TLS piping (udptlspipe) configuration defaults for peers
         self.udptlspipe_enabled: bool = False
         self.udptlspipe_password: str = ""
+        self.udptlspipe_port: str = "443"
         self.udptlspipe_tls_server_name: str = ""
         self.udptlspipe_secure: bool = False
         self.udptlspipe_proxy: str = ""
@@ -2065,6 +2066,7 @@ class Configuration:
         # TLS piping (udptlspipe) configuration defaults for peers
         instance.udptlspipe_enabled: bool = False
         instance.udptlspipe_password: str = ""
+        instance.udptlspipe_port: str = "443"
         instance.udptlspipe_tls_server_name: str = ""
         instance.udptlspipe_secure: bool = False
         instance.udptlspipe_proxy: str = ""
@@ -2533,6 +2535,7 @@ class Peer:
         # TLS piping (udptlspipe) peer-specific settings (override config defaults if set)
         self.udptlspipe_enabled = bool(tableData.get("udptlspipe_enabled", False))
         self.udptlspipe_password = tableData.get("udptlspipe_password", "")
+        self.udptlspipe_port = tableData.get("udptlspipe_port", "443")
         self.udptlspipe_tls_server_name = tableData.get("udptlspipe_tls_server_name", "")
         self.udptlspipe_secure = bool(tableData.get("udptlspipe_secure", False))
         self.udptlspipe_proxy = tableData.get("udptlspipe_proxy", "")
@@ -2659,8 +2662,9 @@ class Peer:
                    keepalive: int, i1: str = None, i2: str = None, i3: str = None, 
                    i4: str = None, i5: str = None,
                    udptlspipe_enabled: bool = None, udptlspipe_password: str = None,
-                   udptlspipe_tls_server_name: str = None, udptlspipe_secure: bool = None,
-                   udptlspipe_proxy: str = None, udptlspipe_fingerprint_profile: str = None) -> ResponseObject:
+                   udptlspipe_port: str = None, udptlspipe_tls_server_name: str = None, 
+                   udptlspipe_secure: bool = None, udptlspipe_proxy: str = None, 
+                   udptlspipe_fingerprint_profile: str = None) -> ResponseObject:
         """Async version of updatePeer"""
         if not self.configuration.getStatus():
             self.configuration.toggleConfiguration()
@@ -2775,6 +2779,8 @@ class Peer:
                 update_data['udptlspipe_enabled'] = 1 if udptlspipe_enabled else 0
             if udptlspipe_password is not None:
                 update_data['udptlspipe_password'] = udptlspipe_password
+            if udptlspipe_port is not None:
+                update_data['udptlspipe_port'] = udptlspipe_port
             if udptlspipe_tls_server_name is not None:
                 update_data['udptlspipe_tls_server_name'] = udptlspipe_tls_server_name
             if udptlspipe_secure is not None:
@@ -2803,6 +2809,8 @@ class Peer:
                 self.udptlspipe_enabled = udptlspipe_enabled
             if udptlspipe_password is not None:
                 self.udptlspipe_password = udptlspipe_password
+            if udptlspipe_port is not None:
+                self.udptlspipe_port = udptlspipe_port
             if udptlspipe_tls_server_name is not None:
                 self.udptlspipe_tls_server_name = udptlspipe_tls_server_name
             if udptlspipe_secure is not None:
@@ -2891,23 +2899,32 @@ H4 = {self.configuration.H4}
                 scrambled_i5 = self._scramble_cps_pattern(self.configuration.I5, seed + "_I5")
                 peerConfiguration += f'I5 = {scrambled_i5}\n'
 
-        peerConfiguration += f'''
-[Peer]
-PublicKey = {self.configuration.PublicKey}
-AllowedIPs = {self.endpoint_allowed_ip}
-Endpoint = {DashboardConfig.GetConfig("Peers", "remote_endpoint")[1]}:{self.configuration.ListenPort}
-PersistentKeepalive = {str(self.keepalive)}
-'''
-        if len(self.preshared_key) > 0:
-            peerConfiguration += f"PresharedKey = {self.preshared_key}\n"
-        
         # TLS piping (udptlspipe) configuration
         # Use peer-specific settings if set, otherwise fall back to config defaults
         tls_enabled = self.udptlspipe_enabled or self.configuration.udptlspipe_enabled
         tls_password = self.udptlspipe_password if self.udptlspipe_password else self.configuration.udptlspipe_password
+        tls_port = self.udptlspipe_port if self.udptlspipe_port else self.configuration.udptlspipe_port
         tls_server_name = self.udptlspipe_tls_server_name if self.udptlspipe_tls_server_name else self.configuration.udptlspipe_tls_server_name
         tls_secure = self.udptlspipe_secure or self.configuration.udptlspipe_secure
         tls_proxy = self.udptlspipe_proxy if self.udptlspipe_proxy else self.configuration.udptlspipe_proxy
+        tls_fingerprint = self.udptlspipe_fingerprint_profile if self.udptlspipe_fingerprint_profile else self.configuration.udptlspipe_fingerprint_profile
+        
+        # Determine the endpoint port: use TLS pipe port if enabled, otherwise WireGuard port
+        # When TLS piping is enabled, clients connect to the TLS server port, not the WireGuard port
+        if tls_enabled and tls_port:
+            endpoint_port = tls_port
+        else:
+            endpoint_port = self.configuration.ListenPort
+        
+        peerConfiguration += f'''
+[Peer]
+PublicKey = {self.configuration.PublicKey}
+AllowedIPs = {self.endpoint_allowed_ip}
+Endpoint = {DashboardConfig.GetConfig("Peers", "remote_endpoint")[1]}:{endpoint_port}
+PersistentKeepalive = {str(self.keepalive)}
+'''
+        if len(self.preshared_key) > 0:
+            peerConfiguration += f"PresharedKey = {self.preshared_key}\n"
         
         if tls_enabled:
             peerConfiguration += f"\n# TLS Piping Configuration\n"
@@ -2920,6 +2937,8 @@ PersistentKeepalive = {str(self.keepalive)}
                 peerConfiguration += f"UdpTlsPipeSecure = true\n"
             if tls_proxy:
                 peerConfiguration += f"UdpTlsPipeProxy = {tls_proxy}\n"
+            if tls_fingerprint:
+                peerConfiguration += f"UdpTlsPipeFingerprintProfile = {tls_fingerprint}\n"
         
         return {
             "fileName": filename,

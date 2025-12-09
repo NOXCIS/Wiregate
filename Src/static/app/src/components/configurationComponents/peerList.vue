@@ -30,6 +30,13 @@ const route = useRoute()
 const configurationInfo = ref({})
 const configurationPeers = ref([])
 const configurationToggling = ref(false)
+
+// TLS Pipe Server Status
+const tlsPipeStatus = ref({
+	running: false,
+	loading: false,
+	port: null
+})
 const configurationModalSelectedPeer = ref({})
 const configurationModals = ref({
 	peerNew: {
@@ -80,6 +87,32 @@ const configurationModals = ref({
 })
 const peerSearchBar = ref(false)
 
+// Fetch TLS Pipe Status =====================================
+const fetchTlsPipeStatus = async () => {
+	tlsPipeStatus.value.loading = true
+	await fetchGet(`/api/udptlspipe/status/${route.params.id}`, {}, (res) => {
+		if (res.status && res.data) {
+			tlsPipeStatus.value = {
+				running: res.data.running || false,
+				loading: false,
+				port: res.data.listen_port || null,
+				pid: res.data.pid || null
+			}
+		} else {
+			tlsPipeStatus.value = {
+				running: false,
+				loading: false,
+				port: null
+			}
+		}
+	})
+}
+
+// Count peers with TLS Piping enabled =====================================
+const tlsPipePeersCount = computed(() => {
+	return configurationPeers.value.filter(p => p.udptlspipe_enabled).length
+})
+
 // Fetch Peer =====================================
 const fetchPeerList = async () => {
 	console.log(`[DEBUG] fetchPeerList called for configuration: ${route.params.id}`);
@@ -124,6 +157,7 @@ const fetchPeerList = async () => {
 	})
 }
 await fetchPeerList()
+await fetchTlsPipeStatus()
 
 // Fetch Peer Interval =====================================
 const fetchPeerListInterval = ref(undefined)
@@ -135,6 +169,7 @@ const setFetchPeerListInterval = () => {
 	}
 	fetchPeerListInterval.value = setInterval(async () => {
 		await fetchPeerList()
+		await fetchTlsPipeStatus()
 	},  parseInt(dashboardStore.Configuration.Server.dashboard_refresh_interval))
 	// Register the new interval with the global tracker
 	if (fetchPeerListInterval.value) {
@@ -287,6 +322,30 @@ watch(() => configurationPeers.value, async (newPeers) => {
 						       v-model="configurationInfo.Status">
 					</div>
 
+				</div>
+			</div>
+			<!-- TLS Pipe Server Status -->
+			<div class="card rounded-3 bg-transparent" v-if="tlsPipePeersCount > 0 || tlsPipeStatus.running">
+				<div class="card-body py-2 d-flex align-items-center gap-2">
+					<small class="text-muted d-flex align-items-center gap-1">
+						<i class="bi bi-shield-lock-fill"></i>
+						<LocaleText t="TLS Pipe"></LocaleText>
+					</small>
+					<div class="dot ms-2" :class="{active: tlsPipeStatus.running}"></div>
+					<small v-if="tlsPipeStatus.loading" class="text-muted">
+						<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+					</small>
+					<small v-else-if="tlsPipeStatus.running" class="text-success">
+						:{{ tlsPipeStatus.port }}
+					</small>
+					<small v-else class="text-muted">
+						<LocaleText t="Off"></LocaleText>
+					</small>
+					<span v-if="tlsPipePeersCount > 0" 
+					      class="badge bg-info-subtle text-info-emphasis ms-auto"
+					      style="font-size: 0.7rem;">
+						{{ tlsPipePeersCount }} <LocaleText t="peer"></LocaleText><span v-if="tlsPipePeersCount > 1">s</span>
+					</span>
 				</div>
 			</div>
 			<div class="d-flex gap-2">
