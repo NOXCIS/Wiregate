@@ -9,6 +9,22 @@ import (
 	goFlags "github.com/jessevdk/go-flags"
 )
 
+// Route represents a password-to-destination mapping for multi-destination mode.
+type Route struct {
+	Password    string `yaml:"password"`
+	Destination string `yaml:"destination"`
+}
+
+// MultiDestConfig represents the configuration file format for multi-destination mode.
+type MultiDestConfig struct {
+	Listen        string  `yaml:"listen"`
+	Routes        []Route `yaml:"routes"`
+	TLSServerName string  `yaml:"tls_servername"`
+	TLSCertFile   string  `yaml:"tls_certfile"`
+	TLSKeyFile    string  `yaml:"tls_keyfile"`
+	Verbose       bool    `yaml:"verbose"`
+}
+
 // Options represents command-line arguments.
 type Options struct {
 	// ServerMode controls whether the tool works in the server mode.
@@ -18,13 +34,17 @@ type Options struct {
 	// ListenAddr is the address the tool will be listening to. If it's in the
 	// pipe mode, it will listen to tcp://, if it's in the client mode, it
 	// will listen to udp://.
-	ListenAddr string `yaml:"listen" short:"l" long:"listen" description:"Address the tool will be listening to (required)." value-name:"<IP:Port>" required:"true"`
+	ListenAddr string `yaml:"listen" short:"l" long:"listen" description:"Address the tool will be listening to (required)." value-name:"<IP:Port>"`
 
 	// DestinationAddr is the address the tool will connect to. Depending on the
 	// mode (pipe or client) this address has different semantics. In the
 	// client mode this is the address of the udptlspipe pipe. In the pipe
 	// mode this is the address where the received traffic will be passed.
-	DestinationAddr string `yaml:"destination" short:"d" long:"destination" description:"Address the tool will connect to (required)." value-name:"<IP:Port>" required:"true"`
+	DestinationAddr string `yaml:"destination" short:"d" long:"destination" description:"Address the tool will connect to (required for single-destination mode)." value-name:"<IP:Port>"`
+
+	// ConfigFile is the path to a YAML config file for multi-destination mode.
+	// When specified, the server routes clients to different destinations based on password.
+	ConfigFile string `yaml:"config" short:"c" long:"config" description:"Path to config file for multi-destination mode (optional)." value-name:"<path>"`
 
 	// Password is used to detect if the client is actually allowed to use
 	// udptlspipe. If it's not allowed, the server returns a stub web page.
@@ -61,6 +81,29 @@ type Options struct {
 
 	// Verbose defines whether we should write the DEBUG-level log or not.
 	Verbose bool `yaml:"verbose" short:"v" long:"verbose" description:"Verbose output (optional)." optional:"yes" optional-value:"true"`
+}
+
+// LoadMultiDestConfig loads a multi-destination configuration from a YAML file.
+func LoadMultiDestConfig(path string) (*MultiDestConfig, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read config file: %w", err)
+	}
+
+	var cfg MultiDestConfig
+	if err := yaml.Unmarshal(data, &cfg); err != nil {
+		return nil, fmt.Errorf("failed to parse config file: %w", err)
+	}
+
+	if cfg.Listen == "" {
+		return nil, fmt.Errorf("config file must specify 'listen' address")
+	}
+
+	if len(cfg.Routes) == 0 {
+		return nil, fmt.Errorf("config file must specify at least one route")
+	}
+
+	return &cfg, nil
 }
 
 // type check

@@ -183,7 +183,7 @@ async def add_configuration(
     user: Dict[str, Any] = Depends(require_authentication)
 ):
     """Add a new WireGuard configuration"""
-    logger.error(f"[API] DEBUG: Received addConfiguration - PrivateKey in data: {'PrivateKey' in config_data}, value: {repr(config_data.get('PrivateKey'))}")
+    logger.debug(f"[API] Received addConfiguration - PrivateKey in data: {'PrivateKey' in config_data}")
     logger.debug(f"[API] Received addConfiguration request for: {config_data.get('ConfigurationName', 'UNKNOWN')}")
     logger.debug(f"[API] Full config_data received: {json.dumps({k: v for k, v in config_data.items() if k != 'PrivateKey'}, indent=2)}")
     logger.debug(f"[API] Protocol in request: {config_data.get('Protocol', 'NOT PROVIDED')}")
@@ -200,9 +200,9 @@ async def add_configuration(
     
     # Generate private key if not provided or empty
     private_key_value = config_data.get("PrivateKey", "")
-    logger.error(f"[API] DEBUG: Checking PrivateKey - value: {repr(private_key_value)}, type: {type(private_key_value)}, empty check: {not private_key_value or (isinstance(private_key_value, str) and private_key_value.strip() == '')}")
+    logger.debug(f"[API] Checking PrivateKey - empty: {not private_key_value or (isinstance(private_key_value, str) and private_key_value.strip() == '')}")
     if not private_key_value or (isinstance(private_key_value, str) and private_key_value.strip() == ""):
-        logger.error("[API] DEBUG: PrivateKey not provided or empty, generating new key")
+        logger.debug("[API] PrivateKey not provided or empty, generating new key")
         try:
             private_success, generated_private_key = GenerateWireguardPrivateKey()
             if not private_success:
@@ -2451,127 +2451,123 @@ async def process_pool_performance_test(
 
 
 # ============================================================================
-# TLS Piping (udptlspipe) Server Management
+# Shared TLS Pipe Server (Single port 443 for all configs)
+# All TLS piping uses a single shared server on port 443 with password-based routing
 # ============================================================================
 
-@router.post('/udptlspipe/start/{configName}', response_model=StandardResponse)
-async def start_udptlspipe_server(
+@router.post('/udptlspipe/shared/enable/{configName}', response_model=StandardResponse)
+async def enable_shared_tlspipe(
     configName: str,
-    server_config: Dict[str, Any],
+    config: Dict[str, Any],
     user: Dict[str, Any] = Depends(require_authentication)
 ):
-    """Start a udptlspipe server for a WireGuard configuration"""
+    """
+    Enable TLS piping for a WireGuard configuration using the shared server.
+    All configurations share a single TLS pipe server on port 443.
+    """
     try:
-        from ..modules.UdpTlsPipeManager import start_udptlspipe_for_config
+        from ..modules.UdpTlsPipeManager import enable_shared_tlspipe as enable_pipe
         
         if configName not in Configurations.keys():
             return StandardResponse(
                 status=False,
-                message="Configuration does not exist"
+                message=f"Configuration {configName} not found"
             )
         
-        config = Configurations[configName]
-        listen_port = server_config.get('listen_port', 443)
-        password = server_config.get('password', '')
-        tls_server_name = server_config.get('tls_server_name')
-        tls_cert_file = server_config.get('tls_cert_file')
-        tls_key_file = server_config.get('tls_key_file')
+        wg_config = Configurations[configName]
+        password = config.get('password')
+        listen_port = config.get('listen_port', 443)
         
         if not password:
             return StandardResponse(
                 status=False,
-                message="Password is required for udptlspipe server"
+                message="Password is required for TLS piping"
             )
         
-        result = start_udptlspipe_for_config(
+        result = enable_pipe(
             config_name=configName,
-            listen_port=listen_port,
-            wireguard_port=int(config.ListenPort),
             password=password,
-            tls_server_name=tls_server_name,
-            tls_cert_file=tls_cert_file,
-            tls_key_file=tls_key_file
+            wireguard_port=int(wg_config.ListenPort),
+            listen_port=listen_port
         )
         
         if result.get('success'):
             return StandardResponse(
                 status=True,
-                message=f"udptlspipe server started on port {listen_port}",
+                message=f"TLS piping enabled for {configName} on shared port {listen_port}",
                 data=result
             )
         else:
             return StandardResponse(
                 status=False,
-                message=result.get('error', 'Failed to start udptlspipe server')
+                message=result.get('error', 'Failed to enable TLS piping')
             )
     except Exception as e:
-        logger.error(f"Failed to start udptlspipe server: {e}")
+        logger.error(f"Failed to enable shared TLS piping: {e}")
         return StandardResponse(status=False, message=str(e))
 
 
-@router.post('/udptlspipe/stop/{configName}', response_model=StandardResponse)
-async def stop_udptlspipe_server(
+@router.post('/udptlspipe/shared/disable/{configName}', response_model=StandardResponse)
+async def disable_shared_tlspipe(
     configName: str,
     user: Dict[str, Any] = Depends(require_authentication)
 ):
-    """Stop the udptlspipe server for a WireGuard configuration"""
+    """Disable TLS piping for a WireGuard configuration on the shared server"""
     try:
-        from ..modules.UdpTlsPipeManager import stop_udptlspipe_for_config
+        from ..modules.UdpTlsPipeManager import disable_shared_tlspipe as disable_pipe
         
-        result = stop_udptlspipe_for_config(configName)
+        result = disable_pipe(configName)
         
         if result.get('success'):
             return StandardResponse(
                 status=True,
-                message="udptlspipe server stopped",
+                message=f"TLS piping disabled for {configName}",
                 data=result
             )
         else:
             return StandardResponse(
                 status=False,
-                message=result.get('error', 'Failed to stop udptlspipe server')
+                message=result.get('error', 'Failed to disable TLS piping')
             )
     except Exception as e:
-        logger.error(f"Failed to stop udptlspipe server: {e}")
+        logger.error(f"Failed to disable shared TLS piping: {e}")
         return StandardResponse(status=False, message=str(e))
 
 
-@router.get('/udptlspipe/status/{configName}', response_model=StandardResponse)
-async def get_udptlspipe_status(
-    configName: str,
+@router.get('/udptlspipe/shared/status', response_model=StandardResponse)
+async def get_shared_tlspipe_status(
     user: Dict[str, Any] = Depends(require_authentication)
 ):
-    """Get the status of the udptlspipe server for a WireGuard configuration"""
+    """Get the status of the shared TLS pipe server"""
     try:
-        from ..modules.UdpTlsPipeManager import get_udptlspipe_status as get_status
+        from ..modules.UdpTlsPipeManager import get_shared_tlspipe_status as get_status
         
-        status = get_status(configName)
+        status = get_status()
         
         return StandardResponse(
             status=True,
             data=status
         )
     except Exception as e:
-        logger.error(f"Failed to get udptlspipe status: {e}")
+        logger.error(f"Failed to get shared TLS pipe status: {e}")
         return StandardResponse(status=False, message=str(e))
 
 
-@router.get('/udptlspipe/status', response_model=StandardResponse)
-async def get_all_udptlspipe_status(
+@router.get('/udptlspipe/shared/routes', response_model=StandardResponse)
+async def get_shared_tlspipe_routes(
     user: Dict[str, Any] = Depends(require_authentication)
 ):
-    """Get the status of all udptlspipe servers"""
+    """Get all routes configured on the shared TLS pipe server"""
     try:
-        from ..modules.UdpTlsPipeManager import get_udptlspipe_manager
+        from ..modules.UdpTlsPipeManager import get_shared_tlspipe_routes as get_routes
         
-        manager = get_udptlspipe_manager()
-        all_status = manager.get_all_servers_status()
+        routes = get_routes()
         
         return StandardResponse(
             status=True,
-            data=all_status
+            data=routes
         )
     except Exception as e:
-        logger.error(f"Failed to get udptlspipe status: {e}")
+        logger.error(f"Failed to get shared TLS pipe routes: {e}")
         return StandardResponse(status=False, message=str(e))
 

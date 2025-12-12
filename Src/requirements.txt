@@ -21,10 +21,15 @@ pyotp
 itsdangerous
 redis[hiredis]>=4.2.0
 ldap3
+cryptography>=41.0.0  # For ChaCha20-Poly1305 encryption (TLS pipe passwords)
+argon2-cffi>=23.1.0   # For Argon2id key derivation (memory-hard, GPU-resistant)
 
 # System utilities
 psutil
 icmplib
+
+# Configuration parsing
+pyyaml>=6.0  # For TLS pipe multi-destination config files
 
 # Archive & compression
 py7zr
@@ -58,10 +63,9 @@ pyinstaller
 
 # Note: Removed unused packages:
 # - Flask, flask-cors (migrated to FastAPI)
-# - msal (not used, cryptography was only needed for msal)
+# - msal (not used)
 # - paste (not used)
 # - sqlalchemy (not used)
-# - cryptography (only needed for msal)
 # - configparser (built-in to Python, no need to include)
 # - pydantic (auto-installed with fastapi)
 # - typing_extensions (auto-installed with fastapi/pydantic)

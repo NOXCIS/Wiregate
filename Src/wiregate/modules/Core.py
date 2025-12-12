@@ -3157,6 +3157,56 @@ async def InitRateLimits():
         logger.error(f"Error initializing rate limits: {str(e)}")
 
 
+async def InitTlsPipeServers():
+    """Auto-start the shared TLS pipe server from persisted routes"""
+    logger = logging.getLogger('wiregate')
+    logger.info("Checking for TLS pipe server to auto-start...")
+    
+    try:
+        from .UdpTlsPipeManager import get_shared_udptlspipe_manager
+        
+        # Initialize the shared manager - this loads routes from database automatically
+        shared_manager = get_shared_udptlspipe_manager()
+        status = shared_manager.get_status()
+        
+        if status.get('running'):
+            route_count = status.get('route_count', 0)
+            logger.info(f"✓ Shared TLS pipe server running with {route_count} route(s)")
+        elif len(shared_manager.get_routes()) > 0:
+            # Routes exist but server not running - start it
+            route_count = len(shared_manager.get_routes())
+            logger.info(f"Found {route_count} TLS pipe route(s), starting server...")
+            server = shared_manager.get_or_create_server()
+            if server and server.routes:
+                result = server.start()
+                if result.get('success'):
+                    logger.info(f"✓ Shared TLS pipe server started with {len(server.routes)} route(s)")
+                else:
+                    logger.error(f"Failed to start TLS pipe server: {result.get('error')}")
+        else:
+            logger.info("No TLS pipe routes configured")
+            
+    except ImportError as e:
+        logger.warning(f"TLS pipe module not available: {e}")
+    except Exception as e:
+        logger.error(f"Error initializing TLS pipe server: {str(e)}")
+
+
+async def StopAllTlsPipeServers():
+    """Stop the shared TLS pipe server (for shutdown)"""
+    logger = logging.getLogger('wiregate')
+    try:
+        from .UdpTlsPipeManager import get_shared_udptlspipe_manager
+        shared_manager = get_shared_udptlspipe_manager()
+        result = shared_manager.stop()
+        if result.get('success'):
+            logger.info("Stopped shared TLS pipe server")
+    except ImportError:
+        pass  # Module not available
+    except Exception as e:
+        logger.error(f"Error stopping TLS pipe server: {str(e)}")
+
+
 Configurations: dict[str, Configuration] = {}
 
 

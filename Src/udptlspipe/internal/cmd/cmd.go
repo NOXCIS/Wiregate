@@ -45,32 +45,77 @@ func Main() {
 
 	log.Info("Configuration:\n%s", o)
 
-	cfg := &pipe.Config{
-		ListenAddr:           o.ListenAddr,
-		DestinationAddr:      o.DestinationAddr,
-		Password:             o.Password,
-		ServerMode:           o.ServerMode,
-		ProxyURL:             o.ProxyURL,
-		VerifyCertificate:    o.VerifyCertificate,
-		TLSServerName:        o.TLSServerName,
-		ProbeReverseProxyURL: o.ProbeReverseProxyURL,
-	}
+	var cfg *pipe.Config
 
-	if o.TLSCertPath != "" {
-		if !o.ServerMode {
-			log.Error("TLS certificate only works in server mode")
-
+	// Check if multi-destination config file is specified
+	if o.ConfigFile != "" {
+		multiCfg, cfgErr := LoadMultiDestConfig(o.ConfigFile)
+		if cfgErr != nil {
+			log.Error("Failed to load config file: %v", cfgErr)
 			os.Exit(1)
 		}
 
-		cert, certErr := loadX509KeyPair(o.TLSCertPath, o.TLSCertKey)
-		if certErr != nil {
-			log.Error("Failed to load TLS certificate: %v", err)
+		// Build password routes map
+		passwordRoutes := make(map[string]string)
+		for _, route := range multiCfg.Routes {
+			passwordRoutes[route.Password] = route.Destination
+			log.Info("Route: password=%s -> destination=%s", route.Password, route.Destination)
+		}
 
+		cfg = &pipe.Config{
+			ListenAddr:     multiCfg.Listen,
+			ServerMode:     true, // Multi-destination only works in server mode
+			TLSServerName:  multiCfg.TLSServerName,
+			PasswordRoutes: passwordRoutes,
+		}
+
+		if multiCfg.Verbose {
+			log.SetLevel(log.DEBUG)
+		}
+
+		// Load TLS certificate if specified in config
+		if multiCfg.TLSCertFile != "" {
+			cert, certErr := loadX509KeyPair(multiCfg.TLSCertFile, multiCfg.TLSKeyFile)
+			if certErr != nil {
+				log.Error("Failed to load TLS certificate: %v", certErr)
+				os.Exit(1)
+			}
+			cfg.TLSCertificate = cert
+		}
+
+		log.Info("Multi-destination mode: %d routes configured", len(passwordRoutes))
+	} else {
+		// Single-destination mode (original behavior)
+		if o.ListenAddr == "" || o.DestinationAddr == "" {
+			log.Error("Listen address (-l) and destination address (-d) are required in single-destination mode")
 			os.Exit(1)
 		}
 
-		cfg.TLSCertificate = cert
+		cfg = &pipe.Config{
+			ListenAddr:           o.ListenAddr,
+			DestinationAddr:      o.DestinationAddr,
+			Password:             o.Password,
+			ServerMode:           o.ServerMode,
+			ProxyURL:             o.ProxyURL,
+			VerifyCertificate:    o.VerifyCertificate,
+			TLSServerName:        o.TLSServerName,
+			ProbeReverseProxyURL: o.ProbeReverseProxyURL,
+		}
+
+		if o.TLSCertPath != "" {
+			if !o.ServerMode {
+				log.Error("TLS certificate only works in server mode")
+				os.Exit(1)
+			}
+
+			cert, certErr := loadX509KeyPair(o.TLSCertPath, o.TLSCertKey)
+			if certErr != nil {
+				log.Error("Failed to load TLS certificate: %v", certErr)
+				os.Exit(1)
+			}
+
+			cfg.TLSCertificate = cert
+		}
 	}
 
 	srv, err := pipe.NewServer(cfg)

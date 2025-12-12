@@ -514,6 +514,12 @@ export default {
 								</RouterLink>
 							</li>
 							<li class="nav-item mb-2">
+								<RouterLink to="/tls-pipe" class="nav-link rounded-3" active-class="active">
+									<i class="bi bi-shield-lock-fill me-2 tls-pipe-icon"></i>
+									<LocaleText t="TLS Pipe"></LocaleText>
+								</RouterLink>
+							</li>
+							<li class="nav-item mb-2">
 								<RouterLink to="/ping" class="nav-link rounded-3" active-class="active">
 									<i class="bi bi-broadcast me-2 icon-broadcast"></i>
 									<LocaleText t="Ping"></LocaleText>
@@ -1224,5 +1230,14 @@ export default {
 	background-color: rgba(0, 0, 0, 0.1) !important;
 	border-color: rgba(0, 0, 0, 0.5) !important;
 	color: #000000 !important;
+}
+
+/* TLS Pipe icon theme-aware styling */
+.tls-pipe-icon {
+	color: white;
+}
+
+[data-bs-theme="light"] .tls-pipe-icon {
+	color: #000000;
 }
 </style>

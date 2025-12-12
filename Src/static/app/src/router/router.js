@@ -65,6 +65,14 @@ const router = createRouter({
 					}
 				},
 				{
+					name: "TLS Pipe",
+					path: '/tls-pipe',
+					component: () => import('@/views/tlsPipe.vue'),
+					meta: {
+						title: "TLS Pipe Server"
+					}
+				},
+				{
 					path: '/ping',
 					name: "Ping",
 					component: () => import('@/views/ping.vue'),

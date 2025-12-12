@@ -49,7 +49,7 @@ from .Security import (
 )
 
 # Import core modules
-from .Core import InitWireguardConfigurationsList, InitRateLimits
+from .Core import InitWireguardConfigurationsList, InitRateLimits, InitTlsPipeServers, StopAllTlsPipeServers
 from .Config import wgd_app_prefix as APP_PREFIX
 from .Config import DASHBOARD_MODE
 from .DataBase import check_and_migrate_sqlite_databases
@@ -98,6 +98,9 @@ async def lifespan(app: FastAPI):
         await InitWireguardConfigurationsList(startup=True)
         await InitRateLimits()
         
+        # Auto-start TLS pipe servers for configurations with TLS-enabled peers
+        await InitTlsPipeServers()
+        
         # Start background threads
         await startThreads()
         logger.info("✓ Background threads started")
@@ -112,6 +115,13 @@ async def lifespan(app: FastAPI):
             logger.info("✓ Background tasks and thread pools stopped")
         except Exception as e:
             logger.error(f"Error stopping background tasks: {e}")
+        
+        # Stop all TLS pipe servers
+        try:
+            await StopAllTlsPipeServers()
+            logger.info("✓ TLS pipe servers stopped")
+        except Exception as e:
+            logger.error(f"Error stopping TLS pipe servers: {e}")
         
         # Close async database connections
         try:

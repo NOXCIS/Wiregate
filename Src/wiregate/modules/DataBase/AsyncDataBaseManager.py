@@ -6,6 +6,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 from typing import Dict, List, Any, Optional, Union
 from datetime import datetime
 
@@ -20,6 +21,64 @@ from ..Config import (
 )
 
 logger = logging.getLogger('wiregate')
+
+
+# ============================================================================
+# Security: Table Name Validation
+# ============================================================================
+
+# System tables that are always allowed
+SYSTEM_TABLES = frozenset({
+    "PeerJobs", "PeerJobLogs", "brute_force_attempts", 
+    "tlspipe_routes", "wiregate_migrations"
+})
+
+# Pattern for valid table names: starts with letter, alphanumeric + underscore
+TABLE_NAME_PATTERN = re.compile(r'^[A-Za-z][A-Za-z0-9_]*$')
+
+# Maximum table name length
+MAX_TABLE_NAME_LENGTH = 128
+
+
+class DatabaseError(Exception):
+    """Exception raised for database operation failures"""
+    pass
+
+
+def validate_table_name(table_name: str) -> str:
+    """
+    Validate table name to prevent SQL injection.
+    
+    Valid table names:
+    - System tables (PeerJobs, tlspipe_routes, etc.)
+    - Configuration names (ADMINS, GUESTS, etc.)
+    - Derived tables (ADMINS_transfer, ADMINS_deleted, etc.)
+    
+    Args:
+        table_name: The table name to validate
+        
+    Returns:
+        The validated table name
+        
+    Raises:
+        ValueError: If the table name is invalid
+    """
+    if not table_name:
+        raise ValueError("Table name cannot be empty")
+    
+    # Check if it's a known system table
+    if table_name in SYSTEM_TABLES:
+        return table_name
+    
+    # Validate format: must start with letter, alphanumeric + underscore only
+    if not TABLE_NAME_PATTERN.match(table_name):
+        raise ValueError(f"Invalid table name format: {table_name}")
+    
+    # Check length limit
+    if len(table_name) > MAX_TABLE_NAME_LENGTH:
+        raise ValueError(f"Table name too long (max {MAX_TABLE_NAME_LENGTH}): {table_name}")
+    
+    return table_name
 
 
 class AsyncSQLiteDatabaseManager:
@@ -72,23 +131,32 @@ class AsyncSQLiteDatabaseManager:
     async def create_table(self, table_name: str, schema: Dict[str, str]) -> bool:
         """Create a table with the given schema"""
         try:
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
             columns = []
             for column_name, column_type in schema.items():
                 columns.append(f"{column_name} {column_type}")
             
-            create_sql = f"CREATE TABLE IF NOT EXISTS {table_name} ({', '.join(columns)})"
+            create_sql = f"CREATE TABLE IF NOT EXISTS {safe_table_name} ({', '.join(columns)})"
             
             await self.conn.execute(create_sql)
             await self.conn.commit()
-            logger.debug(f"Created table {table_name}")
+            logger.debug(f"Created table {safe_table_name}")
             return True
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to create table {table_name}: {e}")
-            return False
+            raise DatabaseError(f"Failed to create table: {e}")
     
     async def insert_record(self, table_name: str, record_id: str, data: Dict[str, Any]) -> bool:
         """Insert a record into the table"""
         try:
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
             # Ensure the record_id is in the data
             data['id'] = record_id
             
@@ -99,37 +167,49 @@ class AsyncSQLiteDatabaseManager:
             placeholders = ['?' for _ in columns]
             values = list(serialized_data.values())
             
-            insert_sql = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(placeholders)})"
+            insert_sql = f"INSERT INTO {safe_table_name} ({', '.join(columns)}) VALUES ({', '.join(placeholders)})"
             
             await self.conn.execute(insert_sql, values)
             await self.conn.commit()
             return True
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to insert record into {table_name}: {e}")
-            return False
+            raise DatabaseError(f"Failed to insert record: {e}")
     
     async def update_record(self, table_name: str, record_id: str, data: Dict[str, Any]) -> bool:
         """Update a record in the table"""
         try:
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
             # Serialize data for database storage
             serialized_data = self._serialize_data_for_db(data)
             
             set_clauses = [f"{key} = ?" for key in serialized_data.keys()]
             values = list(serialized_data.values()) + [record_id]
             
-            update_sql = f"UPDATE {table_name} SET {', '.join(set_clauses)} WHERE id = ?"
+            update_sql = f"UPDATE {safe_table_name} SET {', '.join(set_clauses)} WHERE id = ?"
             
             cursor = await self.conn.execute(update_sql, values)
             await self.conn.commit()
             return cursor.rowcount > 0
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to update record in {table_name}: {e}")
-            return False
+            raise DatabaseError(f"Failed to update record: {e}")
     
     async def get_record(self, table_name: str, record_id: str) -> Optional[Dict[str, Any]]:
         """Get a single record by ID"""
         try:
-            select_sql = f"SELECT * FROM {table_name} WHERE id = ?"
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
+            select_sql = f"SELECT * FROM {safe_table_name} WHERE id = ?"
             cursor = await self.conn.execute(select_sql, (record_id,))
             row = await cursor.fetchone()
             
@@ -137,33 +217,48 @@ class AsyncSQLiteDatabaseManager:
                 data = dict(row)
                 return self._deserialize_data_from_db(data)
             return None
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to get record from {table_name}: {e}")
-            return None
+            raise DatabaseError(f"Failed to get record: {e}")
     
     async def get_all_records(self, table_name: str) -> List[Dict[str, Any]]:
         """Get all records from a table"""
         try:
-            select_sql = f"SELECT * FROM {table_name}"
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
+            select_sql = f"SELECT * FROM {safe_table_name}"
             cursor = await self.conn.execute(select_sql)
             rows = await cursor.fetchall()
             
             return [self._deserialize_data_from_db(dict(row)) for row in rows]
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to get records from {table_name}: {e}")
-            return []
+            raise DatabaseError(f"Failed to get records: {e}")
     
     async def delete_record(self, table_name: str, record_id: str) -> bool:
         """Delete a record from the table"""
         try:
-            delete_sql = f"DELETE FROM {table_name} WHERE id = ?"
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
+            delete_sql = f"DELETE FROM {safe_table_name} WHERE id = ?"
             
             cursor = await self.conn.execute(delete_sql, (record_id,))
             await self.conn.commit()
             return cursor.rowcount > 0
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to delete record from {table_name}: {e}")
-            return False
+            raise DatabaseError(f"Failed to delete record: {e}")
     
     async def close(self):
         """Close the database connection"""
@@ -337,6 +432,9 @@ class AsyncDatabaseManager:
     async def create_table(self, table_name: str, schema: Dict[str, str]) -> bool:
         """Create a table in PostgreSQL"""
         try:
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
             async with self.pg_pool.acquire() as conn:
                 # Build CREATE TABLE statement
                 columns = []
@@ -356,21 +454,27 @@ class AsyncDatabaseManager:
                         
                         columns.append(f'"{col_name}" {pg_type}')
                 
-                create_sql = f'CREATE TABLE IF NOT EXISTS "{table_name}" ({", ".join(columns)})'
+                create_sql = f'CREATE TABLE IF NOT EXISTS "{safe_table_name}" ({", ".join(columns)})'
                 await conn.execute(create_sql)
                 
                 # Invalidate cache for this table
-                await self._invalidate_cache(table_name)
+                await self._invalidate_cache(safe_table_name)
                 
-                logger.info(f"Created table {table_name}")
+                logger.info(f"Created table {safe_table_name}")
                 return True
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to create table {table_name}: {e}")
-            return False
+            raise DatabaseError(f"Failed to create table: {e}")
     
     async def insert_record(self, table_name: str, record_id: str, data: Dict[str, Any]) -> bool:
         """Insert a record into PostgreSQL and cache in Redis"""
         try:
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
             async with self.pg_pool.acquire() as conn:
                 # Serialize data for database storage
                 serialized_data = self._serialize_data_for_db(data)
@@ -382,7 +486,7 @@ class AsyncDatabaseManager:
                 
                 # Insert into PostgreSQL
                 insert_sql = f'''
-                    INSERT INTO "{table_name}" ({", ".join([f'"{col}"' for col in columns])})
+                    INSERT INTO "{safe_table_name}" ({", ".join([f'"{col}"' for col in columns])})
                     VALUES ({", ".join(placeholders)})
                     ON CONFLICT (id) DO UPDATE SET
                     {", ".join([f'"{col}" = EXCLUDED."{col}"' for col in columns if col != 'id'])}
@@ -390,17 +494,23 @@ class AsyncDatabaseManager:
                 await conn.execute(insert_sql, *values)
                 
                 # Cache in Redis (use original data, not serialized)
-                cache_key = await self.get_cache_key(table_name, record_id)
+                cache_key = await self.get_cache_key(safe_table_name, record_id)
                 await self._set_cache(cache_key, data)
                 
                 return True
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to insert record {record_id} into {table_name}: {e}")
-            return False
+            raise DatabaseError(f"Failed to insert record: {e}")
     
     async def update_record(self, table_name: str, record_id: str, data: Dict[str, Any]) -> bool:
         """Update a record in PostgreSQL and cache in Redis"""
         try:
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
             async with self.pg_pool.acquire() as conn:
                 # Serialize data for database storage
                 serialized_data = self._serialize_data_for_db(data)
@@ -415,47 +525,59 @@ class AsyncDatabaseManager:
                 values.append(record_id)  # Add record_id for WHERE clause
                 
                 update_sql = f'''
-                    UPDATE "{table_name}" 
+                    UPDATE "{safe_table_name}" 
                     SET {", ".join(set_clauses)}
                     WHERE "id" = ${len(values)}
                 '''
                 await conn.execute(update_sql, *values)
                 
                 # Invalidate cache for this record
-                await self._invalidate_cache(table_name, record_id)
+                await self._invalidate_cache(safe_table_name, record_id)
                 
                 return True
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to update record {record_id} in {table_name}: {e}")
-            return False
+            raise DatabaseError(f"Failed to update record: {e}")
     
     async def delete_record(self, table_name: str, record_id: str) -> bool:
         """Delete a record from PostgreSQL and invalidate cache"""
         try:
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
             async with self.pg_pool.acquire() as conn:
-                delete_sql = f'DELETE FROM "{table_name}" WHERE "id" = $1'
+                delete_sql = f'DELETE FROM "{safe_table_name}" WHERE "id" = $1'
                 result = await conn.execute(delete_sql, record_id)
                 
                 # Invalidate cache for this record
-                await self._invalidate_cache(table_name, record_id)
+                await self._invalidate_cache(safe_table_name, record_id)
                 
                 return result.split()[-1] == '1'  # Check if any rows were affected
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to delete record {record_id} from {table_name}: {e}")
-            return False
+            raise DatabaseError(f"Failed to delete record: {e}")
     
     async def get_record(self, table_name: str, record_id: str) -> Optional[Dict[str, Any]]:
         """Get a single record from cache first, then PostgreSQL"""
         try:
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
             # Try cache first
-            cache_key = await self.get_cache_key(table_name, record_id)
+            cache_key = await self.get_cache_key(safe_table_name, record_id)
             cached_data = await self._get_from_cache(cache_key)
             if cached_data:
                 return cached_data
             
             # If not in cache, get from PostgreSQL
             async with self.pg_pool.acquire() as conn:
-                row = await conn.fetchrow(f'SELECT * FROM "{table_name}" WHERE "id" = $1', record_id)
+                row = await conn.fetchrow(f'SELECT * FROM "{safe_table_name}" WHERE "id" = $1', record_id)
                 
                 if row:
                     # Convert to dict, deserialize, and cache
@@ -465,15 +587,21 @@ class AsyncDatabaseManager:
                     return deserialized_data
                 
                 return None
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to get record {record_id} from {table_name}: {e}")
-            return None
+            raise DatabaseError(f"Failed to get record: {e}")
     
     async def get_all_records(self, table_name: str) -> List[Dict[str, Any]]:
         """Get all records from a table (PostgreSQL with optional caching)"""
         try:
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
             async with self.pg_pool.acquire() as conn:
-                rows = await conn.fetch(f'SELECT * FROM "{table_name}"')
+                rows = await conn.fetch(f'SELECT * FROM "{safe_table_name}"')
                 
                 records = []
                 for row in rows:
@@ -484,13 +612,16 @@ class AsyncDatabaseManager:
                     # Cache individual records
                     record_id = deserialized_data.get('id')
                     if record_id:
-                        cache_key = await self.get_cache_key(table_name, record_id)
+                        cache_key = await self.get_cache_key(safe_table_name, record_id)
                         await self._set_cache(cache_key, deserialized_data)
                 
                 return records
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to get all records from {table_name}: {e}")
-            return []
+            raise DatabaseError(f"Failed to get all records: {e}")
     
     async def close_connections(self):
         """Close database connections"""

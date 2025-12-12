@@ -54,6 +54,11 @@ type Server struct {
 	// If not found, the server will return a stub web page.
 	password string
 
+	// passwordRoutes maps passwords to destination addresses for multi-destination mode.
+	// When set, each password routes to a different destination (e.g., different WireGuard configs).
+	// If empty, single-destination mode is used with destinationAddr and password.
+	passwordRoutes map[string]string
+
 	// listen is the TLS listener for incoming connections
 	listen net.Listener
 
@@ -125,6 +130,12 @@ type Config struct {
 	// proxy to respond to unauthorized or proxy requests. If not specified,
 	// it will respond with a stub page 403 Forbidden.
 	ProbeReverseProxyURL string
+
+	// PasswordRoutes maps passwords to destination addresses for multi-destination mode.
+	// When set, the server routes each client to a different destination based on password.
+	// This enables a single TLS pipe server to handle multiple WireGuard configurations.
+	// If empty, single-destination mode is used with DestinationAddr and Password.
+	PasswordRoutes map[string]string
 }
 
 // createTLSConfig creates a TLS configuration as per the server configuration.
@@ -168,6 +179,7 @@ func NewServer(config *Config) (s *Server, err error) {
 		listenAddr:           config.ListenAddr,
 		destinationAddr:      config.DestinationAddr,
 		password:             config.Password,
+		passwordRoutes:       config.PasswordRoutes,
 		probeReverseProxyURL: config.ProbeReverseProxyURL,
 		dialer:               proxy.Direct,
 		serverMode:           config.ServerMode,
@@ -542,7 +554,8 @@ func (s *Server) respondToProbe(rwc io.ReadWriteCloser, req *http.Request) {
 
 // upgradeServerConn attempts to upgrade the server connection and returns a
 // rwc that wraps the original connection and can be used for tunneling data.
-func (s *Server) upgradeServerConn(conn net.Conn) (rwc io.ReadWriteCloser, err error) {
+// In multi-destination mode, it also returns the destination address based on password.
+func (s *Server) upgradeServerConn(conn net.Conn) (rwc io.ReadWriteCloser, destination string, err error) {
 	log.Debug("Upgrading connection from %s", conn.RemoteAddr())
 
 	// Give up to 60 seconds on the upgrade and authentication.
@@ -559,7 +572,7 @@ func (s *Server) upgradeServerConn(conn net.Conn) (rwc io.ReadWriteCloser, err e
 
 	req, err := http.ReadRequest(r)
 	if err != nil {
-		return nil, fmt.Errorf("cannot read HTTP request: %w", err)
+		return nil, "", fmt.Errorf("cannot read HTTP request: %w", err)
 	}
 
 	// Now that authentication check has been done restore the peeked up data
@@ -573,22 +586,35 @@ func (s *Server) upgradeServerConn(conn net.Conn) (rwc io.ReadWriteCloser, err e
 	if !strings.EqualFold(req.Header.Get("Upgrade"), "websocket") {
 		s.respondToProbe(originalRwc, req)
 
-		return nil, fmt.Errorf("not a websocket")
+		return nil, "", fmt.Errorf("not a websocket")
 	}
 
 	clientPassword := req.URL.Query().Get("password")
-	if s.password != "" && clientPassword != s.password {
-		s.respondToProbe(originalRwc, req)
 
-		return nil, fmt.Errorf("wrong password: %s", clientPassword)
+	// Multi-destination mode: look up destination by password
+	if len(s.passwordRoutes) > 0 {
+		dest, ok := s.passwordRoutes[clientPassword]
+		if !ok {
+			s.respondToProbe(originalRwc, req)
+			return nil, "", fmt.Errorf("unknown password: %s", clientPassword)
+		}
+		destination = dest
+		log.Debug("Multi-destination mode: routing to %s", destination)
+	} else {
+		// Single-destination mode: validate password and use default destination
+		if s.password != "" && clientPassword != s.password {
+			s.respondToProbe(originalRwc, req)
+			return nil, "", fmt.Errorf("wrong password: %s", clientPassword)
+		}
+		destination = s.destinationAddr
 	}
 
 	_, err = ws.Upgrade(originalRwc)
 	if err != nil {
-		return nil, fmt.Errorf("failed to upgrade WebSocket: %w", err)
+		return nil, "", fmt.Errorf("failed to upgrade WebSocket: %w", err)
 	}
 
-	return newWsConn(originalRwc, conn.RemoteAddr(), ws.StateServerSide), nil
+	return newWsConn(originalRwc, conn.RemoteAddr(), ws.StateServerSide), destination, nil
 }
 
 // serveConn processes incoming connection, authenticates it and proxies the
@@ -601,10 +627,11 @@ func (s *Server) serveConn(conn net.Conn) {
 	}()
 
 	var rwc io.ReadWriteCloser = conn
+	var destination string = s.destinationAddr
 
 	if s.serverMode {
 		var err error
-		rwc, err = s.upgradeServerConn(conn)
+		rwc, destination, err = s.upgradeServerConn(conn)
 		if err != nil {
 			log.Error("failed to accept server conn: %v", err)
 
@@ -612,18 +639,19 @@ func (s *Server) serveConn(conn net.Conn) {
 		}
 	}
 
-	s.processConn(rwc)
+	s.processConn(rwc, destination)
 }
 
 // processConn processes the prepared server connection that is passed as rwc.
-func (s *Server) processConn(rwc io.ReadWriteCloser) {
+// The destination parameter specifies where to forward the traffic.
+func (s *Server) processConn(rwc io.ReadWriteCloser, destination string) {
 	var dstConn net.Conn
 
 	defer s.closeDstConn(dstConn)
 
-	dstConn, err := s.dialDst()
+	dstConn, err := s.dialDst(destination)
 	if err != nil {
-		log.Error("failed to connect to %s: %v", s.destinationAddr, err)
+		log.Error("failed to connect to %s: %v", destination, err)
 
 		return
 	}
@@ -659,21 +687,21 @@ func (s *Server) processConn(rwc io.ReadWriteCloser) {
 
 // dialDst creates a connection to the destination. Depending on the mode the
 // server operates in, it is either a TLS connection or a UDP connection.
-func (s *Server) dialDst() (conn net.Conn, err error) {
+func (s *Server) dialDst(destination string) (conn net.Conn, err error) {
 	if s.serverMode {
-		return s.dialer.Dial("udp", s.destinationAddr)
+		return s.dialer.Dial("udp", destination)
 	}
 
-	tcpConn, err := s.dialer.Dial("tcp", s.destinationAddr)
+	tcpConn, err := s.dialer.Dial("tcp", destination)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open connection to %s: %w", s.destinationAddr, err)
+		return nil, fmt.Errorf("failed to open connection to %s: %w", destination, err)
 	}
 
 	tlsConn := tls.UClient(tcpConn, s.tlsConfig, tls.HelloAndroid_11_OkHttp)
 
 	err = tlsConn.Handshake()
 	if err != nil {
-		return nil, fmt.Errorf("cannot establish connection to %s: %w", s.destinationAddr, err)
+		return nil, fmt.Errorf("cannot establish connection to %s: %w", destination, err)
 	}
 
 	return tlsConn, nil

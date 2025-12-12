@@ -19,6 +19,64 @@ from ..Config import (
 # Configure logging
 logger = logging.getLogger('wiregate')
 
+
+# ============================================================================
+# Security: Table Name Validation
+# ============================================================================
+
+# System tables that are always allowed
+SYSTEM_TABLES = frozenset({
+    "PeerJobs", "PeerJobLogs", "brute_force_attempts", 
+    "tlspipe_routes", "wiregate_migrations"
+})
+
+# Pattern for valid table names: starts with letter, alphanumeric + underscore
+TABLE_NAME_PATTERN = re.compile(r'^[A-Za-z][A-Za-z0-9_]*$')
+
+# Maximum table name length
+MAX_TABLE_NAME_LENGTH = 128
+
+
+class DatabaseError(Exception):
+    """Exception raised for database operation failures"""
+    pass
+
+
+def validate_table_name(table_name: str) -> str:
+    """
+    Validate table name to prevent SQL injection.
+    
+    Valid table names:
+    - System tables (PeerJobs, tlspipe_routes, etc.)
+    - Configuration names (ADMINS, GUESTS, etc.)
+    - Derived tables (ADMINS_transfer, ADMINS_deleted, etc.)
+    
+    Args:
+        table_name: The table name to validate
+        
+    Returns:
+        The validated table name
+        
+    Raises:
+        ValueError: If the table name is invalid
+    """
+    if not table_name:
+        raise ValueError("Table name cannot be empty")
+    
+    # Check if it's a known system table
+    if table_name in SYSTEM_TABLES:
+        return table_name
+    
+    # Validate format: must start with letter, alphanumeric + underscore only
+    if not TABLE_NAME_PATTERN.match(table_name):
+        raise ValueError(f"Invalid table name format: {table_name}")
+    
+    # Check length limit
+    if len(table_name) > MAX_TABLE_NAME_LENGTH:
+        raise ValueError(f"Table name too long (max {MAX_TABLE_NAME_LENGTH}): {table_name}")
+    
+    return table_name
+
 class SQLiteDatabaseManager:
     """
     Async SQLite database manager for simple deployments
@@ -100,25 +158,34 @@ class SQLiteDatabaseManager:
             if self.conn is None:
                 await self._init_sqlite()
             
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
             columns = []
             for column_name, column_type in schema.items():
                 columns.append(f"{column_name} {column_type}")
             
-            create_sql = f"CREATE TABLE IF NOT EXISTS {table_name} ({', '.join(columns)})"
+            create_sql = f"CREATE TABLE IF NOT EXISTS {safe_table_name} ({', '.join(columns)})"
             
             await self.conn.execute(create_sql)
             await self.conn.commit()
-            logger.debug(f"Created table {table_name}")
+            logger.debug(f"Created table {safe_table_name}")
             return True
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to create table {table_name}: {e}")
-            return False
+            raise DatabaseError(f"Failed to create table: {e}")
     
     async def insert_record(self, table_name: str, record_id: str, data: Dict[str, Any]) -> bool:
         """Insert a record into the table"""
         try:
             if self.conn is None:
                 await self._init_sqlite()
+            
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
             
             # Ensure the record_id is in the data
             data['id'] = record_id
@@ -130,14 +197,17 @@ class SQLiteDatabaseManager:
             placeholders = ['?' for _ in columns]
             values = list(serialized_data.values())
             
-            insert_sql = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({', '.join(placeholders)})"
+            insert_sql = f"INSERT INTO {safe_table_name} ({', '.join(columns)}) VALUES ({', '.join(placeholders)})"
             
             await self.conn.execute(insert_sql, values)
             await self.conn.commit()
             return True
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to insert record into {table_name}: {e}")
-            return False
+            raise DatabaseError(f"Failed to insert record: {e}")
     
     async def update_record(self, table_name: str, record_id: str, data: Dict[str, Any]) -> bool:
         """Update a record in the table"""
@@ -145,20 +215,26 @@ class SQLiteDatabaseManager:
             if self.conn is None:
                 await self._init_sqlite()
             
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
             # Serialize data for database storage
             serialized_data = self._serialize_data_for_db(data)
             
             set_clauses = [f"{key} = ?" for key in serialized_data.keys()]
             values = list(serialized_data.values()) + [record_id]
             
-            update_sql = f"UPDATE {table_name} SET {', '.join(set_clauses)} WHERE id = ?"
+            update_sql = f"UPDATE {safe_table_name} SET {', '.join(set_clauses)} WHERE id = ?"
             
             cursor = await self.conn.execute(update_sql, values)
             await self.conn.commit()
             return cursor.rowcount > 0
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to update record in {table_name}: {e}")
-            return False
+            raise DatabaseError(f"Failed to update record: {e}")
     
     async def get_record(self, table_name: str, record_id: str) -> Optional[Dict[str, Any]]:
         """Get a single record by ID"""
@@ -166,7 +242,10 @@ class SQLiteDatabaseManager:
             if self.conn is None:
                 await self._init_sqlite()
             
-            select_sql = f"SELECT * FROM {table_name} WHERE id = ?"
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
+            select_sql = f"SELECT * FROM {safe_table_name} WHERE id = ?"
             cursor = await self.conn.execute(select_sql, (record_id,))
             row = await cursor.fetchone()
             
@@ -174,9 +253,12 @@ class SQLiteDatabaseManager:
                 data = dict(row)
                 return self._deserialize_data_from_db(data)
             return None
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to get record from {table_name}: {e}")
-            return None
+            raise DatabaseError(f"Failed to get record: {e}")
     
     async def get_all_records(self, table_name: str) -> List[Dict[str, Any]]:
         """Get all records from a table"""
@@ -184,14 +266,20 @@ class SQLiteDatabaseManager:
             if self.conn is None:
                 await self._init_sqlite()
             
-            select_sql = f"SELECT * FROM {table_name}"
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
+            select_sql = f"SELECT * FROM {safe_table_name}"
             cursor = await self.conn.execute(select_sql)
             rows = await cursor.fetchall()
             
             return [self._deserialize_data_from_db(dict(row)) for row in rows]
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to get records from {table_name}: {e}")
-            return []
+            raise DatabaseError(f"Failed to get records: {e}")
     
     async def delete_record(self, table_name: str, record_id: str) -> bool:
         """Delete a record from the table"""
@@ -199,14 +287,20 @@ class SQLiteDatabaseManager:
             if self.conn is None:
                 await self._init_sqlite()
             
-            delete_sql = f"DELETE FROM {table_name} WHERE id = ?"
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
+            delete_sql = f"DELETE FROM {safe_table_name} WHERE id = ?"
             
             cursor = await self.conn.execute(delete_sql, (record_id,))
             await self.conn.commit()
             return cursor.rowcount > 0
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to delete record from {table_name}: {e}")
-            return False
+            raise DatabaseError(f"Failed to delete record: {e}")
     
     async def drop_table(self, table_name: str) -> bool:
         """Drop a table"""
@@ -214,7 +308,10 @@ class SQLiteDatabaseManager:
             if self.conn is None:
                 await self._init_sqlite()
             
-            drop_sql = f"DROP TABLE IF EXISTS {table_name}"
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
+            drop_sql = f"DROP TABLE IF EXISTS {safe_table_name}"
             
             await self.conn.execute(drop_sql)
             await self.conn.commit()
@@ -227,18 +324,24 @@ class SQLiteDatabaseManager:
     async def table_exists(self, table_name: str) -> bool:
         """Check if table exists in SQLite"""
         try:
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
             if self.conn is None:
                 await self._init_sqlite()
             
             cursor = await self.conn.execute("""
                 SELECT name FROM sqlite_master 
                 WHERE type='table' AND name=?
-            """, (table_name,))
+            """, (safe_table_name,))
             result = await cursor.fetchone()
             return result is not None
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to check if table {table_name} exists: {e}")
-            return False
+            raise DatabaseError(f"Failed to check table existence: {e}")
     
     async def get_all_keys(self) -> List[str]:
         """Get all table names from SQLite"""
@@ -475,6 +578,101 @@ class SQLiteDatabaseManager:
             logger.error(f"Failed to execute query: {e}")
             return []
     
+    # =========================================================================
+    # TLS Pipe Routes Table Methods (for shared TLS pipe server persistence)
+    # =========================================================================
+    
+    async def _ensure_tlspipe_routes_table(self) -> bool:
+        """Ensure tlspipe_routes table exists for shared TLS pipe persistence"""
+        try:
+            schema = {
+                'config_name': 'VARCHAR PRIMARY KEY',
+                'password_encrypted': 'TEXT NOT NULL',
+                'wireguard_port': 'INTEGER NOT NULL',
+                'tls_server_name': 'TEXT',
+                'enabled': 'INTEGER DEFAULT 1',
+                'created_at': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
+                'updated_at': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
+            }
+            return await self.create_table('tlspipe_routes', schema)
+        except Exception as e:
+            logger.error(f"Failed to create tlspipe_routes table: {e}")
+            return False
+    
+    async def save_tlspipe_route(self, config_name: str, password_encrypted: str, 
+                                  wireguard_port: int, tls_server_name: str = None) -> bool:
+        """Save or update a TLS pipe route"""
+        try:
+            if self.conn is None:
+                await self._init_sqlite()
+            
+            await self._ensure_tlspipe_routes_table()
+            
+            # Upsert: insert or replace
+            await self.conn.execute("""
+                INSERT OR REPLACE INTO tlspipe_routes 
+                (config_name, password_encrypted, wireguard_port, tls_server_name, enabled, updated_at)
+                VALUES (?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+            """, (config_name, password_encrypted, wireguard_port, tls_server_name))
+            await self.conn.commit()
+            logger.debug(f"Saved TLS pipe route for {config_name}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to save TLS pipe route: {e}")
+            return False
+    
+    async def get_tlspipe_route(self, config_name: str) -> Optional[Dict[str, Any]]:
+        """Get a TLS pipe route by config name"""
+        try:
+            if self.conn is None:
+                await self._init_sqlite()
+            
+            await self._ensure_tlspipe_routes_table()
+            cursor = await self.conn.execute("""
+                SELECT config_name, password_encrypted, wireguard_port, tls_server_name, enabled
+                FROM tlspipe_routes WHERE config_name = ?
+            """, (config_name,))
+            result = await cursor.fetchone()
+            
+            if result:
+                return dict(result)
+            return None
+        except Exception as e:
+            logger.error(f"Failed to get TLS pipe route: {e}")
+            return None
+    
+    async def get_all_tlspipe_routes(self) -> List[Dict[str, Any]]:
+        """Get all enabled TLS pipe routes"""
+        try:
+            if self.conn is None:
+                await self._init_sqlite()
+            
+            await self._ensure_tlspipe_routes_table()
+            cursor = await self.conn.execute("""
+                SELECT config_name, password_encrypted, wireguard_port, tls_server_name, enabled
+                FROM tlspipe_routes WHERE enabled = 1
+            """)
+            rows = await cursor.fetchall()
+            return [dict(row) for row in rows]
+        except Exception as e:
+            logger.error(f"Failed to get all TLS pipe routes: {e}")
+            return []
+    
+    async def delete_tlspipe_route(self, config_name: str) -> bool:
+        """Delete a TLS pipe route"""
+        try:
+            if self.conn is None:
+                await self._init_sqlite()
+            
+            await self._ensure_tlspipe_routes_table()
+            await self.conn.execute("DELETE FROM tlspipe_routes WHERE config_name = ?", (config_name,))
+            await self.conn.commit()
+            logger.debug(f"Deleted TLS pipe route for {config_name}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete TLS pipe route: {e}")
+            return False
+    
     async def close(self):
         """Close the database connection"""
         if self.conn:
@@ -636,56 +834,92 @@ class DatabaseManager:
             deleted_count = 0
             with self.postgres_conn.cursor() as cursor:
                 for table_name in keys:
-                    cursor.execute(f"DROP TABLE IF EXISTS {table_name} CASCADE")
+                    # Validate table name to prevent SQL injection
+                    safe_table_name = validate_table_name(table_name)
+                    cursor.execute(f'DROP TABLE IF EXISTS "{safe_table_name}" CASCADE')
                     deleted_count += 1
             return deleted_count
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Error deleting tables: {e}")
-            return 0
+            raise DatabaseError(f"Failed to delete tables: {e}")
     
     def get_table_keys(self, table_name: str) -> List[str]:
         """Get all record IDs for a table"""
         try:
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
             with self.postgres_conn.cursor() as cursor:
-                cursor.execute(f"SELECT id FROM {table_name}")
+                cursor.execute(f'SELECT id FROM "{safe_table_name}"')
                 return [row[0] for row in cursor.fetchall()]
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to get table keys for {table_name}: {e}")
-            return []
+            raise DatabaseError(f"Failed to get table keys: {e}")
     
     def create_table(self, table_name: str, schema: Dict[str, str]) -> bool:
         """Create a table in PostgreSQL"""
         try:
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
             with self.postgres_conn.cursor() as cursor:
                 # Build CREATE TABLE statement
                 columns = []
                 for col_name, col_type in schema.items():
-                    if col_name == 'id':
-                        columns.append(f'"{col_name}" VARCHAR PRIMARY KEY')
+                    col_type_upper = col_type.upper()
+                    
+                    # Check if this column has PRIMARY KEY constraint
+                    is_primary_key = 'PRIMARY KEY' in col_type_upper
+                    
+                    if col_name == 'id' or is_primary_key:
+                        # Handle primary key columns
+                        if 'VARCHAR' in col_type_upper:
+                            columns.append(f'"{col_name}" VARCHAR PRIMARY KEY')
+                        else:
+                            columns.append(f'"{col_name}" TEXT PRIMARY KEY')
                     else:
                         # Convert Redis types to PostgreSQL types
-                        if 'INT' in col_type.upper():
+                        if 'INT' in col_type_upper:
                             pg_type = 'INTEGER'
-                        elif 'FLOAT' in col_type.upper() or 'REAL' in col_type.upper():
+                            # Preserve DEFAULT if specified
+                            if 'DEFAULT' in col_type_upper:
+                                default_match = col_type.split('DEFAULT')
+                                if len(default_match) > 1:
+                                    pg_type = f"INTEGER DEFAULT {default_match[1].strip()}"
+                        elif 'FLOAT' in col_type_upper or 'REAL' in col_type_upper:
                             pg_type = 'REAL'
-                        elif 'DATETIME' in col_type.upper():
+                        elif 'DATETIME' in col_type_upper or 'TIMESTAMP' in col_type_upper:
                             pg_type = 'TIMESTAMP'
+                            if 'DEFAULT CURRENT_TIMESTAMP' in col_type_upper:
+                                pg_type = 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
                         else:
                             pg_type = 'TEXT'
+                            # Preserve NOT NULL if specified
+                            if 'NOT NULL' in col_type_upper:
+                                pg_type = 'TEXT NOT NULL'
                         
                         columns.append(f'"{col_name}" {pg_type}')
                 
-                create_sql = f'CREATE TABLE IF NOT EXISTS "{table_name}" ({", ".join(columns)})'
+                create_sql = f'CREATE TABLE IF NOT EXISTS "{safe_table_name}" ({", ".join(columns)})'
                 cursor.execute(create_sql)
                 
                 # Invalidate cache for this table
-                self._invalidate_cache(table_name)
+                self._invalidate_cache(safe_table_name)
                 
-                logger.debug(f"Created table {table_name}")
+                logger.debug(f"Created table {safe_table_name}")
                 return True
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to create table {table_name}: {e}")
-            return False
+            raise DatabaseError(f"Failed to create table: {e}")
     
     
     def get_brute_force_attempts(self, identifier: str) -> Dict[str, Any]:
@@ -769,6 +1003,9 @@ class DatabaseManager:
     def table_exists(self, table_name: str) -> bool:
         """Check if table exists in PostgreSQL"""
         try:
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
             with self.postgres_conn.cursor() as cursor:
                 cursor.execute("""
                     SELECT EXISTS (
@@ -776,30 +1013,42 @@ class DatabaseManager:
                         WHERE table_schema = 'public' 
                         AND table_name = %s
                     )
-                """, (table_name,))
+                """, (safe_table_name,))
                 return cursor.fetchone()[0]
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to check if table {table_name} exists: {e}")
-            return False
+            raise DatabaseError(f"Failed to check table existence: {e}")
     
     def drop_table(self, table_name: str) -> bool:
         """Drop a table from PostgreSQL"""
         try:
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
             with self.postgres_conn.cursor() as cursor:
-                cursor.execute(f'DROP TABLE IF EXISTS "{table_name}" CASCADE')
+                cursor.execute(f'DROP TABLE IF EXISTS "{safe_table_name}" CASCADE')
                 
                 # Invalidate cache for this table
-                self._invalidate_cache(table_name)
+                self._invalidate_cache(safe_table_name)
                 
-                logger.debug(f"Dropped table {table_name}")
+                logger.debug(f"Dropped table {safe_table_name}")
                 return True
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to drop table {table_name}: {e}")
-            return False
+            raise DatabaseError(f"Failed to drop table: {e}")
     
     def insert_record(self, table_name: str, record_id: str, data: Dict[str, Any]) -> bool:
         """Insert a record into PostgreSQL and cache in Redis"""
         try:
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
             with self.postgres_conn.cursor() as cursor:
                 # Serialize data for database storage
                 serialized_data = self._serialize_data_for_db(data)
@@ -811,7 +1060,7 @@ class DatabaseManager:
                 
                 # Insert into PostgreSQL
                 insert_sql = f'''
-                    INSERT INTO "{table_name}" ({", ".join([f'"{col}"' for col in columns])})
+                    INSERT INTO "{safe_table_name}" ({", ".join([f'"{col}"' for col in columns])})
                     VALUES ({", ".join(placeholders)})
                     ON CONFLICT (id) DO UPDATE SET
                     {", ".join([f'"{col}" = EXCLUDED."{col}"' for col in columns if col != 'id'])}
@@ -819,17 +1068,23 @@ class DatabaseManager:
                 cursor.execute(insert_sql, values)
                 
                 # Cache in Redis (use original data, not serialized)
-                cache_key = self.get_cache_key(table_name, record_id)
+                cache_key = self.get_cache_key(safe_table_name, record_id)
                 self._set_cache(cache_key, data)
                 
                 return True
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to insert record {record_id} into {table_name}: {e}")
-            return False
+            raise DatabaseError(f"Failed to insert record: {e}")
     
     def update_record(self, table_name: str, record_id: str, data: Dict[str, Any]) -> bool:
         """Update a record in PostgreSQL and cache in Redis"""
         try:
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
             with self.postgres_conn.cursor() as cursor:
                 # Serialize data for database storage
                 serialized_data = self._serialize_data_for_db(data)
@@ -844,47 +1099,59 @@ class DatabaseManager:
                 values.append(record_id)  # Add record_id for WHERE clause
                 
                 update_sql = f'''
-                    UPDATE "{table_name}" 
+                    UPDATE "{safe_table_name}" 
                     SET {", ".join(set_clauses)}
                     WHERE "id" = %s
                 '''
                 cursor.execute(update_sql, values)
                 
                 # Invalidate cache for this record
-                self._invalidate_cache(table_name, record_id)
+                self._invalidate_cache(safe_table_name, record_id)
                 
                 return True
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to update record {record_id} in {table_name}: {e}")
-            return False
+            raise DatabaseError(f"Failed to update record: {e}")
     
     def delete_record(self, table_name: str, record_id: str) -> bool:
         """Delete a record from PostgreSQL and invalidate cache"""
         try:
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
             with self.postgres_conn.cursor() as cursor:
-                delete_sql = f'DELETE FROM "{table_name}" WHERE "id" = %s'
+                delete_sql = f'DELETE FROM "{safe_table_name}" WHERE "id" = %s'
                 cursor.execute(delete_sql, (record_id,))
                 
                 # Invalidate cache for this record
-                self._invalidate_cache(table_name, record_id)
+                self._invalidate_cache(safe_table_name, record_id)
                 
                 return cursor.rowcount > 0
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to delete record {record_id} from {table_name}: {e}")
-            return False
+            raise DatabaseError(f"Failed to delete record: {e}")
     
     def get_record(self, table_name: str, record_id: str) -> Optional[Dict[str, Any]]:
         """Get a single record from cache first, then PostgreSQL"""
         try:
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
             # Try cache first
-            cache_key = self.get_cache_key(table_name, record_id)
+            cache_key = self.get_cache_key(safe_table_name, record_id)
             cached_data = self._get_from_cache(cache_key)
             if cached_data:
                 return cached_data
             
             # If not in cache, get from PostgreSQL
             with self.postgres_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
-                cursor.execute(f'SELECT * FROM "{table_name}" WHERE "id" = %s', (record_id,))
+                cursor.execute(f'SELECT * FROM "{safe_table_name}" WHERE "id" = %s', (record_id,))
                 row = cursor.fetchone()
                 
                 if row:
@@ -895,15 +1162,21 @@ class DatabaseManager:
                     return deserialized_data
                 
                 return None
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to get record {record_id} from {table_name}: {e}")
-            return None
+            raise DatabaseError(f"Failed to get record: {e}")
     
     def get_all_records(self, table_name: str) -> List[Dict[str, Any]]:
         """Get all records from a table (PostgreSQL with optional caching)"""
         try:
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
             with self.postgres_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
-                cursor.execute(f'SELECT * FROM "{table_name}"')
+                cursor.execute(f'SELECT * FROM "{safe_table_name}"')
                 rows = cursor.fetchall()
                 
                 records = []
@@ -915,17 +1188,23 @@ class DatabaseManager:
                     # Cache individual records
                     record_id = deserialized_data.get('id')
                     if record_id:
-                        cache_key = self.get_cache_key(table_name, record_id)
+                        cache_key = self.get_cache_key(safe_table_name, record_id)
                         self._set_cache(cache_key, deserialized_data)
                 
                 return records
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to get all records from {table_name}: {e}")
-            return []
+            raise DatabaseError(f"Failed to get all records: {e}")
     
     def search_records(self, table_name: str, conditions: Dict[str, Any]) -> List[Dict[str, Any]]:
         """Search records based on conditions using PostgreSQL"""
         try:
+            # Validate table name to prevent SQL injection
+            safe_table_name = validate_table_name(table_name)
+            
             with self.postgres_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
                 # Build WHERE clause
                 where_clauses = []
@@ -935,7 +1214,7 @@ class DatabaseManager:
                     values.append(value)
                 
                 where_sql = ' AND '.join(where_clauses) if where_clauses else '1=1'
-                search_sql = f'SELECT * FROM "{table_name}" WHERE {where_sql}'
+                search_sql = f'SELECT * FROM "{safe_table_name}" WHERE {where_sql}'
                 
                 cursor.execute(search_sql, values)
                 rows = cursor.fetchall()
@@ -949,13 +1228,16 @@ class DatabaseManager:
                     # Cache individual records
                     record_id = deserialized_data.get('id')
                     if record_id:
-                        cache_key = self.get_cache_key(table_name, record_id)
+                        cache_key = self.get_cache_key(safe_table_name, record_id)
                         self._set_cache(cache_key, deserialized_data)
                 
                 return records
+        except ValueError as e:
+            logger.error(f"Invalid table name: {e}")
+            raise DatabaseError(str(e))
         except Exception as e:
             logger.error(f"Failed to search records in {table_name}: {e}")
-            return []
+            raise DatabaseError(f"Failed to search records: {e}")
     
     def close_connections(self):
         """Close database connections"""
@@ -1174,6 +1456,137 @@ class DatabaseManager:
             logger.error(f"Failed to execute query: {e}")
             return []
     
+    # =========================================================================
+    # TLS Pipe Routes Table Methods (for shared TLS pipe server persistence)
+    # =========================================================================
+    
+    def _ensure_tlspipe_routes_table(self) -> bool:
+        """Ensure tlspipe_routes table exists for shared TLS pipe persistence"""
+        try:
+            # Check if table exists and has proper primary key
+            with self.postgres_conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = 'tlspipe_routes'
+                    )
+                """)
+                table_exists = cursor.fetchone()[0]
+                
+                if table_exists:
+                    # Check if primary key constraint exists
+                    cursor.execute("""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.table_constraints 
+                            WHERE table_name = 'tlspipe_routes' 
+                            AND constraint_type = 'PRIMARY KEY'
+                        )
+                    """)
+                    has_pk = cursor.fetchone()[0]
+                    
+                    if not has_pk:
+                        # Drop and recreate table with proper constraint
+                        logger.info("Recreating tlspipe_routes table with proper primary key")
+                        cursor.execute("DROP TABLE IF EXISTS tlspipe_routes")
+                        self.postgres_conn.commit()
+                        table_exists = False
+                
+                if not table_exists:
+                    # Create table with proper schema
+                    cursor.execute("""
+                        CREATE TABLE tlspipe_routes (
+                            config_name VARCHAR PRIMARY KEY,
+                            password_encrypted TEXT NOT NULL,
+                            wireguard_port INTEGER NOT NULL,
+                            tls_server_name TEXT,
+                            enabled INTEGER DEFAULT 1,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """)
+                    self.postgres_conn.commit()
+                    logger.info("Created tlspipe_routes table")
+                
+                return True
+        except Exception as e:
+            logger.error(f"Failed to ensure tlspipe_routes table: {e}")
+            try:
+                self.postgres_conn.rollback()
+            except:
+                pass
+            return False
+    
+    def save_tlspipe_route(self, config_name: str, password_encrypted: str, 
+                           wireguard_port: int, tls_server_name: str = None) -> bool:
+        """Save or update a TLS pipe route"""
+        try:
+            self._ensure_tlspipe_routes_table()
+            
+            # Upsert: insert or update on conflict
+            with self.postgres_conn.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO tlspipe_routes 
+                    (config_name, password_encrypted, wireguard_port, tls_server_name, enabled, updated_at)
+                    VALUES (%s, %s, %s, %s, 1, CURRENT_TIMESTAMP)
+                    ON CONFLICT (config_name) DO UPDATE SET
+                        password_encrypted = EXCLUDED.password_encrypted,
+                        wireguard_port = EXCLUDED.wireguard_port,
+                        tls_server_name = EXCLUDED.tls_server_name,
+                        enabled = 1,
+                        updated_at = CURRENT_TIMESTAMP
+                """, (config_name, password_encrypted, wireguard_port, tls_server_name))
+                self.postgres_conn.commit()
+            logger.debug(f"Saved TLS pipe route for {config_name}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to save TLS pipe route: {e}")
+            self.postgres_conn.rollback()
+            return False
+    
+    def get_tlspipe_route(self, config_name: str) -> Optional[Dict[str, Any]]:
+        """Get a TLS pipe route by config name"""
+        try:
+            self._ensure_tlspipe_routes_table()
+            with self.postgres_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT config_name, password_encrypted, wireguard_port, tls_server_name, enabled
+                    FROM tlspipe_routes WHERE config_name = %s
+                """, (config_name,))
+                result = cursor.fetchone()
+                return dict(result) if result else None
+        except Exception as e:
+            logger.error(f"Failed to get TLS pipe route: {e}")
+            return None
+    
+    def get_all_tlspipe_routes(self) -> List[Dict[str, Any]]:
+        """Get all enabled TLS pipe routes"""
+        try:
+            self._ensure_tlspipe_routes_table()
+            with self.postgres_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT config_name, password_encrypted, wireguard_port, tls_server_name, enabled
+                    FROM tlspipe_routes WHERE enabled = 1
+                """)
+                rows = cursor.fetchall()
+                return [dict(row) for row in rows]
+        except Exception as e:
+            logger.error(f"Failed to get all TLS pipe routes: {e}")
+            return []
+    
+    def delete_tlspipe_route(self, config_name: str) -> bool:
+        """Delete a TLS pipe route"""
+        try:
+            self._ensure_tlspipe_routes_table()
+            with self.postgres_conn.cursor() as cursor:
+                cursor.execute("DELETE FROM tlspipe_routes WHERE config_name = %s", (config_name,))
+                self.postgres_conn.commit()
+            logger.debug(f"Deleted TLS pipe route for {config_name}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete TLS pipe route: {e}")
+            self.postgres_conn.rollback()
+            return False
+    
     def close(self):
         """Close the database connection"""
         if self.postgres_conn:
@@ -1235,6 +1648,15 @@ def get_redis_manager_sync():
     except RuntimeError:
         # No event loop exists, create a new one
         return get_redis_manager_sync()
+
+
+def get_db_manager_sync():
+    """
+    Alias for get_redis_manager_sync() with a more intuitive name.
+    Returns the appropriate database manager (SQLite or PostgreSQL) synchronously.
+    """
+    return get_redis_manager_sync()
+
 
 # Compatibility functions for existing code
 async def sqlSelect(query: str, params: tuple = None):
@@ -1642,16 +2064,23 @@ class ConfigurationDatabase:
         }
         
         for table in tables:
-            if isinstance(self.manager, SQLiteDatabaseManager):
-                table_exists = await self.manager.table_exists(table)
-            else:
-                table_exists = self.manager.table_exists(table)
-            
-            if not table_exists:
-                logger.debug(f"Table {table} does not exist, skipping migration")
+            # Validate table name for defense in depth
+            try:
+                safe_table = validate_table_name(table)
+            except ValueError:
+                logger.warning(f"Skipping invalid table name during migration: {table}")
                 continue
             
-            logger.debug(f"Migrating table {table}...")
+            if isinstance(self.manager, SQLiteDatabaseManager):
+                table_exists = await self.manager.table_exists(safe_table)
+            else:
+                table_exists = self.manager.table_exists(safe_table)
+            
+            if not table_exists:
+                logger.debug(f"Table {safe_table} does not exist, skipping migration")
+                continue
+            
+            logger.debug(f"Migrating table {safe_table}...")
             
             try:
                 # Get appropriate cursor based on database type
@@ -1664,21 +2093,21 @@ class ConfigurationDatabase:
                         try:
                             # Check if column exists by trying to select it
                             try:
-                                await self.manager.execute_query(f'SELECT "{field}" FROM "{table}" LIMIT 1')
+                                await self.manager.execute_query(f'SELECT "{field}" FROM "{safe_table}" LIMIT 1')
                             except Exception:
                                 # Column doesn't exist, add it
-                                await self.manager.conn.execute(f'ALTER TABLE "{table}" ADD COLUMN "{field}" {field_info["type"]}')
+                                await self.manager.conn.execute(f'ALTER TABLE "{safe_table}" ADD COLUMN "{field}" {field_info["type"]}')
                                 await self.manager.conn.commit()
-                                logger.debug(f"Added column {field} to table {table}")
+                                logger.debug(f"Added column {field} to table {safe_table}")
                         except Exception as e:
                             # Column might already exist, which is fine
-                            logger.debug(f"Column {field} might already exist in table {table}: {e}")
+                            logger.debug(f"Column {field} might already exist in table {safe_table}: {e}")
                     
                     # Update existing records with default values
                     for field, field_info in new_fields.items():
                         if field_info['default'] is not None:
                             cursor = await self.manager.conn.execute(f'''
-                                UPDATE "{table}" 
+                                UPDATE "{safe_table}" 
                                 SET "{field}" = ? 
                                 WHERE "{field}" IS NULL
                             ''', (field_info['default'],))
@@ -1693,28 +2122,28 @@ class ConfigurationDatabase:
                         # Add missing columns
                         for field, field_info in new_fields.items():
                             try:
-                                cursor.execute(f'ALTER TABLE "{table}" ADD COLUMN IF NOT EXISTS "{field}" {field_info["type"]}')
-                                logger.debug(f"Added column {field} to table {table}")
+                                cursor.execute(f'ALTER TABLE "{safe_table}" ADD COLUMN IF NOT EXISTS "{field}" {field_info["type"]}')
+                                logger.debug(f"Added column {field} to table {safe_table}")
                             except Exception as e:
-                                logger.warning(f"Could not add column {field} to table {table}: {e}")
+                                logger.warning(f"Could not add column {field} to table {safe_table}: {e}")
                         
                         # Update existing records with default values
                         for field, field_info in new_fields.items():
                             if field_info['default'] is not None:
                                 cursor.execute(f'''
-                                    UPDATE "{table}" 
+                                    UPDATE "{safe_table}" 
                                     SET "{field}" = %s 
                                     WHERE "{field}" IS NULL
                                 ''', (field_info['default'],))
                                 updated_count += cursor.rowcount
                         
                         # Invalidate cache for this table
-                        self.manager._invalidate_cache(table)
+                        self.manager._invalidate_cache(safe_table)
                 
-                logger.debug(f"Migration completed for table {table}: {updated_count} records updated")
+                logger.debug(f"Migration completed for table {safe_table}: {updated_count} records updated")
                 
             except Exception as e:
-                logger.error(f"Error migrating table {table}: {e}")
+                logger.error(f"Error migrating table {safe_table}: {e}")
                 # Continue with other tables even if one fails
     
     async def dump_database(self):
@@ -2204,9 +2633,14 @@ class DatabaseAPI:
                     total_peers = 0
                     for table_name in config_tables:
                         try:
-                            cursor.execute(f'SELECT COUNT(*) FROM "{table_name}"')
+                            # Validate table name for defense in depth
+                            safe_table_name = validate_table_name(table_name)
+                            cursor.execute(f'SELECT COUNT(*) FROM "{safe_table_name}"')
                             peer_count = cursor.fetchone()[0] or 0
                             total_peers += peer_count
+                        except ValueError:
+                            logger.debug(f"Skipping invalid table name: {table_name}")
+                            continue
                         except Exception as e:
                             logger.debug(f"Error counting peers in table {table_name}: {e}")
                             continue
@@ -2446,8 +2880,15 @@ def migrate_sqlite_file_to_postgres(sqlite_path: str) -> bool:
         
         for table_name in tables:
             try:
+                # Validate table name for defense in depth
+                try:
+                    safe_table_name = validate_table_name(table_name)
+                except ValueError:
+                    logger.warning(f"Skipping invalid table name during migration: {table_name}")
+                    continue
+                
                 # Get table schema
-                sqlite_cursor.execute(f"PRAGMA table_info({table_name})")
+                sqlite_cursor.execute(f"PRAGMA table_info({safe_table_name})")
                 columns = sqlite_cursor.fetchall()
                 
                 # Create schema for Redis
@@ -2466,11 +2907,11 @@ def migrate_sqlite_file_to_postgres(sqlite_path: str) -> bool:
                         schema[col_name] = 'VARCHAR'
                 
                 # Create table in PostgreSQL if it doesn't exist
-                if not db_manager.table_exists(table_name):
-                    db_manager.create_table(table_name, schema)
+                if not db_manager.table_exists(safe_table_name):
+                    db_manager.create_table(safe_table_name, schema)
                 
                 # Migrate data
-                sqlite_cursor.execute(f"SELECT * FROM {table_name}")
+                sqlite_cursor.execute(f"SELECT * FROM {safe_table_name}")
                 rows = sqlite_cursor.fetchall()
                 
                 for row in rows:

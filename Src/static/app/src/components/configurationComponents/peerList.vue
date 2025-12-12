@@ -23,6 +23,7 @@ const PeerJobsLogsModal = defineAsyncComponent(() => import("@/components/config
 const EditConfigurationModal = defineAsyncComponent(() => import("@/components/configurationComponents/editConfiguration.vue"))
 const SelectPeersModal = defineAsyncComponent(() => import("@/components/configurationComponents/selectPeers.vue"))
 const PeerAddModal = defineAsyncComponent(() => import("@/components/configurationComponents/peerAddModal.vue"))
+const TlsPipeManager = defineAsyncComponent(() => import("@/components/configurationComponents/tlsPipeManager.vue"))
 
 const dashboardStore = DashboardConfigurationStore()
 const wireguardConfigurationStore = WireguardConfigurationsStore()
@@ -31,11 +32,14 @@ const configurationInfo = ref({})
 const configurationPeers = ref([])
 const configurationToggling = ref(false)
 
-// TLS Pipe Server Status
+// TLS Pipe Server Status (Shared)
 const tlsPipeStatus = ref({
 	running: false,
 	loading: false,
-	port: null
+	port: 443,
+	routeCount: 0,
+	configEnabled: false,
+	shared: true
 })
 const configurationModalSelectedPeer = ref({})
 const configurationModals = ref({
@@ -83,26 +87,37 @@ const configurationModals = ref({
 	},
 	peerRateLimit: {
 		modalOpen: false
+	},
+	tlsPipeManager: {
+		modalOpen: false
 	}
 })
 const peerSearchBar = ref(false)
 
-// Fetch TLS Pipe Status =====================================
+// Fetch TLS Pipe Status (Shared Server) =====================================
 const fetchTlsPipeStatus = async () => {
 	tlsPipeStatus.value.loading = true
-	await fetchGet(`/api/udptlspipe/status/${route.params.id}`, {}, (res) => {
+	// Fetch shared TLS pipe status
+	await fetchGet('/api/udptlspipe/shared/status', {}, (res) => {
 		if (res.status && res.data) {
+			const isConfigEnabled = res.data.routes?.includes(route.params.id)
 			tlsPipeStatus.value = {
 				running: res.data.running || false,
 				loading: false,
-				port: res.data.listen_port || null,
-				pid: res.data.pid || null
+				port: res.data.listen_port || 443,
+				pid: res.data.pid || null,
+				routeCount: res.data.route_count || 0,
+				configEnabled: isConfigEnabled,
+				shared: true
 			}
 		} else {
 			tlsPipeStatus.value = {
 				running: false,
 				loading: false,
-				port: null
+				port: 443,
+				routeCount: 0,
+				configEnabled: false,
+				shared: true
 			}
 		}
 	})
@@ -324,12 +339,20 @@ watch(() => configurationPeers.value, async (newPeers) => {
 
 				</div>
 			</div>
-			<!-- TLS Pipe Server Status -->
-			<div class="card rounded-3 bg-transparent" v-if="tlsPipePeersCount > 0 || tlsPipeStatus.running">
+			<!-- Shared TLS Pipe Server Status (Clickable) -->
+			<div class="card rounded-3 bg-transparent tls-pipe-card" 
+			     role="button"
+			     @click="configurationModals.tlsPipeManager.modalOpen = true"
+			     title="Click to manage TLS Pipe">
 				<div class="card-body py-2 d-flex align-items-center gap-2">
 					<small class="text-muted d-flex align-items-center gap-1">
 						<i class="bi bi-shield-lock-fill"></i>
 						<LocaleText t="TLS Pipe"></LocaleText>
+						<span class="badge bg-secondary-subtle text-secondary-emphasis ms-1" 
+						      style="font-size: 0.6rem;" 
+						      title="Single shared server on port 443">
+							Shared
+						</span>
 					</small>
 					<div class="dot ms-2" :class="{active: tlsPipeStatus.running}"></div>
 					<small v-if="tlsPipeStatus.loading" class="text-muted">
@@ -337,6 +360,9 @@ watch(() => configurationPeers.value, async (newPeers) => {
 					</small>
 					<small v-else-if="tlsPipeStatus.running" class="text-success">
 						:{{ tlsPipeStatus.port }}
+						<span class="text-muted ms-1" v-if="tlsPipeStatus.routeCount > 1">
+							({{ tlsPipeStatus.routeCount }} configs)
+						</span>
 					</small>
 					<small v-else class="text-muted">
 						<LocaleText t="Off"></LocaleText>
@@ -346,9 +372,10 @@ watch(() => configurationPeers.value, async (newPeers) => {
 					      style="font-size: 0.7rem;">
 						{{ tlsPipePeersCount }} <LocaleText t="peer"></LocaleText><span v-if="tlsPipePeersCount > 1">s</span>
 					</span>
+					<i class="bi bi-gear-fill text-muted ms-2" style="font-size: 0.8rem;"></i>
 				</div>
 			</div>
-			<div class="d-flex gap-2">
+			<div class="d-flex gap-2 flex-wrap">
 				<a
 					role="button"
 					@click="configurationModals.peerNew.modalOpen = true"
@@ -361,6 +388,13 @@ watch(() => configurationPeers.value, async (newPeers) => {
 				        type="button" aria-expanded="false">
 					<i class="bi bi-gear-fill me-2"></i>
 					<LocaleText t="Configuration Settings"></LocaleText>
+				</button>
+				<button class="titleBtn py-2 text-decoration-none btn text-success-emphasis bg-success-subtle rounded-3 border-1 border-success-subtle"
+				        @click="configurationModals.tlsPipeManager.modalOpen = true"
+				        type="button"
+				        title="Manage TLS Pipe for censorship-resistant tunneling">
+					<i class="bi bi-shield-lock-fill me-2"></i>
+					<LocaleText t="TLS Pipe"></LocaleText>
 				</button>
 			</div>
 		</div>
@@ -549,6 +583,13 @@ watch(() => configurationPeers.value, async (newPeers) => {
 			@close="configurationModals.backupRestore.modalOpen = false"
 			@refreshPeersList="fetchPeerList()"
 		></ConfigurationBackupRestore>
+		<TlsPipeManager
+			key="TlsPipeManager"
+			v-if="configurationModals.tlsPipeManager.modalOpen"
+			@close="configurationModals.tlsPipeManager.modalOpen = false"
+			@refresh="fetchPeerList(); fetchTlsPipeStatus()"
+			:configurationInfo="configurationInfo"
+		></TlsPipeManager>
 	</TransitionGroup>
 	<PeerIntersectionObserver
 		:showPeersCount="showPeersCount"
@@ -572,5 +613,15 @@ th, td{
 	.titleBtn{
 		flex-basis: 100%;
 	}
+}
+
+.tls-pipe-card {
+	cursor: pointer;
+	transition: all 0.2s ease;
+}
+
+.tls-pipe-card:hover {
+	background-color: rgba(var(--bs-success-rgb), 0.1) !important;
+	border-color: var(--bs-success) !important;
 }
 </style>

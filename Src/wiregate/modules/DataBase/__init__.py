@@ -6,6 +6,8 @@ Contains database management, Redis operations, and SQL compatibility
 from .DataBaseManager import (
     DatabaseManager,
     SQLiteDatabaseManager,
+    DatabaseError,
+    validate_table_name,
     get_redis_manager,
     sqlSelect,
     sqlUpdate,
@@ -21,6 +23,8 @@ from .DataBaseManager import (
 __all__ = [
     'DatabaseManager',
     'SQLiteDatabaseManager',
+    'DatabaseError',
+    'validate_table_name',
     'get_redis_manager',
     'sqlSelect',
     'sqlUpdate',
