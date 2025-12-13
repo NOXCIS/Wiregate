@@ -100,3 +100,68 @@
 - Bug Fixes
 - Awg Kernel Module Support if installed on host
 - Rate Limits Fully Fuctional
+
+sol-beta-v2.5.2:
+  - DO NOT USE IN PROD IS BETA
+  - Complete FastAPI Migration - All Flask routes migrated to FastAPI
+  - Enhanced Security Infrastructure - Comprehensive security middleware stack
+  - Async Database Architecture - Full async/await support with PostgreSQL + Redis
+  - Thread Pool & Process Pool Optimization - Parallel processing for bulk operations
+  - Bug Fixes (Traffic Shaping) (Unsafe Inline css) (Public keys)
+  - Sqlite backwards Compatablitly via DASHBOARD_TYPE=scale  # simple (SQLite) or scale (PostgreSQL + Redis)
+
+sol-beta-v2.5.3:
+  - DO NOT USE IN PROD IS BETA
+  - theme updates
+  - logo update
+  - ui bug fixes
+  - added Tor Protocol Badge
+  - fixed tor proxy config generation
+  - move uvicorn options to .env
+  - bug fixes
+
+
+flat-bridge-v0.0.1:
+  - STABLE BETA (USE AT OWN RISK)
+  - Dockerfile & Nuitka.Dockerfile: Auto-fetch latest Go version (removed hardcoded 1.24.x)
+  - Security (CSP) - fastapi_middleware.py:
+  - Added default-src, base-uri, worker-src, child-src directives
+  - Added upgrade-insecure-requests & block-all-mixed-content (prod)
+  - Removed redundant script-src 'self'
+  - Added middleware to block JS files outside /assets/ and backup directories
+  - Frontend:
+  - Converted 5 Vue components to dynamic imports (defineAsyncComponent)
+  - Fixed Vite code-splitting warnings, reduced initial bundle size
+
+
+flat-bridge-v0.0.2:
+  - Bug Fixes
+  - Security hardening with CSP
+  - SRI (Subresource Integrity) is a security feature that verifies external resources (scripts, stylesheets) haven't been tampered with.
+  - infrastructure updates for deployment and management.
+
+flat-bridge-v0.0.3:
+  - Bug Fixes
+  - Security hardening with CSP
+  - SRI (Subresource Integrity) is a security feature that verifies external resources (scripts, stylesheets) haven't been tampered with.
+  - infrastructure updates for deployment and management.
+
+UNRELEASED:
+  - Added Cloudflare Warp integration for enhanced privacy and performance
+  - New wgcf binary built into Docker image for Warp credential generation
+  - warp-manager.sh script for complete Warp lifecycle management
+  - Per-zone Warp routing via warp-postup.sh and warp-postdown.sh scripts
+  - Policy-based routing for selective traffic routing through Cloudflare
+  - Support for free and Warp+ premium tiers
+  - Environment variable configuration (WGD_WARP_ENABLED, WGD_WARP_ZONES, etc.)
+  - Comprehensive documentation and examples in docs/CLOUDFLARE_WARP_INTEGRATION.md
+  - Example configuration in examples/warp-config.env.example
+  - Optional feature - disabled by default, zero impact when not enabled
+  - Automatic Warp initialization during container startup
+  - Health checks and connectivity validation
+  - Addresses upstream issue #66 - Cloudflare Warp tunnel support
+
+flat-bridge-v1.5.0:
+  - AmneziaWG 1.5 Implimentation.
+  - Adaptive AWG decoy packets
+  - Bug Fixes
