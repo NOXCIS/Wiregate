@@ -393,8 +393,8 @@ if [ -n "$peer_id" ] && [ "$peer_id" != "null" ]; then
             
             # Note: The container kernel may have different scheduler support than the macOS host
             # We'll verify what's actually in the tc output rather than assuming
-                # Wait a moment for scheduler to be applied
-                sleep 1
+            # Wait a moment for scheduler to be applied
+            sleep 1
                 tc_cmd="tc qdisc show dev ${test_config_name} 2>/dev/null"
                 tc_output=$(container_exec "$tc_cmd" || echo "")
                 
@@ -446,7 +446,6 @@ if [ -n "$peer_id" ] && [ "$peer_id" != "null" ]; then
                     fi
                 fi
             fi
-        fi
     done
 else
     test_skip "Rate limit tests" "No peer available"

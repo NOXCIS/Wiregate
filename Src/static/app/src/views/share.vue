@@ -2,7 +2,7 @@
 import {useRoute} from "vue-router";
 import {DashboardConfigurationStore} from "@/stores/DashboardConfigurationStore.js";
 import {fetchGet} from "@/utilities/fetch.js";
-import {ref} from "vue";
+import {ref, nextTick} from "vue";
 import QRCode from "qrcode";
 import LocaleText from "@/components/text/localeText.vue";
 
@@ -34,16 +34,19 @@ export default {
 				if (res.status){
 					this.peerConfiguration = res.data;
 					this.blob = new Blob([this.peerConfiguration.file], { type: "text/plain" });
+					// Generate QR code after data is loaded and DOM is updated
+					nextTick(() => {
+						const canvas = this.$refs.qrcode;
+						if (canvas && this.peerConfiguration && this.peerConfiguration.file) {
+							QRCode.toCanvas(canvas, this.peerConfiguration.file, (error) => {
+								if (error) console.error(error)
+							})
+						}
+					});
 				}else{
 					this.peerConfiguration = undefined
 				}
 				this.loaded = true;
-			})
-		}
-		
-		if(this.peerConfiguration){
-			QRCode.toCanvas(document.querySelector("#qrcode"), this.peerConfiguration.file,  (error) => {
-				if (error) console.error(error)
 			})
 		}
 	},

@@ -454,7 +454,7 @@ func (s *Server) saveDstConn(conn net.Conn) {
 // closeDstConn closes the destination connection and cleans up after it.
 func (s *Server) closeDstConn(conn net.Conn) {
 	// No destination connection opened yet, do nothing.
-	if conn != nil {
+	if conn == nil {
 		return
 	}
 
@@ -645,10 +645,6 @@ func (s *Server) serveConn(conn net.Conn) {
 // processConn processes the prepared server connection that is passed as rwc.
 // The destination parameter specifies where to forward the traffic.
 func (s *Server) processConn(rwc io.ReadWriteCloser, destination string) {
-	var dstConn net.Conn
-
-	defer s.closeDstConn(dstConn)
-
 	dstConn, err := s.dialDst(destination)
 	if err != nil {
 		log.Error("failed to connect to %s: %v", destination, err)
@@ -656,6 +652,7 @@ func (s *Server) processConn(rwc io.ReadWriteCloser, destination string) {
 		return
 	}
 
+	defer s.closeDstConn(dstConn)
 	s.saveDstConn(dstConn)
 
 	var dstRwc io.ReadWriteCloser = dstConn

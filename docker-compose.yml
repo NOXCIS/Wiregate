@@ -98,7 +98,8 @@ services:
         - ./.env
       ports:
         #- 44333:44333/udp
-        #- "4430-4433:4430-4433/udp" #UDP Interface Listen Ports For Zones
+        - 443:443/tcp
+        - "4430-4433:4430-4433/udp" #UDP Interface Listen Ports For Zones
         - 8090:80/tcp   # HTTP port
         - 8443:443/tcp  # HTTPS port for SSL
       sysctls:        #Otherwise access the dashboard @ your-sever-ip/domain:6060

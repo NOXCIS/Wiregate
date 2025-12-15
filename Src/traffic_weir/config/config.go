@@ -6,7 +6,7 @@ const (
 	LogFile   = "traffic-weir.log"
 	// Maximum rates in Kb/s
 	MaxRate32 = 4194303 // 32-bit max: ~4.2 Gb/s
-	MaxRate64 = 4194303 // 64-bit max: ~18.4 Pb/s
+	MaxRate64 = 4194303 // 64-bit max: ~4.2 Gb/s (same as 32-bit for practical limits)
 )
 
 // PeerInfo represents information about a WireGuard/AmneziaWG peer
