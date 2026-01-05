@@ -1,0 +1,20 @@
+# SPDX-FileCopyrightText: 2023-2025 Arkadiusz Bokowy and contributors
+# SPDX-License-Identifier: MIT
+---
+BasedOnStyle: LLVM
+ColumnLimit: 99
+IndentWidth: 4
+TabWidth: 4
+---
+Language: Cpp
+AccessModifierOffset: -4
+AllowShortFunctionsOnASingleLine: Inline
+Cpp11BracedListStyle: false
+IndentPPDirectives: AfterHash
+PointerAlignment: Middle
+SortIncludes: CaseInsensitive
+UseTab: ForIndentation
+---
+Language: CSharp
+UseTab: ForIndentation
+---

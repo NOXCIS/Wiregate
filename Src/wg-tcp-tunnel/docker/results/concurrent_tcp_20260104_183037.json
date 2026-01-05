@@ -1,0 +1,87 @@
+{
+  "mode": "tcp",
+  "timestamp": "20260104_183037",
+  "max_concurrent": 50,
+  "tests": [
+    {
+      "name": "concurrent_1_clients",
+      "num_clients": 1,
+      "duration": 15,
+      "packets_sent": 750,
+      "packets_received": 750,
+      "packets_lost": 0,
+      "loss_rate_percent": 0,
+      "avg_latency_ms": 1.35,
+      "clients_success": 1,
+      "clients_failed": 0
+    },
+    {
+      "name": "concurrent_5_clients",
+      "num_clients": 5,
+      "duration": 15,
+      "packets_sent": 3750,
+      "packets_received": 3750,
+      "packets_lost": 0,
+      "loss_rate_percent": 0,
+      "avg_latency_ms": 0.9,
+      "clients_success": 5,
+      "clients_failed": 0
+    },
+    {
+      "name": "concurrent_10_clients",
+      "num_clients": 10,
+      "duration": 15,
+      "packets_sent": 7500,
+      "packets_received": 7500,
+      "packets_lost": 0,
+      "loss_rate_percent": 0,
+      "avg_latency_ms": 0.79,
+      "clients_success": 10,
+      "clients_failed": 0
+    },
+    {
+      "name": "concurrent_20_clients",
+      "num_clients": 20,
+      "duration": 15,
+      "packets_sent": 15000,
+      "packets_received": 15000,
+      "packets_lost": 0,
+      "loss_rate_percent": 0,
+      "avg_latency_ms": 0.62,
+      "clients_success": 20,
+      "clients_failed": 0
+    },
+    {
+      "name": "concurrent_50_clients",
+      "num_clients": 50,
+      "duration": 15,
+      "packets_sent": 37500,
+      "packets_received": 37500,
+      "packets_lost": 0,
+      "loss_rate_percent": 0,
+      "avg_latency_ms": 0.48,
+      "clients_success": 50,
+      "clients_failed": 0
+    },
+    {
+      "name": "rapid_connection_creation",
+      "attempts": 100,
+      "success": 0,
+      "failure": 100
+    },
+    {
+      "name": "mixed_load",
+      "rates": [
+        10,
+        50,
+        100,
+        200,
+        500
+      ],
+      "packets_sent": 17199,
+      "packets_received": 17199,
+      "loss_rate_percent": 0
+    }
+  ]
+}
+

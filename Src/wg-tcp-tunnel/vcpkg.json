@@ -1,0 +1,14 @@
+{
+  "name": "wg-tcp-tunnel",
+  "version": "1.1.0",
+  "builtin-baseline": "eba7c6a894fce24146af4fdf161fef8e90dd6be3",
+  "dependencies": [
+    "boost-asio",
+    "boost-beast",
+    "boost-crc",
+    "boost-date-time",
+    "boost-log",
+    "boost-program-options",
+    "boost-property-tree"
+  ]
+}

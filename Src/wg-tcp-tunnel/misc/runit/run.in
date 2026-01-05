@@ -1,0 +1,5 @@
+#!/data/data/com.termux/files/usr/bin/sh
+# SPDX-FileCopyrightText: 2025 Arkadiusz Bokowy and contributors
+# SPDX-License-Identifier: MIT
+. /data/data/com.termux/files/home/.profile
+exec wg-tcp-tunnel @WGTT_RUNIT_ARGS@ 2>&1

@@ -1,0 +1,66 @@
+# wg-tcp-tunnel - Client Dockerfile
+# SPDX-FileCopyrightText: 2023-2025 Arkadiusz Bokowy and contributors
+# SPDX-License-Identifier: MIT
+
+FROM ubuntu:22.04 AS builder
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cmake \
+    libboost-dev \
+    libboost-log-dev \
+    libboost-program-options-dev \
+    libssl-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy only build-related files first (for better cache utilization)
+WORKDIR /build
+COPY CMakeLists.txt vcpkg.json ./
+COPY src/ ./src/
+
+# Build the project
+RUN cmake -S . -B build \
+    -DCMAKE_BUILD_TYPE=Release \
+    -DENABLE_WEBSOCKET=ON \
+    && cmake --build build
+
+# Runtime stage
+FROM ubuntu:22.04
+
+# Install runtime dependencies (including WireGuard for live testing)
+RUN apt-get update && apt-get install -y \
+    libboost-log1.74.0 \
+    libboost-program-options1.74.0 \
+    libssl3 \
+    netcat-openbsd \
+    python3 \
+    python3-pip \
+    bc \
+    wireguard-tools \
+    iptables \
+    iproute2 \
+    iputils-ping \
+    iperf3 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy the binary from builder
+COPY --from=builder /build/build/wg-tcp-tunnel /usr/local/bin/wg-tcp-tunnel
+
+# Copy entrypoint script
+COPY docker/entrypoint-client.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+# Copy test UDP client script
+COPY docker/test-udp-client.sh /test-udp-client.sh
+RUN chmod +x /test-udp-client.sh
+
+# Copy WireGuard setup script
+COPY docker/wg-setup-client.sh /wg-setup-client.sh
+RUN chmod +x /wg-setup-client.sh
+
+# Expose UDP port for incoming connections (WireGuard or test client)
+EXPOSE 51822/udp
+
+ENTRYPOINT ["/entrypoint.sh"]
+

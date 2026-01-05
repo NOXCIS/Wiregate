@@ -1,0 +1,4053 @@
+
+[1m[0;36m=== TCP/UDP Transport Tests ===[0m
+
+
+[1m[0;36mRunning: TCP Throughput[0m
+
+========================================
+ Throughput Stress Test
+========================================
+Target:    client-tcp:51822
+Mode:      tcp
+Duration:  15s per test
+Results:   /results/throughput_tcp_20260104_174356.json
+========================================
+
+[0;32m[INFO][0m === Baseline Test ===
+[0;32m[INFO][0m Testing: 100 pps, 256 bytes, 10s
+  Starting stress test to client-tcp:51822
+  Rate: 100.0 pps, Duration: 10.0s, Packet size: 256 bytes
+  
+  Sent packet #0 (1 total)
+  Received packet #0, latency: 1.09ms (1 total)
+  Waiting for remaining responses...
+  
+  === Stress Test Results ===
+  Duration:           12.04s
+  Packets Sent:       1000
+  Packets Received:   1000
+  Packets Lost:       0 (0.00%)
+  Out of Order:       0
+  Throughput:         83.07 pps / 0.1701 Mbps
+  Latency (ms):       avg=1.22 min=0.31 max=9.68
+  p50=1.29 p95=1.72 p99=2.07
+  Errors:             0
+  ===========================
+  
+  Results saved to /results/rate_100_size_256_20260104_174356.json
+[0;32m[INFO][0m   PASSED (loss: 0.0%)
+
+[0;32m[INFO][0m === Rate Scaling Tests ===
+[0;32m[INFO][0m Testing: 100 pps, 256 bytes, 15s
+  Starting stress test to client-tcp:51822
+  Rate: 100.0 pps, Duration: 15.0s, Packet size: 256 bytes
+  
+  Sent packet #0 (1 total)
+  Received packet #0, latency: 0.69ms (1 total)
+  Sent packet #1000 (1001 total)
+  Received packet #1000, latency: 1.44ms (1001 total)
+  Waiting for remaining responses...
+  
+  === Stress Test Results ===
+  Duration:           17.06s
+  Packets Sent:       1500
+  Packets Received:   1500
+  Packets Lost:       0 (0.00%)
+  Out of Order:       0
+  Throughput:         87.93 pps / 0.1801 Mbps
+  Latency (ms):       avg=1.02 min=0.22 max=5.70
+  p50=0.98 p95=1.79 p99=2.53
+  Errors:             0
+  ===========================
+  
+  Results saved to /results/rate_100_size_256_20260104_174356.json
+[0;32m[INFO][0m   PASSED (loss: 0.0%)
+[0;32m[INFO][0m Testing: 500 pps, 256 bytes, 15s
+  Starting stress test to client-tcp:51822
+  Rate: 500.0 pps, Duration: 15.0s, Packet size: 256 bytes
+  
+  Sent packet #0 (1 total)
+  Received packet #0, latency: 0.70ms (1 total)
+  Sent packet #1000 (1001 total)
+  Received packet #1000, latency: 0.54ms (1001 total)
+  Sent packet #2000 (2001 total)
+  Received packet #2000, latency: 0.34ms (2001 total)
+  Sent packet #3000 (3001 total)
+  Received packet #3000, latency: 0.55ms (3001 total)
+  Sent packet #4000 (4001 total)
+  Received packet #4000, latency: 0.24ms (4001 total)
+  Sent packet #5000 (5001 total)
+  Received packet #5000, latency: 0.51ms (5001 total)
+  Sent packet #6000 (6001 total)
+  Received packet #6000, latency: 0.48ms (6001 total)
+  Sent packet #7000 (7001 total)
+  Received packet #7000, latency: 0.33ms (7001 total)
+  Waiting for remaining responses...
+  
+  === Stress Test Results ===
+  Duration:           17.04s
+  Packets Sent:       7499
+  Packets Received:   7499
+  Packets Lost:       0 (0.00%)
+  Out of Order:       0
+  Throughput:         440.16 pps / 0.9014 Mbps
+  Latency (ms):       avg=0.51 min=0.17 max=9.46
+  p50=0.41 p95=1.10 p99=1.40
+  Errors:             0
+  ===========================
+  
+  Results saved to /results/rate_500_size_256_20260104_174356.json
+[0;32m[INFO][0m   PASSED (loss: 0.0%)
+[0;32m[INFO][0m Testing: 1000 pps, 256 bytes, 15s
+  Starting stress test to client-tcp:51822
+  Rate: 1000.0 pps, Duration: 15.0s, Packet size: 256 bytes
+  
+  Sent packet #0 (1 total)
+  Received packet #0, latency: 0.61ms (1 total)
+  Sent packet #1000 (1001 total)
+  Received packet #1000, latency: 0.52ms (1001 total)
+  Sent packet #2000 (2001 total)
+  Received packet #2000, latency: 2.02ms (2001 total)
+  Sent packet #3000 (3001 total)
+  Received packet #3000, latency: 2.12ms (3001 total)
+  Sent packet #4000 (4001 total)
+  Received packet #4000, latency: 0.58ms (4001 total)
+  Sent packet #5000 (5001 total)
+  Received packet #5000, latency: 0.84ms (5001 total)
+  Sent packet #6000 (6001 total)
+  Received packet #6000, latency: 1.40ms (6001 total)
+  Sent packet #7000 (7001 total)
+  Received packet #7000, latency: 2.04ms (7001 total)
+  Sent packet #8000 (8001 total)
+  Received packet #8000, latency: 1.50ms (8001 total)
+  Sent packet #9000 (9001 total)
+  Received packet #9000, latency: 1.24ms (9001 total)
+  Sent packet #10000 (10001 total)
+  Received packet #10000, latency: 1.51ms (10001 total)
+  Sent packet #11000 (11001 total)
+  Received packet #11000, latency: 1.33ms (11001 total)
+  Sent packet #12000 (12001 total)
+  Received packet #12000, latency: 0.86ms (12001 total)
+  Sent packet #13000 (13001 total)
+  Received packet #13000, latency: 0.96ms (13001 total)
+  Sent packet #14000 (14001 total)
+  Received packet #14000, latency: 1.14ms (14001 total)
+  Waiting for remaining responses...
+  
+  === Stress Test Results ===
+  Duration:           17.04s
+  Packets Sent:       15000
+  Packets Received:   15000
+  Packets Lost:       0 (0.00%)
+  Out of Order:       0
+  Throughput:         880.42 pps / 1.8031 Mbps
+  Latency (ms):       avg=1.38 min=0.24 max=41.48
+  p50=1.33 p95=2.38 p99=2.92
+  Errors:             0
+  ===========================
+  
+  Results saved to /results/rate_1000_size_256_20260104_174356.json
+[0;32m[INFO][0m   PASSED (loss: 0.0%)
+[0;32m[INFO][0m Testing: 2000 pps, 256 bytes, 15s
+  Starting stress test to client-tcp:51822
+  Rate: 2000.0 pps, Duration: 15.0s, Packet size: 256 bytes
+  
+  Sent packet #0 (1 total)
+  Received packet #0, latency: 0.71ms (1 total)
+  Sent packet #1000 (1001 total)
+  Received packet #1000, latency: 0.79ms (1001 total)
+  Sent packet #2000 (2001 total)
+  Received packet #2000, latency: 0.58ms (2001 total)
+  Sent packet #3000 (3001 total)
+  Received packet #3000, latency: 0.77ms (3001 total)
+  Sent packet #4000 (4001 total)
+  Received packet #4000, latency: 0.48ms (4001 total)
+  Sent packet #5000 (5001 total)
+  Received packet #5000, latency: 0.61ms (5001 total)
+  Sent packet #6000 (6001 total)
+  Received packet #6000, latency: 0.91ms (6001 total)
+  Sent packet #7000 (7001 total)
+  Received packet #7000, latency: 0.72ms (7001 total)
+  Sent packet #8000 (8001 total)
+  Received packet #8000, latency: 1.00ms (8001 total)
+  Sent packet #9000 (9001 total)
+  Received packet #9000, latency: 2.10ms (9001 total)
+  Sent packet #10000 (10001 total)
+  Received packet #10000, latency: 2.00ms (10001 total)
+  Sent packet #11000 (11001 total)
+  Received packet #11000, latency: 0.73ms (11001 total)
+  Sent packet #12000 (12001 total)
+  Received packet #12000, latency: 1.12ms (12001 total)
+  Sent packet #13000 (13001 total)
+  Received packet #13000, latency: 0.93ms (13001 total)
+  Sent packet #14000 (14001 total)
+  Received packet #14000, latency: 0.81ms (14001 total)
+  Sent packet #15000 (15001 total)
+  Received packet #15000, latency: 0.87ms (15001 total)
+  Sent packet #16000 (16001 total)
+  Received packet #16000, latency: 1.29ms (16001 total)
+  Sent packet #17000 (17001 total)
+  Received packet #17000, latency: 1.16ms (17001 total)
+  Sent packet #18000 (18001 total)
+  Received packet #18000, latency: 0.88ms (18001 total)
+  Sent packet #19000 (19001 total)
+  Received packet #19000, latency: 1.35ms (19001 total)
+  Sent packet #20000 (20001 total)
+  Received packet #20000, latency: 1.15ms (20001 total)
+  Sent packet #21000 (21001 total)
+  Received packet #21000, latency: 0.73ms (21001 total)
+  Sent packet #22000 (22001 total)
+  Received packet #22000, latency: 0.91ms (22001 total)
+  Sent packet #23000 (23001 total)
+  Received packet #23000, latency: 0.72ms (23001 total)
+  Sent packet #24000 (24001 total)
+  Received packet #24000, latency: 0.98ms (24001 total)
+  Sent packet #25000 (25001 total)
+  Received packet #25000, latency: 1.38ms (25001 total)
+  Sent packet #26000 (26001 total)
+  Received packet #26000, latency: 0.70ms (26001 total)
+  Sent packet #27000 (27001 total)
+  Received packet #27000, latency: 1.63ms (27001 total)
+  Sent packet #28000 (28001 total)
+  Received packet #28000, latency: 0.73ms (28001 total)
+  Sent packet #29000 (29001 total)
+  Received packet #29000, latency: 0.69ms (29001 total)
+  Sent packet #30000 (30001 total)
+  Received packet #30000, latency: 0.69ms (30001 total)
+  Waiting for remaining responses...
+  
+  === Stress Test Results ===
+  Duration:           17.03s
+  Packets Sent:       30002
+  Packets Received:   30002
+  Packets Lost:       0 (0.00%)
+  Out of Order:       0
+  Throughput:         1761.20 pps / 3.6069 Mbps
+  Latency (ms):       avg=0.83 min=0.21 max=41.69
+  p50=0.64 p95=1.78 p99=2.13
+  Errors:             0
+  ===========================
+  
+  Results saved to /results/rate_2000_size_256_20260104_174356.json
+[0;32m[INFO][0m   PASSED (loss: 0.0%)
+[0;32m[INFO][0m Testing: 5000 pps, 256 bytes, 15s
+  Starting stress test to client-tcp:51822
+  Rate: 5000.0 pps, Duration: 15.0s, Packet size: 256 bytes
+  
+  Sent packet #0 (1 total)
+  Received packet #0, latency: 0.57ms (1 total)
+  Sent packet #1000 (1001 total)
+  Received packet #1000, latency: 0.19ms (1001 total)
+  Sent packet #2000 (2001 total)
+  Received packet #2000, latency: 0.22ms (2001 total)
+  Sent packet #3000 (3001 total)
+  Received packet #3000, latency: 0.43ms (3001 total)
+  Sent packet #4000 (4001 total)
+  Received packet #4000, latency: 0.26ms (4001 total)
+  Sent packet #5000 (5001 total)
+  Received packet #5000, latency: 0.33ms (5001 total)
+  Sent packet #6000 (6001 total)
+  Received packet #6000, latency: 0.25ms (6001 total)
+  Sent packet #7000 (7001 total)
+  Received packet #7000, latency: 0.32ms (7001 total)
+  Sent packet #8000 (8001 total)
+  Received packet #8000, latency: 0.43ms (8001 total)
+  Sent packet #9000 (9001 total)
+  Received packet #9000, latency: 0.28ms (9001 total)
+  Sent packet #10000 (10001 total)
+  Received packet #10000, latency: 0.25ms (10001 total)
+  Sent packet #11000 (11001 total)
+  Received packet #11000, latency: 0.42ms (11001 total)
+  Sent packet #12000 (12001 total)
+  Received packet #12000, latency: 0.93ms (12001 total)
+  Sent packet #13000 (13001 total)
+  Received packet #13000, latency: 0.28ms (13001 total)
+  Sent packet #14000 (14001 total)
+  Received packet #14000, latency: 0.27ms (14001 total)
+  Sent packet #15000 (15001 total)
+  Received packet #15000, latency: 0.35ms (15001 total)
+  Sent packet #16000 (16001 total)
+  Received packet #16000, latency: 0.38ms (16001 total)
+  Sent packet #17000 (17001 total)
+  Received packet #17000, latency: 0.32ms (17001 total)
+  Sent packet #18000 (18001 total)
+  Received packet #18000, latency: 0.30ms (18001 total)
+  Sent packet #19000 (19001 total)
+  Received packet #19000, latency: 0.44ms (19001 total)
+  Sent packet #20000 (20001 total)
+  Received packet #20000, latency: 0.83ms (20001 total)
+  Sent packet #21000 (21001 total)
+  Received packet #21000, latency: 0.26ms (21001 total)
+  Sent packet #22000 (22001 total)
+  Received packet #22000, latency: 0.27ms (22001 total)
+  Sent packet #23000 (23001 total)
+  Received packet #23000, latency: 0.33ms (23001 total)
+  Sent packet #24000 (24001 total)
+  Received packet #24000, latency: 0.30ms (24001 total)
+  Sent packet #25000 (25001 total)
+  Received packet #25000, latency: 0.28ms (25001 total)
+  Sent packet #26000 (26001 total)
+  Received packet #26000, latency: 0.24ms (26001 total)
+  Sent packet #27000 (27001 total)
+  Received packet #27000, latency: 0.31ms (27001 total)
+  Sent packet #28000 (28001 total)
+  Received packet #28000, latency: 0.36ms (28001 total)
+  Sent packet #29000 (29001 total)
+  Received packet #29000, latency: 0.28ms (29001 total)
+  Sent packet #30000 (30001 total)
+  Received packet #30000, latency: 0.28ms (30001 total)
+  Sent packet #31000 (31001 total)
+  Received packet #31000, latency: 1.47ms (31001 total)
+  Sent packet #32000 (32001 total)
+  Received packet #32000, latency: 0.42ms (32001 total)
+  Sent packet #33000 (33001 total)
+  Received packet #33000, latency: 0.27ms (33001 total)
+  Sent packet #34000 (34001 total)
+  Received packet #34000, latency: 0.28ms (34001 total)
+  Sent packet #35000 (35001 total)
+  Received packet #35000, latency: 0.39ms (35001 total)
+  Sent packet #36000 (36001 total)
+  Received packet #36000, latency: 0.28ms (36001 total)
+  Sent packet #37000 (37001 total)
+  Received packet #37000, latency: 0.26ms (37001 total)
+  Sent packet #38000 (38001 total)
+  Received packet #38000, latency: 0.24ms (38001 total)
+  Sent packet #39000 (39001 total)
+  Received packet #39000, latency: 0.41ms (39001 total)
+  Sent packet #40000 (40001 total)
+  Received packet #40000, latency: 0.29ms (40001 total)
+  Sent packet #41000 (41001 total)
+  Received packet #41000, latency: 0.34ms (41001 total)
+  Sent packet #42000 (42001 total)
+  Received packet #42000, latency: 0.45ms (42001 total)
+  Sent packet #43000 (43001 total)
+  Received packet #43000, latency: 0.30ms (43001 total)
+  Sent packet #44000 (44001 total)
+  Received packet #44000, latency: 0.24ms (44001 total)
+  Sent packet #45000 (45001 total)
+  Received packet #45000, latency: 0.29ms (45001 total)
+  Sent packet #46000 (46001 total)
+  Received packet #46000, latency: 0.41ms (46001 total)
+  Sent packet #47000 (47001 total)
+  Received packet #47000, latency: 0.34ms (47001 total)
+  Sent packet #48000 (48001 total)
+  Received packet #48000, latency: 0.28ms (48001 total)
+  Sent packet #49000 (49001 total)
+  Received packet #49000, latency: 0.30ms (49001 total)
+  Sent packet #50000 (50001 total)
+  Received packet #50000, latency: 0.27ms (50001 total)
+  Sent packet #51000 (51001 total)
+  Received packet #51000, latency: 0.31ms (51001 total)
+  Sent packet #52000 (52001 total)
+  Received packet #52000, latency: 0.29ms (52001 total)
+  Sent packet #53000 (53001 total)
+  Received packet #53000, latency: 0.27ms (53001 total)
+  Sent packet #54000 (54001 total)
+  Received packet #54000, latency: 0.57ms (54001 total)
+  Sent packet #55000 (55001 total)
+  Received packet #55000, latency: 0.43ms (55001 total)
+  Sent packet #56000 (56001 total)
+  Received packet #56000, latency: 0.34ms (56001 total)
+  Sent packet #57000 (57001 total)
+  Received packet #57000, latency: 0.28ms (57001 total)
+  Sent packet #58000 (58001 total)
+  Received packet #58000, latency: 0.36ms (58001 total)
+  Sent packet #59000 (59001 total)
+  Received packet #59000, latency: 0.37ms (59001 total)
+  Sent packet #60000 (60001 total)
+  Received packet #60000, latency: 0.37ms (60001 total)
+  Sent packet #61000 (61001 total)
+  Received packet #61000, latency: 0.27ms (61001 total)
+  Sent packet #62000 (62001 total)
+  Received packet #62000, latency: 0.28ms (62001 total)
+  Sent packet #63000 (63001 total)
+  Received packet #63000, latency: 0.43ms (63001 total)
+  Sent packet #64000 (64001 total)
+  Received packet #64000, latency: 0.33ms (64001 total)
+  Sent packet #65000 (65001 total)
+  Received packet #65000, latency: 0.27ms (65001 total)
+  Sent packet #66000 (66001 total)
+  Received packet #66000, latency: 0.30ms (66001 total)
+  Sent packet #67000 (67001 total)
+  Received packet #67000, latency: 0.38ms (67001 total)
+  Sent packet #68000 (68001 total)
+  Received packet #68000, latency: 0.33ms (68001 total)
+  Sent packet #69000 (69001 total)
+  Received packet #69000, latency: 0.32ms (69001 total)
+  Sent packet #70000 (70001 total)
+  Received packet #70000, latency: 0.42ms (70001 total)
+  Sent packet #71000 (71001 total)
+  Received packet #71000, latency: 0.29ms (71001 total)
+  Sent packet #72000 (72001 total)
+  Received packet #72000, latency: 0.27ms (72001 total)
+  Sent packet #73000 (73001 total)
+  Received packet #73000, latency: 0.27ms (73001 total)
+  Sent packet #74000 (74001 total)
+  Received packet #74000, latency: 0.27ms (74001 total)
+  Waiting for remaining responses...
+  
+  === Stress Test Results ===
+  Duration:           17.03s
+  Packets Sent:       74983
+  Packets Received:   74983
+  Packets Lost:       0 (0.00%)
+  Out of Order:       0
+  Throughput:         4402.17 pps / 9.0157 Mbps
+  Latency (ms):       avg=0.36 min=0.17 max=41.51
+  p50=0.26 p95=1.06 p99=1.54
+  Errors:             0
+  ===========================
+  
+  Results saved to /results/rate_5000_size_256_20260104_174356.json
+[0;32m[INFO][0m   PASSED (loss: 0.0%)
+
+[0;32m[INFO][0m === Packet Size Tests ===
+[0;32m[INFO][0m Testing: 500 pps, 64 bytes, 15s
+  Starting stress test to client-tcp:51822
+  Rate: 500.0 pps, Duration: 15.0s, Packet size: 64 bytes
+  
+  Sent packet #0 (1 total)
+  Received packet #0, latency: 0.59ms (1 total)
+  Sent packet #1000 (1001 total)
+  Received packet #1000, latency: 1.17ms (1001 total)
+  Sent packet #2000 (2001 total)
+  Received packet #2000, latency: 1.17ms (2001 total)
+  Sent packet #3000 (3001 total)
+  Received packet #3000, latency: 1.24ms (3001 total)
+  Sent packet #4000 (4001 total)
+  Received packet #4000, latency: 2.16ms (4001 total)
+  Sent packet #5000 (5001 total)
+  Received packet #5000, latency: 1.11ms (5001 total)
+  Sent packet #6000 (6001 total)
+  Received packet #6000, latency: 1.07ms (6001 total)
+  Sent packet #7000 (7001 total)
+  Received packet #7000, latency: 1.19ms (7001 total)
+  Waiting for remaining responses...
+  
+  === Stress Test Results ===
+  Duration:           17.04s
+  Packets Sent:       7500
+  Packets Received:   7500
+  Packets Lost:       0 (0.00%)
+  Out of Order:       0
+  Throughput:         440.11 pps / 0.2253 Mbps
+  Latency (ms):       avg=0.88 min=0.20 max=5.95
+  p50=0.96 p95=1.34 p99=1.57
+  Errors:             0
+  ===========================
+  
+  Results saved to /results/rate_500_size_64_20260104_174356.json
+[0;32m[INFO][0m   PASSED (loss: 0.0%)
+[0;32m[INFO][0m Testing: 500 pps, 256 bytes, 15s
+  Starting stress test to client-tcp:51822
+  Rate: 500.0 pps, Duration: 15.0s, Packet size: 256 bytes
+  
+  Sent packet #0 (1 total)
+  Received packet #0, latency: 0.71ms (1 total)
+  Sent packet #1000 (1001 total)
+  Received packet #1000, latency: 1.23ms (1001 total)
+  Sent packet #2000 (2001 total)
+  Received packet #2000, latency: 1.07ms (2001 total)
+  Sent packet #3000 (3001 total)
+  Received packet #3000, latency: 0.36ms (3001 total)
+  Sent packet #4000 (4001 total)
+  Received packet #4000, latency: 0.44ms (4001 total)
+  Sent packet #5000 (5001 total)
+  Received packet #5000, latency: 3.30ms (5001 total)
+  Sent packet #6000 (6001 total)
+  Received packet #6000, latency: 2.37ms (6001 total)
+  Sent packet #7000 (7001 total)
+  Received packet #7000, latency: 2.53ms (7001 total)
+  Waiting for remaining responses...
+  
+  === Stress Test Results ===
+  Duration:           17.04s
+  Packets Sent:       7500
+  Packets Received:   7500
+  Packets Lost:       0 (0.00%)
+  Out of Order:       0
+  Throughput:         440.16 pps / 0.9015 Mbps
+  Latency (ms):       avg=1.49 min=0.23 max=41.44
+  p50=1.08 p95=2.84 p99=3.28
+  Errors:             0
+  ===========================
+  
+  Results saved to /results/rate_500_size_256_20260104_174356.json
+[0;32m[INFO][0m   PASSED (loss: 0.0%)
+[0;32m[INFO][0m Testing: 500 pps, 512 bytes, 15s
+  Starting stress test to client-tcp:51822
+  Rate: 500.0 pps, Duration: 15.0s, Packet size: 512 bytes
+  
+  Sent packet #0 (1 total)
+  Received packet #0, latency: 0.71ms (1 total)
+  Sent packet #1000 (1001 total)
+  Received packet #1000, latency: 0.59ms (1001 total)
+  Sent packet #2000 (2001 total)
+  Received packet #2000, latency: 0.40ms (2001 total)
+  Sent packet #3000 (3001 total)
+  Received packet #3000, latency: 1.22ms (3001 total)
+  Sent packet #4000 (4001 total)
+  Received packet #4000, latency: 0.75ms (4001 total)
+  Sent packet #5000 (5001 total)
+  Received packet #5000, latency: 0.90ms (5001 total)
+  Sent packet #6000 (6001 total)
+  Received packet #6000, latency: 0.69ms (6001 total)
+  Sent packet #7000 (7001 total)
+  Received packet #7000, latency: 1.43ms (7001 total)
+  Waiting for remaining responses...
+  
+  === Stress Test Results ===
+  Duration:           17.03s
+  Packets Sent:       7499
+  Packets Received:   7499
+  Packets Lost:       0 (0.00%)
+  Out of Order:       0
+  Throughput:         440.25 pps / 1.8033 Mbps
+  Latency (ms):       avg=0.73 min=-0.11 max=11.27
+  p50=0.66 p95=1.30 p99=1.84
+  Errors:             0
+  ===========================
+  
+  Results saved to /results/rate_500_size_512_20260104_174356.json
+[0;32m[INFO][0m   PASSED (loss: 0.0%)
+[0;32m[INFO][0m Testing: 500 pps, 1024 bytes, 15s
+  Starting stress test to client-tcp:51822
+  Rate: 500.0 pps, Duration: 15.0s, Packet size: 1024 bytes
+  
+  Sent packet #0 (1 total)
+  Received packet #0, latency: 0.75ms (1 total)
+  Sent packet #1000 (1001 total)
+  Received packet #1000, latency: 1.14ms (1001 total)
+  Sent packet #2000 (2001 total)
+  Received packet #2000, latency: 0.99ms (2001 total)
+  Sent packet #3000 (3001 total)
+  Received packet #3000, latency: 1.92ms (3001 total)
+  Sent packet #4000 (4001 total)
+  Received packet #4000, latency: 1.31ms (4001 total)
+  Sent packet #5000 (5001 total)
+  Received packet #5000, latency: 1.19ms (5001 total)
+  Sent packet #6000 (6001 total)
+  Received packet #6000, latency: 0.71ms (6001 total)
+  Sent packet #7000 (7001 total)
+  Received packet #7000, latency: 1.09ms (7001 total)
+  Waiting for remaining responses...
+  
+  === Stress Test Results ===
+  Duration:           17.03s
+  Packets Sent:       7498
+  Packets Received:   7498
+  Packets Lost:       0 (0.00%)
+  Out of Order:       0
+  Throughput:         440.17 pps / 3.6059 Mbps
+  Latency (ms):       avg=0.81 min=0.20 max=11.10
+  p50=0.81 p95=1.29 p99=1.64
+  Errors:             0
+  ===========================
+  
+  Results saved to /results/rate_500_size_1024_20260104_174356.json
+[0;32m[INFO][0m   PASSED (loss: 0.0%)
+
+[0;32m[INFO][0m === Burst Test ===
+[0;32m[INFO][0m Testing: 10000 pps, 256 bytes, 5s
+  Starting stress test to client-tcp:51822
+  Rate: 10000.0 pps, Duration: 5.0s, Packet size: 256 bytes
+  
+  Sent packet #0 (1 total)
+  Received packet #0, latency: 0.78ms (1 total)
+  Sent packet #1000 (1001 total)
+  Received packet #1000, latency: 0.29ms (1001 total)
+  Sent packet #2000 (2001 total)
+  Received packet #2000, latency: 0.25ms (2001 total)
+  Sent packet #3000 (3001 total)
+  Received packet #3000, latency: 0.22ms (3001 total)
+  Sent packet #4000 (4001 total)
+  Received packet #4000, latency: 0.30ms (4001 total)
+  Sent packet #5000 (5001 total)
+  Received packet #5000, latency: 0.22ms (5001 total)
+  Sent packet #6000 (6001 total)
+  Received packet #6000, latency: 0.26ms (6001 total)
+  Sent packet #7000 (7001 total)
+  Received packet #7000, latency: 0.25ms (7001 total)
+  Sent packet #8000 (8001 total)
+  Received packet #8000, latency: 0.24ms (8001 total)
+  Sent packet #9000 (9001 total)
+  Received packet #9000, latency: 0.31ms (9001 total)
+  Sent packet #10000 (10001 total)
+  Received packet #10000, latency: 0.28ms (10001 total)
+  Sent packet #11000 (11001 total)
+  Received packet #11000, latency: 0.27ms (11001 total)
+  Sent packet #12000 (12001 total)
+  Received packet #12000, latency: 0.27ms (12001 total)
+  Sent packet #13000 (13001 total)
+  Received packet #13000, latency: 0.28ms (13001 total)
+  Sent packet #14000 (14001 total)
+  Received packet #14000, latency: 0.29ms (14001 total)
+  Sent packet #15000 (15001 total)
+  Received packet #15000, latency: 0.28ms (15001 total)
+  Sent packet #16000 (16001 total)
+  Received packet #16000, latency: 0.26ms (16001 total)
+  Sent packet #17000 (17001 total)
+  Received packet #17000, latency: 0.28ms (17001 total)
+  Sent packet #18000 (18001 total)
+  Received packet #18000, latency: 0.31ms (18001 total)
+  Sent packet #19000 (19001 total)
+  Received packet #19000, latency: 0.29ms (19001 total)
+  Sent packet #20000 (20001 total)
+  Received packet #20000, latency: 0.26ms (20001 total)
+  Sent packet #21000 (21001 total)
+  Received packet #21000, latency: 0.29ms (21001 total)
+  Sent packet #22000 (22001 total)
+  Received packet #22000, latency: 0.28ms (22001 total)
+  Sent packet #23000 (23001 total)
+  Received packet #23000, latency: 0.28ms (23001 total)
+  Sent packet #24000 (24001 total)
+  Received packet #24000, latency: 0.30ms (24001 total)
+  Sent packet #25000 (25001 total)
+  Received packet #25000, latency: 0.27ms (25001 total)
+  Sent packet #26000 (26001 total)
+  Received packet #26000, latency: 0.32ms (26001 total)
+  Sent packet #27000 (27001 total)
+  Received packet #27000, latency: 0.25ms (27001 total)
+  Sent packet #28000 (28001 total)
+  Received packet #28000, latency: 0.29ms (28001 total)
+  Sent packet #29000 (29001 total)
+  Received packet #29000, latency: 0.27ms (29001 total)
+  Sent packet #30000 (30001 total)
+  Received packet #30000, latency: 0.26ms (30001 total)
+  Sent packet #31000 (31001 total)
+  Received packet #31000, latency: 0.27ms (31001 total)
+  Sent packet #32000 (32001 total)
+  Received packet #32000, latency: 0.28ms (32001 total)
+  Sent packet #33000 (33001 total)
+  Received packet #33000, latency: 0.25ms (33001 total)
+  Sent packet #34000 (34001 total)
+  Received packet #34000, latency: 0.30ms (34001 total)
+  Sent packet #35000 (35001 total)
+  Received packet #35000, latency: 0.29ms (35001 total)
+  Sent packet #36000 (36001 total)
+  Received packet #36000, latency: 0.30ms (36001 total)
+  Sent packet #37000 (37001 total)
+  Received packet #37000, latency: 0.29ms (37001 total)
+  Sent packet #38000 (38001 total)
+  Received packet #38000, latency: 0.28ms (38001 total)
+  Sent packet #39000 (39001 total)
+  Received packet #39000, latency: 0.25ms (39001 total)
+  Sent packet #40000 (40001 total)
+  Received packet #40000, latency: 0.29ms (40001 total)
+  Sent packet #41000 (41001 total)
+  Received packet #41000, latency: 0.28ms (41001 total)
+  Sent packet #42000 (42001 total)
+  Received packet #42000, latency: 0.25ms (42001 total)
+  Sent packet #43000 (43001 total)
+  Received packet #43000, latency: 0.28ms (43001 total)
+  Sent packet #44000 (44001 total)
+  Received packet #44000, latency: 0.30ms (44001 total)
+  Sent packet #45000 (45001 total)
+  Received packet #45000, latency: 0.28ms (45001 total)
+  Sent packet #46000 (46001 total)
+  Received packet #46000, latency: 0.31ms (46001 total)
+  Sent packet #47000 (47001 total)
+  Received packet #47000, latency: 0.32ms (47001 total)
+  Sent packet #48000 (48001 total)
+  Received packet #48000, latency: 0.26ms (48001 total)
+  Sent packet #49000 (49001 total)
+  Received packet #49000, latency: 0.28ms (49001 total)
+  Waiting for remaining responses...
+  
+  === Stress Test Results ===
+  Duration:           7.01s
+  Packets Sent:       49367
+  Packets Received:   49367
+  Packets Lost:       0 (0.00%)
+  Out of Order:       0
+  Throughput:         7038.97 pps / 14.4158 Mbps
+  Latency (ms):       avg=0.25 min=0.15 max=41.70
+  p50=0.24 p95=0.29 p99=0.35
+  Errors:             0
+  ===========================
+  
+  Results saved to /results/rate_10000_size_256_20260104_174356.json
+[0;32m[INFO][0m   PASSED (loss: 0.0%)
+
+========================================
+ Throughput Test Summary
+========================================
+Passed: 11
+Failed: 0
+Results: /results/throughput_tcp_20260104_174356.json
+========================================
+[0;32m[INFO][0m All tests passed!
+[0;32m[INFO][0m TCP Throughput: PASSED (174s)
+
+
+[1m[0;36mRunning: TCP Reconnection[0m
+
+========================================
+ Reconnection Stress Test
+========================================
+Target:     client-tcp:51822
+Mode:       tcp
+Cycles:     10
+Results:    /results/reconnection_tcp_20260104_174650.json
+========================================
+
+[0;36m[TEST][0m Test 1: Clean Reconnection
+[0;32m[INFO][0m   Cycle 1/10
+[0;32m[INFO][0m     OK (latency: 2.009870084s)
+[0;32m[INFO][0m   Cycle 2/10
+[0;32m[INFO][0m     OK (latency: 2.011427917s)
+[0;32m[INFO][0m   Cycle 3/10
+[0;32m[INFO][0m     OK (latency: 2.010199584s)
+[0;32m[INFO][0m   Cycle 4/10
+[0;32m[INFO][0m     OK (latency: 2.012788542s)
+[0;32m[INFO][0m   Cycle 5/10
+[0;32m[INFO][0m     OK (latency: 2.007608001s)
+[0;32m[INFO][0m   Cycle 6/10
+[0;32m[INFO][0m     OK (latency: 2.011254418s)
+[0;32m[INFO][0m   Cycle 7/10
+[0;32m[INFO][0m     OK (latency: 2.007031167s)
+[0;32m[INFO][0m   Cycle 8/10
+[0;32m[INFO][0m     OK (latency: 2.007636209s)
+[0;32m[INFO][0m   Cycle 9/10
+[0;32m[INFO][0m     OK (latency: 2.008318320s)
+[0;32m[INFO][0m   Cycle 10/10
+[0;32m[INFO][0m     OK (latency: 2.010312626s)
+[0;32m[INFO][0m   Results: 10 success, 0 failed, avg latency: 2.009s
+
+[1;33m[WARN][0m Test 2: Container Pause - SKIPPED (Docker not available)
+
+[0;36m[TEST][0m Test 3: Rapid Reconnection
+[0;32m[INFO][0m   Sending 50 rapid connection attempts...
+[0;32m[INFO][0m   Results: 0 success, 50 timeout
+
+[0;36m[TEST][0m Test 4: Sustained Traffic with Interruptions
+[1;33m[WARN][0m   SKIPPED (Docker not available)
+
+========================================
+ Reconnection Test Summary
+========================================
+Passed: 3
+Failed: 1
+Results: /results/reconnection_tcp_20260104_174650.json
+========================================
+[0;31m[ERROR][0m Some tests failed!
+[0;31m[ERROR][0m TCP Reconnection: FAILED (27s)
+
+
+[1m[0;36mRunning: TCP Concurrent[0m
+
+========================================
+ Concurrent Connections Stress Test
+========================================
+Target:         client-tcp:51822
+Mode:           tcp
+Max Concurrent: 50
+Results:        /results/concurrent_tcp_20260104_174717.json
+========================================
+
+[0;36m[TEST][0m Connection Scaling Test
+[0;36m[TEST][0m Testing 1 concurrent UDP clients for 15s
+[0;32m[INFO][0m   Started 1 clients
+    [Client 1] Starting stress test to client-tcp:51822
+    [Client 1] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 1] 
+    [Client 1] Sent packet #0 (1 total)
+    [Client 1] Received packet #0, latency: 0.63ms (1 total)
+    [Client 1] Waiting for remaining responses...
+    [Client 1] 
+    [Client 1] === Stress Test Results ===
+    [Client 1] Duration:           17.05s
+    [Client 1] Packets Sent:       750
+    [Client 1] Packets Received:   750
+    [Client 1] Packets Lost:       0 (0.00%)
+    [Client 1] Out of Order:       0
+    [Client 1] Throughput:         43.99 pps / 0.0901 Mbps
+    [Client 1] Latency (ms):       avg=1.38 min=0.32 max=4.21
+    [Client 1]                     p50=1.51 p95=1.96 p99=2.53
+    [Client 1] Errors:             0
+    [Client 1] ===========================
+    [Client 1] 
+    [Client 1] Results saved to /results/concurrent_1_clients/client_1.json
+[0;32m[INFO][0m   Clients completed: 1 success, 0 failed
+[0;32m[INFO][0m   Aggregate: sent=750, received=750, lost=0 (0%), avg_latency=1.38ms
+[0;36m[TEST][0m Testing 5 concurrent UDP clients for 15s
+[0;32m[INFO][0m   Started 5 clients
+    [Client 1] Starting stress test to client-tcp:51822
+    [Client 1] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 1] 
+    [Client 1] Sent packet #0 (1 total)
+    [Client 1] Received packet #0, latency: 0.75ms (1 total)
+    [Client 1] Waiting for remaining responses...
+    [Client 1] 
+    [Client 1] === Stress Test Results ===
+    [Client 1] Duration:           17.04s
+    [Client 1] Packets Sent:       750
+    [Client 1] Packets Received:   762
+    [Client 1] Packets Lost:       122 (16.27%)
+    [Client 1] Out of Order:       286
+    [Client 1] Throughput:         44.00 pps / 0.0901 Mbps
+    [Client 1] Latency (ms):       avg=165.11 min=0.27 max=305.37
+    [Client 1]                     p50=200.21 p95=202.47 p99=302.33
+    [Client 1] Errors:             0
+    [Client 1] ===========================
+    [Client 1] 
+    [Client 1] Results saved to /results/concurrent_5_clients/client_1.json
+    [Client 1] WARNING: High packet loss detected!
+    [Client 2] Starting stress test to client-tcp:51822
+    [Client 2] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 2] 
+    [Client 2] Sent packet #0 (1 total)
+    [Client 2] Received packet #0, latency: 0.43ms (1 total)
+    [Client 2] Waiting for remaining responses...
+    [Client 2] 
+    [Client 2] === Stress Test Results ===
+    [Client 2] Duration:           17.05s
+    [Client 2] Packets Sent:       750
+    [Client 2] Packets Received:   753
+    [Client 2] Packets Lost:       23 (3.07%)
+    [Client 2] Out of Order:       124
+    [Client 2] Throughput:         43.98 pps / 0.0901 Mbps
+    [Client 2] Latency (ms):       avg=296.52 min=0.29 max=325.60
+    [Client 2]                     p50=320.71 p95=323.30 p99=324.70
+    [Client 2] Errors:             0
+    [Client 2] ===========================
+    [Client 2] 
+    [Client 2] Results saved to /results/concurrent_5_clients/client_2.json
+    [Client 3] Starting stress test to client-tcp:51822
+    [Client 3] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 3] 
+    [Client 3] Sent packet #0 (1 total)
+    [Client 3] Received packet #0, latency: 0.38ms (1 total)
+    [Client 3] Waiting for remaining responses...
+    [Client 3] 
+    [Client 3] === Stress Test Results ===
+    [Client 3] Duration:           17.05s
+    [Client 3] Packets Sent:       750
+    [Client 3] Packets Received:   735
+    [Client 3] Packets Lost:       687 (91.60%)
+    [Client 3] Out of Order:       260
+    [Client 3] Throughput:         44.00 pps / 0.0901 Mbps
+    [Client 3] Latency (ms):       avg=65.53 min=0.28 max=225.08
+    [Client 3]                     p50=0.89 p95=221.92 p99=225.08
+    [Client 3] Errors:             0
+    [Client 3] ===========================
+    [Client 3] 
+    [Client 3] Results saved to /results/concurrent_5_clients/client_3.json
+    [Client 3] WARNING: High packet loss detected!
+    [Client 4] Starting stress test to client-tcp:51822
+    [Client 4] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 4] 
+    [Client 4] Sent packet #0 (1 total)
+    [Client 4] Received packet #0, latency: 0.49ms (1 total)
+    [Client 4] Waiting for remaining responses...
+    [Client 4] 
+    [Client 4] === Stress Test Results ===
+    [Client 4] Duration:           17.04s
+    [Client 4] Packets Sent:       750
+    [Client 4] Packets Received:   746
+    [Client 4] Packets Lost:       707 (94.27%)
+    [Client 4] Out of Order:       180
+    [Client 4] Throughput:         44.01 pps / 0.0901 Mbps
+    [Client 4] Latency (ms):       avg=11.73 min=0.27 max=121.78
+    [Client 4]                     p50=0.44 p95=121.30 p99=121.78
+    [Client 4] Errors:             0
+    [Client 4] ===========================
+    [Client 4] 
+    [Client 4] Results saved to /results/concurrent_5_clients/client_4.json
+    [Client 4] WARNING: High packet loss detected!
+    [Client 5] Starting stress test to client-tcp:51822
+    [Client 5] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 5] 
+    [Client 5] Sent packet #0 (1 total)
+    [Client 5] Received packet #0, latency: 0.36ms (1 total)
+    [Client 5] Waiting for remaining responses...
+    [Client 5] 
+    [Client 5] === Stress Test Results ===
+    [Client 5] Duration:           17.04s
+    [Client 5] Packets Sent:       750
+    [Client 5] Packets Received:   754
+    [Client 5] Packets Lost:       709 (94.53%)
+    [Client 5] Out of Order:       300
+    [Client 5] Throughput:         44.01 pps / 0.0901 Mbps
+    [Client 5] Latency (ms):       avg=4.58 min=0.27 max=41.39
+    [Client 5]                     p50=0.81 p95=20.81 p99=41.39
+    [Client 5] Errors:             0
+    [Client 5] ===========================
+    [Client 5] 
+    [Client 5] Results saved to /results/concurrent_5_clients/client_5.json
+    [Client 5] WARNING: High packet loss detected!
+[0;32m[INFO][0m   Clients completed: 5 success, 0 failed
+[0;32m[INFO][0m   Aggregate: sent=3750, received=3750, lost=2248 (59.94%), avg_latency=108.69ms
+[0;36m[TEST][0m Testing 10 concurrent UDP clients for 15s
+[0;32m[INFO][0m   Started 10 clients
+    [Client 1] Starting stress test to client-tcp:51822
+    [Client 1] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 1] 
+    [Client 1] Sent packet #0 (1 total)
+    [Client 1] Received packet #0, latency: 0.63ms (1 total)
+    [Client 1] Received packet #0, latency: 0.27ms (41 total)
+    [Client 1] Waiting for remaining responses...
+    [Client 1] 
+    [Client 1] === Stress Test Results ===
+    [Client 1] Duration:           17.04s
+    [Client 1] Packets Sent:       750
+    [Client 1] Packets Received:   755
+    [Client 1] Packets Lost:       180 (24.00%)
+    [Client 1] Out of Order:       396
+    [Client 1] Throughput:         44.01 pps / 0.0901 Mbps
+    [Client 1] Latency (ms):       avg=411.12 min=0.27 max=920.52
+    [Client 1]                     p50=200.81 p95=820.92 p99=821.39
+    [Client 1] Errors:             0
+    [Client 1] ===========================
+    [Client 1] 
+    [Client 1] Results saved to /results/concurrent_10_clients/client_1.json
+    [Client 1] WARNING: High packet loss detected!
+    [Client 2] Starting stress test to client-tcp:51822
+    [Client 2] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 2] 
+    [Client 2] Sent packet #0 (1 total)
+    [Client 2] Received packet #0, latency: 0.39ms (1 total)
+    [Client 2] Waiting for remaining responses...
+    [Client 2] 
+    [Client 2] === Stress Test Results ===
+    [Client 2] Duration:           17.04s
+    [Client 2] Packets Sent:       750
+    [Client 2] Packets Received:   735
+    [Client 2] Packets Lost:       254 (33.87%)
+    [Client 2] Out of Order:       518
+    [Client 2] Throughput:         44.01 pps / 0.0901 Mbps
+    [Client 2] Latency (ms):       avg=534.09 min=0.26 max=823.77
+    [Client 2]                     p50=520.58 p95=821.73 p99=822.37
+    [Client 2] Errors:             0
+    [Client 2] ===========================
+    [Client 2] 
+    [Client 2] Results saved to /results/concurrent_10_clients/client_2.json
+    [Client 2] WARNING: High packet loss detected!
+    [Client 3] Starting stress test to client-tcp:51822
+    [Client 3] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 3] 
+    [Client 3] Sent packet #0 (1 total)
+    [Client 3] Received packet #0, latency: 0.42ms (1 total)
+    [Client 3] Waiting for remaining responses...
+    [Client 3] 
+    [Client 3] === Stress Test Results ===
+    [Client 3] Duration:           17.05s
+    [Client 3] Packets Sent:       750
+    [Client 3] Packets Received:   744
+    [Client 3] Packets Lost:       273 (36.40%)
+    [Client 3] Out of Order:       601
+    [Client 3] Throughput:         44.00 pps / 0.0901 Mbps
+    [Client 3] Latency (ms):       avg=567.85 min=0.27 max=723.14
+    [Client 3]                     p50=620.67 p95=720.58 p99=721.59
+    [Client 3] Errors:             0
+    [Client 3] ===========================
+    [Client 3] 
+    [Client 3] Results saved to /results/concurrent_10_clients/client_3.json
+    [Client 3] WARNING: High packet loss detected!
+    [Client 4] Starting stress test to client-tcp:51822
+    [Client 4] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 4] 
+    [Client 4] Sent packet #0 (1 total)
+    [Client 4] Received packet #0, latency: 0.53ms (1 total)
+    [Client 4] Waiting for remaining responses...
+    [Client 4] 
+    [Client 4] === Stress Test Results ===
+    [Client 4] Duration:           17.04s
+    [Client 4] Packets Sent:       750
+    [Client 4] Packets Received:   750
+    [Client 4] Packets Lost:       714 (95.20%)
+    [Client 4] Out of Order:       38
+    [Client 4] Throughput:         44.02 pps / 0.0901 Mbps
+    [Client 4] Latency (ms):       avg=217.41 min=0.26 max=522.98
+    [Client 4]                     p50=0.40 p95=522.47 p99=522.98
+    [Client 4] Errors:             0
+    [Client 4] ===========================
+    [Client 4] 
+    [Client 4] Results saved to /results/concurrent_10_clients/client_4.json
+    [Client 4] WARNING: High packet loss detected!
+    [Client 5] Starting stress test to client-tcp:51822
+    [Client 5] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 5] 
+    [Client 5] Sent packet #0 (1 total)
+    [Client 5] Received packet #0, latency: 0.43ms (1 total)
+    [Client 5] Waiting for remaining responses...
+    [Client 5] 
+    [Client 5] === Stress Test Results ===
+    [Client 5] Duration:           17.04s
+    [Client 5] Packets Sent:       750
+    [Client 5] Packets Received:   686
+    [Client 5] Packets Lost:       432 (57.60%)
+    [Client 5] Out of Order:       345
+    [Client 5] Throughput:         44.01 pps / 0.0901 Mbps
+    [Client 5] Latency (ms):       avg=160.41 min=0.27 max=423.36
+    [Client 5]                     p50=200.33 p95=202.58 p99=204.56
+    [Client 5] Errors:             0
+    [Client 5] ===========================
+    [Client 5] 
+    [Client 5] Results saved to /results/concurrent_10_clients/client_5.json
+    [Client 5] WARNING: High packet loss detected!
+    [Client 6] Starting stress test to client-tcp:51822
+    [Client 6] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 6] 
+    [Client 6] Sent packet #0 (1 total)
+    [Client 6] Received packet #0, latency: 0.37ms (1 total)
+    [Client 6] Waiting for remaining responses...
+    [Client 6] 
+    [Client 6] === Stress Test Results ===
+    [Client 6] Duration:           17.04s
+    [Client 6] Packets Sent:       750
+    [Client 6] Packets Received:   836
+    [Client 6] Packets Lost:       360 (48.00%)
+    [Client 6] Out of Order:       494
+    [Client 6] Throughput:         44.01 pps / 0.0901 Mbps
+    [Client 6] Latency (ms):       avg=101.23 min=0.28 max=404.79
+    [Client 6]                     p50=100.63 p95=103.12 p99=204.76
+    [Client 6] Errors:             0
+    [Client 6] ===========================
+    [Client 6] 
+    [Client 6] Results saved to /results/concurrent_10_clients/client_6.json
+    [Client 6] WARNING: High packet loss detected!
+    [Client 7] Starting stress test to client-tcp:51822
+    [Client 7] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 7] 
+    [Client 7] Sent packet #0 (1 total)
+    [Client 7] Received packet #0, latency: 0.38ms (1 total)
+    [Client 7] Waiting for remaining responses...
+    [Client 7] 
+    [Client 7] === Stress Test Results ===
+    [Client 7] Duration:           17.04s
+    [Client 7] Packets Sent:       750
+    [Client 7] Packets Received:   732
+    [Client 7] Packets Lost:       735 (98.00%)
+    [Client 7] Out of Order:       374
+    [Client 7] Throughput:         44.02 pps / 0.0902 Mbps
+    [Client 7] Latency (ms):       avg=168.81 min=0.29 max=320.55
+    [Client 7]                     p50=220.48 p95=320.55 p99=320.55
+    [Client 7] Errors:             0
+    [Client 7] ===========================
+    [Client 7] 
+    [Client 7] Results saved to /results/concurrent_10_clients/client_7.json
+    [Client 7] WARNING: High packet loss detected!
+    [Client 8] Starting stress test to client-tcp:51822
+    [Client 8] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 8] 
+    [Client 8] Sent packet #0 (1 total)
+    [Client 8] Received packet #0, latency: 0.38ms (1 total)
+    [Client 8] Received packet #0, latency: 0.38ms (12 total)
+    [Client 8] Waiting for remaining responses...
+    [Client 8] 
+    [Client 8] === Stress Test Results ===
+    [Client 8] Duration:           17.04s
+    [Client 8] Packets Sent:       750
+    [Client 8] Packets Received:   746
+    [Client 8] Packets Lost:       509 (67.87%)
+    [Client 8] Out of Order:       489
+    [Client 8] Throughput:         44.01 pps / 0.0901 Mbps
+    [Client 8] Latency (ms):       avg=198.47 min=0.38 max=204.14
+    [Client 8]                     p50=200.83 p95=202.04 p99=203.75
+    [Client 8] Errors:             0
+    [Client 8] ===========================
+    [Client 8] 
+    [Client 8] Results saved to /results/concurrent_10_clients/client_8.json
+    [Client 8] WARNING: High packet loss detected!
+    [Client 9] Starting stress test to client-tcp:51822
+    [Client 9] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 9] 
+    [Client 9] Sent packet #0 (1 total)
+    [Client 9] Waiting for remaining responses...
+    [Client 9] 
+    [Client 9] === Stress Test Results ===
+    [Client 9] Duration:           17.05s
+    [Client 9] Packets Sent:       750
+    [Client 9] Packets Received:   764
+    [Client 9] Packets Lost:       610 (81.33%)
+    [Client 9] Out of Order:       497
+    [Client 9] Throughput:         44.00 pps / 0.0901 Mbps
+    [Client 9] Latency (ms):       avg=100.59 min=98.71 max=106.21
+    [Client 9]                     p50=100.52 p95=101.28 p99=102.15
+    [Client 9] Errors:             0
+    [Client 9] ===========================
+    [Client 9] 
+    [Client 9] Results saved to /results/concurrent_10_clients/client_9.json
+    [Client 9] WARNING: High packet loss detected!
+    [Client 10] Starting stress test to client-tcp:51822
+    [Client 10] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 10] 
+    [Client 10] Sent packet #0 (1 total)
+    [Client 10] Waiting for remaining responses...
+    [Client 10] 
+    [Client 10] === Stress Test Results ===
+    [Client 10] Duration:           17.03s
+    [Client 10] Packets Sent:       750
+    [Client 10] Packets Received:   752
+    [Client 10] Packets Lost:       745 (99.33%)
+    [Client 10] Out of Order:       511
+    [Client 10] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 10] Latency (ms):       avg=25.96 min=19.62 max=42.40
+    [Client 10]                     p50=21.72 p95=42.40 p99=42.40
+    [Client 10] Errors:             0
+    [Client 10] ===========================
+    [Client 10] 
+    [Client 10] Results saved to /results/concurrent_10_clients/client_10.json
+    [Client 10] WARNING: High packet loss detected!
+[0;32m[INFO][0m   Clients completed: 10 success, 0 failed
+[0;32m[INFO][0m   Aggregate: sent=7500, received=7500, lost=4812 (64.16%), avg_latency=248.59ms
+[0;36m[TEST][0m Testing 20 concurrent UDP clients for 15s
+[0;32m[INFO][0m   Started 20 clients
+    [Client 1] Starting stress test to client-tcp:51822
+    [Client 1] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 1] 
+    [Client 1] Sent packet #0 (1 total)
+    [Client 1] Received packet #0, latency: 0.71ms (1 total)
+    [Client 1] Waiting for remaining responses...
+    [Client 1] 
+    [Client 1] === Stress Test Results ===
+    [Client 1] Duration:           17.04s
+    [Client 1] Packets Sent:       750
+    [Client 1] Packets Received:   755
+    [Client 1] Packets Lost:       77 (10.27%)
+    [Client 1] Out of Order:       154
+    [Client 1] Throughput:         44.01 pps / 0.0901 Mbps
+    [Client 1] Latency (ms):       avg=383.57 min=0.30 max=500.58
+    [Client 1]                     p50=400.36 p95=400.93 p99=401.70
+    [Client 1] Errors:             0
+    [Client 1] ===========================
+    [Client 1] 
+    [Client 1] Results saved to /results/concurrent_20_clients/client_1.json
+    [Client 1] WARNING: High packet loss detected!
+    [Client 2] Starting stress test to client-tcp:51822
+    [Client 2] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 2] 
+    [Client 2] Sent packet #0 (1 total)
+    [Client 2] Received packet #0, latency: 0.42ms (1 total)
+    [Client 2] Received packet #0, latency: 0.40ms (6 total)
+    [Client 2] Received packet #0, latency: 99.92ms (40 total)
+    [Client 2] Waiting for remaining responses...
+    [Client 2] 
+    [Client 2] === Stress Test Results ===
+    [Client 2] Duration:           17.04s
+    [Client 2] Packets Sent:       750
+    [Client 2] Packets Received:   748
+    [Client 2] Packets Lost:       222 (29.60%)
+    [Client 2] Out of Order:       459
+    [Client 2] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 2] Latency (ms):       avg=636.96 min=0.33 max=1644.26
+    [Client 2]                     p50=820.35 p95=921.05 p99=1021.67
+    [Client 2] Errors:             0
+    [Client 2] ===========================
+    [Client 2] 
+    [Client 2] Results saved to /results/concurrent_20_clients/client_2.json
+    [Client 2] WARNING: High packet loss detected!
+    [Client 3] Starting stress test to client-tcp:51822
+    [Client 3] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 3] 
+    [Client 3] Sent packet #0 (1 total)
+    [Client 3] Received packet #0, latency: 421.03ms (22 total)
+    [Client 3] Received packet #0, latency: 420.95ms (29 total)
+    [Client 3] Received packet #0, latency: 420.95ms (34 total)
+    [Client 3] Received packet #0, latency: 420.95ms (45 total)
+    [Client 3] Waiting for remaining responses...
+    [Client 3] 
+    [Client 3] === Stress Test Results ===
+    [Client 3] Duration:           17.04s
+    [Client 3] Packets Sent:       750
+    [Client 3] Packets Received:   745
+    [Client 3] Packets Lost:       361 (48.13%)
+    [Client 3] Out of Order:       424
+    [Client 3] Throughput:         44.02 pps / 0.0902 Mbps
+    [Client 3] Latency (ms):       avg=797.28 min=0.30 max=1643.94
+    [Client 3]                     p50=820.38 p95=820.89 p99=921.77
+    [Client 3] Errors:             0
+    [Client 3] ===========================
+    [Client 3] 
+    [Client 3] Results saved to /results/concurrent_20_clients/client_3.json
+    [Client 3] WARNING: High packet loss detected!
+    [Client 4] Starting stress test to client-tcp:51822
+    [Client 4] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 4] 
+    [Client 4] Sent packet #0 (1 total)
+    [Client 4] Received packet #0, latency: 0.40ms (1 total)
+    [Client 4] Received packet #0, latency: 200.39ms (40 total)
+    [Client 4] Received packet #0, latency: 200.75ms (79 total)
+    [Client 4] Waiting for remaining responses...
+    [Client 4] 
+    [Client 4] === Stress Test Results ===
+    [Client 4] Duration:           17.04s
+    [Client 4] Packets Sent:       750
+    [Client 4] Packets Received:   733
+    [Client 4] Packets Lost:       252 (33.60%)
+    [Client 4] Out of Order:       450
+    [Client 4] Throughput:         44.02 pps / 0.0902 Mbps
+    [Client 4] Latency (ms):       avg=662.46 min=0.33 max=1642.19
+    [Client 4]                     p50=200.80 p95=1640.47 p99=1640.85
+    [Client 4] Errors:             0
+    [Client 4] ===========================
+    [Client 4] 
+    [Client 4] Results saved to /results/concurrent_20_clients/client_4.json
+    [Client 4] WARNING: High packet loss detected!
+    [Client 5] Starting stress test to client-tcp:51822
+    [Client 5] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 5] 
+    [Client 5] Sent packet #0 (1 total)
+    [Client 5] Received packet #0, latency: 0.43ms (1 total)
+    [Client 5] Received packet #0, latency: 0.69ms (6 total)
+    [Client 5] Waiting for remaining responses...
+    [Client 5] 
+    [Client 5] === Stress Test Results ===
+    [Client 5] Duration:           17.04s
+    [Client 5] Packets Sent:       750
+    [Client 5] Packets Received:   773
+    [Client 5] Packets Lost:       358 (47.73%)
+    [Client 5] Out of Order:       515
+    [Client 5] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 5] Latency (ms):       avg=129.73 min=0.43 max=1540.75
+    [Client 5]                     p50=100.41 p95=101.06 p99=1539.78
+    [Client 5] Errors:             0
+    [Client 5] ===========================
+    [Client 5] 
+    [Client 5] Results saved to /results/concurrent_20_clients/client_5.json
+    [Client 5] WARNING: High packet loss detected!
+    [Client 6] Starting stress test to client-tcp:51822
+    [Client 6] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 6] 
+    [Client 6] Sent packet #0 (1 total)
+    [Client 6] Waiting for remaining responses...
+    [Client 6] 
+    [Client 6] === Stress Test Results ===
+    [Client 6] Duration:           17.03s
+    [Client 6] Packets Sent:       750
+    [Client 6] Packets Received:   748
+    [Client 6] Packets Lost:       432 (57.60%)
+    [Client 6] Out of Order:       416
+    [Client 6] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 6] Latency (ms):       avg=1364.20 min=617.66 max=1441.83
+    [Client 6]                     p50=1340.77 p95=1440.75 p99=1441.27
+    [Client 6] Errors:             0
+    [Client 6] ===========================
+    [Client 6] 
+    [Client 6] Results saved to /results/concurrent_20_clients/client_6.json
+    [Client 6] WARNING: High packet loss detected!
+    [Client 7] Starting stress test to client-tcp:51822
+    [Client 7] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 7] 
+    [Client 7] Sent packet #0 (1 total)
+    [Client 7] Received packet #0, latency: 921.44ms (48 total)
+    [Client 7] Waiting for remaining responses...
+    [Client 7] 
+    [Client 7] === Stress Test Results ===
+    [Client 7] Duration:           17.04s
+    [Client 7] Packets Sent:       750
+    [Client 7] Packets Received:   750
+    [Client 7] Packets Lost:       69 (9.20%)
+    [Client 7] Out of Order:       626
+    [Client 7] Throughput:         44.02 pps / 0.0902 Mbps
+    [Client 7] Latency (ms):       avg=920.38 min=915.80 max=923.10
+    [Client 7]                     p50=920.44 p95=921.47 p99=922.29
+    [Client 7] Errors:             0
+    [Client 7] ===========================
+    [Client 7] 
+    [Client 7] Results saved to /results/concurrent_20_clients/client_7.json
+    [Client 7] WARNING: High packet loss detected!
+    [Client 8] Starting stress test to client-tcp:51822
+    [Client 8] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 8] 
+    [Client 8] Sent packet #0 (1 total)
+    [Client 8] Received packet #0, latency: 522.64ms (27 total)
+    [Client 8] Waiting for remaining responses...
+    [Client 8] 
+    [Client 8] === Stress Test Results ===
+    [Client 8] Duration:           17.03s
+    [Client 8] Packets Sent:       750
+    [Client 8] Packets Received:   765
+    [Client 8] Packets Lost:       216 (28.80%)
+    [Client 8] Out of Order:       579
+    [Client 8] Throughput:         44.04 pps / 0.0902 Mbps
+    [Client 8] Latency (ms):       avg=554.54 min=103.27 max=722.96
+    [Client 8]                     p50=520.97 p95=621.09 p99=622.49
+    [Client 8] Errors:             0
+    [Client 8] ===========================
+    [Client 8] 
+    [Client 8] Results saved to /results/concurrent_20_clients/client_8.json
+    [Client 8] WARNING: High packet loss detected!
+    [Client 9] Starting stress test to client-tcp:51822
+    [Client 9] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 9] 
+    [Client 9] Sent packet #0 (1 total)
+    [Client 9] Waiting for remaining responses...
+    [Client 9] 
+    [Client 9] === Stress Test Results ===
+    [Client 9] Duration:           17.04s
+    [Client 9] Packets Sent:       750
+    [Client 9] Packets Received:   16
+    [Client 9] Packets Lost:       750 (100.00%)
+    [Client 9] Out of Order:       0
+    [Client 9] Throughput:         44.02 pps / 0.0902 Mbps
+    [Client 9] Latency (ms):       avg=0.00 min=0.00 max=0.00
+    [Client 9]                     p50=0.00 p95=0.00 p99=0.00
+    [Client 9] Errors:             0
+    [Client 9] ===========================
+    [Client 9] 
+    [Client 9] Results saved to /results/concurrent_20_clients/client_9.json
+    [Client 9] WARNING: High packet loss detected!
+    [Client 10] Starting stress test to client-tcp:51822
+    [Client 10] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 10] 
+    [Client 10] Sent packet #0 (1 total)
+    [Client 10] Received packet #0, latency: 820.85ms (43 total)
+    [Client 10] Waiting for remaining responses...
+    [Client 10] 
+    [Client 10] === Stress Test Results ===
+    [Client 10] Duration:           17.04s
+    [Client 10] Packets Sent:       750
+    [Client 10] Packets Received:   753
+    [Client 10] Packets Lost:       95 (12.67%)
+    [Client 10] Out of Order:       615
+    [Client 10] Throughput:         44.02 pps / 0.0902 Mbps
+    [Client 10] Latency (ms):       avg=804.26 min=100.74 max=822.13
+    [Client 10]                     p50=820.41 p95=820.91 p99=821.56
+    [Client 10] Errors:             0
+    [Client 10] ===========================
+    [Client 10] 
+    [Client 10] Results saved to /results/concurrent_20_clients/client_10.json
+    [Client 10] WARNING: High packet loss detected!
+    [Client 11] Starting stress test to client-tcp:51822
+    [Client 11] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 11] 
+    [Client 11] Sent packet #0 (1 total)
+    [Client 11] Waiting for remaining responses...
+    [Client 11] 
+    [Client 11] === Stress Test Results ===
+    [Client 11] Duration:           17.03s
+    [Client 11] Packets Sent:       750
+    [Client 11] Packets Received:   756
+    [Client 11] Packets Lost:       723 (96.40%)
+    [Client 11] Out of Order:       471
+    [Client 11] Throughput:         44.04 pps / 0.0902 Mbps
+    [Client 11] Latency (ms):       avg=679.03 min=102.80 max=720.93
+    [Client 11]                     p50=720.29 p95=720.87 p99=720.93
+    [Client 11] Errors:             0
+    [Client 11] ===========================
+    [Client 11] 
+    [Client 11] Results saved to /results/concurrent_20_clients/client_11.json
+    [Client 11] WARNING: High packet loss detected!
+    [Client 12] Starting stress test to client-tcp:51822
+    [Client 12] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 12] 
+    [Client 12] Sent packet #0 (1 total)
+    [Client 12] Received packet #0, latency: 315.96ms (31 total)
+    [Client 12] Waiting for remaining responses...
+    [Client 12] 
+    [Client 12] === Stress Test Results ===
+    [Client 12] Duration:           17.04s
+    [Client 12] Packets Sent:       750
+    [Client 12] Packets Received:   1467
+    [Client 12] Packets Lost:       249 (33.20%)
+    [Client 12] Out of Order:       916
+    [Client 12] Throughput:         44.02 pps / 0.0902 Mbps
+    [Client 12] Latency (ms):       avg=378.60 min=114.29 max=621.04
+    [Client 12]                     p50=315.58 p95=516.15 p99=617.04
+    [Client 12] Errors:             0
+    [Client 12] ===========================
+    [Client 12] 
+    [Client 12] Results saved to /results/concurrent_20_clients/client_12.json
+    [Client 12] WARNING: High packet loss detected!
+    [Client 13] Starting stress test to client-tcp:51822
+    [Client 13] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 13] 
+    [Client 13] Sent packet #0 (1 total)
+    [Client 13] Received packet #0, latency: 100.83ms (5 total)
+    [Client 13] Waiting for remaining responses...
+    [Client 13] 
+    [Client 13] === Stress Test Results ===
+    [Client 13] Duration:           17.03s
+    [Client 13] Packets Sent:       750
+    [Client 13] Packets Received:   749
+    [Client 13] Packets Lost:       435 (58.00%)
+    [Client 13] Out of Order:       388
+    [Client 13] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 13] Latency (ms):       avg=104.80 min=98.26 max=301.41
+    [Client 13]                     p50=100.67 p95=101.66 p99=300.63
+    [Client 13] Errors:             0
+    [Client 13] ===========================
+    [Client 13] 
+    [Client 13] Results saved to /results/concurrent_20_clients/client_13.json
+    [Client 13] WARNING: High packet loss detected!
+    [Client 14] Starting stress test to client-tcp:51822
+    [Client 14] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 14] 
+    [Client 14] Sent packet #0 (1 total)
+    [Client 14] Waiting for remaining responses...
+    [Client 14] 
+    [Client 14] === Stress Test Results ===
+    [Client 14] Duration:           17.03s
+    [Client 14] Packets Sent:       750
+    [Client 14] Packets Received:   732
+    [Client 14] Packets Lost:       728 (97.07%)
+    [Client 14] Out of Order:       395
+    [Client 14] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 14] Latency (ms):       avg=200.78 min=199.73 max=202.83
+    [Client 14]                     p50=200.71 p95=201.97 p99=202.83
+    [Client 14] Errors:             0
+    [Client 14] ===========================
+    [Client 14] 
+    [Client 14] Results saved to /results/concurrent_20_clients/client_14.json
+    [Client 14] WARNING: High packet loss detected!
+    [Client 15] Starting stress test to client-tcp:51822
+    [Client 15] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 15] 
+    [Client 15] Sent packet #0 (1 total)
+    [Client 15] Received packet #0, latency: 200.89ms (11 total)
+    [Client 15] Waiting for remaining responses...
+    [Client 15] 
+    [Client 15] === Stress Test Results ===
+    [Client 15] Duration:           17.04s
+    [Client 15] Packets Sent:       750
+    [Client 15] Packets Received:   756
+    [Client 15] Packets Lost:       716 (95.47%)
+    [Client 15] Out of Order:       264
+    [Client 15] Throughput:         44.02 pps / 0.0901 Mbps
+    [Client 15] Latency (ms):       avg=195.67 min=100.47 max=302.40
+    [Client 15]                     p50=201.46 p95=302.36 p99=302.40
+    [Client 15] Errors:             0
+    [Client 15] ===========================
+    [Client 15] 
+    [Client 15] Results saved to /results/concurrent_20_clients/client_15.json
+    [Client 15] WARNING: High packet loss detected!
+    [Client 16] Starting stress test to client-tcp:51822
+    [Client 16] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 16] 
+    [Client 16] Sent packet #0 (1 total)
+    [Client 16] Waiting for remaining responses...
+    [Client 16] 
+    [Client 16] === Stress Test Results ===
+    [Client 16] Duration:           17.04s
+    [Client 16] Packets Sent:       750
+    [Client 16] Packets Received:   752
+    [Client 16] Packets Lost:       706 (94.13%)
+    [Client 16] Out of Order:       116
+    [Client 16] Throughput:         44.02 pps / 0.0902 Mbps
+    [Client 16] Latency (ms):       avg=359.39 min=318.33 max=425.71
+    [Client 16]                     p50=321.36 p95=422.27 p99=425.71
+    [Client 16] Errors:             0
+    [Client 16] ===========================
+    [Client 16] 
+    [Client 16] Results saved to /results/concurrent_20_clients/client_16.json
+    [Client 16] WARNING: High packet loss detected!
+    [Client 17] Starting stress test to client-tcp:51822
+    [Client 17] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 17] 
+    [Client 17] Sent packet #0 (1 total)
+    [Client 17] Waiting for remaining responses...
+    [Client 17] 
+    [Client 17] === Stress Test Results ===
+    [Client 17] Duration:           17.04s
+    [Client 17] Packets Sent:       750
+    [Client 17] Packets Received:   733
+    [Client 17] Packets Lost:       732 (97.60%)
+    [Client 17] Out of Order:       456
+    [Client 17] Throughput:         44.02 pps / 0.0902 Mbps
+    [Client 17] Latency (ms):       avg=132.92 min=100.32 max=320.97
+    [Client 17]                     p50=102.20 p95=320.97 p99=320.97
+    [Client 17] Errors:             0
+    [Client 17] ===========================
+    [Client 17] 
+    [Client 17] Results saved to /results/concurrent_20_clients/client_17.json
+    [Client 17] WARNING: High packet loss detected!
+    [Client 18] Starting stress test to client-tcp:51822
+    [Client 18] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 18] 
+    [Client 18] Sent packet #0 (1 total)
+    [Client 18] Waiting for remaining responses...
+    [Client 18] 
+    [Client 18] === Stress Test Results ===
+    [Client 18] Duration:           17.03s
+    [Client 18] Packets Sent:       750
+    [Client 18] Packets Received:   782
+    [Client 18] Packets Lost:       745 (99.33%)
+    [Client 18] Out of Order:       439
+    [Client 18] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 18] Latency (ms):       avg=140.34 min=119.35 max=221.05
+    [Client 18]                     p50=119.94 p95=221.05 p99=221.05
+    [Client 18] Errors:             0
+    [Client 18] ===========================
+    [Client 18] 
+    [Client 18] Results saved to /results/concurrent_20_clients/client_18.json
+    [Client 18] WARNING: High packet loss detected!
+    [Client 19] Starting stress test to client-tcp:51822
+    [Client 19] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 19] 
+    [Client 19] Sent packet #0 (1 total)
+    [Client 19] Received packet #0, latency: 100.62ms (6 total)
+    [Client 19] Waiting for remaining responses...
+    [Client 19] 
+    [Client 19] === Stress Test Results ===
+    [Client 19] Duration:           17.03s
+    [Client 19] Packets Sent:       750
+    [Client 19] Packets Received:   768
+    [Client 19] Packets Lost:       435 (58.00%)
+    [Client 19] Out of Order:       580
+    [Client 19] Throughput:         44.04 pps / 0.0902 Mbps
+    [Client 19] Latency (ms):       avg=100.23 min=22.02 max=117.74
+    [Client 19]                     p50=100.64 p95=101.50 p99=103.09
+    [Client 19] Errors:             0
+    [Client 19] ===========================
+    [Client 19] 
+    [Client 19] Results saved to /results/concurrent_20_clients/client_19.json
+    [Client 19] WARNING: High packet loss detected!
+    [Client 20] Starting stress test to client-tcp:51822
+    [Client 20] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 20] 
+    [Client 20] Sent packet #0 (1 total)
+    [Client 20] Waiting for remaining responses...
+    [Client 20] 
+    [Client 20] === Stress Test Results ===
+    [Client 20] Duration:           17.04s
+    [Client 20] Packets Sent:       750
+    [Client 20] Packets Received:   719
+    [Client 20] Packets Lost:       745 (99.33%)
+    [Client 20] Out of Order:       565
+    [Client 20] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 20] Latency (ms):       avg=25.05 min=19.76 max=41.91
+    [Client 20]                     p50=21.45 p95=41.91 p99=41.91
+    [Client 20] Errors:             0
+    [Client 20] ===========================
+    [Client 20] 
+    [Client 20] Results saved to /results/concurrent_20_clients/client_20.json
+    [Client 20] WARNING: High packet loss detected!
+[0;32m[INFO][0m   Clients completed: 20 success, 0 failed
+[0;32m[INFO][0m   Aggregate: sent=15000, received=15000, lost=9046 (60.30%), avg_latency=451.06ms
+[0;36m[TEST][0m Testing 50 concurrent UDP clients for 15s
+[0;32m[INFO][0m   Started 50 clients
+    [Client 1] Starting stress test to client-tcp:51822
+    [Client 1] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 1] 
+    [Client 1] Sent packet #0 (1 total)
+    [Client 1] Received packet #0, latency: 0.80ms (1 total)
+    [Client 1] Waiting for remaining responses...
+    [Client 1] 
+    [Client 1] === Stress Test Results ===
+    [Client 1] Duration:           17.03s
+    [Client 1] Packets Sent:       750
+    [Client 1] Packets Received:   726
+    [Client 1] Packets Lost:       226 (30.13%)
+    [Client 1] Out of Order:       372
+    [Client 1] Throughput:         44.04 pps / 0.0902 Mbps
+    [Client 1] Latency (ms):       avg=722.35 min=0.26 max=4480.69
+    [Client 1]                     p50=400.36 p95=1420.66 p99=4480.42
+    [Client 1] Errors:             0
+    [Client 1] ===========================
+    [Client 1] 
+    [Client 1] Results saved to /results/concurrent_50_clients/client_1.json
+    [Client 1] WARNING: High packet loss detected!
+    [Client 2] Starting stress test to client-tcp:51822
+    [Client 2] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 2] 
+    [Client 2] Sent packet #0 (1 total)
+    [Client 2] Received packet #0, latency: 0.46ms (1 total)
+    [Client 2] Received packet #0, latency: 0.29ms (39 total)
+    [Client 2] Received packet #0, latency: 818.78ms (49 total)
+    [Client 2] Received packet #0, latency: 1019.99ms (201 total)
+    [Client 2] Waiting for remaining responses...
+    [Client 2] 
+    [Client 2] === Stress Test Results ===
+    [Client 2] Duration:           17.03s
+    [Client 2] Packets Sent:       750
+    [Client 2] Packets Received:   760
+    [Client 2] Packets Lost:       246 (32.80%)
+    [Client 2] Out of Order:       348
+    [Client 2] Throughput:         44.04 pps / 0.0902 Mbps
+    [Client 2] Latency (ms):       avg=1461.87 min=0.26 max=3981.11
+    [Client 2]                     p50=1020.34 p95=3980.59 p99=3980.81
+    [Client 2] Errors:             0
+    [Client 2] ===========================
+    [Client 2] 
+    [Client 2] Results saved to /results/concurrent_50_clients/client_2.json
+    [Client 2] WARNING: High packet loss detected!
+    [Client 3] Starting stress test to client-tcp:51822
+    [Client 3] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 3] 
+    [Client 3] Sent packet #0 (1 total)
+    [Client 3] Received packet #0, latency: 0.38ms (1 total)
+    [Client 3] Received packet #0, latency: 0.30ms (56 total)
+    [Client 3] Received packet #0, latency: 1020.83ms (102 total)
+    [Client 3] Waiting for remaining responses...
+    [Client 3] 
+    [Client 3] === Stress Test Results ===
+    [Client 3] Duration:           17.03s
+    [Client 3] Packets Sent:       750
+    [Client 3] Packets Received:   551
+    [Client 3] Packets Lost:       407 (54.27%)
+    [Client 3] Out of Order:       447
+    [Client 3] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 3] Latency (ms):       avg=1717.61 min=0.26 max=3981.39
+    [Client 3]                     p50=1740.35 p95=3980.58 p99=3980.98
+    [Client 3] Errors:             0
+    [Client 3] ===========================
+    [Client 3] 
+    [Client 3] Results saved to /results/concurrent_50_clients/client_3.json
+    [Client 3] WARNING: High packet loss detected!
+    [Client 4] Starting stress test to client-tcp:51822
+    [Client 4] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 4] 
+    [Client 4] Sent packet #0 (1 total)
+    [Client 4] Received packet #0, latency: 0.37ms (1 total)
+    [Client 4] Received packet #0, latency: 100.63ms (52 total)
+    [Client 4] Received packet #0, latency: 1020.63ms (157 total)
+    [Client 4] Received packet #0, latency: 1020.22ms (162 total)
+    [Client 4] Waiting for remaining responses...
+    [Client 4] 
+    [Client 4] === Stress Test Results ===
+    [Client 4] Duration:           17.03s
+    [Client 4] Packets Sent:       750
+    [Client 4] Packets Received:   789
+    [Client 4] Packets Lost:       312 (41.60%)
+    [Client 4] Out of Order:       694
+    [Client 4] Throughput:         44.04 pps / 0.0902 Mbps
+    [Client 4] Latency (ms):       avg=2069.67 min=0.26 max=4081.49
+    [Client 4]                     p50=1939.02 p95=4079.62 p99=4081.18
+    [Client 4] Errors:             0
+    [Client 4] ===========================
+    [Client 4] 
+    [Client 4] Results saved to /results/concurrent_50_clients/client_4.json
+    [Client 4] WARNING: High packet loss detected!
+    [Client 5] Starting stress test to client-tcp:51822
+    [Client 5] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 5] 
+    [Client 5] Sent packet #0 (1 total)
+    [Client 5] Received packet #0, latency: 0.36ms (1 total)
+    [Client 5] Received packet #0, latency: 0.28ms (54 total)
+    [Client 5] Waiting for remaining responses...
+    [Client 5] 
+    [Client 5] === Stress Test Results ===
+    [Client 5] Duration:           17.03s
+    [Client 5] Packets Sent:       750
+    [Client 5] Packets Received:   1070
+    [Client 5] Packets Lost:       244 (32.53%)
+    [Client 5] Out of Order:       830
+    [Client 5] Throughput:         44.04 pps / 0.0902 Mbps
+    [Client 5] Latency (ms):       avg=1795.21 min=0.27 max=3981.28
+    [Client 5]                     p50=920.46 p95=3880.38 p99=3880.56
+    [Client 5] Errors:             0
+    [Client 5] ===========================
+    [Client 5] 
+    [Client 5] Results saved to /results/concurrent_50_clients/client_5.json
+    [Client 5] WARNING: High packet loss detected!
+    [Client 6] Starting stress test to client-tcp:51822
+    [Client 6] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 6] 
+    [Client 6] Sent packet #0 (1 total)
+    [Client 6] Received packet #0, latency: 0.43ms (1 total)
+    [Client 6] Received packet #0, latency: 101.04ms (50 total)
+    [Client 6] Received packet #0, latency: 1020.24ms (125 total)
+    [Client 6] Waiting for remaining responses...
+    [Client 6] 
+    [Client 6] === Stress Test Results ===
+    [Client 6] Duration:           17.03s
+    [Client 6] Packets Sent:       750
+    [Client 6] Packets Received:   645
+    [Client 6] Packets Lost:       341 (45.47%)
+    [Client 6] Out of Order:       517
+    [Client 6] Throughput:         44.04 pps / 0.0902 Mbps
+    [Client 6] Latency (ms):       avg=1753.40 min=0.26 max=4085.78
+    [Client 6]                     p50=1020.57 p95=3980.67 p99=3980.95
+    [Client 6] Errors:             0
+    [Client 6] ===========================
+    [Client 6] 
+    [Client 6] Results saved to /results/concurrent_50_clients/client_6.json
+    [Client 6] WARNING: High packet loss detected!
+    [Client 7] Starting stress test to client-tcp:51822
+    [Client 7] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 7] 
+    [Client 7] Sent packet #0 (1 total)
+    [Client 7] Received packet #0, latency: 0.36ms (1 total)
+    [Client 7] Waiting for remaining responses...
+    [Client 7] 
+    [Client 7] === Stress Test Results ===
+    [Client 7] Duration:           17.03s
+    [Client 7] Packets Sent:       750
+    [Client 7] Packets Received:   751
+    [Client 7] Packets Lost:       319 (42.53%)
+    [Client 7] Out of Order:       606
+    [Client 7] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 7] Latency (ms):       avg=1489.02 min=0.26 max=4084.49
+    [Client 7]                     p50=921.95 p95=3879.20 p99=3980.62
+    [Client 7] Errors:             0
+    [Client 7] ===========================
+    [Client 7] 
+    [Client 7] Results saved to /results/concurrent_50_clients/client_7.json
+    [Client 7] WARNING: High packet loss detected!
+    [Client 8] Starting stress test to client-tcp:51822
+    [Client 8] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 8] 
+    [Client 8] Sent packet #0 (1 total)
+    [Client 8] Received packet #0, latency: 0.36ms (1 total)
+    [Client 8] Received packet #0, latency: 820.54ms (79 total)
+    [Client 8] Waiting for remaining responses...
+    [Client 8] 
+    [Client 8] === Stress Test Results ===
+    [Client 8] Duration:           17.03s
+    [Client 8] Packets Sent:       750
+    [Client 8] Packets Received:   580
+    [Client 8] Packets Lost:       453 (60.40%)
+    [Client 8] Out of Order:       449
+    [Client 8] Throughput:         44.04 pps / 0.0902 Mbps
+    [Client 8] Latency (ms):       avg=2027.90 min=0.28 max=3881.43
+    [Client 8]                     p50=2559.17 p95=3780.34 p99=3880.72
+    [Client 8] Errors:             0
+    [Client 8] ===========================
+    [Client 8] 
+    [Client 8] Results saved to /results/concurrent_50_clients/client_8.json
+    [Client 8] WARNING: High packet loss detected!
+    [Client 9] Starting stress test to client-tcp:51822
+    [Client 9] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 9] 
+    [Client 9] Sent packet #0 (1 total)
+    [Client 9] Received packet #0, latency: 0.44ms (1 total)
+    [Client 9] Received packet #0, latency: 0.29ms (42 total)
+    [Client 9] Received packet #0, latency: 820.20ms (84 total)
+    [Client 9] Received packet #0, latency: 819.64ms (89 total)
+    [Client 9] Waiting for remaining responses...
+    [Client 9] 
+    [Client 9] === Stress Test Results ===
+    [Client 9] Duration:           17.03s
+    [Client 9] Packets Sent:       750
+    [Client 9] Packets Received:   657
+    [Client 9] Packets Lost:       360 (48.00%)
+    [Client 9] Out of Order:       578
+    [Client 9] Throughput:         44.04 pps / 0.0902 Mbps
+    [Client 9] Latency (ms):       avg=2414.75 min=0.29 max=4081.70
+    [Client 9]                     p50=1741.61 p95=4080.58 p99=4081.46
+    [Client 9] Errors:             0
+    [Client 9] ===========================
+    [Client 9] 
+    [Client 9] Results saved to /results/concurrent_50_clients/client_9.json
+    [Client 9] WARNING: High packet loss detected!
+    [Client 10] Starting stress test to client-tcp:51822
+    [Client 10] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 10] 
+    [Client 10] Sent packet #0 (1 total)
+    [Client 10] Received packet #0, latency: 101.43ms (6 total)
+    [Client 10] Received packet #0, latency: 99.50ms (50 total)
+    [Client 10] Received packet #0, latency: 819.66ms (99 total)
+    [Client 10] Received packet #0, latency: 1740.13ms (211 total)
+    [Client 10] Waiting for remaining responses...
+    [Client 10] 
+    [Client 10] === Stress Test Results ===
+    [Client 10] Duration:           17.03s
+    [Client 10] Packets Sent:       750
+    [Client 10] Packets Received:   726
+    [Client 10] Packets Lost:       302 (40.27%)
+    [Client 10] Out of Order:       589
+    [Client 10] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 10] Latency (ms):       avg=1903.01 min=0.81 max=4081.09
+    [Client 10]                     p50=1740.49 p95=3880.35 p99=4080.45
+    [Client 10] Errors:             0
+    [Client 10] ===========================
+    [Client 10] 
+    [Client 10] Results saved to /results/concurrent_50_clients/client_10.json
+    [Client 10] WARNING: High packet loss detected!
+    [Client 11] Starting stress test to client-tcp:51822
+    [Client 11] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 11] 
+    [Client 11] Sent packet #0 (1 total)
+    [Client 11] Received packet #0, latency: 2760.97ms (128 total)
+    [Client 11] Waiting for remaining responses...
+    [Client 11] 
+    [Client 11] === Stress Test Results ===
+    [Client 11] Duration:           17.03s
+    [Client 11] Packets Sent:       750
+    [Client 11] Packets Received:   716
+    [Client 11] Packets Lost:       361 (48.13%)
+    [Client 11] Out of Order:       535
+    [Client 11] Throughput:         44.04 pps / 0.0902 Mbps
+    [Client 11] Latency (ms):       avg=2569.91 min=0.65 max=3981.40
+    [Client 11]                     p50=2760.44 p95=3980.68 p99=3981.15
+    [Client 11] Errors:             0
+    [Client 11] ===========================
+    [Client 11] 
+    [Client 11] Results saved to /results/concurrent_50_clients/client_11.json
+    [Client 11] WARNING: High packet loss detected!
+    [Client 12] Starting stress test to client-tcp:51822
+    [Client 12] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 12] 
+    [Client 12] Sent packet #0 (1 total)
+    [Client 12] Received packet #0, latency: 921.19ms (48 total)
+    [Client 12] Waiting for remaining responses...
+    [Client 12] 
+    [Client 12] === Stress Test Results ===
+    [Client 12] Duration:           17.04s
+    [Client 12] Packets Sent:       750
+    [Client 12] Packets Received:   755
+    [Client 12] Packets Lost:       256 (34.13%)
+    [Client 12] Out of Order:       620
+    [Client 12] Throughput:         44.02 pps / 0.0901 Mbps
+    [Client 12] Latency (ms):       avg=1437.74 min=0.81 max=2861.04
+    [Client 12]                     p50=920.57 p95=2860.39 p99=2860.50
+    [Client 12] Errors:             0
+    [Client 12] ===========================
+    [Client 12] 
+    [Client 12] Results saved to /results/concurrent_50_clients/client_12.json
+    [Client 12] WARNING: High packet loss detected!
+    [Client 13] Starting stress test to client-tcp:51822
+    [Client 13] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 13] 
+    [Client 13] Sent packet #0 (1 total)
+    [Client 13] Received packet #0, latency: 620.74ms (34 total)
+    [Client 13] Received packet #0, latency: 1020.61ms (125 total)
+    [Client 13] Waiting for remaining responses...
+    [Client 13] 
+    [Client 13] === Stress Test Results ===
+    [Client 13] Duration:           17.03s
+    [Client 13] Packets Sent:       750
+    [Client 13] Packets Received:   510
+    [Client 13] Packets Lost:       423 (56.40%)
+    [Client 13] Out of Order:       416
+    [Client 13] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 13] Latency (ms):       avg=1232.64 min=620.12 max=2962.07
+    [Client 13]                     p50=920.56 p95=2960.63 p99=2961.06
+    [Client 13] Errors:             0
+    [Client 13] ===========================
+    [Client 13] 
+    [Client 13] Results saved to /results/concurrent_50_clients/client_13.json
+    [Client 13] WARNING: High packet loss detected!
+    [Client 14] Starting stress test to client-tcp:51822
+    [Client 14] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 14] 
+    [Client 14] Sent packet #0 (1 total)
+    [Client 14] Received packet #0, latency: 2961.04ms (171 total)
+    [Client 14] Waiting for remaining responses...
+    [Client 14] 
+    [Client 14] === Stress Test Results ===
+    [Client 14] Duration:           17.03s
+    [Client 14] Packets Sent:       750
+    [Client 14] Packets Received:   721
+    [Client 14] Packets Lost:       374 (49.87%)
+    [Client 14] Out of Order:       579
+    [Client 14] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 14] Latency (ms):       avg=2132.19 min=520.17 max=3060.64
+    [Client 14]                     p50=1840.62 p95=3060.38 p99=3060.53
+    [Client 14] Errors:             0
+    [Client 14] ===========================
+    [Client 14] 
+    [Client 14] Results saved to /results/concurrent_50_clients/client_14.json
+    [Client 14] WARNING: High packet loss detected!
+    [Client 15] Starting stress test to client-tcp:51822
+    [Client 15] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 15] 
+    [Client 15] Sent packet #0 (1 total)
+    [Client 15] Waiting for remaining responses...
+    [Client 15] 
+    [Client 15] === Stress Test Results ===
+    [Client 15] Duration:           17.03s
+    [Client 15] Packets Sent:       750
+    [Client 15] Packets Received:   798
+    [Client 15] Packets Lost:       686 (91.47%)
+    [Client 15] Out of Order:       449
+    [Client 15] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 15] Latency (ms):       avg=2569.29 min=1739.66 max=3061.00
+    [Client 15]                     p50=2860.59 p95=3060.70 p99=3061.00
+    [Client 15] Errors:             0
+    [Client 15] ===========================
+    [Client 15] 
+    [Client 15] Results saved to /results/concurrent_50_clients/client_15.json
+    [Client 15] WARNING: High packet loss detected!
+    [Client 16] Starting stress test to client-tcp:51822
+    [Client 16] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 16] 
+    [Client 16] Sent packet #0 (1 total)
+    [Client 16] Waiting for remaining responses...
+    [Client 16] 
+    [Client 16] === Stress Test Results ===
+    [Client 16] Duration:           17.03s
+    [Client 16] Packets Sent:       750
+    [Client 16] Packets Received:   703
+    [Client 16] Packets Lost:       497 (66.27%)
+    [Client 16] Out of Order:       589
+    [Client 16] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 16] Latency (ms):       avg=2188.61 min=724.17 max=2961.28
+    [Client 16]                     p50=1740.69 p95=2960.76 p99=2961.08
+    [Client 16] Errors:             0
+    [Client 16] ===========================
+    [Client 16] 
+    [Client 16] Results saved to /results/concurrent_50_clients/client_16.json
+    [Client 16] WARNING: High packet loss detected!
+    [Client 17] Starting stress test to client-tcp:51822
+    [Client 17] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 17] 
+    [Client 17] Sent packet #0 (1 total)
+    [Client 17] Waiting for remaining responses...
+    [Client 17] 
+    [Client 17] === Stress Test Results ===
+    [Client 17] Duration:           17.03s
+    [Client 17] Packets Sent:       750
+    [Client 17] Packets Received:   1040
+    [Client 17] Packets Lost:       239 (31.87%)
+    [Client 17] Out of Order:       857
+    [Client 17] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 17] Latency (ms):       avg=1292.84 min=0.85 max=2961.61
+    [Client 17]                     p50=820.59 p95=2960.55 p99=2961.05
+    [Client 17] Errors:             0
+    [Client 17] ===========================
+    [Client 17] 
+    [Client 17] Results saved to /results/concurrent_50_clients/client_17.json
+    [Client 17] WARNING: High packet loss detected!
+    [Client 18] Starting stress test to client-tcp:51822
+    [Client 18] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 18] 
+    [Client 18] Sent packet #0 (1 total)
+    [Client 18] Received packet #0, latency: 3060.76ms (155 total)
+    [Client 18] Waiting for remaining responses...
+    [Client 18] 
+    [Client 18] === Stress Test Results ===
+    [Client 18] Duration:           17.03s
+    [Client 18] Packets Sent:       750
+    [Client 18] Packets Received:   1065
+    [Client 18] Packets Lost:       235 (31.33%)
+    [Client 18] Out of Order:       779
+    [Client 18] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 18] Latency (ms):       avg=1504.35 min=816.65 max=3160.89
+    [Client 18]                     p50=820.49 p95=3160.38 p99=3160.53
+    [Client 18] Errors:             0
+    [Client 18] ===========================
+    [Client 18] 
+    [Client 18] Results saved to /results/concurrent_50_clients/client_18.json
+    [Client 18] WARNING: High packet loss detected!
+    [Client 19] Starting stress test to client-tcp:51822
+    [Client 19] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 19] 
+    [Client 19] Sent packet #0 (1 total)
+    [Client 19] Received packet #0, latency: 100.77ms (6 total)
+    [Client 19] Waiting for remaining responses...
+    [Client 19] 
+    [Client 19] === Stress Test Results ===
+    [Client 19] Duration:           17.03s
+    [Client 19] Packets Sent:       750
+    [Client 19] Packets Received:   527
+    [Client 19] Packets Lost:       440 (58.67%)
+    [Client 19] Out of Order:       450
+    [Client 19] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 19] Latency (ms):       avg=692.25 min=99.28 max=2341.98
+    [Client 19]                     p50=400.30 p95=2340.72 p99=2341.53
+    [Client 19] Errors:             0
+    [Client 19] ===========================
+    [Client 19] 
+    [Client 19] Results saved to /results/concurrent_50_clients/client_19.json
+    [Client 19] WARNING: High packet loss detected!
+    [Client 20] Starting stress test to client-tcp:51822
+    [Client 20] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 20] 
+    [Client 20] Sent packet #0 (1 total)
+    [Client 20] Received packet #0, latency: 200.22ms (10 total)
+    [Client 20] Received packet #0, latency: 199.99ms (36 total)
+    [Client 20] Waiting for remaining responses...
+    [Client 20] 
+    [Client 20] === Stress Test Results ===
+    [Client 20] Duration:           17.03s
+    [Client 20] Packets Sent:       750
+    [Client 20] Packets Received:   509
+    [Client 20] Packets Lost:       477 (63.60%)
+    [Client 20] Out of Order:       455
+    [Client 20] Throughput:         44.04 pps / 0.0902 Mbps
+    [Client 20] Latency (ms):       avg=777.77 min=199.02 max=2441.61
+    [Client 20]                     p50=300.58 p95=2240.78 p99=2241.66
+    [Client 20] Errors:             0
+    [Client 20] ===========================
+    [Client 20] 
+    [Client 20] Results saved to /results/concurrent_50_clients/client_20.json
+    [Client 20] WARNING: High packet loss detected!
+    [Client 21] Starting stress test to client-tcp:51822
+    [Client 21] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 21] 
+    [Client 21] Sent packet #0 (1 total)
+    [Client 21] Received packet #0, latency: 721.41ms (37 total)
+    [Client 21] Received packet #0, latency: 720.24ms (42 total)
+    [Client 21] Received packet #0, latency: 720.19ms (95 total)
+    [Client 21] Waiting for remaining responses...
+    [Client 21] 
+    [Client 21] === Stress Test Results ===
+    [Client 21] Duration:           17.03s
+    [Client 21] Packets Sent:       750
+    [Client 21] Packets Received:   766
+    [Client 21] Packets Lost:       264 (35.20%)
+    [Client 21] Out of Order:       660
+    [Client 21] Throughput:         44.04 pps / 0.0902 Mbps
+    [Client 21] Latency (ms):       avg=1118.87 min=0.73 max=2960.95
+    [Client 21]                     p50=820.53 p95=1940.64 p99=1941.08
+    [Client 21] Errors:             0
+    [Client 21] ===========================
+    [Client 21] 
+    [Client 21] Results saved to /results/concurrent_50_clients/client_21.json
+    [Client 21] WARNING: High packet loss detected!
+    [Client 22] Starting stress test to client-tcp:51822
+    [Client 22] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 22] 
+    [Client 22] Sent packet #0 (1 total)
+    [Client 22] Waiting for remaining responses...
+    [Client 22] 
+    [Client 22] === Stress Test Results ===
+    [Client 22] Duration:           17.03s
+    [Client 22] Packets Sent:       750
+    [Client 22] Packets Received:   787
+    [Client 22] Packets Lost:       350 (46.67%)
+    [Client 22] Out of Order:       615
+    [Client 22] Throughput:         44.04 pps / 0.0902 Mbps
+    [Client 22] Latency (ms):       avg=1106.49 min=100.21 max=2041.42
+    [Client 22]                     p50=820.58 p95=1940.48 p99=1940.86
+    [Client 22] Errors:             0
+    [Client 22] ===========================
+    [Client 22] 
+    [Client 22] Results saved to /results/concurrent_50_clients/client_22.json
+    [Client 22] WARNING: High packet loss detected!
+    [Client 23] Starting stress test to client-tcp:51822
+    [Client 23] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 23] 
+    [Client 23] Sent packet #0 (1 total)
+    [Client 23] Waiting for remaining responses...
+    [Client 23] 
+    [Client 23] === Stress Test Results ===
+    [Client 23] Duration:           17.03s
+    [Client 23] Packets Sent:       750
+    [Client 23] Packets Received:   558
+    [Client 23] Packets Lost:       587 (78.27%)
+    [Client 23] Out of Order:       479
+    [Client 23] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 23] Latency (ms):       avg=1397.23 min=719.34 max=2141.49
+    [Client 23]                     p50=1940.39 p95=1941.06 p99=2141.19
+    [Client 23] Errors:             0
+    [Client 23] ===========================
+    [Client 23] 
+    [Client 23] Results saved to /results/concurrent_50_clients/client_23.json
+    [Client 23] WARNING: High packet loss detected!
+    [Client 24] Starting stress test to client-tcp:51822
+    [Client 24] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 24] 
+    [Client 24] Sent packet #0 (1 total)
+    [Client 24] Received packet #0, latency: 1021.08ms (59 total)
+    [Client 24] Waiting for remaining responses...
+    [Client 24] 
+    [Client 24] === Stress Test Results ===
+    [Client 24] Duration:           17.03s
+    [Client 24] Packets Sent:       750
+    [Client 24] Packets Received:   598
+    [Client 24] Packets Lost:       507 (67.60%)
+    [Client 24] Out of Order:       461
+    [Client 24] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 24] Latency (ms):       avg=1204.66 min=101.35 max=2240.86
+    [Client 24]                     p50=1020.97 p95=2240.14 p99=2240.80
+    [Client 24] Errors:             0
+    [Client 24] ===========================
+    [Client 24] 
+    [Client 24] Results saved to /results/concurrent_50_clients/client_24.json
+    [Client 24] WARNING: High packet loss detected!
+    [Client 25] Starting stress test to client-tcp:51822
+    [Client 25] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 25] 
+    [Client 25] Sent packet #0 (1 total)
+    [Client 25] Received packet #0, latency: 2140.84ms (146 total)
+    [Client 25] Waiting for remaining responses...
+    [Client 25] 
+    [Client 25] === Stress Test Results ===
+    [Client 25] Duration:           17.03s
+    [Client 25] Packets Sent:       750
+    [Client 25] Packets Received:   1229
+    [Client 25] Packets Lost:       353 (47.07%)
+    [Client 25] Out of Order:       1049
+    [Client 25] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 25] Latency (ms):       avg=1317.30 min=917.67 max=2242.15
+    [Client 25]                     p50=1020.31 p95=2140.66 p99=2140.89
+    [Client 25] Errors:             0
+    [Client 25] ===========================
+    [Client 25] 
+    [Client 25] Results saved to /results/concurrent_50_clients/client_25.json
+    [Client 25] WARNING: High packet loss detected!
+    [Client 26] Starting stress test to client-tcp:51822
+    [Client 26] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 26] 
+    [Client 26] Sent packet #0 (1 total)
+    [Client 26] Received packet #0, latency: 1020.99ms (54 total)
+    [Client 26] Received packet #0, latency: 1020.48ms (107 total)
+    [Client 26] Received packet #0, latency: 1020.33ms (117 total)
+    [Client 26] Waiting for remaining responses...
+    [Client 26] 
+    [Client 26] === Stress Test Results ===
+    [Client 26] Duration:           17.03s
+    [Client 26] Packets Sent:       750
+    [Client 26] Packets Received:   714
+    [Client 26] Packets Lost:       350 (46.67%)
+    [Client 26] Out of Order:       566
+    [Client 26] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 26] Latency (ms):       avg=1613.87 min=0.66 max=2341.07
+    [Client 26]                     p50=1021.33 p95=2340.70 p99=2340.89
+    [Client 26] Errors:             0
+    [Client 26] ===========================
+    [Client 26] 
+    [Client 26] Results saved to /results/concurrent_50_clients/client_26.json
+    [Client 26] WARNING: High packet loss detected!
+    [Client 27] Starting stress test to client-tcp:51822
+    [Client 27] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 27] 
+    [Client 27] Sent packet #0 (1 total)
+    [Client 27] Received packet #0, latency: 1021.14ms (50 total)
+    [Client 27] Waiting for remaining responses...
+    [Client 27] 
+    [Client 27] === Stress Test Results ===
+    [Client 27] Duration:           17.03s
+    [Client 27] Packets Sent:       750
+    [Client 27] Packets Received:   799
+    [Client 27] Packets Lost:       386 (51.47%)
+    [Client 27] Out of Order:       476
+    [Client 27] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 27] Latency (ms):       avg=1421.81 min=1018.94 max=2341.42
+    [Client 27]                     p50=1020.46 p95=2141.55 p99=2340.71
+    [Client 27] Errors:             0
+    [Client 27] ===========================
+    [Client 27] 
+    [Client 27] Results saved to /results/concurrent_50_clients/client_27.json
+    [Client 27] WARNING: High packet loss detected!
+    [Client 28] Starting stress test to client-tcp:51822
+    [Client 28] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 28] 
+    [Client 28] Sent packet #0 (1 total)
+    [Client 28] Received packet #0, latency: 1120.71ms (57 total)
+    [Client 28] Waiting for remaining responses...
+    [Client 28] 
+    [Client 28] === Stress Test Results ===
+    [Client 28] Duration:           17.03s
+    [Client 28] Packets Sent:       750
+    [Client 28] Packets Received:   757
+    [Client 28] Packets Lost:       291 (38.80%)
+    [Client 28] Out of Order:       611
+    [Client 28] Throughput:         44.04 pps / 0.0902 Mbps
+    [Client 28] Latency (ms):       avg=1193.70 min=100.24 max=2240.76
+    [Client 28]                     p50=1120.42 p95=2240.32 p99=2240.58
+    [Client 28] Errors:             0
+    [Client 28] ===========================
+    [Client 28] 
+    [Client 28] Results saved to /results/concurrent_50_clients/client_28.json
+    [Client 28] WARNING: High packet loss detected!
+    [Client 29] Starting stress test to client-tcp:51822
+    [Client 29] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 29] 
+    [Client 29] Sent packet #0 (1 total)
+    [Client 29] Waiting for remaining responses...
+    [Client 29] 
+    [Client 29] === Stress Test Results ===
+    [Client 29] Duration:           17.03s
+    [Client 29] Packets Sent:       750
+    [Client 29] Packets Received:   768
+    [Client 29] Packets Lost:       442 (58.93%)
+    [Client 29] Out of Order:       627
+    [Client 29] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 29] Latency (ms):       avg=1084.84 min=920.26 max=2140.78
+    [Client 29]                     p50=1120.29 p95=1120.79 p99=1121.09
+    [Client 29] Errors:             0
+    [Client 29] ===========================
+    [Client 29] 
+    [Client 29] Results saved to /results/concurrent_50_clients/client_29.json
+    [Client 29] WARNING: High packet loss detected!
+    [Client 30] Starting stress test to client-tcp:51822
+    [Client 30] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 30] 
+    [Client 30] Sent packet #0 (1 total)
+    [Client 30] Waiting for remaining responses...
+    [Client 30] 
+    [Client 30] === Stress Test Results ===
+    [Client 30] Duration:           17.03s
+    [Client 30] Packets Sent:       750
+    [Client 30] Packets Received:   761
+    [Client 30] Packets Lost:       543 (72.40%)
+    [Client 30] Out of Order:       594
+    [Client 30] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 30] Latency (ms):       avg=1114.93 min=0.65 max=1122.28
+    [Client 30]                     p50=1120.34 p95=1120.68 p99=1121.29
+    [Client 30] Errors:             0
+    [Client 30] ===========================
+    [Client 30] 
+    [Client 30] Results saved to /results/concurrent_50_clients/client_30.json
+    [Client 30] WARNING: High packet loss detected!
+    [Client 31] Starting stress test to client-tcp:51822
+    [Client 31] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 31] 
+    [Client 31] Sent packet #0 (1 total)
+    [Client 31] Received packet #0, latency: 1320.55ms (135 total)
+    [Client 31] Waiting for remaining responses...
+    [Client 31] 
+    [Client 31] === Stress Test Results ===
+    [Client 31] Duration:           17.03s
+    [Client 31] Packets Sent:       750
+    [Client 31] Packets Received:   1287
+    [Client 31] Packets Lost:       357 (47.60%)
+    [Client 31] Out of Order:       1119
+    [Client 31] Throughput:         44.04 pps / 0.0902 Mbps
+    [Client 31] Latency (ms):       avg=1234.40 min=1113.46 max=1321.19
+    [Client 31]                     p50=1320.35 p95=1320.66 p99=1320.80
+    [Client 31] Errors:             0
+    [Client 31] ===========================
+    [Client 31] 
+    [Client 31] Results saved to /results/concurrent_50_clients/client_31.json
+    [Client 31] WARNING: High packet loss detected!
+    [Client 32] Starting stress test to client-tcp:51822
+    [Client 32] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 32] 
+    [Client 32] Sent packet #0 (1 total)
+    [Client 32] Waiting for remaining responses...
+    [Client 32] 
+    [Client 32] === Stress Test Results ===
+    [Client 32] Duration:           17.03s
+    [Client 32] Packets Sent:       750
+    [Client 32] Packets Received:   641
+    [Client 32] Packets Lost:       502 (66.93%)
+    [Client 32] Out of Order:       542
+    [Client 32] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 32] Latency (ms):       avg=1146.57 min=0.88 max=1220.68
+    [Client 32]                     p50=1120.62 p95=1220.48 p99=1220.62
+    [Client 32] Errors:             0
+    [Client 32] ===========================
+    [Client 32] 
+    [Client 32] Results saved to /results/concurrent_50_clients/client_32.json
+    [Client 32] WARNING: High packet loss detected!
+    [Client 33] Starting stress test to client-tcp:51822
+    [Client 33] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 33] 
+    [Client 33] Sent packet #0 (1 total)
+    [Client 33] Received packet #0, latency: 1221.05ms (63 total)
+    [Client 33] Waiting for remaining responses...
+    [Client 33] 
+    [Client 33] === Stress Test Results ===
+    [Client 33] Duration:           17.04s
+    [Client 33] Packets Sent:       750
+    [Client 33] Packets Received:   648
+    [Client 33] Packets Lost:       583 (77.73%)
+    [Client 33] Out of Order:       569
+    [Client 33] Throughput:         44.02 pps / 0.0902 Mbps
+    [Client 33] Latency (ms):       avg=1182.24 min=1019.16 max=1221.41
+    [Client 33]                     p50=1220.54 p95=1221.16 p99=1221.36
+    [Client 33] Errors:             0
+    [Client 33] ===========================
+    [Client 33] 
+    [Client 33] Results saved to /results/concurrent_50_clients/client_33.json
+    [Client 33] WARNING: High packet loss detected!
+    [Client 34] Starting stress test to client-tcp:51822
+    [Client 34] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 34] 
+    [Client 34] Sent packet #0 (1 total)
+    [Client 34] Received packet #0, latency: 100.72ms (6 total)
+    [Client 34] Waiting for remaining responses...
+    [Client 34] 
+    [Client 34] === Stress Test Results ===
+    [Client 34] Duration:           17.03s
+    [Client 34] Packets Sent:       750
+    [Client 34] Packets Received:   636
+    [Client 34] Packets Lost:       562 (74.93%)
+    [Client 34] Out of Order:       507
+    [Client 34] Throughput:         44.04 pps / 0.0902 Mbps
+    [Client 34] Latency (ms):       avg=473.65 min=0.72 max=1221.75
+    [Client 34]                     p50=100.81 p95=1220.49 p99=1221.17
+    [Client 34] Errors:             0
+    [Client 34] ===========================
+    [Client 34] 
+    [Client 34] Results saved to /results/concurrent_50_clients/client_34.json
+    [Client 34] WARNING: High packet loss detected!
+    [Client 35] Starting stress test to client-tcp:51822
+    [Client 35] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 35] 
+    [Client 35] Sent packet #0 (1 total)
+    [Client 35] Waiting for remaining responses...
+    [Client 35] 
+    [Client 35] === Stress Test Results ===
+    [Client 35] Duration:           17.03s
+    [Client 35] Packets Sent:       750
+    [Client 35] Packets Received:   600
+    [Client 35] Packets Lost:       669 (89.20%)
+    [Client 35] Out of Order:       476
+    [Client 35] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 35] Latency (ms):       avg=1046.37 min=1019.20 max=1121.79
+    [Client 35]                     p50=1020.46 p95=1120.89 p99=1121.79
+    [Client 35] Errors:             0
+    [Client 35] ===========================
+    [Client 35] 
+    [Client 35] Results saved to /results/concurrent_50_clients/client_35.json
+    [Client 35] WARNING: High packet loss detected!
+    [Client 36] Starting stress test to client-tcp:51822
+    [Client 36] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 36] 
+    [Client 36] Sent packet #0 (1 total)
+    [Client 36] Waiting for remaining responses...
+    [Client 36] 
+    [Client 36] === Stress Test Results ===
+    [Client 36] Duration:           17.03s
+    [Client 36] Packets Sent:       750
+    [Client 36] Packets Received:   688
+    [Client 36] Packets Lost:       424 (56.53%)
+    [Client 36] Out of Order:       569
+    [Client 36] Throughput:         44.04 pps / 0.0902 Mbps
+    [Client 36] Latency (ms):       avg=1183.58 min=106.26 max=1425.55
+    [Client 36]                     p50=1120.48 p95=1320.77 p99=1321.37
+    [Client 36] Errors:             0
+    [Client 36] ===========================
+    [Client 36] 
+    [Client 36] Results saved to /results/concurrent_50_clients/client_36.json
+    [Client 36] WARNING: High packet loss detected!
+    [Client 37] Starting stress test to client-tcp:51822
+    [Client 37] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 37] 
+    [Client 37] Sent packet #0 (1 total)
+    [Client 37] Waiting for remaining responses...
+    [Client 37] 
+    [Client 37] === Stress Test Results ===
+    [Client 37] Duration:           17.04s
+    [Client 37] Packets Sent:       750
+    [Client 37] Packets Received:   741
+    [Client 37] Packets Lost:       416 (55.47%)
+    [Client 37] Out of Order:       451
+    [Client 37] Throughput:         44.01 pps / 0.0901 Mbps
+    [Client 37] Latency (ms):       avg=1118.34 min=0.50 max=1222.32
+    [Client 37]                     p50=1120.50 p95=1121.01 p99=1220.35
+    [Client 37] Errors:             0
+    [Client 37] ===========================
+    [Client 37] 
+    [Client 37] Results saved to /results/concurrent_50_clients/client_37.json
+    [Client 37] WARNING: High packet loss detected!
+    [Client 38] Starting stress test to client-tcp:51822
+    [Client 38] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 38] 
+    [Client 38] Sent packet #0 (1 total)
+    [Client 38] Waiting for remaining responses...
+    [Client 38] 
+    [Client 38] === Stress Test Results ===
+    [Client 38] Duration:           17.03s
+    [Client 38] Packets Sent:       750
+    [Client 38] Packets Received:   741
+    [Client 38] Packets Lost:       525 (70.00%)
+    [Client 38] Out of Order:       541
+    [Client 38] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 38] Latency (ms):       avg=1184.96 min=101.26 max=1221.51
+    [Client 38]                     p50=1220.51 p95=1220.98 p99=1221.43
+    [Client 38] Errors:             0
+    [Client 38] ===========================
+    [Client 38] 
+    [Client 38] Results saved to /results/concurrent_50_clients/client_38.json
+    [Client 38] WARNING: High packet loss detected!
+    [Client 39] Starting stress test to client-tcp:51822
+    [Client 39] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 39] 
+    [Client 39] Sent packet #0 (1 total)
+    [Client 39] Waiting for remaining responses...
+    [Client 39] 
+    [Client 39] === Stress Test Results ===
+    [Client 39] Duration:           17.03s
+    [Client 39] Packets Sent:       750
+    [Client 39] Packets Received:   763
+    [Client 39] Packets Lost:       589 (78.53%)
+    [Client 39] Out of Order:       646
+    [Client 39] Throughput:         44.04 pps / 0.0902 Mbps
+    [Client 39] Latency (ms):       avg=877.15 min=99.41 max=1121.02
+    [Client 39]                     p50=1120.29 p95=1120.53 p99=1120.85
+    [Client 39] Errors:             0
+    [Client 39] ===========================
+    [Client 39] 
+    [Client 39] Results saved to /results/concurrent_50_clients/client_39.json
+    [Client 39] WARNING: High packet loss detected!
+    [Client 40] Starting stress test to client-tcp:51822
+    [Client 40] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 40] 
+    [Client 40] Sent packet #0 (1 total)
+    [Client 40] Waiting for remaining responses...
+    [Client 40] 
+    [Client 40] === Stress Test Results ===
+    [Client 40] Duration:           17.03s
+    [Client 40] Packets Sent:       750
+    [Client 40] Packets Received:   725
+    [Client 40] Packets Lost:       733 (97.73%)
+    [Client 40] Out of Order:       653
+    [Client 40] Throughput:         44.04 pps / 0.0902 Mbps
+    [Client 40] Latency (ms):       avg=912.31 min=101.77 max=1023.69
+    [Client 40]                     p50=1020.19 p95=1023.69 p99=1023.69
+    [Client 40] Errors:             0
+    [Client 40] ===========================
+    [Client 40] 
+    [Client 40] Results saved to /results/concurrent_50_clients/client_40.json
+    [Client 40] WARNING: High packet loss detected!
+    [Client 41] Starting stress test to client-tcp:51822
+    [Client 41] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 41] 
+    [Client 41] Sent packet #0 (1 total)
+    [Client 41] Waiting for remaining responses...
+    [Client 41] 
+    [Client 41] === Stress Test Results ===
+    [Client 41] Duration:           17.03s
+    [Client 41] Packets Sent:       750
+    [Client 41] Packets Received:   745
+    [Client 41] Packets Lost:       742 (98.93%)
+    [Client 41] Out of Order:       478
+    [Client 41] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 41] Latency (ms):       avg=805.15 min=0.56 max=920.96
+    [Client 41]                     p50=920.01 p95=920.96 p99=920.96
+    [Client 41] Errors:             0
+    [Client 41] ===========================
+    [Client 41] 
+    [Client 41] Results saved to /results/concurrent_50_clients/client_41.json
+    [Client 41] WARNING: High packet loss detected!
+    [Client 42] Starting stress test to client-tcp:51822
+    [Client 42] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 42] 
+    [Client 42] Sent packet #0 (1 total)
+    [Client 42] Waiting for remaining responses...
+    [Client 42] 
+    [Client 42] === Stress Test Results ===
+    [Client 42] Duration:           17.03s
+    [Client 42] Packets Sent:       750
+    [Client 42] Packets Received:   545
+    [Client 42] Packets Lost:       738 (98.40%)
+    [Client 42] Out of Order:       470
+    [Client 42] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 42] Latency (ms):       avg=407.75 min=201.12 max=821.34
+    [Client 42]                     p50=201.69 p95=821.34 p99=821.34
+    [Client 42] Errors:             0
+    [Client 42] ===========================
+    [Client 42] 
+    [Client 42] Results saved to /results/concurrent_50_clients/client_42.json
+    [Client 42] WARNING: High packet loss detected!
+    [Client 43] Starting stress test to client-tcp:51822
+    [Client 43] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 43] 
+    [Client 43] Sent packet #0 (1 total)
+    [Client 43] Waiting for remaining responses...
+    [Client 43] 
+    [Client 43] === Stress Test Results ===
+    [Client 43] Duration:           17.03s
+    [Client 43] Packets Sent:       750
+    [Client 43] Packets Received:   676
+    [Client 43] Packets Lost:       611 (81.47%)
+    [Client 43] Out of Order:       580
+    [Client 43] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 43] Latency (ms):       avg=100.40 min=99.54 max=102.33
+    [Client 43]                     p50=100.34 p95=101.12 p99=101.96
+    [Client 43] Errors:             0
+    [Client 43] ===========================
+    [Client 43] 
+    [Client 43] Results saved to /results/concurrent_50_clients/client_43.json
+    [Client 43] WARNING: High packet loss detected!
+    [Client 44] Starting stress test to client-tcp:51822
+    [Client 44] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 44] 
+    [Client 44] Sent packet #0 (1 total)
+    [Client 44] Waiting for remaining responses...
+    [Client 44] 
+    [Client 44] === Stress Test Results ===
+    [Client 44] Duration:           17.03s
+    [Client 44] Packets Sent:       750
+    [Client 44] Packets Received:   1301
+    [Client 44] Packets Lost:       739 (98.53%)
+    [Client 44] Out of Order:       1139
+    [Client 44] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 44] Latency (ms):       avg=574.11 min=104.65 max=621.79
+    [Client 44]                     p50=621.17 p95=621.79 p99=621.79
+    [Client 44] Errors:             0
+    [Client 44] ===========================
+    [Client 44] 
+    [Client 44] Results saved to /results/concurrent_50_clients/client_44.json
+    [Client 44] WARNING: High packet loss detected!
+    [Client 45] Starting stress test to client-tcp:51822
+    [Client 45] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 45] 
+    [Client 45] Sent packet #0 (1 total)
+    [Client 45] Waiting for remaining responses...
+    [Client 45] 
+    [Client 45] === Stress Test Results ===
+    [Client 45] Duration:           17.03s
+    [Client 45] Packets Sent:       750
+    [Client 45] Packets Received:   635
+    [Client 45] Packets Lost:       744 (99.20%)
+    [Client 45] Out of Order:       545
+    [Client 45] Throughput:         44.04 pps / 0.0902 Mbps
+    [Client 45] Latency (ms):       avg=501.53 min=405.84 max=520.94
+    [Client 45]                     p50=520.69 p95=520.94 p99=520.94
+    [Client 45] Errors:             0
+    [Client 45] ===========================
+    [Client 45] 
+    [Client 45] Results saved to /results/concurrent_50_clients/client_45.json
+    [Client 45] WARNING: High packet loss detected!
+    [Client 46] Starting stress test to client-tcp:51822
+    [Client 46] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 46] 
+    [Client 46] Sent packet #0 (1 total)
+    [Client 46] Waiting for remaining responses...
+    [Client 46] 
+    [Client 46] === Stress Test Results ===
+    [Client 46] Duration:           17.03s
+    [Client 46] Packets Sent:       750
+    [Client 46] Packets Received:   826
+    [Client 46] Packets Lost:       740 (98.67%)
+    [Client 46] Out of Order:       731
+    [Client 46] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 46] Latency (ms):       avg=133.75 min=100.98 max=422.37
+    [Client 46]                     p50=101.58 p95=422.37 p99=422.37
+    [Client 46] Errors:             0
+    [Client 46] ===========================
+    [Client 46] 
+    [Client 46] Results saved to /results/concurrent_50_clients/client_46.json
+    [Client 46] WARNING: High packet loss detected!
+    [Client 47] Starting stress test to client-tcp:51822
+    [Client 47] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 47] 
+    [Client 47] Sent packet #0 (1 total)
+    [Client 47] Waiting for remaining responses...
+    [Client 47] 
+    [Client 47] === Stress Test Results ===
+    [Client 47] Duration:           17.03s
+    [Client 47] Packets Sent:       750
+    [Client 47] Packets Received:   830
+    [Client 47] Packets Lost:       734 (97.87%)
+    [Client 47] Out of Order:       776
+    [Client 47] Throughput:         44.03 pps / 0.0902 Mbps
+    [Client 47] Latency (ms):       avg=230.76 min=0.53 max=321.25
+    [Client 47]                     p50=319.94 p95=321.25 p99=321.25
+    [Client 47] Errors:             0
+    [Client 47] ===========================
+    [Client 47] 
+    [Client 47] Results saved to /results/concurrent_50_clients/client_47.json
+    [Client 47] WARNING: High packet loss detected!
+    [Client 48] Starting stress test to client-tcp:51822
+    [Client 48] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 48] 
+    [Client 48] Sent packet #0 (1 total)
+    [Client 48] Waiting for remaining responses...
+    [Client 48] 
+    [Client 48] === Stress Test Results ===
+    [Client 48] Duration:           17.04s
+    [Client 48] Packets Sent:       750
+    [Client 48] Packets Received:   760
+    [Client 48] Packets Lost:       666 (88.80%)
+    [Client 48] Out of Order:       639
+    [Client 48] Throughput:         44.02 pps / 0.0902 Mbps
+    [Client 48] Latency (ms):       avg=101.56 min=0.56 max=202.76
+    [Client 48]                     p50=100.39 p95=101.52 p99=202.76
+    [Client 48] Errors:             0
+    [Client 48] ===========================
+    [Client 48] 
+    [Client 48] Results saved to /results/concurrent_50_clients/client_48.json
+    [Client 48] WARNING: High packet loss detected!
+    [Client 49] Starting stress test to client-tcp:51822
+    [Client 49] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 49] 
+    [Client 49] Sent packet #0 (1 total)
+    [Client 49] Waiting for remaining responses...
+    [Client 49] 
+    [Client 49] === Stress Test Results ===
+    [Client 49] Duration:           17.03s
+    [Client 49] Packets Sent:       750
+    [Client 49] Packets Received:   632
+    [Client 49] Packets Lost:       741 (98.80%)
+    [Client 49] Out of Order:       532
+    [Client 49] Throughput:         44.04 pps / 0.0902 Mbps
+    [Client 49] Latency (ms):       avg=121.25 min=120.34 max=124.00
+    [Client 49]                     p50=120.82 p95=124.00 p99=124.00
+    [Client 49] Errors:             0
+    [Client 49] ===========================
+    [Client 49] 
+    [Client 49] Results saved to /results/concurrent_50_clients/client_49.json
+    [Client 49] WARNING: High packet loss detected!
+    [Client 50] Starting stress test to client-tcp:51822
+    [Client 50] Rate: 50.0 pps, Duration: 15.0s, Packet size: 256 bytes
+    [Client 50] 
+    [Client 50] Sent packet #0 (1 total)
+    [Client 50] Waiting for remaining responses...
+    [Client 50] 
+    [Client 50] === Stress Test Results ===
+    [Client 50] Duration:           17.04s
+    [Client 50] Packets Sent:       750
+    [Client 50] Packets Received:   744
+    [Client 50] Packets Lost:       744 (99.20%)
+    [Client 50] Out of Order:       572
+    [Client 50] Throughput:         44.02 pps / 0.0902 Mbps
+    [Client 50] Latency (ms):       avg=23.91 min=19.44 max=41.24
+    [Client 50]                     p50=20.60 p95=41.24 p99=41.24
+    [Client 50] Errors:             0
+    [Client 50] ===========================
+    [Client 50] 
+    [Client 50] Results saved to /results/concurrent_50_clients/client_50.json
+    [Client 50] WARNING: High packet loss detected!
+[0;32m[INFO][0m   Clients completed: 50 success, 0 failed
+[0;32m[INFO][0m   Aggregate: sent=37500, received=37500, lost=23830 (63.54%), avg_latency=1193.71ms
+[0;32m[INFO][0m Scaling test: 1 passed, 4 failed
+
+[0;36m[TEST][0m Rapid Connection Creation Test
+[0;32m[INFO][0m   Creating 100 rapid connections...
+[0;32m[INFO][0m   Results: 0 success, 100 failed
+
+[0;36m[TEST][0m Mixed Load Pattern Test
+[0;32m[INFO][0m   Started 5 clients with different rates
+Starting stress test to client-tcp:51822
+Rate: 100.0 pps, Duration: 20.0s, Packet size: 256 bytes
+
+
+=== Stress Test Results ===
+Duration:           22.00s
+Packets Sent:       2000
+Packets Received:   1855
+Packets Lost:       1805 (90.25%)
+Out of Order:       796
+Throughput:         90.89 pps / 0.1861 Mbps
+Latency (ms):       avg=6100.34 min=89.37 max=17910.20
+                    p50=5010.56 p95=16199.41 p99=17820.02
+Errors:             0
+===========================
+
+Results saved to /results/mixed_load/client_rate_100.json
+WARNING: High packet loss detected!
+Starting stress test to client-tcp:51822
+Rate: 200.0 pps, Duration: 20.0s, Packet size: 256 bytes
+
+
+=== Stress Test Results ===
+Duration:           22.00s
+Packets Sent:       4000
+Packets Received:   3792
+Packets Lost:       3108 (77.70%)
+Out of Order:       963
+Throughput:         181.79 pps / 0.3723 Mbps
+Latency (ms):       avg=5620.37 min=0.23 max=16340.36
+                    p50=5625.18 p95=9866.84 p99=14461.37
+Errors:             0
+===========================
+
+Results saved to /results/mixed_load/client_rate_200.json
+WARNING: High packet loss detected!
+Starting stress test to client-tcp:51822
+Rate: 50.0 pps, Duration: 20.0s, Packet size: 256 bytes
+
+
+=== Stress Test Results ===
+Duration:           22.01s
+Packets Sent:       1000
+Packets Received:   864
+Packets Lost:       986 (98.60%)
+Out of Order:       456
+Throughput:         45.44 pps / 0.0931 Mbps
+Latency (ms):       avg=8783.07 min=960.79 max=15200.45
+                    p50=10479.77 p95=15200.45 p99=15200.45
+Errors:             0
+===========================
+
+Results saved to /results/mixed_load/client_rate_50.json
+WARNING: High packet loss detected!
+Starting stress test to client-tcp:51822
+Rate: 10.0 pps, Duration: 20.0s, Packet size: 256 bytes
+
+
+=== Stress Test Results ===
+Duration:           22.00s
+Packets Sent:       200
+Packets Received:   183
+Packets Lost:       199 (99.50%)
+Out of Order:       14
+Throughput:         9.09 pps / 0.0186 Mbps
+Latency (ms):       avg=0.73 min=0.73 max=0.73
+                    p50=0.73 p95=0.73 p99=0.73
+Errors:             0
+===========================
+
+Results saved to /results/mixed_load/client_rate_10.json
+WARNING: High packet loss detected!
+Starting stress test to client-tcp:51822
+Rate: 500.0 pps, Duration: 20.0s, Packet size: 256 bytes
+
+
+=== Stress Test Results ===
+Duration:           22.00s
+Packets Sent:       9999
+Packets Received:   10505
+Packets Lost:       2919 (29.19%)
+Out of Order:       4965
+Throughput:         454.47 pps / 0.9308 Mbps
+Latency (ms):       avg=1304.49 min=0.19 max=17896.65
+                    p50=2.51 p95=9427.07 p99=11701.45
+Errors:             0
+===========================
+
+Results saved to /results/mixed_load/client_rate_500.json
+WARNING: High packet loss detected!
+[0;32m[INFO][0m   Mixed load: sent=17199, received=17199, loss=0%
+
+========================================
+ Concurrent Connections Test Summary
+========================================
+Passed: 1
+Failed: 2
+Results: /results/concurrent_tcp_20260104_174717.json
+========================================
+[0;31m[ERROR][0m Some tests failed!
+[0;32m[INFO][0m Cleaning up...
+[0;31m[ERROR][0m TCP Concurrent: FAILED (130s)
+
+
+[1m[0;36mRunning: TCP Network Conditions[0m
+
+========================================
+ Network Conditions Simulation Test
+========================================
+Target:    client-tcp:51822
+Mode:      tcp
+Duration:  30s per condition
+Results:   /results/network_tcp_20260104_174927.json
+========================================
+
+[0;32m[INFO][0m === Baseline Test (no network impairment) ===
+[0;36m[TEST][0m Testing: Baseline - no impairment
+    Starting stress test to client-tcp:51822
+    Rate: 100.0 pps, Duration: 30.0s, Packet size: 256 bytes
+    
+    Sent packet #0 (1 total)
+    Received packet #0, latency: 0.69ms (1 total)
+    Sent packet #1000 (1001 total)
+    Received packet #1000, latency: 1.76ms (1001 total)
+    Sent packet #2000 (2001 total)
+    Received packet #2000, latency: 1.99ms (2001 total)
+    Waiting for remaining responses...
+    
+    === Stress Test Results ===
+    Duration:           32.10s
+    Packets Sent:       3000
+    Packets Received:   3000
+    Packets Lost:       0 (0.00%)
+    Out of Order:       0
+    Throughput:         93.45 pps / 0.1914 Mbps
+    Latency (ms):       avg=1.21 min=0.26 max=5.64
+    p50=1.29 p95=1.71 p99=2.28
+    Errors:             0
+    ===========================
+    
+    Results saved to /results/network_clear_20260104_174927.json
+[0;32m[INFO][0m   Results: loss=0.0%, latency=1.21ms
+[0;32m[INFO][0m   PASSED (loss 0.0% <= 1%)
+
+[1;33m[WARN][0m Traffic control not available, running simulated tests...
+
+[0;36m[TEST][0m Simulated: Normal conditions
+    Starting stress test to client-tcp:51822
+    Rate: 100.0 pps, Duration: 30.0s, Packet size: 256 bytes
+    
+    
+    === Stress Test Results ===
+    Duration:           32.01s
+    Packets Sent:       3000
+    Packets Received:   3000
+    Packets Lost:       0 (0.00%)
+    Out of Order:       0
+    Throughput:         93.73 pps / 0.1920 Mbps
+    Latency (ms):       avg=1.24 min=0.25 max=9.16
+    p50=1.31 p95=1.68 p99=2.17
+    Errors:             0
+    ===========================
+    
+    Results saved to /results/simulated_normal_20260104_174927.json
+[0;32m[INFO][0m   Results: loss=0.0%, latency=1.24ms
+
+[0;36m[TEST][0m Simulated: Burst traffic pattern
+    Starting stress test to client-tcp:51822
+    Rate: 100.0 pps, Duration: 30.0s, Packet size: 256 bytes
+    
+    
+    === Stress Test Results ===
+    Duration:           32.01s
+    Packets Sent:       3000
+    Packets Received:   3000
+    Packets Lost:       0 (0.00%)
+    Out of Order:       0
+    Throughput:         93.72 pps / 0.1919 Mbps
+    Latency (ms):       avg=1.07 min=0.21 max=10.23
+    p50=1.13 p95=1.70 p99=2.14
+    Errors:             0
+    ===========================
+    
+    Results saved to /results/simulated_burst_20260104_174927.json
+[0;32m[INFO][0m   Results: loss=0.0%, latency=1.07ms
+
+========================================
+ Network Conditions Test Summary
+========================================
+Passed: 3
+Failed: 0
+Results: /results/network_tcp_20260104_174927.json
+========================================
+[0;32m[INFO][0m Tests completed!
+[0;32m[INFO][0m TCP Network Conditions: PASSED (97s)
+
+
+[1m[0;36mRunning: TCP Stability[0m
+
+========================================
+ Long-Running Stability Test
+========================================
+Target:        client-tcp:51822
+Mode:          tcp
+Duration:      300s (5 minutes)
+Sample Rate:   every 60s
+Results:       /results/stability_tcp_20260104_175104.json
+========================================
+
+[0;36m[TEST][0m 17:51:04 Starting stability test for 300 seconds...
+[0;32m[INFO][0m 17:51:04 Starting traffic generator at 100 pps...
+[0;32m[INFO][0m 17:51:04 Traffic generator started (PID: 2839)
+  [TRAFFIC] Starting stress test to client-tcp:51822
+  [TRAFFIC] Rate: 100.0 pps, Duration: 300.0s, Packet size: 256 bytes
+  [TRAFFIC] 
+  [TRAFFIC] Sent packet #0 (1 total)
+  [TRAFFIC] Received packet #0, latency: 0.57ms (1 total)
+  [TRAFFIC] Sent packet #1000 (1001 total)
+  [TRAFFIC] Received packet #1000, latency: 2.05ms (1001 total)
+  [TRAFFIC] Sent packet #2000 (2001 total)
+  [TRAFFIC] Received packet #2000, latency: 1.28ms (2001 total)
+  [TRAFFIC] Sent packet #3000 (3001 total)
+  [TRAFFIC] Received packet #3000, latency: 1.42ms (3001 total)
+  [TRAFFIC] Sent packet #4000 (4001 total)
+  [TRAFFIC] Received packet #4000, latency: 0.39ms (4001 total)
+  [TRAFFIC] Sent packet #5000 (5001 total)
+  [TRAFFIC] Received packet #5000, latency: 1.60ms (5001 total)
+  [TRAFFIC] Sent packet #6000 (6001 total)
+  [TRAFFIC] Received packet #6000, latency: 0.61ms (6002 total)
+[0;32m[INFO][0m 17:52:05 Sample 1: elapsed=60s, latency=0ms, server_mem=0MB, client_mem=0MB
+  [TRAFFIC] Sent packet #7000 (7001 total)
+  [TRAFFIC] Received packet #7000, latency: 1.36ms (7002 total)
+  [TRAFFIC] Sent packet #8000 (8001 total)
+  [TRAFFIC] Received packet #8000, latency: 1.05ms (8002 total)
+  [TRAFFIC] Sent packet #9000 (9001 total)
+  [TRAFFIC] Received packet #9000, latency: 1.83ms (9002 total)
+  [TRAFFIC] Sent packet #10000 (10001 total)
+  [TRAFFIC] Received packet #10000, latency: 1.02ms (10002 total)
+  [TRAFFIC] Sent packet #11000 (11001 total)
+  [TRAFFIC] Received packet #11000, latency: 2.09ms (11002 total)
+  [TRAFFIC] Sent packet #12000 (12001 total)
+  [TRAFFIC] Received packet #12000, latency: 2.10ms (12002 total)
+[0;32m[INFO][0m 17:53:06 Sample 2: elapsed=121s, latency=1005.389375000ms, server_mem=0MB, client_mem=0MB
+  [TRAFFIC] Sent packet #13000 (13001 total)
+  [TRAFFIC] Received packet #13000, latency: 0.41ms (13002 total)
+  [TRAFFIC] Sent packet #14000 (14001 total)
+  [TRAFFIC] Received packet #14000, latency: 1.41ms (14002 total)
+  [TRAFFIC] Sent packet #15000 (15001 total)
+  [TRAFFIC] Received packet #15000, latency: 1.50ms (15002 total)
+  [TRAFFIC] Sent packet #16000 (16001 total)
+  [TRAFFIC] Received packet #16000, latency: 1.75ms (16002 total)
+  [TRAFFIC] Sent packet #17000 (17001 total)
+  [TRAFFIC] Received packet #17000, latency: 0.71ms (17002 total)
+  [TRAFFIC] Sent packet #18000 (18001 total)
+  [TRAFFIC] Received packet #18000, latency: 2.08ms (18002 total)
+[0;32m[INFO][0m 17:54:07 Sample 3: elapsed=182s, latency=1006.954334000ms, server_mem=0MB, client_mem=0MB
+  [TRAFFIC] Sent packet #19000 (19001 total)
+  [TRAFFIC] Received packet #19000, latency: 1.55ms (19002 total)
+  [TRAFFIC] Sent packet #20000 (20001 total)
+  [TRAFFIC] Received packet #20000, latency: 1.18ms (20002 total)
+  [TRAFFIC] Sent packet #21000 (21001 total)
+  [TRAFFIC] Received packet #21000, latency: 1.34ms (21002 total)
+  [TRAFFIC] Sent packet #22000 (22001 total)
+  [TRAFFIC] Received packet #22000, latency: 1.09ms (22002 total)
+  [TRAFFIC] Sent packet #23000 (23001 total)
+  [TRAFFIC] Received packet #23000, latency: 2.08ms (23002 total)
+  [TRAFFIC] Sent packet #24000 (24001 total)
+  [TRAFFIC] Received packet #24000, latency: 1.49ms (24002 total)
+[0;32m[INFO][0m 17:55:08 Sample 4: elapsed=243s, latency=1013.787667000ms, server_mem=0MB, client_mem=0MB
+  [TRAFFIC] Sent packet #25000 (25001 total)
+  [TRAFFIC] Received packet #25000, latency: 0.91ms (25002 total)
+  [TRAFFIC] Sent packet #26000 (26001 total)
+  [TRAFFIC] Received packet #26000, latency: 1.68ms (26002 total)
+  [TRAFFIC] Sent packet #27000 (27001 total)
+  [TRAFFIC] Received packet #27000, latency: 1.15ms (27002 total)
+  [TRAFFIC] Sent packet #28000 (28001 total)
+  [TRAFFIC] Received packet #28000, latency: 1.51ms (28002 total)
+  [TRAFFIC] Sent packet #29000 (29001 total)
+  [TRAFFIC] Received packet #29000, latency: 2.10ms (29002 total)
+  [TRAFFIC] Waiting for remaining responses...
+  [TRAFFIC] 
+  [TRAFFIC] === Stress Test Results ===
+  [TRAFFIC] Duration:           302.44s
+  [TRAFFIC] Packets Sent:       30000
+  [TRAFFIC] Packets Received:   30001
+  [TRAFFIC] Packets Lost:       0 (0.00%)
+  [TRAFFIC] Out of Order:       24001
+  [TRAFFIC] Throughput:         99.19 pps / 0.2031 Mbps
+  [TRAFFIC] Latency (ms):       avg=1.21 min=0.22 max=15.41
+  [TRAFFIC] p50=1.23 p95=1.97 p99=2.87
+  [TRAFFIC] Errors:             0
+  [TRAFFIC] ===========================
+  [TRAFFIC] 
+  [TRAFFIC] Results saved to /results/stability_traffic.json
+[0;32m[INFO][0m 17:56:06 Test completed after 302 seconds
+[0;32m[INFO][0m 17:56:06 === Stability Test Summary ===
+[0;32m[INFO][0m 17:56:06 Duration:         302s
+[0;32m[INFO][0m 17:56:06 Packets Sent:     30000
+[0;32m[INFO][0m 17:56:06 Packets Received: 30001
+[0;32m[INFO][0m 17:56:06 Packets Lost:     0 (0.0%)
+[0;32m[INFO][0m 17:56:06 Avg Latency:      1.21ms
+[0;32m[INFO][0m 17:56:06 P99 Latency:      2.87ms
+[0;32m[INFO][0m 17:56:06 PASSED: Loss rate 0.0% is within acceptable range
+
+========================================
+ Stability Test PASSED
+========================================
+Results: /results/stability_tcp_20260104_175104.json
+Metrics: /results/stability_metrics_20260104_175104.csv
+========================================
+[0;32m[INFO][0m 17:56:06 Cleaning up...
+[0;32m[INFO][0m TCP Stability: PASSED (302s)
+
+
+[1m[0;36m=== WebSocket Transport Tests ===[0m
+
+
+[1m[0;36mRunning: WebSocket Stress[0m
+
+========================================
+ WebSocket-Specific Stress Test
+========================================
+Target:    server-ws:51820
+Results:   /results/websocket_stress_20260104_175606.json
+========================================
+
+[0;36m[TEST][0m Test 1: WebSocket Handshake Stress
+[0;32m[INFO][0m   Running 100 handshake attempts...
+    Testing WebSocket handshake (100 attempts)...
+    Progress: 5/100 handshakes completed (5 success, 0 failed)
+    Progress: 10/100 handshakes completed (10 success, 0 failed)
+    Progress: 15/100 handshakes completed (15 success, 0 failed)
+    Progress: 20/100 handshakes completed (20 success, 0 failed)
+    Progress: 25/100 handshakes completed (25 success, 0 failed)
+    Progress: 30/100 handshakes completed (30 success, 0 failed)
+    Progress: 35/100 handshakes completed (35 success, 0 failed)
+    Progress: 40/100 handshakes completed (40 success, 0 failed)
+    Progress: 45/100 handshakes completed (45 success, 0 failed)
+    Progress: 50/100 handshakes completed (50 success, 0 failed)
+    Progress: 55/100 handshakes completed (55 success, 0 failed)
+    Progress: 60/100 handshakes completed (60 success, 0 failed)
+    Progress: 65/100 handshakes completed (65 success, 0 failed)
+    Progress: 70/100 handshakes completed (70 success, 0 failed)
+    Progress: 75/100 handshakes completed (75 success, 0 failed)
+    Progress: 80/100 handshakes completed (80 success, 0 failed)
+    Progress: 85/100 handshakes completed (85 success, 0 failed)
+    Progress: 90/100 handshakes completed (90 success, 0 failed)
+    Progress: 95/100 handshakes completed (95 success, 0 failed)
+    Progress: 100/100 handshakes completed (100 success, 0 failed)
+    Handshake test completed: 100 success, 0 failed
+    
+    === WebSocket Test Results ===
+    Duration:           10.40s
+    Handshakes:         100 success, 0 failed (100.0%)
+    Frames:             0 sent, 0 received
+    Bytes:              0 sent, 0 received
+    Reconnections:      0
+    Ping/Pong:          0 success, 0 failed
+    Avg Latency:        1.79ms
+    Errors:             0
+    ==============================
+    
+    Results saved to /results/ws_handshake_20260104_175606.json
+[0;32m[INFO][0m   Results: 100 success, 0 failed, 100.0% success rate
+
+[0;36m[TEST][0m Test 2: Binary Frame Transmission
+[0;32m[INFO][0m   Sending 500 binary frames...
+    Testing binary frames (500 frames, 1024 bytes each)...
+    
+    === WebSocket Test Results ===
+    Duration:           0.08s
+    Handshakes:         1 success, 0 failed (100.0%)
+    Frames:             500 sent, 500 received
+    Bytes:              512000 sent, 512000 received
+    Reconnections:      0
+    Ping/Pong:          0 success, 0 failed
+    Avg Latency:        0.00ms
+    Errors:             0
+    ==============================
+    
+    Results saved to /results/ws_frames_20260104_175606.json
+[0;32m[INFO][0m   Results: 500 sent, 500 received, 0 errors
+
+[0;36m[TEST][0m Test 3: Large Frame Transmission
+[0;32m[INFO][0m   Testing 1024 byte frames...
+    === WebSocket Test Results ===
+    Handshakes:         1 success, 0 failed (100.0%)
+    Ping/Pong:          0 success, 0 failed
+    Results saved to /results/ws_large_frames_20260104_175606.json.1024
+[0;32m[INFO][0m   Testing 4096 byte frames...
+    === WebSocket Test Results ===
+    Handshakes:         1 success, 0 failed (100.0%)
+    Ping/Pong:          0 success, 0 failed
+    Results saved to /results/ws_large_frames_20260104_175606.json.4096
+[0;32m[INFO][0m   Testing 16384 byte frames...
+    === WebSocket Test Results ===
+    Handshakes:         1 success, 0 failed (100.0%)
+    Ping/Pong:          0 success, 0 failed
+    Results saved to /results/ws_large_frames_20260104_175606.json.16384
+[0;32m[INFO][0m   Testing 65536 byte frames...
+    === WebSocket Test Results ===
+    Handshakes:         1 success, 0 failed (100.0%)
+    Ping/Pong:          0 success, 0 failed
+    Results saved to /results/ws_large_frames_20260104_175606.json.65536
+[0;32m[INFO][0m   Large frame tests completed
+
+[0;36m[TEST][0m Test 4: Ping/Pong Keep-Alive
+[0;32m[INFO][0m   Testing 50 ping/pong exchanges...
+    Testing ping/pong (50 pings)...
+    
+    === WebSocket Test Results ===
+    Duration:           25.19s
+    Handshakes:         1 success, 0 failed (100.0%)
+    Frames:             0 sent, 0 received
+    Bytes:              0 sent, 0 received
+    Reconnections:      0
+    Ping/Pong:          50 success, 0 failed
+    Avg Latency:        0.51ms
+    Errors:             0
+    ==============================
+    
+    Results saved to /results/ws_pingpong_20260104_175606.json
+[0;32m[INFO][0m   Results: 50 success, 0 failed
+
+[0;36m[TEST][0m Test 5: Reconnection Stability
+[0;32m[INFO][0m   Testing 20 reconnection cycles...
+    Testing reconnection (20 cycles)...
+    
+    === WebSocket Test Results ===
+    Duration:           20.08s
+    Handshakes:         20 success, 0 failed (100.0%)
+    Frames:             20 sent, 0 received
+    Bytes:              0 sent, 0 received
+    Reconnections:      20
+    Ping/Pong:          0 success, 0 failed
+    Avg Latency:        0.00ms
+    Errors:             0
+    ==============================
+    
+    Results saved to /results/ws_reconnect_20260104_175606.json
+[0;32m[INFO][0m   Results: 20 successful reconnections, 0 failures
+
+[0;36m[TEST][0m Test 6: Concurrent WebSocket Connections
+[0;32m[INFO][0m   Starting 10 concurrent WebSocket connections...
+[0;32m[INFO][0m   Results: 10 connections succeeded, 0 failed
+
+[0;36m[TEST][0m Test 7: Full WebSocket Integration
+[0;32m[INFO][0m   Running full WebSocket test suite...
+    
+    === WebSocket Tests for server-ws:51820 ===
+    
+    Testing WebSocket handshake (10 attempts)...
+    Progress: 5/10 handshakes completed (5 success, 0 failed)
+    Progress: 10/10 handshakes completed (10 success, 0 failed)
+    Handshake test completed: 10 success, 0 failed
+    
+    Testing binary frames (50 frames, 512 bytes each)...
+    
+    Testing ping/pong (5 pings)...
+    
+    Testing reconnection (5 cycles)...
+    
+    
+    === WebSocket Test Results ===
+    Duration:           8.59s
+    Handshakes:         17 success, 0 failed (100.0%)
+    Frames:             55 sent, 50 received
+    Bytes:              25600 sent, 25600 received
+    Reconnections:      5
+    Ping/Pong:          5 success, 0 failed
+    Avg Latency:        1.10ms
+    Errors:             0
+    ==============================
+    
+    Results saved to /results/ws_integration_20260104_175606.json
+
+========================================
+ WebSocket Stress Test Summary
+========================================
+Passed: 7
+Failed: 0
+Results: /results/websocket_stress_20260104_175606.json
+========================================
+[0;32m[INFO][0m All WebSocket tests passed!
+[0;32m[INFO][0m WebSocket Stress: PASSED (68s)
+
+
+[1m[0;36mRunning: WebSocket Throughput[0m
+
+========================================
+ Throughput Stress Test
+========================================
+Target:    client-ws:51822
+Mode:      websocket
+Duration:  15s per test
+Results:   /results/throughput_websocket_20260104_175714.json
+========================================
+
+[0;32m[INFO][0m === Baseline Test ===
+[0;32m[INFO][0m Testing: 100 pps, 256 bytes, 10s
+  Starting stress test to client-ws:51822
+  Rate: 100.0 pps, Duration: 10.0s, Packet size: 256 bytes
+  
+  Sent packet #0 (1 total)
+  Received packet #0, latency: 1.03ms (1 total)
+  Waiting for remaining responses...
+  
+  === Stress Test Results ===
+  Duration:           12.04s
+  Packets Sent:       1000
+  Packets Received:   1000
+  Packets Lost:       0 (0.00%)
+  Out of Order:       0
+  Throughput:         83.06 pps / 0.1701 Mbps
+  Latency (ms):       avg=1.05 min=0.27 max=6.20
+  p50=1.03 p95=1.71 p99=2.30
+  Errors:             0
+  ===========================
+  
+  Results saved to /results/rate_100_size_256_20260104_175714.json
+[0;32m[INFO][0m   PASSED (loss: 0.0%)
+
+[0;32m[INFO][0m === Rate Scaling Tests ===
+[0;32m[INFO][0m Testing: 100 pps, 256 bytes, 15s
+  Starting stress test to client-ws:51822
+  Rate: 100.0 pps, Duration: 15.0s, Packet size: 256 bytes
+  
+  Sent packet #0 (1 total)
+  Received packet #0, latency: 0.76ms (1 total)
+  Sent packet #1000 (1001 total)
+  Received packet #1000, latency: 1.00ms (1001 total)
+  Waiting for remaining responses...
+  
+  === Stress Test Results ===
+  Duration:           17.05s
+  Packets Sent:       1500
+  Packets Received:   1500
+  Packets Lost:       0 (0.00%)
+  Out of Order:       0
+  Throughput:         87.97 pps / 0.1802 Mbps
+  Latency (ms):       avg=1.09 min=0.25 max=9.40
+  p50=1.08 p95=1.73 p99=2.66
+  Errors:             0
+  ===========================
+  
+  Results saved to /results/rate_100_size_256_20260104_175714.json
+[0;32m[INFO][0m   PASSED (loss: 0.0%)
+[0;32m[INFO][0m Testing: 500 pps, 256 bytes, 15s
+  Starting stress test to client-ws:51822
+  Rate: 500.0 pps, Duration: 15.0s, Packet size: 256 bytes
+  
+  Sent packet #0 (1 total)
+  Received packet #0, latency: 0.93ms (1 total)
+  Sent packet #1000 (1001 total)
+  Received packet #1000, latency: 0.60ms (1001 total)
+  Sent packet #2000 (2001 total)
+  Received packet #2000, latency: 0.37ms (2001 total)
+  Sent packet #3000 (3001 total)
+  Received packet #3000, latency: 2.31ms (3001 total)
+  Sent packet #4000 (4001 total)
+  Received packet #4000, latency: 2.17ms (4001 total)
+  Sent packet #5000 (5001 total)
+  Received packet #5000, latency: 2.61ms (5000 total)
+  Sent packet #6000 (6001 total)
+  Received packet #6000, latency: 2.56ms (5999 total)
+  Sent packet #7000 (7001 total)
+  Received packet #7000, latency: 2.25ms (6999 total)
+  Waiting for remaining responses...
+  
+  === Stress Test Results ===
+  Duration:           17.04s
+  Packets Sent:       7500
+  Packets Received:   7497
+  Packets Lost:       3 (0.04%)
+  Out of Order:       4662
+  Throughput:         440.23 pps / 0.9016 Mbps
+  Latency (ms):       avg=1.91 min=0.19 max=41.41
+  p50=2.28 p95=3.40 p99=4.42
+  Errors:             0
+  ===========================
+  
+  Results saved to /results/rate_500_size_256_20260104_175714.json
+[0;32m[INFO][0m   PASSED (loss: 0.04%)
+[0;32m[INFO][0m Testing: 1000 pps, 256 bytes, 15s
+  Starting stress test to client-ws:51822
+  Rate: 1000.0 pps, Duration: 15.0s, Packet size: 256 bytes
+  
+  Sent packet #0 (1 total)
+  Received packet #0, latency: 0.84ms (1 total)
+  Sent packet #1000 (1001 total)
+  Received packet #1000, latency: 1.24ms (1001 total)
+  Sent packet #2000 (2001 total)
+  Received packet #2000, latency: 2.49ms (2001 total)
+  Sent packet #3000 (3001 total)
+  Received packet #3000, latency: 1.44ms (3001 total)
+  Sent packet #4000 (4001 total)
+  Received packet #4000, latency: 1.60ms (4000 total)
+  Sent packet #5000 (5001 total)
+  Received packet #5000, latency: 1.24ms (5000 total)
+  Sent packet #6000 (6001 total)
+  Received packet #6000, latency: 1.11ms (6000 total)
+  Sent packet #7000 (7001 total)
+  Received packet #7000, latency: 0.79ms (6999 total)
+  Sent packet #8000 (8001 total)
+  Received packet #8000, latency: 1.29ms (7999 total)
+  Sent packet #9000 (9001 total)
+  Received packet #9000, latency: 2.42ms (8999 total)
+  Sent packet #10000 (10001 total)
+  Received packet #10000, latency: 2.12ms (9998 total)
+  Sent packet #11000 (11001 total)
+  Received packet #11000, latency: 1.45ms (10998 total)
+  Sent packet #12000 (12001 total)
+  Received packet #12000, latency: 1.45ms (11998 total)
+  Sent packet #13000 (13001 total)
+  Received packet #13000, latency: 1.18ms (12997 total)
+  Sent packet #14000 (14001 total)
+  Received packet #14000, latency: 2.91ms (13997 total)
+  Sent packet #15000 (15001 total)
+  Waiting for remaining responses...
+  Received packet #15000, latency: 41.30ms (14997 total)
+  
+  === Stress Test Results ===
+  Duration:           17.03s
+  Packets Sent:       15001
+  Packets Received:   14997
+  Packets Lost:       4 (0.03%)
+  Out of Order:       14461
+  Throughput:         880.64 pps / 1.8035 Mbps
+  Latency (ms):       avg=1.42 min=0.19 max=41.30
+  p50=1.33 p95=2.47 p99=2.94
+  Errors:             0
+  ===========================
+  
+  Results saved to /results/rate_1000_size_256_20260104_175714.json
+[0;32m[INFO][0m   PASSED (loss: 0.03%)
+[0;32m[INFO][0m Testing: 2000 pps, 256 bytes, 15s
+  Starting stress test to client-ws:51822
+  Rate: 2000.0 pps, Duration: 15.0s, Packet size: 256 bytes
+  
+  Sent packet #0 (1 total)
+  Received packet #0, latency: 0.72ms (1 total)
+  Sent packet #1000 (1001 total)
+  Received packet #1000, latency: 0.24ms (1001 total)
+  Sent packet #2000 (2001 total)
+  Received packet #2000, latency: 0.45ms (2001 total)
+  Sent packet #3000 (3001 total)
+  Received packet #3000, latency: 0.69ms (2999 total)
+  Sent packet #4000 (4001 total)
+  Received packet #4000, latency: 0.76ms (3999 total)
+  Sent packet #5000 (5001 total)
+  Received packet #5000, latency: 0.73ms (4999 total)
+  Sent packet #6000 (6001 total)
+  Received packet #6000, latency: 0.62ms (5999 total)
+  Sent packet #7000 (7001 total)
+  Received packet #7000, latency: 1.09ms (6999 total)
+  Sent packet #8000 (8001 total)
+  Received packet #8000, latency: 0.53ms (7999 total)
+  Sent packet #9000 (9001 total)
+  Received packet #9000, latency: 1.23ms (8998 total)
+  Sent packet #10000 (10001 total)
+  Received packet #10000, latency: 0.99ms (9998 total)
+  Sent packet #11000 (11001 total)
+  Received packet #11000, latency: 0.54ms (10998 total)
+  Sent packet #12000 (12001 total)
+  Received packet #12000, latency: 0.77ms (11998 total)
+  Sent packet #13000 (13001 total)
+  Received packet #13000, latency: 0.37ms (12998 total)
+  Sent packet #14000 (14001 total)
+  Received packet #14000, latency: 0.55ms (13998 total)
+  Sent packet #15000 (15001 total)
+  Received packet #15000, latency: 0.77ms (14998 total)
+  Sent packet #16000 (16001 total)
+  Received packet #16000, latency: 0.60ms (15998 total)
+  Sent packet #17000 (17001 total)
+  Received packet #17000, latency: 0.39ms (16998 total)
+  Sent packet #18000 (18001 total)
+  Received packet #18000, latency: 0.65ms (17998 total)
+  Sent packet #19000 (19001 total)
+  Received packet #19000, latency: 0.60ms (18998 total)
+  Sent packet #20000 (20001 total)
+  Received packet #20000, latency: 0.79ms (19998 total)
+  Sent packet #21000 (21001 total)
+  Received packet #21000, latency: 0.47ms (20997 total)
+  Sent packet #22000 (22001 total)
+  Received packet #22000, latency: 0.81ms (21997 total)
+  Sent packet #23000 (23001 total)
+  Received packet #23000, latency: 0.52ms (22997 total)
+  Sent packet #24000 (24001 total)
+  Received packet #24000, latency: 0.72ms (23997 total)
+  Sent packet #25000 (25001 total)
+  Received packet #25000, latency: 0.48ms (24997 total)
+  Sent packet #26000 (26001 total)
+  Received packet #26000, latency: 1.52ms (25997 total)
+  Sent packet #27000 (27001 total)
+  Received packet #27000, latency: 1.18ms (26996 total)
+  Sent packet #28000 (28001 total)
+  Received packet #28000, latency: 1.25ms (27996 total)
+  Sent packet #29000 (29001 total)
+  Received packet #29000, latency: 1.04ms (28996 total)
+  Waiting for remaining responses...
+  
+  === Stress Test Results ===
+  Duration:           17.03s
+  Packets Sent:       30000
+  Packets Received:   29995
+  Packets Lost:       5 (0.02%)
+  Out of Order:       27177
+  Throughput:         1761.31 pps / 3.6072 Mbps
+  Latency (ms):       avg=0.79 min=0.17 max=41.09
+  p50=0.61 p95=1.74 p99=2.13
+  Errors:             0
+  ===========================
+  
+  Results saved to /results/rate_2000_size_256_20260104_175714.json
+[0;32m[INFO][0m   PASSED (loss: 0.02%)
+[0;32m[INFO][0m Testing: 5000 pps, 256 bytes, 15s
+  Starting stress test to client-ws:51822
+  Rate: 5000.0 pps, Duration: 15.0s, Packet size: 256 bytes
+  
+  Sent packet #0 (1 total)
+  Received packet #0, latency: 0.81ms (1 total)
+  Sent packet #1000 (1001 total)
+  Received packet #1000, latency: 0.28ms (1001 total)
+  Sent packet #2000 (2001 total)
+  Received packet #2000, latency: 0.28ms (2001 total)
+  Sent packet #3000 (3001 total)
+  Received packet #3000, latency: 0.29ms (3001 total)
+  Sent packet #4000 (4001 total)
+  Received packet #4000, latency: 0.33ms (4001 total)
+  Sent packet #5000 (5001 total)
+  Received packet #5000, latency: 0.23ms (5001 total)
+  Sent packet #6000 (6001 total)
+  Received packet #6000, latency: 0.30ms (6001 total)
+  Sent packet #7000 (7001 total)
+  Received packet #7000, latency: 0.27ms (7001 total)
+  Sent packet #8000 (8001 total)
+  Received packet #8000, latency: 0.31ms (8001 total)
+  Sent packet #9000 (9001 total)
+  Received packet #9000, latency: 0.36ms (9001 total)
+  Sent packet #10000 (10001 total)
+  Received packet #10000, latency: 0.28ms (10001 total)
+  Sent packet #11000 (11001 total)
+  Received packet #11000, latency: 0.29ms (11001 total)
+  Sent packet #12000 (12001 total)
+  Received packet #12000, latency: 0.26ms (12000 total)
+  Sent packet #13000 (13001 total)
+  Received packet #13000, latency: 0.29ms (13000 total)
+  Sent packet #14000 (14001 total)
+  Received packet #14000, latency: 0.31ms (14000 total)
+  Sent packet #15000 (15001 total)
+  Received packet #15000, latency: 0.37ms (15000 total)
+  Sent packet #16000 (16001 total)
+  Received packet #16000, latency: 0.39ms (16000 total)
+  Sent packet #17000 (17001 total)
+  Received packet #17000, latency: 0.24ms (17000 total)
+  Sent packet #18000 (18001 total)
+  Received packet #18000, latency: 0.30ms (18000 total)
+  Sent packet #19000 (19001 total)
+  Received packet #19000, latency: 0.87ms (19000 total)
+  Sent packet #20000 (20001 total)
+  Received packet #20000, latency: 1.03ms (20000 total)
+  Sent packet #21000 (21001 total)
+  Received packet #21000, latency: 0.36ms (21000 total)
+  Sent packet #22000 (22001 total)
+  Received packet #22000, latency: 0.28ms (22000 total)
+  Sent packet #23000 (23001 total)
+  Received packet #23000, latency: 0.72ms (23000 total)
+  Sent packet #24000 (24001 total)
+  Received packet #24000, latency: 0.27ms (24000 total)
+  Sent packet #25000 (25001 total)
+  Received packet #25000, latency: 0.26ms (25000 total)
+  Sent packet #26000 (26001 total)
+  Received packet #26000, latency: 0.29ms (26000 total)
+  Sent packet #27000 (27001 total)
+  Received packet #27000, latency: 0.78ms (26999 total)
+  Sent packet #28000 (28001 total)
+  Received packet #28000, latency: 0.27ms (27999 total)
+  Sent packet #29000 (29001 total)
+  Received packet #29000, latency: 0.30ms (28999 total)
+  Sent packet #30000 (30001 total)
+  Received packet #30000, latency: 0.51ms (29999 total)
+  Sent packet #31000 (31001 total)
+  Received packet #31000, latency: 0.27ms (30999 total)
+  Sent packet #32000 (32001 total)
+  Received packet #32000, latency: 1.65ms (31999 total)
+  Sent packet #33000 (33001 total)
+  Received packet #33000, latency: 0.30ms (32999 total)
+  Sent packet #34000 (34001 total)
+  Received packet #34000, latency: 0.33ms (33999 total)
+  Sent packet #35000 (35001 total)
+  Received packet #35000, latency: 0.29ms (34999 total)
+  Sent packet #36000 (36001 total)
+  Received packet #36000, latency: 0.27ms (35999 total)
+  Sent packet #37000 (37001 total)
+  Received packet #37000, latency: 0.44ms (36999 total)
+  Sent packet #38000 (38001 total)
+  Received packet #38000, latency: 0.33ms (37999 total)
+  Sent packet #39000 (39001 total)
+  Received packet #39000, latency: 0.29ms (38999 total)
+  Sent packet #40000 (40001 total)
+  Received packet #40000, latency: 0.43ms (39999 total)
+  Sent packet #41000 (41001 total)
+  Received packet #41000, latency: 0.29ms (40999 total)
+  Sent packet #42000 (42001 total)
+  Received packet #42000, latency: 0.56ms (41998 total)
+  Sent packet #43000 (43001 total)
+  Received packet #43000, latency: 0.29ms (42998 total)
+  Sent packet #44000 (44001 total)
+  Received packet #44000, latency: 0.27ms (43998 total)
+  Sent packet #45000 (45001 total)
+  Received packet #45000, latency: 0.30ms (44998 total)
+  Sent packet #46000 (46001 total)
+  Received packet #46000, latency: 1.00ms (45998 total)
+  Sent packet #47000 (47001 total)
+  Received packet #47000, latency: 0.25ms (46998 total)
+  Sent packet #48000 (48001 total)
+  Received packet #48000, latency: 0.47ms (47998 total)
+  Sent packet #49000 (49001 total)
+  Received packet #49000, latency: 0.97ms (48998 total)
+  Sent packet #50000 (50001 total)
+  Received packet #50000, latency: 0.32ms (49998 total)
+  Sent packet #51000 (51001 total)
+  Received packet #51000, latency: 0.30ms (50998 total)
+  Sent packet #52000 (52001 total)
+  Received packet #52000, latency: 0.91ms (51998 total)
+  Sent packet #53000 (53001 total)
+  Received packet #53000, latency: 0.39ms (52998 total)
+  Sent packet #54000 (54001 total)
+  Received packet #54000, latency: 0.28ms (53998 total)
+  Sent packet #55000 (55001 total)
+  Received packet #55000, latency: 0.27ms (54998 total)
+  Sent packet #56000 (56001 total)
+  Received packet #56000, latency: 0.29ms (55998 total)
+  Sent packet #57000 (57001 total)
+  Received packet #57000, latency: 0.26ms (56997 total)
+  Sent packet #58000 (58001 total)
+  Received packet #58000, latency: 0.26ms (57997 total)
+  Sent packet #59000 (59001 total)
+  Received packet #59000, latency: 0.28ms (58997 total)
+  Sent packet #60000 (60001 total)
+  Received packet #60000, latency: 0.23ms (59997 total)
+  Sent packet #61000 (61001 total)
+  Received packet #61000, latency: 0.32ms (60997 total)
+  Sent packet #62000 (62001 total)
+  Received packet #62000, latency: 0.28ms (61997 total)
+  Sent packet #63000 (63001 total)
+  Received packet #63000, latency: 0.26ms (62997 total)
+  Sent packet #64000 (64001 total)
+  Received packet #64000, latency: 0.26ms (63997 total)
+  Sent packet #65000 (65001 total)
+  Received packet #65000, latency: 0.25ms (64997 total)
+  Sent packet #66000 (66001 total)
+  Received packet #66000, latency: 0.29ms (65997 total)
+  Sent packet #67000 (67001 total)
+  Received packet #67000, latency: 0.29ms (66997 total)
+  Sent packet #68000 (68001 total)
+  Received packet #68000, latency: 0.30ms (67997 total)
+  Sent packet #69000 (69001 total)
+  Received packet #69000, latency: 0.43ms (68997 total)
+  Sent packet #70000 (70001 total)
+  Received packet #70000, latency: 0.32ms (69997 total)
+  Sent packet #71000 (71001 total)
+  Received packet #71000, latency: 0.26ms (70997 total)
+  Sent packet #72000 (72001 total)
+  Received packet #72000, latency: 0.27ms (71996 total)
+  Sent packet #73000 (73001 total)
+  Received packet #73000, latency: 0.26ms (72996 total)
+  Sent packet #74000 (74001 total)
+  Received packet #74000, latency: 0.24ms (73996 total)
+  Waiting for remaining responses...
+  
+  === Stress Test Results ===
+  Duration:           17.04s
+  Packets Sent:       74985
+  Packets Received:   74980
+  Packets Lost:       5 (0.01%)
+  Out of Order:       63545
+  Throughput:         4400.12 pps / 9.0115 Mbps
+  Latency (ms):       avg=0.37 min=0.15 max=40.88
+  p50=0.26 p95=1.08 p99=1.54
+  Errors:             0
+  ===========================
+  
+  Results saved to /results/rate_5000_size_256_20260104_175714.json
+[0;32m[INFO][0m   PASSED (loss: 0.01%)
+
+[0;32m[INFO][0m === Packet Size Tests ===
+[0;32m[INFO][0m Testing: 500 pps, 64 bytes, 15s
+  Starting stress test to client-ws:51822
+  Rate: 500.0 pps, Duration: 15.0s, Packet size: 64 bytes
+  
+  Sent packet #0 (1 total)
+  Received packet #0, latency: 0.64ms (1 total)
+  Sent packet #1000 (1001 total)
+  Received packet #1000, latency: 1.23ms (1001 total)
+  Sent packet #2000 (2001 total)
+  Received packet #2000, latency: 1.21ms (2001 total)
+  Sent packet #3000 (3001 total)
+  Received packet #3000, latency: 1.11ms (3001 total)
+  Sent packet #4000 (4001 total)
+  Received packet #4000, latency: 1.00ms (4001 total)
+  Sent packet #5000 (5001 total)
+  Received packet #5000, latency: 1.09ms (5001 total)
+  Sent packet #6000 (6001 total)
+  Received packet #6000, latency: 0.81ms (6001 total)
+  Sent packet #7000 (7001 total)
+  Received packet #7000, latency: 2.88ms (7001 total)
+  Waiting for remaining responses...
+  
+  === Stress Test Results ===
+  Duration:           17.04s
+  Packets Sent:       7500
+  Packets Received:   7500
+  Packets Lost:       0 (0.00%)
+  Out of Order:       1426
+  Throughput:         440.26 pps / 0.2254 Mbps
+  Latency (ms):       avg=1.18 min=0.17 max=41.57
+  p50=1.01 p95=2.76 p99=3.02
+  Errors:             0
+  ===========================
+  
+  Results saved to /results/rate_500_size_64_20260104_175714.json
+[0;32m[INFO][0m   PASSED (loss: 0.0%)
+[0;32m[INFO][0m Testing: 500 pps, 256 bytes, 15s
+  Starting stress test to client-ws:51822
+  Rate: 500.0 pps, Duration: 15.0s, Packet size: 256 bytes
+  
+  Sent packet #0 (1 total)
+  Received packet #0, latency: 0.90ms (1 total)
+  Sent packet #1000 (1001 total)
+  Received packet #1000, latency: 0.73ms (1001 total)
+  Sent packet #2000 (2001 total)
+  Received packet #2000, latency: 0.71ms (2000 total)
+  Sent packet #3000 (3001 total)
+  Received packet #3000, latency: 0.85ms (3000 total)
+  Sent packet #4000 (4001 total)
+  Received packet #4000, latency: 0.31ms (4000 total)
+  Sent packet #5000 (5001 total)
+  Received packet #5000, latency: 1.05ms (5000 total)
+  Sent packet #6000 (6001 total)
+  Received packet #6000, latency: 1.08ms (6000 total)
+  Sent packet #7000 (7001 total)
+  Received packet #7000, latency: 0.55ms (7000 total)
+  Waiting for remaining responses...
+  
+  === Stress Test Results ===
+  Duration:           17.03s
+  Packets Sent:       7500
+  Packets Received:   7499
+  Packets Lost:       1 (0.01%)
+  Out of Order:       2494
+  Throughput:         440.31 pps / 0.9018 Mbps
+  Latency (ms):       avg=0.81 min=0.19 max=10.38
+  p50=0.82 p95=1.32 p99=1.65
+  Errors:             0
+  ===========================
+  
+  Results saved to /results/rate_500_size_256_20260104_175714.json
+[0;32m[INFO][0m   PASSED (loss: 0.01%)
+[0;32m[INFO][0m Testing: 500 pps, 512 bytes, 15s
+  Starting stress test to client-ws:51822
+  Rate: 500.0 pps, Duration: 15.0s, Packet size: 512 bytes
+  
+  Sent packet #0 (1 total)
+  Received packet #0, latency: 0.66ms (1 total)
+  Sent packet #1000 (1001 total)
+  Received packet #1000, latency: 0.78ms (1001 total)
+  Sent packet #2000 (2001 total)
+  Received packet #2000, latency: 2.23ms (2001 total)
+  Sent packet #3000 (3001 total)
+  Received packet #3000, latency: 2.51ms (3000 total)
+  Sent packet #4000 (4001 total)
+  Received packet #4000, latency: 1.98ms (3999 total)
+  Sent packet #5000 (5001 total)
+  Received packet #5000, latency: 2.88ms (4999 total)
+  Sent packet #6000 (6001 total)
+  Received packet #6000, latency: 2.22ms (5998 total)
+  Sent packet #7000 (7001 total)
+  Received packet #7000, latency: 2.37ms (6997 total)
+  Waiting for remaining responses...
+  
+  === Stress Test Results ===
+  Duration:           17.04s
+  Packets Sent:       7499
+  Packets Received:   7495
+  Packets Lost:       4 (0.05%)
+  Out of Order:       5031
+  Throughput:         439.98 pps / 1.8022 Mbps
+  Latency (ms):       avg=2.18 min=0.21 max=41.26
+  p50=2.43 p95=3.03 p99=4.22
+  Errors:             0
+  ===========================
+  
+  Results saved to /results/rate_500_size_512_20260104_175714.json
+[0;32m[INFO][0m   PASSED (loss: 0.05%)
+[0;32m[INFO][0m Testing: 500 pps, 1024 bytes, 15s
+  Starting stress test to client-ws:51822
+  Rate: 500.0 pps, Duration: 15.0s, Packet size: 1024 bytes
+  
+  Sent packet #0 (1 total)
+  Received packet #0, latency: 0.69ms (1 total)
+  Sent packet #1000 (1001 total)
+  Received packet #1000, latency: 0.73ms (1001 total)
+  Sent packet #2000 (2001 total)
+  Received packet #2000, latency: 0.55ms (2001 total)
+  Sent packet #3000 (3001 total)
+  Received packet #3000, latency: 3.57ms (3000 total)
+  Sent packet #4000 (4001 total)
+  Received packet #4000, latency: 2.58ms (4000 total)
+  Sent packet #5000 (5001 total)
+  Received packet #5000, latency: 2.96ms (5000 total)
+  Sent packet #6000 (6001 total)
+  Received packet #6000, latency: 2.27ms (5999 total)
+  Sent packet #7000 (7001 total)
+  Received packet #7000, latency: 2.32ms (6999 total)
+  Waiting for remaining responses...
+  
+  === Stress Test Results ===
+  Duration:           17.04s
+  Packets Sent:       7500
+  Packets Received:   7498
+  Packets Lost:       2 (0.03%)
+  Out of Order:       4600
+  Throughput:         440.16 pps / 3.6058 Mbps
+  Latency (ms):       avg=1.92 min=0.17 max=42.25
+  p50=2.27 p95=3.01 p99=3.86
+  Errors:             0
+  ===========================
+  
+  Results saved to /results/rate_500_size_1024_20260104_175714.json
+[0;32m[INFO][0m   PASSED (loss: 0.03%)
+
+[0;32m[INFO][0m === Burst Test ===
+[0;32m[INFO][0m Testing: 10000 pps, 256 bytes, 5s
+  Starting stress test to client-ws:51822
+  Rate: 10000.0 pps, Duration: 5.0s, Packet size: 256 bytes
+  
+  Sent packet #0 (1 total)
+  Received packet #0, latency: 1.09ms (1 total)
+  Sent packet #1000 (1001 total)
+  Received packet #1000, latency: 0.28ms (1001 total)
+  Sent packet #2000 (2001 total)
+  Received packet #2000, latency: 0.30ms (2001 total)
+  Sent packet #3000 (3001 total)
+  Received packet #3000, latency: 0.52ms (3001 total)
+  Sent packet #4000 (4001 total)
+  Received packet #4000, latency: 0.30ms (4001 total)
+  Sent packet #5000 (5001 total)
+  Received packet #5000, latency: 0.28ms (5001 total)
+  Sent packet #6000 (6001 total)
+  Received packet #6000, latency: 0.29ms (6001 total)
+  Sent packet #7000 (7001 total)
+  Received packet #7000, latency: 0.29ms (7001 total)
+  Sent packet #8000 (8001 total)
+  Received packet #8000, latency: 0.42ms (8001 total)
+  Sent packet #9000 (9001 total)
+  Received packet #9000, latency: 0.30ms (9001 total)
+  Sent packet #10000 (10001 total)
+  Received packet #10000, latency: 0.29ms (10001 total)
+  Sent packet #11000 (11001 total)
+  Received packet #11000, latency: 0.30ms (11001 total)
+  Sent packet #12000 (12001 total)
+  Received packet #12000, latency: 0.28ms (12001 total)
+  Sent packet #13000 (13001 total)
+  Received packet #13000, latency: 0.31ms (13001 total)
+  Sent packet #14000 (14001 total)
+  Received packet #14000, latency: 0.33ms (14001 total)
+  Sent packet #15000 (15001 total)
+  Received packet #15000, latency: 0.36ms (15001 total)
+  Sent packet #16000 (16001 total)
+  Received packet #16000, latency: 0.28ms (16001 total)
+  Sent packet #17000 (17001 total)
+  Received packet #17000, latency: 0.27ms (17001 total)
+  Sent packet #18000 (18001 total)
+  Received packet #18000, latency: 0.34ms (18001 total)
+  Sent packet #19000 (19001 total)
+  Received packet #19000, latency: 0.28ms (19001 total)
+  Sent packet #20000 (20001 total)
+  Received packet #20000, latency: 0.33ms (20001 total)
+  Sent packet #21000 (21001 total)
+  Received packet #21000, latency: 0.30ms (21001 total)
+  Sent packet #22000 (22001 total)
+  Received packet #22000, latency: 0.29ms (22001 total)
+  Sent packet #23000 (23001 total)
+  Received packet #23000, latency: 0.32ms (23001 total)
+  Sent packet #24000 (24001 total)
+  Received packet #24000, latency: 0.32ms (24001 total)
+  Sent packet #25000 (25001 total)
+  Received packet #25000, latency: 0.32ms (25001 total)
+  Sent packet #26000 (26001 total)
+  Received packet #26000, latency: 0.30ms (26001 total)
+  Sent packet #27000 (27001 total)
+  Received packet #27000, latency: 0.27ms (27001 total)
+  Sent packet #28000 (28001 total)
+  Received packet #28000, latency: 0.33ms (28001 total)
+  Sent packet #29000 (29001 total)
+  Received packet #29000, latency: 0.27ms (29001 total)
+  Sent packet #30000 (30001 total)
+  Received packet #30000, latency: 0.28ms (30001 total)
+  Sent packet #31000 (31001 total)
+  Received packet #31000, latency: 0.25ms (31001 total)
+  Sent packet #32000 (32001 total)
+  Received packet #32000, latency: 0.26ms (32001 total)
+  Sent packet #33000 (33001 total)
+  Received packet #33000, latency: 0.27ms (33001 total)
+  Sent packet #34000 (34001 total)
+  Received packet #34000, latency: 0.28ms (34001 total)
+  Sent packet #35000 (35001 total)
+  Received packet #35000, latency: 0.29ms (35001 total)
+  Sent packet #36000 (36001 total)
+  Received packet #36000, latency: 0.31ms (36001 total)
+  Sent packet #37000 (37001 total)
+  Received packet #37000, latency: 0.29ms (37001 total)
+  Sent packet #38000 (38001 total)
+  Received packet #38000, latency: 0.26ms (38001 total)
+  Sent packet #39000 (39001 total)
+  Received packet #39000, latency: 0.41ms (39001 total)
+  Sent packet #40000 (40001 total)
+  Received packet #40000, latency: 0.29ms (40001 total)
+  Sent packet #41000 (41001 total)
+  Received packet #41000, latency: 0.32ms (41001 total)
+  Sent packet #42000 (42001 total)
+  Received packet #42000, latency: 0.28ms (42001 total)
+  Sent packet #43000 (43001 total)
+  Received packet #43000, latency: 0.28ms (43001 total)
+  Sent packet #44000 (44001 total)
+  Received packet #44000, latency: 0.58ms (44001 total)
+  Waiting for remaining responses...
+  
+  === Stress Test Results ===
+  Duration:           7.02s
+  Packets Sent:       44870
+  Packets Received:   44870
+  Packets Lost:       0 (0.00%)
+  Out of Order:       39470
+  Throughput:         6393.75 pps / 13.0944 Mbps
+  Latency (ms):       avg=0.29 min=0.17 max=43.82
+  p50=0.26 p95=0.35 p99=0.77
+  Errors:             0
+  ===========================
+  
+  Results saved to /results/rate_10000_size_256_20260104_175714.json
+[0;32m[INFO][0m   PASSED (loss: 0.0%)
+
+========================================
+ Throughput Test Summary
+========================================
+Passed: 11
+Failed: 0
+Results: /results/throughput_websocket_20260104_175714.json
+========================================
+[0;32m[INFO][0m All tests passed!
+[0;32m[INFO][0m WebSocket Throughput: PASSED (174s)
+
+
+[1m[0;36mRunning: WebSocket Reconnection[0m
+
+========================================
+ Reconnection Stress Test
+========================================
+Target:     client-ws:51822
+Mode:       websocket
+Cycles:     10
+Results:    /results/reconnection_websocket_20260104_180008.json
+========================================
+
+[0;36m[TEST][0m Test 1: Clean Reconnection
+[0;32m[INFO][0m   Cycle 1/10
+[0;32m[INFO][0m     OK (latency: 2.007406084s)
+[0;32m[INFO][0m   Cycle 2/10
+[0;32m[INFO][0m     OK (latency: 2.008250278s)
+[0;32m[INFO][0m   Cycle 3/10
+[0;32m[INFO][0m     OK (latency: 2.010434626s)
+[0;32m[INFO][0m   Cycle 4/10
+[0;32m[INFO][0m     OK (latency: 2.009331918s)
+[0;32m[INFO][0m   Cycle 5/10
+[0;32m[INFO][0m     OK (latency: 2.006427251s)
+[0;32m[INFO][0m   Cycle 6/10
+[0;32m[INFO][0m     OK (latency: 2.017397001s)
+[0;32m[INFO][0m   Cycle 7/10
+[0;32m[INFO][0m     OK (latency: 2.007089293s)
+[0;32m[INFO][0m   Cycle 8/10
+[0;32m[INFO][0m     OK (latency: 2.009949585s)
+[0;32m[INFO][0m   Cycle 9/10
+[0;32m[INFO][0m     OK (latency: 2.006365167s)
+[0;32m[INFO][0m   Cycle 10/10
+[0;32m[INFO][0m     OK (latency: 2.009989334s)
+[0;32m[INFO][0m   Results: 10 success, 0 failed, avg latency: 2.009s
+
+[1;33m[WARN][0m Test 2: Container Pause - SKIPPED (Docker not available)
+
+[0;36m[TEST][0m Test 3: Rapid Reconnection
+[0;32m[INFO][0m   Sending 50 rapid connection attempts...
+[0;32m[INFO][0m   Results: 0 success, 50 timeout
+
+[0;36m[TEST][0m Test 4: Sustained Traffic with Interruptions
+[1;33m[WARN][0m   SKIPPED (Docker not available)
+
+========================================
+ Reconnection Test Summary
+========================================
+Passed: 3
+Failed: 1
+Results: /results/reconnection_websocket_20260104_180008.json
+========================================
+[0;31m[ERROR][0m Some tests failed!
+[0;31m[ERROR][0m WebSocket Reconnection: FAILED (28s)
+
+
+[1m[0;36mRunning: WebSocket Network Conditions[0m
+
+========================================
+ Network Conditions Simulation Test
+========================================
+Target:    client-ws:51822
+Mode:      websocket
+Duration:  30s per condition
+Results:   /results/network_websocket_20260104_180036.json
+========================================
+
+[0;32m[INFO][0m === Baseline Test (no network impairment) ===
+[0;36m[TEST][0m Testing: Baseline - no impairment
+    Starting stress test to client-ws:51822
+    Rate: 100.0 pps, Duration: 30.0s, Packet size: 256 bytes
+    
+    Sent packet #0 (1 total)
+    Received packet #0, latency: 0.72ms (1 total)
+    Sent packet #1000 (1001 total)
+    Received packet #1000, latency: 0.77ms (1001 total)
+    Sent packet #2000 (2001 total)
+    Received packet #2000, latency: 1.04ms (2001 total)
+    Waiting for remaining responses...
+    
+    === Stress Test Results ===
+    Duration:           32.09s
+    Packets Sent:       3000
+    Packets Received:   3000
+    Packets Lost:       0 (0.00%)
+    Out of Order:       0
+    Throughput:         93.48 pps / 0.1914 Mbps
+    Latency (ms):       avg=1.23 min=0.23 max=6.42
+    p50=1.23 p95=1.91 p99=2.45
+    Errors:             0
+    ===========================
+    
+    Results saved to /results/network_clear_20260104_180036.json
+[0;32m[INFO][0m   Results: loss=0.0%, latency=1.23ms
+[0;32m[INFO][0m   PASSED (loss 0.0% <= 1%)
+
+[1;33m[WARN][0m Traffic control not available, running simulated tests...
+
+[0;36m[TEST][0m Simulated: Normal conditions
+    Starting stress test to client-ws:51822
+    Rate: 100.0 pps, Duration: 30.0s, Packet size: 256 bytes
+    
+    
+    === Stress Test Results ===
+    Duration:           32.00s
+    Packets Sent:       3000
+    Packets Received:   2999
+    Packets Lost:       1 (0.03%)
+    Out of Order:       0
+    Throughput:         93.74 pps / 0.1920 Mbps
+    Latency (ms):       avg=1.16 min=0.24 max=5.24
+    p50=1.23 p95=1.73 p99=2.43
+    Errors:             0
+    ===========================
+    
+    Results saved to /results/simulated_normal_20260104_180036.json
+[0;32m[INFO][0m   Results: loss=0.03%, latency=1.16ms
+
+[0;36m[TEST][0m Simulated: Burst traffic pattern
+    Starting stress test to client-ws:51822
+    Rate: 100.0 pps, Duration: 30.0s, Packet size: 256 bytes
+    
+    
+    === Stress Test Results ===
+    Duration:           32.01s
+    Packets Sent:       3000
+    Packets Received:   3000
+    Packets Lost:       0 (0.00%)
+    Out of Order:       0
+    Throughput:         93.73 pps / 0.1920 Mbps
+    Latency (ms):       avg=1.18 min=0.23 max=7.42
+    p50=1.20 p95=1.75 p99=2.48
+    Errors:             0
+    ===========================
+    
+    Results saved to /results/simulated_burst_20260104_180036.json
+[0;32m[INFO][0m   Results: loss=0.0%, latency=1.18ms
+
+========================================
+ Network Conditions Test Summary
+========================================
+Passed: 3
+Failed: 0
+Results: /results/network_websocket_20260104_180036.json
+========================================
+[0;32m[INFO][0m Tests completed!
+[0;32m[INFO][0m WebSocket Network Conditions: PASSED (96s)
+
+
+[1m[0;36mRunning: WebSocket Stability[0m
+
+========================================
+ Long-Running Stability Test
+========================================
+Target:        client-ws:51822
+Mode:          websocket
+Duration:      300s (5 minutes)
+Sample Rate:   every 60s
+Results:       /results/stability_websocket_20260104_180212.json
+========================================
+
+[0;36m[TEST][0m 18:02:12 Starting stability test for 300 seconds...
+[0;32m[INFO][0m 18:02:12 Starting traffic generator at 100 pps...
+[0;32m[INFO][0m 18:02:12 Traffic generator started (PID: 3520)
+  [TRAFFIC] Starting stress test to client-ws:51822
+  [TRAFFIC] Rate: 100.0 pps, Duration: 300.0s, Packet size: 256 bytes
+  [TRAFFIC] 
+  [TRAFFIC] Sent packet #0 (1 total)
+  [TRAFFIC] Received packet #0, latency: 0.70ms (1 total)
+  [TRAFFIC] Sent packet #1000 (1001 total)
+  [TRAFFIC] Received packet #1000, latency: 1.46ms (1001 total)
+  [TRAFFIC] Sent packet #2000 (2001 total)
+  [TRAFFIC] Received packet #2000, latency: 1.13ms (2001 total)
+  [TRAFFIC] Sent packet #3000 (3001 total)
+  [TRAFFIC] Received packet #3000, latency: 1.75ms (3001 total)
+  [TRAFFIC] Sent packet #4000 (4001 total)
+  [TRAFFIC] Received packet #4000, latency: 1.12ms (4001 total)
+  [TRAFFIC] Sent packet #5000 (5001 total)
+  [TRAFFIC] Received packet #5000, latency: 1.13ms (5001 total)
+  [TRAFFIC] Sent packet #6000 (6001 total)
+  [TRAFFIC] Received packet #6000, latency: 0.53ms (6001 total)
+[0;32m[INFO][0m 18:03:13 Sample 1: elapsed=60s, latency=1007.556834000ms, server_mem=0MB, client_mem=0MB
+  [TRAFFIC] Sent packet #7000 (7001 total)
+  [TRAFFIC] Received packet #7000, latency: 0.60ms (7001 total)
+  [TRAFFIC] Sent packet #8000 (8001 total)
+  [TRAFFIC] Received packet #8000, latency: 1.70ms (8001 total)
+  [TRAFFIC] Sent packet #9000 (9001 total)
+  [TRAFFIC] Received packet #9000, latency: 1.24ms (9001 total)
+  [TRAFFIC] Sent packet #10000 (10001 total)
+  [TRAFFIC] Received packet #10000, latency: 1.13ms (10001 total)
+  [TRAFFIC] Sent packet #11000 (11001 total)
+  [TRAFFIC] Received packet #11000, latency: 1.14ms (11001 total)
+  [TRAFFIC] Sent packet #12000 (12001 total)
+  [TRAFFIC] Received packet #12000, latency: 1.74ms (12001 total)
+[0;32m[INFO][0m 18:04:14 Sample 2: elapsed=121s, latency=1010.676001000ms, server_mem=0MB, client_mem=0MB
+  [TRAFFIC] Sent packet #13000 (13001 total)
+  [TRAFFIC] Received packet #13000, latency: 1.30ms (13001 total)
+  [TRAFFIC] Sent packet #14000 (14001 total)
+  [TRAFFIC] Received packet #14000, latency: 1.67ms (14001 total)
+  [TRAFFIC] Sent packet #15000 (15001 total)
+  [TRAFFIC] Received packet #15000, latency: 1.59ms (15001 total)
+  [TRAFFIC] Sent packet #16000 (16001 total)
+  [TRAFFIC] Received packet #16000, latency: 0.93ms (16001 total)
+  [TRAFFIC] Sent packet #17000 (17001 total)
+  [TRAFFIC] Received packet #17000, latency: 1.23ms (17001 total)
+  [TRAFFIC] Sent packet #18000 (18001 total)
+  [TRAFFIC] Received packet #18000, latency: 1.07ms (18001 total)
+[0;32m[INFO][0m 18:05:15 Sample 3: elapsed=182s, latency=1007.439751000ms, server_mem=0MB, client_mem=0MB
+  [TRAFFIC] Sent packet #19000 (19001 total)
+  [TRAFFIC] Received packet #19000, latency: 1.05ms (19001 total)
+  [TRAFFIC] Sent packet #20000 (20001 total)
+  [TRAFFIC] Received packet #20000, latency: 1.07ms (20001 total)
+  [TRAFFIC] Sent packet #21000 (21001 total)
+  [TRAFFIC] Received packet #21000, latency: 1.19ms (21000 total)
+  [TRAFFIC] Sent packet #22000 (22001 total)
+  [TRAFFIC] Received packet #22000, latency: 1.44ms (22000 total)
+  [TRAFFIC] Sent packet #23000 (23001 total)
+  [TRAFFIC] Received packet #23000, latency: 1.51ms (23000 total)
+  [TRAFFIC] Sent packet #24000 (24001 total)
+  [TRAFFIC] Received packet #24000, latency: 1.49ms (24000 total)
+[0;32m[INFO][0m 18:06:16 Sample 4: elapsed=243s, latency=1005.020625000ms, server_mem=0MB, client_mem=0MB
+  [TRAFFIC] Sent packet #25000 (25001 total)
+  [TRAFFIC] Received packet #25000, latency: 1.40ms (25000 total)
+  [TRAFFIC] Sent packet #26000 (26001 total)
+  [TRAFFIC] Received packet #26000, latency: 1.40ms (26000 total)
+  [TRAFFIC] Sent packet #27000 (27001 total)
+  [TRAFFIC] Received packet #27000, latency: 1.23ms (27000 total)
+  [TRAFFIC] Sent packet #28000 (28001 total)
+  [TRAFFIC] Received packet #28000, latency: 1.44ms (28000 total)
+  [TRAFFIC] Sent packet #29000 (29001 total)
+  [TRAFFIC] Received packet #29000, latency: 1.62ms (29000 total)
+  [TRAFFIC] Waiting for remaining responses...
+  [TRAFFIC] 
+  [TRAFFIC] === Stress Test Results ===
+  [TRAFFIC] Duration:           302.44s
+  [TRAFFIC] Packets Sent:       30000
+  [TRAFFIC] Packets Received:   29999
+  [TRAFFIC] Packets Lost:       1 (0.00%)
+  [TRAFFIC] Out of Order:       25267
+  [TRAFFIC] Throughput:         99.19 pps / 0.2032 Mbps
+  [TRAFFIC] Latency (ms):       avg=1.23 min=0.24 max=27.48
+  [TRAFFIC] p50=1.21 p95=1.96 p99=2.70
+  [TRAFFIC] Errors:             0
+  [TRAFFIC] ===========================
+  [TRAFFIC] 
+  [TRAFFIC] Results saved to /results/stability_traffic.json
+[0;32m[INFO][0m 18:07:15 Test completed after 303 seconds
+[0;32m[INFO][0m 18:07:15 === Stability Test Summary ===
+[0;32m[INFO][0m 18:07:15 Duration:         303s
+[0;32m[INFO][0m 18:07:15 Packets Sent:     30000
+[0;32m[INFO][0m 18:07:15 Packets Received: 29999
+[0;32m[INFO][0m 18:07:15 Packets Lost:     1 (0.0%)
+[0;32m[INFO][0m 18:07:15 Avg Latency:      1.23ms
+[0;32m[INFO][0m 18:07:15 P99 Latency:      2.7ms
+[0;32m[INFO][0m 18:07:15 PASSED: Loss rate 0.0% is within acceptable range
+
+========================================
+ Stability Test PASSED
+========================================
+Results: /results/stability_websocket_20260104_180212.json
+Metrics: /results/stability_metrics_20260104_180212.csv
+========================================
+[0;32m[INFO][0m 18:07:15 Cleaning up...
+[0;32m[INFO][0m WebSocket Stability: PASSED (303s)
+
+
+[1m[0;36m=== Generating Reports ===[0m
+
+
+============================================================
+ STRESS TEST METRICS SUMMARY
+============================================================
+Total Tests:        89
+Passed:             85
+Failed:             4
+TCP Tests:          49
+WebSocket Tests:    40
+Total Duration:     1472.0s
+Total Packets Sent: 959,786
+Avg Loss Rate:      13.07%
+Avg Latency:        1.06 ms
+============================================================
+
+Failed Tests:
+  - concurrent_5_clients (tcp): loss=59.94%
+  - concurrent_10_clients (tcp): loss=64.16%
+  - concurrent_20_clients (tcp): loss=60.30%
+  - concurrent_50_clients (tcp): loss=63.54%
+
+CSV exported to /results/run_20260104_174356/results.csv
+JSON exported to /results/run_20260104_174356/results.json
+HTML report generated: /results/run_20260104_174356/report.html
+[1;33m[WARN][0m Failed to generate metrics report
+
+========================================
+ STRESS TEST SUITE COMPLETE
+========================================
+
+Results by Test:
+  [0;32m✓[0m WebSocket Stability
+  [0;32m✓[0m WebSocket Throughput
+  [0;31m✗[0m TCP Reconnection
+  [0;31m✗[0m WebSocket Reconnection
+  [0;32m✓[0m WebSocket Stress
+  [0;32m✓[0m TCP Throughput
+  [0;32m✓[0m WebSocket Network Conditions
+  [0;31m✗[0m TCP Concurrent
+  [0;32m✓[0m TCP Stability
+  [0;32m✓[0m TCP Network Conditions
+
+Summary:
+  Passed:  [0;32m7[0m
+  Failed:  [0;31m3[0m
+  Skipped: [1;33m0[0m
+
+Results Directory: /results/run_20260104_174356
+HTML Report:       /results/run_20260104_174356/report.html
+Log File:          /results/run_20260104_174356/test_run.log
+========================================
+[0;31m[ERROR][0m Some tests failed!

@@ -1,0 +1,19 @@
+{
+    "mode": "tcp",
+    "timestamp": "20260104_134741",
+    "client_container": "wg-tcp-tunnel-client-wg",
+    "server_wg_ip": "10.0.0.1",
+    "tests_passed": 0,
+    "tests_failed": 0,
+    "tests": [[0;36m[TEST][0m Test 1: WireGuard Handshake
+[0;32m[INFO][0m PASSED: Handshake established (1767552434s ago)
+{"name": "handshake", "status": "passed", "handshake_age_seconds": 1767552434},[0;36m[TEST][0m Test 2: Ping Connectivity
+[0;31m[ERROR][0m FAILED: Only 0/10 packets received
+{"name": "ping", "status": "failed", "packets_received": 0, "loss_percent": 100},[0;36m[TEST][0m Test 3: Sustained Ping (60 seconds)
+[1;33m[WARN][0m FAILED: 100% loss is too high
+{"name": "sustained_ping", "status": "failed", "loss_percent": 100},[0;36m[TEST][0m Test 4: TCP Throughput (30 seconds)
+[0;32m[INFO][0m PASSED: TCP throughput 737.42 Mbps
+{"name": "tcp_throughput", "status": "passed", "throughput_mbps": 737.42},[0;36m[TEST][0m Test 5: UDP Throughput (30 seconds @ 50Mbps)
+[0;32m[INFO][0m PASSED: UDP throughput 49.99 Mbps, 0.00291842988472202% loss, 0.036349039785342284ms jitter
+{"name": "udp_throughput", "status": "passed", "throughput_mbps": 49.99, "loss_percent": 0.00291842988472202, "jitter_ms": 0.036349039785342284}]
+}

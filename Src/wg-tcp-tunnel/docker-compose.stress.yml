@@ -1,0 +1,657 @@
+# wg-tcp-tunnel - Docker Compose for Stress Testing
+# SPDX-FileCopyrightText: 2023-2025 Arkadiusz Bokowy and contributors
+# SPDX-License-Identifier: MIT
+
+# This compose file extends the base configuration with stress testing capabilities.
+# It includes both raw TCP and WebSocket server/client configurations.
+#
+# Usage:
+#   # Run stress tests with raw TCP
+#   docker-compose -f docker-compose.stress.yml up stress-tester
+#
+#   # Run WebSocket stress tests
+#   docker-compose -f docker-compose.stress.yml --profile websocket up
+#
+#   # Run all services
+#   docker-compose -f docker-compose.stress.yml --profile all up
+
+services:
+  # ============================================================
+  # Raw TCP Transport Services
+  # ============================================================
+  
+  server-tcp:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: wg-tcp-tunnel-server-tcp
+    ports:
+      - "51820:51820"      # TCP port for incoming connections
+      - "51820:51820/udp"  # UDP port for WireGuard/test server
+    environment:
+      - TCP_PORT=51820
+      - UDP_PORT=51820
+      - VERBOSE=1
+      - TEST_MODE=true
+      - TCP_KEEP_ALIVE=120
+    networks:
+      - stress-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "51820"]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN  # For traffic control (tc) during network tests
+  
+  client-tcp:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: wg-tcp-tunnel-client-tcp
+    ports:
+      - "51822:51822/udp"  # UDP port for stress test client
+    environment:
+      - UDP_PORT=51822
+      - SERVER_HOST=server-tcp
+      - SERVER_PORT=51820
+      - VERBOSE=1
+      - TEST_MODE=false  # Disable test client for stress tests (stress tester will send packets)
+      - TCP_KEEP_ALIVE=120
+      - WEBSOCKET=false
+      - MAX_CONNECTIONS=1000  # Increase connection limit for stress testing
+      - MAX_QUEUE_SIZE=1000  # UDP packet queue size (increase for high throughput)
+    networks:
+      - stress-network
+    depends_on:
+      server-tcp:
+        condition: service_healthy
+    restart: unless-stopped
+  
+  # ============================================================
+  # WebSocket Transport Services
+  # ============================================================
+  
+  server-ws:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: wg-tcp-tunnel-server-ws
+    ports:
+      - "51821:51820"      # WebSocket TCP port (mapped to different host port)
+      - "51821:51820/udp"
+    environment:
+      - TCP_PORT=51820
+      - UDP_PORT=51820
+      - VERBOSE=1
+      - TEST_MODE=true
+      - TCP_KEEP_ALIVE=120
+      - WEBSOCKET=true
+    networks:
+      - stress-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "51820"]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+    profiles:
+      - websocket
+      - all
+  
+  client-ws:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: wg-tcp-tunnel-client-ws
+    ports:
+      - "51823:51822/udp"  # WebSocket client UDP port
+    environment:
+      - UDP_PORT=51822
+      - SERVER_HOST=server-ws
+      - SERVER_PORT=51820
+      - VERBOSE=1
+      - TEST_MODE=true
+      - TCP_KEEP_ALIVE=120
+      - WEBSOCKET=true
+      - MAX_QUEUE_SIZE=1000  # UDP packet queue size (increase for high throughput)
+    networks:
+      - stress-network
+    depends_on:
+      server-ws:
+        condition: service_healthy
+    restart: unless-stopped
+    profiles:
+      - websocket
+      - all
+  
+  # ============================================================
+  # Stress Test Runner
+  # ============================================================
+  
+  stress-tester:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: wg-tcp-tunnel-stress-tester
+    entrypoint: []  # Override entrypoint to skip client entrypoint script
+    volumes:
+      - ./docker:/tests:ro
+      - stress-results:/results
+    environment:
+      - HOST=client-tcp
+      - UDP_PORT=51822
+      - WS_HOST=client-ws
+      - WS_PORT=51822
+      - RESULTS_DIR=/results
+      - SERVER_CONTAINER=wg-tcp-tunnel-server-tcp
+      - CLIENT_CONTAINER=wg-tcp-tunnel-client-tcp
+      - MODE=all
+      - QUICK=true
+    networks:
+      - stress-network
+    depends_on:
+      - client-tcp
+    command: >
+      bash -c "
+        echo 'Waiting for services to be ready...' &&
+        sleep 5 &&
+        echo 'Starting stress tests...' &&
+        mkdir -p /results &&
+        cd /tests &&
+        python3 stress-udp-client.py client-tcp 51822 --rate 100 --duration 30 --json /results/quick_test.json &&
+        echo 'Quick test completed!'
+      "
+    profiles:
+      - stress
+  
+  # Full stress test runner
+  stress-tester-full:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: wg-tcp-tunnel-stress-full
+    entrypoint: []  # Override entrypoint to skip client entrypoint script
+    volumes:
+      - ./docker:/tests:ro
+      - stress-results:/results
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - HOST=client-tcp
+      - UDP_PORT=51822
+      - WS_HOST=client-ws
+      - WS_PORT=51822
+      - RESULTS_DIR=/results
+      - SERVER_CONTAINER=wg-tcp-tunnel-server-tcp
+      - CLIENT_CONTAINER=wg-tcp-tunnel-client-tcp
+      - MODE=all
+      - QUICK=false
+    networks:
+      - stress-network
+    depends_on:
+      - client-tcp
+    command:
+      - bash
+      - -c
+      - |
+        echo 'Installing Docker CLI for WireGuard tests...'
+        apt-get update -qq && apt-get install -y -qq docker.io > /dev/null 2>&1 || true
+        echo 'Waiting for services to be ready...'
+        # Wait for client container to start (UDP is connectionless, so we wait a fixed time)
+        # The client container should be ready after depends_on, but give it extra time
+        sleep 15
+        # Verify hostname resolution works
+        if ! getent hosts client-tcp >/dev/null 2>&1; then
+          echo 'ERROR: Cannot resolve client-tcp hostname'
+          exit 1
+        fi
+        # Wait for WebSocket services to be ready (if they exist)
+        echo 'Checking for WebSocket services...'
+        if getent hosts server-ws >/dev/null 2>&1 && getent hosts client-ws >/dev/null 2>&1; then
+          echo 'WebSocket services detected, waiting for them to be ready...'
+          for i in {1..30}; do
+            if nc -z server-ws 51820 2>/dev/null && nc -z client-ws 51822 2>/dev/null; then
+              echo 'WebSocket services ready!'
+              break
+            fi
+            echo '  Waiting for server-ws:51820 and client-ws:51822...'
+            sleep 2
+            if [ "$$i" -eq 30 ]; then
+              echo 'WARNING: WebSocket services did not become ready in time, continuing anyway...'
+              break
+            fi
+          done
+        else
+          echo 'WebSocket services not found (not in websocket profile), skipping WebSocket tests...'
+        fi
+        echo 'Services ready! Starting full stress test suite...'
+        mkdir -p /results
+        cd /tests
+        # Set RESULTS_DIR to use the writable /results volume instead of /tests/stress-results
+        # Scripts in read-only volume can be executed with bash even without +x permission
+        export RESULTS_DIR=/results
+        bash stress-test-all.sh --host client-tcp --port 51822 --ws-port 51822
+    profiles:
+      - stress-full
+
+  # ============================================================
+  # WebSocket Stress Tester
+  # ============================================================
+  
+  stress-tester-ws:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: wg-tcp-tunnel-stress-ws
+    entrypoint: []  # Override entrypoint to skip client entrypoint script
+    volumes:
+      - ./docker:/tests:ro
+      - stress-results:/results
+    environment:
+      - HOST=server-ws
+      - PORT=51820
+      - RESULTS_DIR=/results
+    networks:
+      - stress-network
+    depends_on:
+      server-ws:
+        condition: service_healthy
+    command: >
+      bash -c "
+        echo 'Waiting for WebSocket server...' &&
+        until nc -z server-ws 51820 2>/dev/null; do
+          echo '  Waiting for server-ws:51820...' &&
+          sleep 2
+        done &&
+        echo 'WebSocket server ready!' &&
+        echo 'Starting WebSocket stress tests...' &&
+        echo '' &&
+        mkdir -p /results &&
+        cd /tests &&
+        python3 -u stress-websocket-test.py server-ws 51820 --all --json /results/websocket_test.json
+      "
+    profiles:
+      - websocket
+      - stress-ws
+  
+  # Quick WebSocket Test (just handshakes)
+  stress-tester-ws-quick:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: wg-tcp-tunnel-stress-ws-quick
+    entrypoint: []  # Override entrypoint to skip client entrypoint script
+    volumes:
+      - ./docker:/tests:ro
+      - stress-results:/results
+    environment:
+      - HOST=server-ws
+      - PORT=51820
+      - RESULTS_DIR=/results
+    networks:
+      - stress-network
+    depends_on:
+      server-ws:
+        condition: service_healthy
+    command:
+      - bash
+      - -c
+      - |
+        echo 'Waiting for WebSocket server...'
+        for i in {1..30}; do
+          if nc -z server-ws 51820 2>/dev/null; then
+            echo 'WebSocket server ready!'
+            break
+          fi
+          echo '  Waiting for server-ws:51820...'
+          sleep 2
+          if [ "$$i" -eq 30 ]; then
+            echo 'ERROR: WebSocket server did not become ready in time'
+            exit 1
+          fi
+        done
+        echo 'Running quick WebSocket test (handshakes, frames, ping/pong)...'
+        echo ''
+        mkdir -p /results
+        cd /tests
+        python3 -u stress-websocket-test.py server-ws 51820 --handshake 10 --frames 50 --ping 10 --verbose --json /results/websocket_quick.json
+        echo ''
+        echo 'Quick test completed!'
+        echo 'Results saved to /results/websocket_quick.json'
+    profiles:
+      - websocket
+      - stress-ws-quick
+
+  # ============================================================
+  # WireGuard Live Test Services
+  # ============================================================
+  # These services run real WireGuard interfaces through the tunnel
+  # for realistic testing with actual WireGuard protocol traffic.
+  
+  server-wg:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: wg-tcp-tunnel-server-wg
+    ports:
+      - "51824:51820"      # TCP port for WireGuard tunnel
+      - "51824:51820/udp"  # UDP port for WireGuard
+    environment:
+      - TCP_PORT=51820
+      - UDP_PORT=51820
+      - VERBOSE=1
+      - TEST_MODE=false
+      - WIREGUARD_MODE=true
+      - TCP_KEEP_ALIVE=120
+      - WG_KEYS_DIR=/wg-keys
+    networks:
+      - stress-network
+    volumes:
+      - wg-keys:/wg-keys
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "51820"]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    profiles:
+      - wireguard
+      - wg-test
+
+  client-wg:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: wg-tcp-tunnel-client-wg
+    ports:
+      - "51825:51822/udp"  # UDP port for WireGuard client
+    environment:
+      - UDP_PORT=51822
+      - SERVER_HOST=server-wg
+      - SERVER_PORT=51820
+      - VERBOSE=1
+      - TEST_MODE=false
+      - WIREGUARD_MODE=true
+      - TCP_KEEP_ALIVE=120
+      - WEBSOCKET=false
+      - MAX_QUEUE_SIZE=1000  # UDP packet queue size (increase for high throughput)
+      - WG_KEYS_DIR=/wg-keys
+    networks:
+      - stress-network
+    volumes:
+      - wg-keys:/wg-keys
+    depends_on:
+      server-wg:
+        condition: service_healthy
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    profiles:
+      - wireguard
+      - wg-test
+
+  # WireGuard WebSocket Services (uses 10.0.1.0/24 subnet to avoid conflicts with TCP services)
+  server-wg-ws:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: wg-tcp-tunnel-server-wg-ws
+    ports:
+      - "51826:51820"      # WebSocket TCP port for WireGuard tunnel
+      - "51826:51820/udp"  # UDP port for WireGuard
+    environment:
+      - TCP_PORT=51820
+      - UDP_PORT=51820
+      - VERBOSE=1
+      - TEST_MODE=false
+      - WIREGUARD_MODE=true
+      - WEBSOCKET=true
+      - TCP_KEEP_ALIVE=120
+      - WG_KEYS_DIR=/wg-keys
+      - WG_SERVER_IP=10.0.1.1
+      - WG_CLIENT_IP=10.0.1.2
+    networks:
+      - stress-network
+    volumes:
+      - wg-keys-ws:/wg-keys
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "51820"]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    profiles:
+      - wireguard
+      - wg-test-ws
+
+  client-wg-ws:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: wg-tcp-tunnel-client-wg-ws
+    ports:
+      - "51827:51822/udp"  # UDP port for WireGuard client
+    environment:
+      - UDP_PORT=51822
+      - SERVER_HOST=server-wg-ws
+      - SERVER_PORT=51820
+      - VERBOSE=1
+      - TEST_MODE=false
+      - WIREGUARD_MODE=true
+      - WEBSOCKET=true
+      - TCP_KEEP_ALIVE=120
+      - MAX_QUEUE_SIZE=1000  # UDP packet queue size (increase for high throughput)
+      - WG_KEYS_DIR=/wg-keys
+      - WG_SERVER_IP=10.0.1.1
+      - WG_CLIENT_IP=10.0.1.2
+    networks:
+      - stress-network
+    volumes:
+      - wg-keys-ws:/wg-keys
+    depends_on:
+      server-wg-ws:
+        condition: service_healthy
+    restart: unless-stopped
+    cap_add:
+      - NET_ADMIN
+      - SYS_MODULE
+    sysctls:
+      - net.ipv4.conf.all.src_valid_mark=1
+    profiles:
+      - wireguard
+      - wg-test-ws
+
+  # WireGuard Stress Test Runner (TCP mode)
+  wg-tester:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: wg-tcp-tunnel-wg-tester
+    entrypoint: []  # Override entrypoint to skip client entrypoint script
+    volumes:
+      - ./docker:/tests:ro
+      - stress-results:/results
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - RESULTS_DIR=/results
+    networks:
+      - stress-network
+    depends_on:
+      - client-wg
+    command: >
+      bash -c "
+        echo 'Installing docker CLI...'
+        apt-get update -qq && apt-get install -y -qq docker.io > /dev/null 2>&1 || true
+        echo 'WireGuard Stress Test Runner (TCP)'
+        echo '==================================='
+        echo ''
+        echo 'Waiting for WireGuard to be ready...'
+        sleep 20
+        # Wait for WireGuard handshake
+        for i in {1..30}; do
+          if docker exec wg-tcp-tunnel-client-wg wg show wg0 latest-handshakes 2>/dev/null | grep -q '[0-9]'; then
+            echo 'WireGuard is ready!'
+            break
+          fi
+          echo '  Waiting for WireGuard handshake... ($$i/30)'
+          sleep 2
+          if [ \"$$i\" -eq 30 ]; then
+            echo 'WARNING: WireGuard handshake did not complete in time, continuing anyway...'
+            break
+          fi
+        done
+        echo ''
+        echo 'Starting WireGuard stress tests (TCP mode)...'
+        echo ''
+        mkdir -p /results
+        cd /tests
+        export RESULTS_DIR=/results
+        bash stress-test-wireguard.sh tcp wg-tcp-tunnel-client-wg 10.0.0.1
+      "
+    profiles:
+      - wireguard
+      - wg-test
+
+  # WireGuard Stress Test Runner (WebSocket mode)
+  wg-tester-ws:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: wg-tcp-tunnel-wg-tester-ws
+    entrypoint: []  # Override entrypoint to skip client entrypoint script
+    volumes:
+      - ./docker:/tests:ro
+      - stress-results:/results
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - RESULTS_DIR=/results
+    networks:
+      - stress-network
+    depends_on:
+      - client-wg-ws
+    command: >
+      bash -c "
+        echo 'Installing docker CLI...'
+        apt-get update -qq && apt-get install -y -qq docker.io > /dev/null 2>&1 || true
+        echo 'WireGuard Stress Test Runner (WebSocket)'
+        echo '========================================='
+        echo ''
+        echo 'Waiting for WireGuard to be ready...'
+        sleep 20
+        # Wait for WireGuard handshake
+        for i in {1..30}; do
+          if docker exec wg-tcp-tunnel-client-wg-ws wg show wg0 latest-handshakes 2>/dev/null | grep -q '[0-9]'; then
+            echo 'WireGuard is ready!'
+            break
+          fi
+          echo '  Waiting for WireGuard handshake... ($$i/30)'
+          sleep 2
+          if [ \"$$i\" -eq 30 ]; then
+            echo 'WARNING: WireGuard handshake did not complete in time, continuing anyway...'
+            break
+          fi
+        done
+        echo ''
+        echo 'Starting WireGuard stress tests (WebSocket mode)...'
+        echo ''
+        mkdir -p /results
+        cd /tests
+        export RESULTS_DIR=/results
+        bash stress-test-wireguard.sh websocket wg-tcp-tunnel-client-wg-ws 10.0.1.1
+      "
+    profiles:
+      - wireguard
+      - wg-test-ws
+
+  # Quick WireGuard Test (handshake, ping, short throughput)
+  wg-tester-quick:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: wg-tcp-tunnel-wg-tester-quick
+    entrypoint: []  # Override entrypoint to skip client entrypoint script
+    volumes:
+      - ./docker:/tests:ro
+      - stress-results:/results
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    environment:
+      - RESULTS_DIR=/results
+    networks:
+      - stress-network
+    depends_on:
+      - client-wg
+    command: >
+      bash -c "
+        echo 'Installing docker CLI...'
+        apt-get update -qq && apt-get install -y -qq docker.io > /dev/null 2>&1 || true
+        echo 'WireGuard Quick Test Runner'
+        echo '==========================='
+        echo ''
+        echo 'Waiting for WireGuard to be ready...'
+        sleep 15
+        # Wait for WireGuard handshake
+        for i in {1..20}; do
+          if docker exec wg-tcp-tunnel-client-wg wg show wg0 latest-handshakes 2>/dev/null | grep -q '[0-9]'; then
+            echo 'WireGuard is ready!'
+            break
+          fi
+          echo '  Waiting for WireGuard handshake... ($$i/20)'
+          sleep 1
+          if [ \"$$i\" -eq 20 ]; then
+            echo 'WARNING: WireGuard handshake did not complete in time, continuing anyway...'
+            break
+          fi
+        done
+        echo ''
+        echo 'Running quick WireGuard tests...'
+        echo ''
+        mkdir -p /results
+        cd /tests
+        export RESULTS_DIR=/results
+        # Quick tests: handshake, ping (10 packets), short iperf (5s)
+        echo '[TEST] WireGuard Handshake Check'
+        docker exec wg-tcp-tunnel-client-wg wg show wg0 2>/dev/null | head -5 || echo 'FAILED: WireGuard interface not found'
+        echo ''
+        echo '[TEST] Ping Test (10 packets)'
+        docker exec wg-tcp-tunnel-client-wg ping -c 10 -i 0.2 10.0.0.1 2>&1 | tail -3 || echo 'FAILED: Ping test failed'
+        echo ''
+        echo '[TEST] TCP Throughput (5 seconds)'
+        docker exec wg-tcp-tunnel-server-wg bash -c 'pkill iperf3 2>/dev/null; sleep 1; iperf3 -s -D --bind 10.0.0.1' 2>/dev/null || true
+        sleep 1
+        docker exec wg-tcp-tunnel-client-wg iperf3 -c 10.0.0.1 -t 5 2>&1 | tail -5 || echo 'FAILED: iperf3 TCP test failed'
+        echo ''
+        echo 'Quick WireGuard tests completed!'
+        echo 'Results are displayed above.'
+      "
+    profiles:
+      - wireguard
+      - wg-test-quick
+
+networks:
+  stress-network:
+    driver: bridge
+
+volumes:
+  stress-results:
+    driver: local
+  wg-keys:
+    driver: local
+  wg-keys-ws:
+    driver: local
+

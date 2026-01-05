@@ -1,0 +1,9 @@
+# SPDX-FileCopyrightText: 2025 Arkadiusz Bokowy and contributors
+# SPDX-License-Identifier: MIT
+---
+Checks:
+  boost-*,
+  modernize-*,
+  performace-*,
+  portability-*,
+HeaderFilterRegex: .*

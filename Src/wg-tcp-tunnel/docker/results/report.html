@@ -1,0 +1,1164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>wg-tcp-tunnel Stress Test Report</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a2e; color: #eee; padding: 2rem; }
+        h1 { color: #00d4ff; margin-bottom: 1rem; }
+        h2 { color: #00ff88; margin: 2rem 0 1rem; }
+        .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+        .card { background: #16213e; border-radius: 8px; padding: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.3); }
+        .card h3 { color: #00d4ff; font-size: 0.9rem; text-transform: uppercase; margin-bottom: 0.5rem; }
+        .card .value { font-size: 2rem; font-weight: bold; color: #fff; }
+        .card .unit { font-size: 0.8rem; color: #888; }
+        .passed { color: #00ff88; }
+        .failed { color: #ff4757; }
+        table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+        th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid #333; }
+        th { background: #16213e; color: #00d4ff; }
+        tr:hover { background: #16213e; }
+        .tag { display: inline-block; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem; }
+        .tag-tcp { background: #3498db; color: #fff; }
+        .tag-websocket { background: #9b59b6; color: #fff; }
+        .status-passed { background: #00ff88; color: #000; }
+        .status-failed { background: #ff4757; color: #fff; }
+    </style>
+</head>
+<body>
+    <h1>wg-tcp-tunnel Stress Test Report</h1>
+    <p style="color: #888; margin-bottom: 2rem;">Generated: 2026-01-04 18:07:15</p>
+    
+    <h2>Summary</h2>
+    <div class="summary">
+        <div class="card">
+            <h3>Total Tests</h3>
+            <div class="value">89</div>
+        </div>
+        <div class="card">
+            <h3>Passed</h3>
+            <div class="value passed">85</div>
+        </div>
+        <div class="card">
+            <h3>Failed</h3>
+            <div class="value failed">4</div>
+        </div>
+        <div class="card">
+            <h3>TCP Tests</h3>
+            <div class="value">49</div>
+        </div>
+        <div class="card">
+            <h3>WebSocket Tests</h3>
+            <div class="value">40</div>
+        </div>
+        <div class="card">
+            <h3>Total Duration</h3>
+            <div class="value">1472</div>
+            <div class="unit">seconds</div>
+        </div>
+        <div class="card">
+            <h3>Packets Sent</h3>
+            <div class="value">959,786</div>
+        </div>
+        <div class="card">
+            <h3>Avg Loss Rate</h3>
+            <div class="value failed">13.07%</div>
+        </div>
+        <div class="card">
+            <h3>Avg Latency</h3>
+            <div class="value">1.06</div>
+            <div class="unit">ms</div>
+        </div>
+    </div>
+    
+    <h2>Test Results</h2>
+    <table>
+        <thead>
+            <tr>
+                <th>Test Name</th>
+                <th>Mode</th>
+                <th>Duration</th>
+                <th>Packets Sent</th>
+                <th>Loss Rate</th>
+                <th>Throughput</th>
+                <th>Avg Latency</th>
+                <th>P99 Latency</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+
+            <tr>
+                <td>rate_10000_size_256_20260104_175714</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>7.0s</td>
+                <td>44,870</td>
+                <td class="passed">0.00%</td>
+                <td>6394 pps</td>
+                <td>0.29 ms</td>
+                <td>0.77 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_100_size_256</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>12.0s</td>
+                <td>1,000</td>
+                <td class="passed">0.00%</td>
+                <td>83 pps</td>
+                <td>1.05 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_100_size_256</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>17.1s</td>
+                <td>1,500</td>
+                <td class="passed">0.00%</td>
+                <td>88 pps</td>
+                <td>1.09 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_500_size_256</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>17.0s</td>
+                <td>7,500</td>
+                <td class="passed">0.04%</td>
+                <td>440 pps</td>
+                <td>1.91 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_1000_size_256</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>17.0s</td>
+                <td>15,001</td>
+                <td class="passed">0.03%</td>
+                <td>881 pps</td>
+                <td>1.42 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_2000_size_256</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>17.0s</td>
+                <td>30,000</td>
+                <td class="passed">0.02%</td>
+                <td>1761 pps</td>
+                <td>0.79 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_5000_size_256</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>17.0s</td>
+                <td>74,985</td>
+                <td class="passed">0.01%</td>
+                <td>4400 pps</td>
+                <td>0.37 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_500_size_64</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>17.0s</td>
+                <td>7,500</td>
+                <td class="passed">0.00%</td>
+                <td>440 pps</td>
+                <td>1.18 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_500_size_256</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>17.0s</td>
+                <td>7,500</td>
+                <td class="passed">0.01%</td>
+                <td>440 pps</td>
+                <td>0.81 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_500_size_512</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>17.0s</td>
+                <td>7,499</td>
+                <td class="passed">0.05%</td>
+                <td>440 pps</td>
+                <td>2.18 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_500_size_1024</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>17.0s</td>
+                <td>7,500</td>
+                <td class="passed">0.03%</td>
+                <td>440 pps</td>
+                <td>1.92 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_10000_size_256</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>7.0s</td>
+                <td>44,870</td>
+                <td class="passed">0.00%</td>
+                <td>6394 pps</td>
+                <td>0.29 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_500_size_512_20260104_175714</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.0s</td>
+                <td>7,499</td>
+                <td class="passed">0.05%</td>
+                <td>440 pps</td>
+                <td>2.18 ms</td>
+                <td>4.22 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_500_size_256_20260104_175714</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.0s</td>
+                <td>7,500</td>
+                <td class="passed">0.01%</td>
+                <td>440 pps</td>
+                <td>0.81 ms</td>
+                <td>1.65 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_10000_size_256_20260104_174356</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>7.0s</td>
+                <td>49,367</td>
+                <td class="passed">0.00%</td>
+                <td>7039 pps</td>
+                <td>0.25 ms</td>
+                <td>0.35 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>ws_concurrent_3_20260104_175606</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>1.0s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>1.09 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_100_size_256_20260104_174356</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.1s</td>
+                <td>1,500</td>
+                <td class="passed">0.00%</td>
+                <td>88 pps</td>
+                <td>1.02 ms</td>
+                <td>2.53 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>simulated_normal_20260104_174927</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>32.0s</td>
+                <td>3,000</td>
+                <td class="passed">0.00%</td>
+                <td>94 pps</td>
+                <td>1.24 ms</td>
+                <td>2.17 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>ws_reconnect_20260104_175606</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>20.1s</td>
+                <td>20</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.00 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_500_size_256_20260104_174356</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.0s</td>
+                <td>7,500</td>
+                <td class="passed">0.00%</td>
+                <td>440 pps</td>
+                <td>1.49 ms</td>
+                <td>3.28 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>ws_concurrent_2_20260104_175606</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>1.0s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>1.28 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>ws_pingpong_20260104_175606</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>25.2s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.51 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>websocket_test</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>8.6s</td>
+                <td>55</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.94 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_1000_size_256_20260104_175714</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.0s</td>
+                <td>15,001</td>
+                <td class="passed">0.03%</td>
+                <td>881 pps</td>
+                <td>1.42 ms</td>
+                <td>2.94 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>ws_concurrent_9_20260104_175606</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>1.0s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.93 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>ws_integration_20260104_175606</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>8.6s</td>
+                <td>55</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>1.10 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>ws_concurrent_8_20260104_175606</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>1.0s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>1.25 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_2000_size_256_20260104_174356</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.0s</td>
+                <td>30,002</td>
+                <td class="passed">0.00%</td>
+                <td>1761 pps</td>
+                <td>0.83 ms</td>
+                <td>2.13 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_5000_size_256_20260104_175714</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.0s</td>
+                <td>74,985</td>
+                <td class="passed">0.01%</td>
+                <td>4400 pps</td>
+                <td>0.37 ms</td>
+                <td>1.54 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_500_size_1024_20260104_174356</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.0s</td>
+                <td>7,498</td>
+                <td class="passed">0.00%</td>
+                <td>440 pps</td>
+                <td>0.81 ms</td>
+                <td>1.64 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>stability_traffic</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>302.4s</td>
+                <td>30,000</td>
+                <td class="passed">0.00%</td>
+                <td>99 pps</td>
+                <td>1.23 ms</td>
+                <td>2.70 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_500_size_64_20260104_174356</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.0s</td>
+                <td>7,500</td>
+                <td class="passed">0.00%</td>
+                <td>440 pps</td>
+                <td>0.88 ms</td>
+                <td>1.57 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_5000_size_256_20260104_174356</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.0s</td>
+                <td>74,983</td>
+                <td class="passed">0.00%</td>
+                <td>4402 pps</td>
+                <td>0.36 ms</td>
+                <td>1.54 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>ws_concurrent_1_20260104_175606</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>1.0s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.73 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_500_size_1024_20260104_175714</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.0s</td>
+                <td>7,500</td>
+                <td class="passed">0.03%</td>
+                <td>440 pps</td>
+                <td>1.92 ms</td>
+                <td>3.86 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>simulated_burst_20260104_180036</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>32.0s</td>
+                <td>3,000</td>
+                <td class="passed">0.00%</td>
+                <td>94 pps</td>
+                <td>1.18 ms</td>
+                <td>2.48 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>unknown</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>32.1s</td>
+                <td>3,000</td>
+                <td class="passed">0.00%</td>
+                <td>93 pps</td>
+                <td>1.23 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>normal</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>32.0s</td>
+                <td>3,000</td>
+                <td class="passed">0.03%</td>
+                <td>94 pps</td>
+                <td>1.16 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>burst</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>32.0s</td>
+                <td>3,000</td>
+                <td class="passed">0.00%</td>
+                <td>94 pps</td>
+                <td>1.18 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_100_size_256_20260104_175714</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.1s</td>
+                <td>1,500</td>
+                <td class="passed">0.00%</td>
+                <td>88 pps</td>
+                <td>1.09 ms</td>
+                <td>2.66 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>clean_reconnection</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>0.0s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.00 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rapid_reconnection</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>0.0s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.00 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>concurrent_1_clients</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>0.0s</td>
+                <td>750</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.00 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>concurrent_5_clients</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>0.0s</td>
+                <td>3,750</td>
+                <td class="failed">59.94%</td>
+                <td>0 pps</td>
+                <td>0.00 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-failed">FAILED</span></td>
+            </tr>
+
+            <tr>
+                <td>concurrent_10_clients</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>0.0s</td>
+                <td>7,500</td>
+                <td class="failed">64.16%</td>
+                <td>0 pps</td>
+                <td>0.00 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-failed">FAILED</span></td>
+            </tr>
+
+            <tr>
+                <td>concurrent_20_clients</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>0.0s</td>
+                <td>15,000</td>
+                <td class="failed">60.30%</td>
+                <td>0 pps</td>
+                <td>0.00 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-failed">FAILED</span></td>
+            </tr>
+
+            <tr>
+                <td>concurrent_50_clients</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>0.0s</td>
+                <td>37,500</td>
+                <td class="failed">63.54%</td>
+                <td>0 pps</td>
+                <td>0.00 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-failed">FAILED</span></td>
+            </tr>
+
+            <tr>
+                <td>rapid_connection_creation</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>0.0s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.00 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>mixed_load</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>0.0s</td>
+                <td>17,199</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.00 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_500_size_64_20260104_175714</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.0s</td>
+                <td>7,500</td>
+                <td class="passed">0.00%</td>
+                <td>440 pps</td>
+                <td>1.18 ms</td>
+                <td>3.02 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>ws_concurrent_10_20260104_175606</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>1.0s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>1.06 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>ws_handshake_20260104_175606</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>10.4s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>1.79 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>unknown</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>32.1s</td>
+                <td>3,000</td>
+                <td class="passed">0.00%</td>
+                <td>93 pps</td>
+                <td>1.21 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>normal</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>32.0s</td>
+                <td>3,000</td>
+                <td class="passed">0.00%</td>
+                <td>94 pps</td>
+                <td>1.24 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>burst</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>32.0s</td>
+                <td>3,000</td>
+                <td class="passed">0.00%</td>
+                <td>94 pps</td>
+                <td>1.07 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_2000_size_256_20260104_175714</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.0s</td>
+                <td>30,000</td>
+                <td class="passed">0.02%</td>
+                <td>1761 pps</td>
+                <td>0.79 ms</td>
+                <td>2.13 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>handshake_stress</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>10.4s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.00 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>binary_frames</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>0.1s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.00 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>ping_pong</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>25.2s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.00 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>reconnection</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>20.1s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.00 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>concurrent_websocket</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>0.0s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.00 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>full_integration</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>8.6s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.00 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>ws_concurrent_4_20260104_175606</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>1.0s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.94 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>stability_tcp_20260104_175104</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>0.0s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.00 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_500_size_512_20260104_174356</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.0s</td>
+                <td>7,499</td>
+                <td class="passed">0.00%</td>
+                <td>440 pps</td>
+                <td>0.73 ms</td>
+                <td>1.84 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>ws_concurrent_7_20260104_175606</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>1.0s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>1.27 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>network_clear_20260104_174927</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>32.1s</td>
+                <td>3,000</td>
+                <td class="passed">0.00%</td>
+                <td>93 pps</td>
+                <td>1.21 ms</td>
+                <td>2.28 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_100_size_256</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>12.0s</td>
+                <td>1,000</td>
+                <td class="passed">0.00%</td>
+                <td>83 pps</td>
+                <td>1.22 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_100_size_256</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.1s</td>
+                <td>1,500</td>
+                <td class="passed">0.00%</td>
+                <td>88 pps</td>
+                <td>1.02 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_500_size_256</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.0s</td>
+                <td>7,499</td>
+                <td class="passed">0.00%</td>
+                <td>440 pps</td>
+                <td>0.51 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_1000_size_256</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.0s</td>
+                <td>15,000</td>
+                <td class="passed">0.00%</td>
+                <td>880 pps</td>
+                <td>1.38 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_2000_size_256</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.0s</td>
+                <td>30,002</td>
+                <td class="passed">0.00%</td>
+                <td>1761 pps</td>
+                <td>0.83 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_5000_size_256</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.0s</td>
+                <td>74,983</td>
+                <td class="passed">0.00%</td>
+                <td>4402 pps</td>
+                <td>0.36 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_500_size_64</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.0s</td>
+                <td>7,500</td>
+                <td class="passed">0.00%</td>
+                <td>440 pps</td>
+                <td>0.88 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_500_size_256</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.0s</td>
+                <td>7,500</td>
+                <td class="passed">0.00%</td>
+                <td>440 pps</td>
+                <td>1.49 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_500_size_512</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.0s</td>
+                <td>7,499</td>
+                <td class="passed">0.00%</td>
+                <td>440 pps</td>
+                <td>0.73 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_500_size_1024</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.0s</td>
+                <td>7,498</td>
+                <td class="passed">0.00%</td>
+                <td>440 pps</td>
+                <td>0.81 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_10000_size_256</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>7.0s</td>
+                <td>49,367</td>
+                <td class="passed">0.00%</td>
+                <td>7039 pps</td>
+                <td>0.25 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>network_clear_20260104_180036</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>32.1s</td>
+                <td>3,000</td>
+                <td class="passed">0.00%</td>
+                <td>93 pps</td>
+                <td>1.23 ms</td>
+                <td>2.45 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rate_1000_size_256_20260104_174356</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>17.0s</td>
+                <td>15,000</td>
+                <td class="passed">0.00%</td>
+                <td>880 pps</td>
+                <td>1.38 ms</td>
+                <td>2.92 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>simulated_normal_20260104_180036</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>32.0s</td>
+                <td>3,000</td>
+                <td class="passed">0.03%</td>
+                <td>94 pps</td>
+                <td>1.16 ms</td>
+                <td>2.43 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>websocket_quick</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>6.1s</td>
+                <td>50</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.94 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>simulated_burst_20260104_174927</td>
+                <td><span class="tag tag-tcp">tcp</span></td>
+                <td>32.0s</td>
+                <td>3,000</td>
+                <td class="passed">0.00%</td>
+                <td>94 pps</td>
+                <td>1.07 ms</td>
+                <td>2.14 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>ws_concurrent_6_20260104_175606</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>1.0s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.98 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>clean_reconnection</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>0.0s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.00 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>rapid_reconnection</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>0.0s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.00 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>ws_frames_20260104_175606</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>0.1s</td>
+                <td>500</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.00 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>stability_websocket_20260104_180212</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>0.0s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>0.00 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+            <tr>
+                <td>ws_concurrent_5_20260104_175606</td>
+                <td><span class="tag tag-websocket">websocket</span></td>
+                <td>1.0s</td>
+                <td>0</td>
+                <td class="passed">0.00%</td>
+                <td>0 pps</td>
+                <td>1.24 ms</td>
+                <td>0.00 ms</td>
+                <td><span class="tag status-passed">PASSED</span></td>
+            </tr>
+
+        </tbody>
+    </table>
+</body>
+</html>

@@ -1,0 +1,7 @@
+# SPDX-FileCopyrightText: 2023-2025 Arkadiusz Bokowy and contributors
+# SPDX-License-Identifier: MIT
+format:
+  line_width: 99
+  tab_size: 4
+  use_tabchars: true
+  fractional_tab_policy: round-up

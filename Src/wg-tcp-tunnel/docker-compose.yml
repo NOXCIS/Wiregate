@@ -1,0 +1,56 @@
+# wg-tcp-tunnel - Docker Compose Configuration
+# SPDX-FileCopyrightText: 2023-2025 Arkadiusz Bokowy and contributors
+# SPDX-License-Identifier: MIT
+
+# version: '3.8'  # Removed - obsolete in newer docker-compose
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile.server
+    container_name: wg-tcp-tunnel-server
+    ports:
+      - "51820:51820"      # TCP port for incoming connections
+      - "51820:51820/udp"  # UDP port for WireGuard/test server
+    environment:
+      - TCP_PORT=51820
+      - UDP_PORT=51820
+      - VERBOSE=1
+      - TEST_MODE=true
+      - TCP_KEEP_ALIVE=120
+    networks:
+      - tunnel-network
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "51820"]
+      interval: 5s
+      timeout: 2s
+      retries: 3
+    restart: unless-stopped
+
+  client:
+    build:
+      context: .
+      dockerfile: Dockerfile.client
+    container_name: wg-tcp-tunnel-client
+    ports:
+      - "51822:51822/udp"  # UDP port for WireGuard/test client
+    environment:
+      - UDP_PORT=51822
+      - SERVER_HOST=server
+      - SERVER_PORT=51820
+      - VERBOSE=1
+      - TEST_MODE=true
+      - TCP_KEEP_ALIVE=120
+      - MAX_QUEUE_SIZE=1000
+    networks:
+      - tunnel-network
+    depends_on:
+      server:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  tunnel-network:
+    driver: bridge
+

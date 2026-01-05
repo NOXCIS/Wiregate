@@ -1,0 +1,11 @@
+version = 1
+
+[[annotations]]
+path = "vcpkg.json"
+SPDX-FileCopyrightText = "2024-2025 Arkadiusz Bokowy and contributors"
+SPDX-License-Identifier = "MIT"
+
+[[annotations]]
+path = "src/wintray.ico"
+SPDX-FileCopyrightText = "2024-2025 Arkadiusz Bokowy and contributors"
+SPDX-License-Identifier = "MIT"
