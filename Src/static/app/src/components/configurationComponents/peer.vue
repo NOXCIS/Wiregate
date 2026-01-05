@@ -23,7 +23,11 @@ export default {
 	],
 	props: {
 		Peer: Object,
-		configurationName: String
+		configurationName: String,
+		hasTcpTunnel: {
+			type: Boolean,
+			default: false
+		}
 	},
 	data(){
 		return {
@@ -132,12 +136,12 @@ export default {
 		<div class="card-body pt-1" style="font-size: 0.9rem">
 			<h6 class="d-flex align-items-center gap-2">
 				<span>{{Peer.name ? Peer.name : 'Untitled Peer'}}</span>
-				<span v-if="Peer.udptlspipe_enabled" 
-				      class="badge bg-info-subtle text-info-emphasis d-inline-flex align-items-center gap-1"
-				      style="font-size: 0.65rem; font-weight: normal;"
-				      title="TLS Piping Enabled">
-					<i class="bi bi-shield-lock-fill"></i>
-					TLS
+				<span v-if="hasTcpTunnel" 
+				      class="badge bg-info-subtle text-info-emphasis"
+				      style="font-size: 0.65rem;"
+				      title="TCP Tunnel Enabled">
+					<i class="bi bi-ethernet me-1"></i>
+					<LocaleText t="TCP"></LocaleText>
 				</span>
 			</h6>
 			<div class="mb-1">

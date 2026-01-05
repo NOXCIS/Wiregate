@@ -32,8 +32,8 @@ const configurationInfo = ref({})
 const configurationPeers = ref([])
 const configurationToggling = ref(false)
 
-// TLS Pipe Server Status (Shared)
-const tlsPipeStatus = ref({
+// TCP Tunnel Server Status
+const tcpTunnelStatus = ref({
 	running: false,
 	loading: false,
 	port: 443,
@@ -94,38 +94,43 @@ const configurationModals = ref({
 })
 const peerSearchBar = ref(false)
 
-// Fetch TLS Pipe Status (Shared Server) =====================================
-const fetchTlsPipeStatus = async () => {
-	tlsPipeStatus.value.loading = true
-	// Fetch shared TLS pipe status
-	await fetchGet('/api/udptlspipe/shared/status', {}, (res) => {
+// Fetch TCP Tunnel Status =====================================
+const fetchTcpTunnelStatus = async () => {
+	tcpTunnelStatus.value.loading = true
+	// Fetch TCP tunnel routes to check if current config has a tunnel
+	await fetchGet('/api/wgtcptunnel/routes', {}, (res) => {
 		if (res.status && res.data) {
-			const isConfigEnabled = res.data.routes?.includes(route.params.id)
-			tlsPipeStatus.value = {
-				running: res.data.running || false,
+			const currentRoute = res.data.find(r => r.config_name === route.params.id)
+			tcpTunnelStatus.value = {
+				running: currentRoute?.running || false,
 				loading: false,
-				port: res.data.listen_port || 443,
-				pid: res.data.pid || null,
-				routeCount: res.data.route_count || 0,
-				configEnabled: isConfigEnabled,
-				shared: true
+				port: currentRoute?.tcp_port || 443,
+				routeCount: res.data.length || 0,
+				configEnabled: !!currentRoute
 			}
 		} else {
-			tlsPipeStatus.value = {
+			tcpTunnelStatus.value = {
 				running: false,
 				loading: false,
 				port: 443,
 				routeCount: 0,
-				configEnabled: false,
-				shared: true
+				configEnabled: false
 			}
 		}
 	})
 }
 
-// Count peers with TLS Piping enabled =====================================
-const tlsPipePeersCount = computed(() => {
-	return configurationPeers.value.filter(p => p.udptlspipe_enabled).length
+// Count peers with TCP Tunneling enabled =====================================
+const tcpTunnelPeersCount = computed(() => {
+	// Count only peers that have TCP tunneling enabled per-peer
+	// TCP tunneling must be enabled for the configuration AND the peer must have wgtcptunnel_enabled set
+	if (tcpTunnelStatus.value.configEnabled) {
+		return configurationPeers.value.filter(p => 
+			!p.restricted && 
+			(p.wgtcptunnel_enabled === true || p.wgtcptunnel_enabled === 1)
+		).length
+	}
+	return 0
 })
 
 // Fetch Peer =====================================
@@ -172,7 +177,7 @@ const fetchPeerList = async () => {
 	})
 }
 await fetchPeerList()
-await fetchTlsPipeStatus()
+await fetchTcpTunnelStatus()
 
 // Fetch Peer Interval =====================================
 const fetchPeerListInterval = ref(undefined)
@@ -184,7 +189,7 @@ const setFetchPeerListInterval = () => {
 	}
 	fetchPeerListInterval.value = setInterval(async () => {
 		await fetchPeerList()
-		await fetchTlsPipeStatus()
+		await fetchTcpTunnelStatus()
 	},  parseInt(dashboardStore.Configuration.Server.dashboard_refresh_interval))
 	// Register the new interval with the global tracker
 	if (fetchPeerListInterval.value) {
@@ -343,34 +348,29 @@ watch(() => configurationPeers.value, async (newPeers) => {
 			<div class="card rounded-3 bg-transparent tls-pipe-card" 
 			     role="button"
 			     @click="configurationModals.tlsPipeManager.modalOpen = true"
-			     title="Click to manage TLS Pipe">
+			     title="Click to manage TCP Tunnel">
 				<div class="card-body py-2 d-flex align-items-center gap-2">
 					<small class="text-muted d-flex align-items-center gap-1">
-						<i class="bi bi-shield-lock-fill"></i>
-						<LocaleText t="TLS Pipe"></LocaleText>
-						<span class="badge bg-secondary-subtle text-secondary-emphasis ms-1" 
-						      style="font-size: 0.6rem;" 
-						      title="Single shared server on port 443">
-							Shared
-						</span>
+						<i class="bi bi-ethernet"></i>
+						<LocaleText t="TCP Tunnel"></LocaleText>
 					</small>
-					<div class="dot ms-2" :class="{active: tlsPipeStatus.running}"></div>
-					<small v-if="tlsPipeStatus.loading" class="text-muted">
+					<div class="dot ms-2" :class="{active: tcpTunnelStatus.running}"></div>
+					<small v-if="tcpTunnelStatus.loading" class="text-muted">
 						<span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
 					</small>
-					<small v-else-if="tlsPipeStatus.running" class="text-success">
-						:{{ tlsPipeStatus.port }}
-						<span class="text-muted ms-1" v-if="tlsPipeStatus.routeCount > 1">
-							({{ tlsPipeStatus.routeCount }} configs)
+					<small v-else-if="tcpTunnelStatus.running" class="text-success">
+						:{{ tcpTunnelStatus.port }}
+						<span class="text-muted ms-1" v-if="tcpTunnelStatus.routeCount > 1">
+							({{ tcpTunnelStatus.routeCount }} configs)
 						</span>
 					</small>
 					<small v-else class="text-muted">
 						<LocaleText t="Off"></LocaleText>
 					</small>
-					<span v-if="tlsPipePeersCount > 0" 
+					<span v-if="tcpTunnelPeersCount > 0" 
 					      class="badge bg-info-subtle text-info-emphasis ms-auto"
 					      style="font-size: 0.7rem;">
-						{{ tlsPipePeersCount }} <LocaleText t="peer"></LocaleText><span v-if="tlsPipePeersCount > 1">s</span>
+						{{ tcpTunnelPeersCount }} <LocaleText t="peer"></LocaleText><span v-if="tcpTunnelPeersCount > 1">s</span>
 					</span>
 					<i class="bi bi-gear-fill text-muted ms-2" style="font-size: 0.8rem;"></i>
 				</div>
@@ -392,7 +392,7 @@ watch(() => configurationPeers.value, async (newPeers) => {
 				<button class="titleBtn py-2 text-decoration-none btn text-success-emphasis bg-success-subtle rounded-3 border-1 border-success-subtle"
 				        @click="configurationModals.tlsPipeManager.modalOpen = true"
 				        type="button"
-				        title="Manage TLS Pipe for censorship-resistant tunneling">
+				        title="Manage TCP Tunnel for censorship-resistant tunneling">
 					<i class="bi bi-shield-lock-fill me-2"></i>
 					<LocaleText t="TLS Pipe"></LocaleText>
 				</button>
@@ -510,6 +510,7 @@ watch(() => configurationPeers.value, async (newPeers) => {
 			     :key="peer.id"
 			     v-for="peer in searchPeers">
 				<Peer :Peer="peer"
+				      :hasTcpTunnel="tcpTunnelStatus.configEnabled && (peer.wgtcptunnel_enabled === true || peer.wgtcptunnel_enabled === 1)"
 				      @share="configurationModals.peerShare.modalOpen = true; configurationModalSelectedPeer = peer"
 				      @refresh="fetchPeerList()"
 				      @jobs="configurationModals.peerScheduleJobs.modalOpen = true; configurationModalSelectedPeer = peer"
@@ -587,7 +588,7 @@ watch(() => configurationPeers.value, async (newPeers) => {
 			key="TlsPipeManager"
 			v-if="configurationModals.tlsPipeManager.modalOpen"
 			@close="configurationModals.tlsPipeManager.modalOpen = false"
-			@refresh="fetchPeerList(); fetchTlsPipeStatus()"
+			@refresh="fetchPeerList(); fetchTcpTunnelStatus()"
 			:configurationInfo="configurationInfo"
 		></TlsPipeManager>
 	</TransitionGroup>

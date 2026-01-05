@@ -75,14 +75,6 @@ class Configuration:
         self.I3: str = ""
         self.I4: str = ""
         self.I5: str = ""
-        # TLS piping (udptlspipe) configuration defaults for peers
-        self.udptlspipe_enabled: bool = False
-        self.udptlspipe_password: str = ""
-        self.udptlspipe_port: str = "443"
-        self.udptlspipe_tls_server_name: str = ""
-        self.udptlspipe_secure: bool = False
-        self.udptlspipe_proxy: str = ""
-        self.udptlspipe_fingerprint_profile: str = "okhttp"
         self.MTU: str = ""
         self.PreUp: str = ""
         self.PostUp: str = ""
@@ -644,7 +636,8 @@ class Configuration:
                     "address_v6": ','.join(addr_v6) if addr_v6 else None,
                     "upload_rate_limit": 0,
                     "download_rate_limit": 0,
-                    "scheduler_type": "htb"  # Add default scheduler type
+                    "scheduler_type": "htb",  # Add default scheduler type
+                    "wgtcptunnel_enabled": 1 if i.get('wgtcptunnel_enabled', False) else 0  # Convert bool to int for database
                 }
                 peers_data.append(newPeer)
 
@@ -2063,14 +2056,6 @@ class Configuration:
         instance.I3: str = ""
         instance.I4: str = ""
         instance.I5: str = ""
-        # TLS piping (udptlspipe) configuration defaults for peers
-        instance.udptlspipe_enabled: bool = False
-        instance.udptlspipe_password: str = ""
-        instance.udptlspipe_port: str = "443"
-        instance.udptlspipe_tls_server_name: str = ""
-        instance.udptlspipe_secure: bool = False
-        instance.udptlspipe_proxy: str = ""
-        instance.udptlspipe_fingerprint_profile: str = "okhttp"
         instance.MTU: str = ""
         instance.PreUp: str = ""
         instance.PostUp: str = ""
@@ -2532,14 +2517,13 @@ class Peer:
         self.I3 = NormalizeCPSFormat(tableData.get("I3", ""))
         self.I4 = NormalizeCPSFormat(tableData.get("I4", ""))
         self.I5 = NormalizeCPSFormat(tableData.get("I5", ""))
-        # TLS piping (udptlspipe) peer-specific settings (override config defaults if set)
-        self.udptlspipe_enabled = bool(tableData.get("udptlspipe_enabled", False))
-        self.udptlspipe_password = tableData.get("udptlspipe_password", "")
-        self.udptlspipe_port = tableData.get("udptlspipe_port", "443")
-        self.udptlspipe_tls_server_name = tableData.get("udptlspipe_tls_server_name", "")
-        self.udptlspipe_secure = bool(tableData.get("udptlspipe_secure", False))
-        self.udptlspipe_proxy = tableData.get("udptlspipe_proxy", "")
-        self.udptlspipe_fingerprint_profile = tableData.get("udptlspipe_fingerprint_profile", "okhttp")
+        # WgTcpTunnel per-peer setting (defaults to False)
+        # Convert from database integer (0/1) or boolean to boolean
+        wgtcptunnel_enabled = tableData.get("wgtcptunnel_enabled", False)
+        if isinstance(wgtcptunnel_enabled, (int, str)):
+            self.wgtcptunnel_enabled = bool(int(wgtcptunnel_enabled))
+        else:
+            self.wgtcptunnel_enabled = bool(wgtcptunnel_enabled)
     
     def _scramble_cps_pattern(self, pattern: str, seed: str) -> str:
         """
@@ -2660,11 +2644,7 @@ class Peer:
                    preshared_key: str,
                    dns_addresses: str, allowed_ip: str, endpoint_allowed_ip: str, mtu: int,
                    keepalive: int, i1: str = None, i2: str = None, i3: str = None, 
-                   i4: str = None, i5: str = None,
-                   udptlspipe_enabled: bool = None, udptlspipe_password: str = None,
-                   udptlspipe_port: str = None, udptlspipe_tls_server_name: str = None, 
-                   udptlspipe_secure: bool = None, udptlspipe_proxy: str = None, 
-                   udptlspipe_fingerprint_profile: str = None) -> ResponseObject:
+                   i4: str = None, i5: str = None, wgtcptunnel_enabled: bool = None) -> ResponseObject:
         """Async version of updatePeer"""
         if not self.configuration.getStatus():
             self.configuration.toggleConfiguration()
@@ -2760,6 +2740,12 @@ class Peer:
                 'preshared_key': preshared_key
             }
             
+            # Add wgtcptunnel_enabled if provided
+            if wgtcptunnel_enabled is not None:
+                update_data['wgtcptunnel_enabled'] = 1 if wgtcptunnel_enabled else 0
+                # Update local attribute
+                self.wgtcptunnel_enabled = bool(wgtcptunnel_enabled)
+            
             # Add I1-I5 if provided (only for AWG protocol)
             # Normalize raw hex values (0x...) to CPS tag format (<b 0x...>)
             if self.configuration.get_iface_proto() == "awg":
@@ -2774,22 +2760,6 @@ class Peer:
                 if i5 is not None:
                     update_data['I5'] = NormalizeCPSFormat(i5.strip() if i5 else "")
             
-            # Add TLS piping (udptlspipe) settings if provided
-            if udptlspipe_enabled is not None:
-                update_data['udptlspipe_enabled'] = 1 if udptlspipe_enabled else 0
-            if udptlspipe_password is not None:
-                update_data['udptlspipe_password'] = udptlspipe_password
-            if udptlspipe_port is not None:
-                update_data['udptlspipe_port'] = udptlspipe_port
-            if udptlspipe_tls_server_name is not None:
-                update_data['udptlspipe_tls_server_name'] = udptlspipe_tls_server_name
-            if udptlspipe_secure is not None:
-                update_data['udptlspipe_secure'] = 1 if udptlspipe_secure else 0
-            if udptlspipe_proxy is not None:
-                update_data['udptlspipe_proxy'] = udptlspipe_proxy
-            if udptlspipe_fingerprint_profile is not None:
-                update_data['udptlspipe_fingerprint_profile'] = udptlspipe_fingerprint_profile
-            
             await self.configuration.db.update_peer(self.id, update_data)
             
             # Update local attributes (normalize raw hex to CPS format)
@@ -2803,22 +2773,6 @@ class Peer:
                 self.I4 = NormalizeCPSFormat(i4.strip() if i4 else "")
             if i5 is not None:
                 self.I5 = NormalizeCPSFormat(i5.strip() if i5 else "")
-            
-            # Update TLS piping local attributes
-            if udptlspipe_enabled is not None:
-                self.udptlspipe_enabled = udptlspipe_enabled
-            if udptlspipe_password is not None:
-                self.udptlspipe_password = udptlspipe_password
-            if udptlspipe_port is not None:
-                self.udptlspipe_port = udptlspipe_port
-            if udptlspipe_tls_server_name is not None:
-                self.udptlspipe_tls_server_name = udptlspipe_tls_server_name
-            if udptlspipe_secure is not None:
-                self.udptlspipe_secure = udptlspipe_secure
-            if udptlspipe_proxy is not None:
-                self.udptlspipe_proxy = udptlspipe_proxy
-            if udptlspipe_fingerprint_profile is not None:
-                self.udptlspipe_fingerprint_profile = udptlspipe_fingerprint_profile
             
             return ResponseObject()
         except subprocess.CalledProcessError as exc:
@@ -2899,46 +2853,84 @@ H4 = {self.configuration.H4}
                 scrambled_i5 = self._scramble_cps_pattern(self.configuration.I5, seed + "_I5")
                 peerConfiguration += f'I5 = {scrambled_i5}\n'
 
-        # TLS piping (udptlspipe) configuration
-        # Use peer-specific settings if set, otherwise fall back to config defaults
-        tls_enabled = self.udptlspipe_enabled or self.configuration.udptlspipe_enabled
-        tls_password = self.udptlspipe_password if self.udptlspipe_password else self.configuration.udptlspipe_password
-        tls_port = self.udptlspipe_port if self.udptlspipe_port else self.configuration.udptlspipe_port
-        tls_server_name = self.udptlspipe_tls_server_name if self.udptlspipe_tls_server_name else self.configuration.udptlspipe_tls_server_name
-        tls_secure = self.udptlspipe_secure or self.configuration.udptlspipe_secure
-        tls_proxy = self.udptlspipe_proxy if self.udptlspipe_proxy else self.configuration.udptlspipe_proxy
-        tls_fingerprint = self.udptlspipe_fingerprint_profile if self.udptlspipe_fingerprint_profile else self.configuration.udptlspipe_fingerprint_profile
-        
-        # Determine the endpoint port: use TLS pipe port if enabled, otherwise WireGuard port
-        # When TLS piping is enabled, clients connect to the TLS server port, not the WireGuard port
-        if tls_enabled and tls_port:
-            endpoint_port = tls_port
-        else:
-            endpoint_port = self.configuration.ListenPort
-        
         peerConfiguration += f'''
 [Peer]
 PublicKey = {self.configuration.PublicKey}
 AllowedIPs = {self.endpoint_allowed_ip}
-Endpoint = {DashboardConfig.GetConfig("Peers", "remote_endpoint")[1]}:{endpoint_port}
+Endpoint = {DashboardConfig.GetConfig("Peers", "remote_endpoint")[1]}:{self.configuration.ListenPort}
 PersistentKeepalive = {str(self.keepalive)}
 '''
         if len(self.preshared_key) > 0:
             peerConfiguration += f"PresharedKey = {self.preshared_key}\n"
         
-        if tls_enabled:
-            peerConfiguration += f"\n# TLS Piping Configuration\n"
-            peerConfiguration += f"UdpTlsPipe = true\n"
-            if tls_password:
-                peerConfiguration += f"UdpTlsPipePassword = {tls_password}\n"
-            if tls_server_name:
-                peerConfiguration += f"UdpTlsPipeTlsServerName = {tls_server_name}\n"
-            if tls_secure:
-                peerConfiguration += f"UdpTlsPipeSecure = true\n"
-            if tls_proxy:
-                peerConfiguration += f"UdpTlsPipeProxy = {tls_proxy}\n"
-            if tls_fingerprint:
-                peerConfiguration += f"UdpTlsPipeFingerprintProfile = {tls_fingerprint}\n"
+        # Add WgTcpTunnel configuration if enabled for this peer AND configuration
+        try:
+            from .WgTcpTunnelManager import get_wgtcptunnel_manager
+            manager = get_wgtcptunnel_manager()
+            route = manager.get_route(self.configuration.Name)
+            
+            # Only add TCP tunnel parameters if:
+            # 1. TCP tunnel is enabled for the configuration (route exists)
+            # 2. TCP tunnel is enabled for this specific peer (wgtcptunnel_enabled is True)
+            if route and getattr(self, 'wgtcptunnel_enabled', False):
+                # WgTcpTunnel is enabled - add configuration to peer
+                # Note: Endpoint above uses UDP port (ListenPort) for standard WireGuard.
+                # When WgTcpTunnel is enabled, the client will use WgTcpTunnelTcpPort instead.
+                peerConfiguration += f"WgTcpTunnel = true\n"
+                peerConfiguration += f"WgTcpTunnelTcpPort = {route.tcp_port}\n"
+                
+                # Get server status to check for WebSocket, TLS, and other settings
+                server = manager.get_server(self.configuration.Name)
+                if server:
+                    status = server.get_status()
+                    if status.get('use_websocket', False):
+                        peerConfiguration += f"WgTcpTunnelWebSocket = true\n"
+                    
+                    # Add TLS settings if enabled on server
+                    if status.get('use_tls', False):
+                        peerConfiguration += f"WgTcpTunnelTls = true\n"
+                        # Allow self-signed by default for easier setup
+                        peerConfiguration += f"WgTcpTunnelTlsAllowSelfSigned = true\n"
+                    
+                    # Add TCP/App keep-alive settings if configured
+                    tcp_keepalive = status.get('tcp_keepalive')
+                    if tcp_keepalive and tcp_keepalive > 0:
+                        peerConfiguration += f"WgTcpTunnelTcpKeepAlive = {tcp_keepalive}\n"
+                    
+                    app_keepalive = status.get('app_keepalive')
+                    if app_keepalive and app_keepalive > 0:
+                        peerConfiguration += f"WgTcpTunnelAppKeepAlive = {app_keepalive}\n"
+                
+                # Add all timeout parameters with sensible defaults
+                # These values can be overridden by the client if needed
+                
+                # ConnectTimeout: Time to wait for TCP connection establishment (seconds)
+                peerConfiguration += f"WgTcpTunnelConnectTimeout = 10\n"
+                
+                # ReadTimeout: Time to wait for data on TCP socket (seconds)
+                peerConfiguration += f"WgTcpTunnelReadTimeout = 30\n"
+                
+                # WriteTimeout: Time to wait for TCP write to complete (seconds)
+                peerConfiguration += f"WgTcpTunnelWriteTimeout = 30\n"
+                
+                # HandshakeTimeout: Time to wait for WebSocket handshake (seconds)
+                peerConfiguration += f"WgTcpTunnelHandshakeTimeout = 10\n"
+                
+                # HealthCheckInterval: Interval between connection health checks (seconds)
+                peerConfiguration += f"WgTcpTunnelHealthCheckInterval = 60\n"
+                
+                # MaxQueueAge: Maximum age of queued packets before they're dropped (seconds)
+                peerConfiguration += f"WgTcpTunnelMaxQueueAge = 5\n"
+                
+                # MaxReconnectDelay: Maximum delay between reconnection attempts (seconds)
+                peerConfiguration += f"WgTcpTunnelMaxReconnectDelay = 60\n"
+        except ImportError:
+            # WgTcpTunnelManager not available, skip
+            pass
+        except Exception as e:
+            # Log error but don't fail peer config generation
+            logger = logging.getLogger('wiregate')
+            logger.debug(f"Error adding WgTcpTunnel config to peer: {e}")
         
         return {
             "fileName": filename,
@@ -3160,31 +3152,21 @@ async def InitRateLimits():
 async def InitTlsPipeServers():
     """Auto-start the shared TLS pipe server from persisted routes"""
     logger = logging.getLogger('wiregate')
-    logger.info("Checking for TLS pipe server to auto-start...")
+    logger.info("Checking for TCP tunnel server to auto-start...")
     
     try:
-        from .UdpTlsPipeManager import get_shared_udptlspipe_manager
+        from .WgTcpTunnelManager import get_wgtcptunnel_manager
         
-        # Initialize the shared manager - this loads routes from database automatically
-        shared_manager = get_shared_udptlspipe_manager()
-        status = shared_manager.get_status()
+        # Initialize the manager - this loads routes from database automatically
+        manager = get_wgtcptunnel_manager()
+        status = manager.get_status()
         
-        if status.get('running'):
-            route_count = status.get('route_count', 0)
-            logger.info(f"✓ Shared TLS pipe server running with {route_count} route(s)")
-        elif len(shared_manager.get_routes()) > 0:
-            # Routes exist but server not running - start it
-            route_count = len(shared_manager.get_routes())
-            logger.info(f"Found {route_count} TLS pipe route(s), starting server...")
-            server = shared_manager.get_or_create_server()
-            if server and server.routes:
-                result = server.start()
-                if result.get('success'):
-                    logger.info(f"✓ Shared TLS pipe server started with {len(server.routes)} route(s)")
-                else:
-                    logger.error(f"Failed to start TLS pipe server: {result.get('error')}")
+        route_count = status.get('route_count', 0)
+        if route_count > 0:
+            running_count = status.get('running_count', 0)
+            logger.info(f"✓ TCP tunnel: {route_count} route(s) configured, {running_count} running")
         else:
-            logger.info("No TLS pipe routes configured")
+            logger.info("No TCP tunnel routes configured")
             
     except ImportError as e:
         logger.warning(f"TLS pipe module not available: {e}")
@@ -3193,14 +3175,13 @@ async def InitTlsPipeServers():
 
 
 async def StopAllTlsPipeServers():
-    """Stop the shared TLS pipe server (for shutdown)"""
+    """Stop the TCP tunnel servers (for shutdown)"""
     logger = logging.getLogger('wiregate')
     try:
-        from .UdpTlsPipeManager import get_shared_udptlspipe_manager
-        shared_manager = get_shared_udptlspipe_manager()
-        result = shared_manager.stop()
-        if result.get('success'):
-            logger.info("Stopped shared TLS pipe server")
+        from .WgTcpTunnelManager import get_wgtcptunnel_manager
+        manager = get_wgtcptunnel_manager()
+        results = manager.stop_all()
+        logger.info(f"Stopped TCP tunnel servers: {len(results)} stopped")
     except ImportError:
         pass  # Module not available
     except Exception as e:

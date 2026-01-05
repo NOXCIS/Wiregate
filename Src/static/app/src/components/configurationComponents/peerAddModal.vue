@@ -47,6 +47,7 @@ const peerData = ref({
 	preshared_key_bulkAdd: false,
 	advanced_security: "off",
 	override_allowed_ips: false,
+	wgtcptunnel_enabled: false,
 })
 
 const availableIp = ref([])
@@ -157,6 +158,23 @@ watch(() => peerData.value.bulkAdd, (newVal) => {
 												</div>
 												<div class="col-sm">
 													<PersistentKeepAliveInput :saving="saving" :data="peerData"></PersistentKeepAliveInput>
+												</div>
+												<div class="col-12">
+													<div class="form-check form-switch">
+														<input class="form-check-input" type="checkbox" role="switch"
+														       v-model="peerData.wgtcptunnel_enabled"
+														       id="wgtcptunnel_enabled_switch"
+														       :disabled="saving">
+														<label class="form-check-label" for="wgtcptunnel_enabled_switch">
+															<small class="fw-bold">
+																<i class="bi bi-ethernet me-1"></i>
+																<LocaleText t="TCP Tunneling"></LocaleText>
+															</small>
+															<small class="text-muted d-block ms-4" style="font-size: 0.75rem;">
+																<LocaleText t="Enable TCP tunneling for this peer (requires TCP tunnel to be configured for this configuration)"></LocaleText>
+															</small>
+														</label>
+													</div>
 												</div>
 												<div class="col-12" v-if="peerData.bulkAdd">
 													<div class="form-check form-switch">

@@ -83,6 +83,51 @@ RUN chmod +x /tmp/select-mirror.sh && /tmp/select-mirror.sh && \
     venv/bin/pip install --upgrade pip && \
     venv/bin/pip install -r requirements.txt
 
+# wgtcptunnel-builder: Build wg-tcp-tunnel from C++ source
+##########################################################
+FROM alpine:latest AS wgtcptunnel-builder
+ARG TARGETPLATFORM
+
+# Copy and run mirror selection script, then install build dependencies
+# Install boost-static for static linking to avoid runtime library dependencies
+COPY scripts/select-mirror.sh /tmp/select-mirror.sh
+RUN chmod +x /tmp/select-mirror.sh && /tmp/select-mirror.sh && \
+    apk add --no-cache cmake g++ make boost-dev boost-static boost-program_options boost-log openssl-dev openssl-libs-static
+
+WORKDIR /build
+
+# Copy wg-tcp-tunnel source (should be placed in Src/wg-tcp-tunnel/)
+COPY ./Src/wg-tcp-tunnel/ /build/wg-tcp-tunnel/
+
+# Build wg-tcp-tunnel with static Boost linking, WebSocket and TLS support
+# This ensures the binary works without Boost shared libraries in the final image
+# WebSocket support uses boost-beast (header-only) for transport mode
+# TLS support uses OpenSSL for encrypted connections
+RUN set -eo pipefail && cd /build/wg-tcp-tunnel && \
+    echo "=== Source files ===" && \
+    ls -la src/ && \
+    echo "=== Configuring cmake ===" && \
+    cmake -S . -B build \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DENABLE_WEBSOCKET=ON \
+        -DENABLE_TLS=ON \
+        -DBoost_USE_STATIC_LIBS=ON \
+        -DCMAKE_EXE_LINKER_FLAGS="-static-libstdc++ -static-libgcc" \
+        -DCMAKE_CXX_FLAGS="-static-libstdc++ -static-libgcc" && \
+    echo "=== Building ===" && \
+    cmake --build build --parallel 2>&1 || { echo "=== BUILD FAILED ==="; ls -la build/ || true; exit 1; } && \
+    echo "=== Build complete, listing files ===" && \
+    ls -la build/ && \
+    if [ -f build/wg-tcp-tunnel ]; then \
+    cp build/wg-tcp-tunnel /build/wg-tcp-tunnel-bin && \
+    echo "Checking binary dependencies:" && \
+        ldd /build/wg-tcp-tunnel-bin || echo "Binary appears to be statically linked or minimal deps"; \
+    else \
+        echo "ERROR: wg-tcp-tunnel binary not found!"; \
+        find build -name "wg-tcp-tunnel*" -o -name "*.o" | head -20; \
+        exit 1; \
+    fi
+
 # builder: WGDashboard & Vanguards Python Binary Build stage
 ##########################################################
 FROM alpine:latest AS builder
@@ -130,9 +175,8 @@ WORKDIR /build
 COPY ./Src/torflux/torflux.go ./Src/torflux/go.mod /build/torflux-build/
 COPY ./Src/traffic_weir/ /build/traffic_weir/
 COPY ./Src/healthcheck/ /build/healthcheck/
-COPY ./Src/udptlspipe/ /build/udptlspipe/
 
-RUN mkdir -p /build/torflux-build /build/traffic_weir /build/healthcheck /build/udptlspipe && \
+RUN mkdir -p /build/torflux-build /build/traffic_weir /build/healthcheck && \
     cd /build/torflux-build && \
     go get -u ./... && go mod tidy && \
     GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
@@ -147,12 +191,7 @@ RUN mkdir -p /build/torflux-build /build/traffic_weir /build/healthcheck /build/
     go get -u ./... && go mod tidy && \
     GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
     -ldflags="-X main.version=v1.0.0 -s -w" \
-    -o /build/healthcheck && \
-    cd /build/udptlspipe && \
-    go get -u ./... && go mod tidy && \
-    GOOS=linux GOARCH=$GO_ARCH CGO_ENABLED=0 go build \
-    -ldflags="-X 'github.com/ameshkov/udptlspipe/internal/version.version=v1.0.0' -s -w" \
-    -o /build/udptlspipe
+    -o /build/healthcheck
 
 # pybuilder: Python binary builder
 ##########################################################
@@ -290,11 +329,10 @@ COPY --from=noxcis/awg-bins:latest /amneziawg-go /awg /awg-quick /usr/bin/
 
 # Copy built binaries and set permissions
 COPY --from=pybuilder /build/dist/wiregate /build/dist/vanguards /WireGate/
-COPY --from=builder /build/torflux /build/traffic-weir /build/healthcheck /build/udptlspipe /WireGate/
+COPY --from=builder /build/torflux /build/traffic-weir /build/healthcheck /WireGate/
+COPY --from=wgtcptunnel-builder /build/wg-tcp-tunnel-bin /WireGate/wg-tcp-tunnel
 
-
-
-RUN chmod +x /WireGate/wiregate /WireGate/vanguards /WireGate/torflux /WireGate/traffic-weir /WireGate/healthcheck /WireGate/udptlspipe
+RUN chmod +x /WireGate/wiregate /WireGate/vanguards /WireGate/torflux /WireGate/traffic-weir /WireGate/healthcheck /WireGate/wg-tcp-tunnel
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 CMD \
     /WireGate/healthcheck --dashboard || exit 1

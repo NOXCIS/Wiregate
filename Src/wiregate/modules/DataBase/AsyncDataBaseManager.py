@@ -721,14 +721,8 @@ class AsyncConfigurationDatabase:
             'I3': 'TEXT',
             'I4': 'TEXT',
             'I5': 'TEXT',
-            # TLS piping (udptlspipe) fields
-            'udptlspipe_enabled': 'INTEGER DEFAULT 0',
-            'udptlspipe_password': 'TEXT',
-            'udptlspipe_port': "TEXT DEFAULT '443'",
-            'udptlspipe_tls_server_name': 'TEXT',
-            'udptlspipe_secure': 'INTEGER DEFAULT 0',
-            'udptlspipe_proxy': 'TEXT',
-            'udptlspipe_fingerprint_profile': "TEXT DEFAULT 'okhttp'"
+            # WgTcpTunnel per-peer setting
+            'wgtcptunnel_enabled': 'INTEGER DEFAULT 0'
         }
         
         # Create main table

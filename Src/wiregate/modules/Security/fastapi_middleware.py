@@ -658,12 +658,42 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 class SessionMiddleware(BaseHTTPMiddleware):
     """
     Session management middleware for FastAPI
-    Provides Flask-like session functionality using cookies
+    Provides Flask-like session functionality using encrypted, signed cookies
+    
+    Security layers:
+    1. Fernet encryption (AES-128-CBC + HMAC) - provides confidentiality
+    2. itsdangerous signing with timestamp - provides integrity and expiration
     """
     
     def __init__(self, app, secret_key: str):
         super().__init__(app)
         self.secret_key = secret_key
+        
+        # Derive a 32-byte key for Fernet from the secret key using SHA-256
+        # Fernet requires a 32-byte key, base64-encoded to 44 characters
+        import hashlib
+        from cryptography.fernet import Fernet
+        key_bytes = hashlib.sha256(secret_key.encode()).digest()
+        self.fernet = Fernet(base64.urlsafe_b64encode(key_bytes))
+    
+    def _encrypt_session(self, session_data: dict) -> str:
+        """Encrypt session data using Fernet (AES-128-CBC + HMAC)"""
+        import json
+        json_data = json.dumps(session_data)
+        encrypted = self.fernet.encrypt(json_data.encode())
+        return base64.urlsafe_b64encode(encrypted).decode()
+    
+    def _decrypt_session(self, encrypted_data: str) -> dict:
+        """Decrypt session data using Fernet"""
+        import json
+        from cryptography.fernet import InvalidToken
+        try:
+            encrypted_bytes = base64.urlsafe_b64decode(encrypted_data.encode())
+            decrypted = self.fernet.decrypt(encrypted_bytes)
+            return json.loads(decrypted.decode())
+        except (InvalidToken, ValueError, json.JSONDecodeError):
+            # Return None to indicate decryption failed (might be legacy session)
+            return None
     
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         # Load session from cookie
@@ -672,12 +702,32 @@ class SessionMiddleware(BaseHTTPMiddleware):
         
         if session_cookie:
             try:
-                # Decrypt and load session data
                 import json
                 from itsdangerous import URLSafeTimedSerializer
                 
                 serializer = URLSafeTimedSerializer(self.secret_key)
-                session_data = serializer.loads(session_cookie, max_age=SESSION_TIMEOUT)
+                # First, verify signature and load the signed payload
+                signed_payload = serializer.loads(session_cookie, max_age=SESSION_TIMEOUT)
+                
+                # Check if payload is encrypted (string) or legacy unencrypted (dict)
+                if isinstance(signed_payload, str):
+                    # New format: encrypted payload - decrypt it
+                    decrypted = self._decrypt_session(signed_payload)
+                    if decrypted is not None:
+                        session_data = decrypted
+                    else:
+                        # Decryption failed - treat as invalid session
+                        logger.debug("Failed to decrypt session - treating as invalid")
+                        session_data = {}
+                elif isinstance(signed_payload, dict):
+                    # Legacy format: unencrypted dict (backward compatibility)
+                    # Session will be re-encrypted on next save
+                    logger.debug("Loaded legacy unencrypted session - will upgrade on save")
+                    session_data = signed_payload
+                else:
+                    logger.debug(f"Unexpected session payload type: {type(signed_payload)}")
+                    session_data = {}
+                    
             except Exception as e:
                 logger.debug(f"Failed to load session: {e}")
                 session_data = {}
@@ -692,11 +742,13 @@ class SessionMiddleware(BaseHTTPMiddleware):
         updated_session = getattr(request.state, 'session', {})
         if updated_session != session_data:
             try:
-                import json
                 from itsdangerous import URLSafeTimedSerializer
                 
+                # Encrypt session data first, then sign it
+                encrypted_payload = self._encrypt_session(updated_session)
+                
                 serializer = URLSafeTimedSerializer(self.secret_key)
-                session_cookie_value = serializer.dumps(updated_session)
+                session_cookie_value = serializer.dumps(encrypted_payload)
                 
                 # Determine if we're using HTTPS
                 is_secure = request.url.scheme == "https"

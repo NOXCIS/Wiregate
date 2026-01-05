@@ -65,12 +65,17 @@ const router = createRouter({
 					}
 				},
 				{
-					name: "TLS Pipe",
-					path: '/tls-pipe',
+					name: "TCP Tunnel",
+					path: '/tcp-tunnel',
 					component: () => import('@/views/tlsPipe.vue'),
 					meta: {
-						title: "TLS Pipe Server"
+						title: "TCP Tunnel Server"
 					}
+				},
+				{
+					// Legacy route - redirect to tcp-tunnel
+					path: '/tls-pipe',
+					redirect: '/tcp-tunnel'
 				},
 				{
 					path: '/ping',

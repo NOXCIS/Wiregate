@@ -122,54 +122,20 @@ export default {
 									</div>
 								</div>
 							</div>
-							<!-- TLS Piping (udptlspipe) Default Settings -->
+							<!-- TCP Tunneling Default Settings -->
 							<div class="card rounded-3">
 								<div class="card-header">
 									<h6 class="my-2">
-										<i class="bi bi-shield-lock me-2"></i>
-										<LocaleText t="TLS Piping Default Settings"></LocaleText>
+										<i class="bi bi-ethernet me-2"></i>
+										<LocaleText t="TCP Tunneling Default Settings"></LocaleText>
 									</h6>
 								</div>
 								<div class="card-body">
 									<div class="alert alert-info mb-3">
 										<small>
 											<i class="bi bi-info-circle me-1"></i>
-											<LocaleText t="TLS piping wraps WireGuard UDP traffic in TLS. Useful when UDP is blocked or unreliable. Requires udptlspipe server running on the tunnel server."></LocaleText>
+											<LocaleText t="TCP tunneling wraps WireGuard UDP traffic in TCP. Useful when UDP is blocked or unreliable. Configure TCP tunnel servers in the TCP Tunnel menu."></LocaleText>
 										</small>
-									</div>
-									<div>
-										<PeersDefaultSettingsSwitch
-											targetData="peer_udptlspipe_enabled" 
-											title="Enable TLS Piping by Default"
-											description="When enabled, new peers will have TLS piping enabled by default."
-										></PeersDefaultSettingsSwitch>
-										<PeersDefaultSettingsInput
-											targetData="peer_udptlspipe_password" 
-											title="Default TLS Pipe Password"
-										></PeersDefaultSettingsInput>
-										<PeersDefaultSettingsInput
-											targetData="peer_udptlspipe_port" 
-											title="Default TLS Pipe Server Port"
-											description="Port where the udptlspipe server is listening (default: 443)"
-										></PeersDefaultSettingsInput>
-										<PeersDefaultSettingsInput
-											targetData="peer_udptlspipe_tls_server_name" 
-											title="Default TLS Server Name (SNI)"
-										></PeersDefaultSettingsInput>
-										<PeersDefaultSettingsSwitch
-											targetData="peer_udptlspipe_secure" 
-											title="Verify Server Certificate by Default"
-											description="When enabled, clients will verify the TLS server certificate."
-										></PeersDefaultSettingsSwitch>
-										<PeersDefaultSettingsInput
-											targetData="peer_udptlspipe_proxy" 
-											title="Default Proxy URL"
-										></PeersDefaultSettingsInput>
-										<PeersDefaultSettingsInput
-											targetData="peer_udptlspipe_fingerprint_profile" 
-											title="Default TLS Fingerprint Profile"
-											description="TLS fingerprint to mimic (chrome, firefox, safari, edge, okhttp, ios, randomized)"
-										></PeersDefaultSettingsInput>
 									</div>
 								</div>
 							</div>

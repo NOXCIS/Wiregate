@@ -12,7 +12,7 @@ import shutil
 import subprocess
 from datetime import datetime
 import time
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 from fastapi import APIRouter, Query, Depends, Request
 from fastapi.responses import StreamingResponse, JSONResponse
 import asyncio
@@ -793,41 +793,6 @@ async def add_peers(
         if len(endpoint_allowed_ip) == 0:
             endpoint_allowed_ip = DashboardConfig.GetConfig("Peers", "peer_endpoint_allowed_ip")[1]
         
-        # TLS piping (udptlspipe) settings - use peer-provided values or config defaults
-        udptlspipe_enabled = peer_data.get('udptlspipe_enabled')
-        if udptlspipe_enabled is None:
-            default_enabled = DashboardConfig.GetConfig("Peers", "peer_udptlspipe_enabled")[1]
-            udptlspipe_enabled = default_enabled.lower() == "true" if default_enabled else False
-        
-        udptlspipe_password = peer_data.get('udptlspipe_password')
-        if udptlspipe_password is None:
-            udptlspipe_password = DashboardConfig.GetConfig("Peers", "peer_udptlspipe_password")[1] or ""
-        
-        udptlspipe_port = peer_data.get('udptlspipe_port')
-        if udptlspipe_port is None:
-            udptlspipe_port = DashboardConfig.GetConfig("Peers", "peer_udptlspipe_port")[1] or "443"
-        
-        udptlspipe_tls_server_name = peer_data.get('udptlspipe_tls_server_name')
-        if udptlspipe_tls_server_name is None:
-            udptlspipe_tls_server_name = DashboardConfig.GetConfig("Peers", "peer_udptlspipe_tls_server_name")[1] or ""
-        
-        udptlspipe_secure = peer_data.get('udptlspipe_secure')
-        if udptlspipe_secure is None:
-            default_secure = DashboardConfig.GetConfig("Peers", "peer_udptlspipe_secure")[1]
-            udptlspipe_secure = default_secure.lower() == "true" if default_secure else False
-        
-        udptlspipe_proxy = peer_data.get('udptlspipe_proxy')
-        if udptlspipe_proxy is None:
-            udptlspipe_proxy = DashboardConfig.GetConfig("Peers", "peer_udptlspipe_proxy")[1] or ""
-        
-        udptlspipe_fingerprint_profile = peer_data.get('udptlspipe_fingerprint_profile')
-        if udptlspipe_fingerprint_profile is None:
-            udptlspipe_fingerprint_profile = DashboardConfig.GetConfig("Peers", "peer_udptlspipe_fingerprint_profile")[1] or "okhttp"
-        # Validate fingerprint profile - only accept known values
-        valid_profiles = ["chrome", "firefox", "safari", "edge", "okhttp", "ios", "randomized"]
-        if udptlspipe_fingerprint_profile and udptlspipe_fingerprint_profile.lower() not in valid_profiles:
-            udptlspipe_fingerprint_profile = "okhttp"  # Default to okhttp for invalid values
-        
         config = Configurations.get(configName)
         if not bulkAdd and (len(public_key) == 0 or len(allowed_ips) == 0):
             return StandardResponse(
@@ -895,14 +860,7 @@ async def add_peers(
                     "endpoint_allowed_ip": endpoint_allowed_ip,
                     "mtu": mtu,
                     "keepalive": keep_alive,
-                    # TLS piping (udptlspipe) settings
-                    "udptlspipe_enabled": 1 if udptlspipe_enabled else 0,
-                    "udptlspipe_password": udptlspipe_password,
-                    "udptlspipe_port": udptlspipe_port,
-                    "udptlspipe_tls_server_name": udptlspipe_tls_server_name,
-                    "udptlspipe_secure": 1 if udptlspipe_secure else 0,
-                    "udptlspipe_proxy": udptlspipe_proxy,
-                    "udptlspipe_fingerprint_profile": udptlspipe_fingerprint_profile
+                    "wgtcptunnel_enabled": peer_data.get('wgtcptunnel_enabled', False)
                 })
             
             if len(keyPairs) == 0:
@@ -953,14 +911,7 @@ async def add_peers(
                 "DNS": dns_addresses,
                 "mtu": mtu,
                 "keepalive": keep_alive,
-                # TLS piping (udptlspipe) settings
-                "udptlspipe_enabled": 1 if udptlspipe_enabled else 0,
-                "udptlspipe_password": udptlspipe_password,
-                "udptlspipe_port": udptlspipe_port,
-                "udptlspipe_tls_server_name": udptlspipe_tls_server_name,
-                "udptlspipe_secure": 1 if udptlspipe_secure else 0,
-                "udptlspipe_proxy": udptlspipe_proxy,
-                "udptlspipe_fingerprint_profile": udptlspipe_fingerprint_profile
+                "wgtcptunnel_enabled": peer_data.get('wgtcptunnel_enabled', False)
             }])
             return StandardResponse(status=status)
     except Exception as e:
@@ -990,13 +941,6 @@ async def update_peer_settings(
     foundPeer, peer = wireguardConfig.searchPeer(peer_id)
     
     if foundPeer:
-        # Validate fingerprint profile if provided
-        fingerprint_profile = peer_update.get('udptlspipe_fingerprint_profile')
-        if fingerprint_profile is not None:
-            valid_profiles = ["chrome", "firefox", "safari", "edge", "okhttp", "ios", "randomized"]
-            if fingerprint_profile.lower() not in valid_profiles:
-                fingerprint_profile = None  # Let it use current value
-        
         # Use current values if not provided in update
         result = await peer.updatePeerAsync(
             peer_update.get('name') if peer_update.get('name') is not None else peer.name,
@@ -1012,14 +956,7 @@ async def update_peer_settings(
             peer_update.get('I3'),
             peer_update.get('I4'),
             peer_update.get('I5'),
-            # TLS piping (udptlspipe) settings
-            peer_update.get('udptlspipe_enabled'),
-            peer_update.get('udptlspipe_password'),
-            peer_update.get('udptlspipe_port'),
-            peer_update.get('udptlspipe_tls_server_name'),
-            peer_update.get('udptlspipe_secure'),
-            peer_update.get('udptlspipe_proxy'),
-            fingerprint_profile
+            peer_update.get('wgtcptunnel_enabled') if 'wgtcptunnel_enabled' in peer_update else None
         )
         result_dict = convert_response_object_to_dict(result)
         return StandardResponse(**result_dict)
@@ -2451,22 +2388,23 @@ async def process_pool_performance_test(
 
 
 # ============================================================================
-# Shared TLS Pipe Server (Single port 443 for all configs)
-# All TLS piping uses a single shared server on port 443 with password-based routing
+# WgTcpTunnel API Endpoints
 # ============================================================================
 
-@router.post('/udptlspipe/shared/enable/{configName}', response_model=StandardResponse)
-async def enable_shared_tlspipe(
+@router.post('/wgtcptunnel/enable/{configName}', response_model=StandardResponse)
+async def enable_wgtcptunnel(
     configName: str,
     config: Dict[str, Any],
     user: Dict[str, Any] = Depends(require_authentication)
 ):
     """
-    Enable TLS piping for a WireGuard configuration using the shared server.
-    All configurations share a single TLS pipe server on port 443.
+    Enable wg-tcp-tunnel for a WireGuard configuration.
+    
+    This creates a TCP-to-UDP tunnel that forwards TCP traffic to WireGuard.
+    Supports optional TLS encryption when certificate paths are provided.
     """
     try:
-        from ..modules.UdpTlsPipeManager import enable_shared_tlspipe as enable_pipe
+        from ..modules.WgTcpTunnelManager import enable_wgtcptunnel as enable_tunnel
         
         if configName not in Configurations.keys():
             return StandardResponse(
@@ -2474,92 +2412,116 @@ async def enable_shared_tlspipe(
                 message=f"Configuration {configName} not found"
             )
         
-        wg_config = Configurations[configName]
-        password = config.get('password')
-        listen_port = config.get('listen_port', 443)
+        wg_config = Configurations.get(configName)
+        # Configuration object has ListenPort as an attribute, not a dict
+        wireguard_port = int(wg_config.ListenPort) if wg_config.ListenPort else 51820
         
-        if not password:
-            return StandardResponse(
-                status=False,
-                message="Password is required for TLS piping"
-            )
+        tcp_port = config.get('tcp_port')
+        if tcp_port is None:
+            # Default to 443 if not specified
+            tcp_port = 443
         
-        result = enable_pipe(
-            config_name=configName,
-            password=password,
-            wireguard_port=int(wg_config.ListenPort),
-            listen_port=listen_port
+        # Use wireguard_port from request if provided, otherwise use config's ListenPort
+        wireguard_port = config.get('wireguard_port', wireguard_port)
+        
+        # Get optional connection management settings
+        max_connections = config.get('max_connections')
+        max_queue_size = config.get('max_queue_size')
+        
+        # Get WebSocket transport mode setting
+        use_websocket = config.get('use_websocket', False)
+        
+        # Get TLS settings
+        use_tls = config.get('use_tls', False)
+        tls_cert_path = config.get('tls_cert_path')
+        tls_key_path = config.get('tls_key_path')
+        tls_ca_path = config.get('tls_ca_path')
+        
+        result = enable_tunnel(
+            configName, 
+            int(tcp_port), 
+            int(wireguard_port),
+            max_connections=int(max_connections) if max_connections is not None else None,
+            max_queue_size=int(max_queue_size) if max_queue_size is not None else None,
+            use_websocket=bool(use_websocket),
+            use_tls=bool(use_tls),
+            tls_cert_path=tls_cert_path,
+            tls_key_path=tls_key_path,
+            tls_ca_path=tls_ca_path
         )
         
         if result.get('success'):
             return StandardResponse(
                 status=True,
-                message=f"TLS piping enabled for {configName} on shared port {listen_port}",
+                message=f"wg-tcp-tunnel enabled for {configName}",
                 data=result
             )
         else:
             return StandardResponse(
                 status=False,
-                message=result.get('error', 'Failed to enable TLS piping')
+                message=result.get('error', 'Failed to enable wg-tcp-tunnel')
             )
+    
     except Exception as e:
-        logger.error(f"Failed to enable shared TLS piping: {e}")
+        logger.error(f"Failed to enable wg-tcp-tunnel: {e}")
         return StandardResponse(status=False, message=str(e))
 
 
-@router.post('/udptlspipe/shared/disable/{configName}', response_model=StandardResponse)
-async def disable_shared_tlspipe(
+@router.post('/wgtcptunnel/disable/{configName}', response_model=StandardResponse)
+async def disable_wgtcptunnel(
     configName: str,
     user: Dict[str, Any] = Depends(require_authentication)
 ):
-    """Disable TLS piping for a WireGuard configuration on the shared server"""
+    """Disable wg-tcp-tunnel for a WireGuard configuration"""
     try:
-        from ..modules.UdpTlsPipeManager import disable_shared_tlspipe as disable_pipe
+        from ..modules.WgTcpTunnelManager import disable_wgtcptunnel as disable_tunnel
         
-        result = disable_pipe(configName)
+        result = disable_tunnel(configName)
         
         if result.get('success'):
             return StandardResponse(
                 status=True,
-                message=f"TLS piping disabled for {configName}",
+                message=f"wg-tcp-tunnel disabled for {configName}",
                 data=result
             )
         else:
             return StandardResponse(
                 status=False,
-                message=result.get('error', 'Failed to disable TLS piping')
+                message=result.get('error', 'Failed to disable wg-tcp-tunnel')
             )
+    
     except Exception as e:
-        logger.error(f"Failed to disable shared TLS piping: {e}")
+        logger.error(f"Failed to disable wg-tcp-tunnel: {e}")
         return StandardResponse(status=False, message=str(e))
 
 
-@router.get('/udptlspipe/shared/status', response_model=StandardResponse)
-async def get_shared_tlspipe_status(
+@router.get('/wgtcptunnel/status', response_model=StandardResponse)
+async def get_wgtcptunnel_status(
+    configName: Optional[str] = None,
     user: Dict[str, Any] = Depends(require_authentication)
 ):
-    """Get the status of the shared TLS pipe server"""
+    """Get the status of wg-tcp-tunnel server(s)"""
     try:
-        from ..modules.UdpTlsPipeManager import get_shared_tlspipe_status as get_status
+        from ..modules.WgTcpTunnelManager import get_wgtcptunnel_status as get_status
         
-        status = get_status()
+        status = get_status(configName)
         
         return StandardResponse(
             status=True,
             data=status
         )
     except Exception as e:
-        logger.error(f"Failed to get shared TLS pipe status: {e}")
+        logger.error(f"Failed to get wg-tcp-tunnel status: {e}")
         return StandardResponse(status=False, message=str(e))
 
 
-@router.get('/udptlspipe/shared/routes', response_model=StandardResponse)
-async def get_shared_tlspipe_routes(
+@router.get('/wgtcptunnel/routes', response_model=StandardResponse)
+async def get_wgtcptunnel_routes(
     user: Dict[str, Any] = Depends(require_authentication)
 ):
-    """Get all routes configured on the shared TLS pipe server"""
+    """Get all configured wg-tcp-tunnel routes"""
     try:
-        from ..modules.UdpTlsPipeManager import get_shared_tlspipe_routes as get_routes
+        from ..modules.WgTcpTunnelManager import get_wgtcptunnel_routes as get_routes
         
         routes = get_routes()
         
@@ -2568,6 +2530,6 @@ async def get_shared_tlspipe_routes(
             data=routes
         )
     except Exception as e:
-        logger.error(f"Failed to get shared TLS pipe routes: {e}")
+        logger.error(f"Failed to get wg-tcp-tunnel routes: {e}")
         return StandardResponse(status=False, message=str(e))
 

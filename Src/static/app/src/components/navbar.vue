@@ -514,9 +514,9 @@ export default {
 								</RouterLink>
 							</li>
 							<li class="nav-item mb-2">
-								<RouterLink to="/tls-pipe" class="nav-link rounded-3" active-class="active">
-									<i class="bi bi-shield-lock-fill me-2 tls-pipe-icon"></i>
-									<LocaleText t="TLS Pipe"></LocaleText>
+								<RouterLink to="/tcp-tunnel" class="nav-link rounded-3" active-class="active">
+									<i class="bi bi-ethernet me-2 tls-pipe-icon"></i>
+									<LocaleText t="TCP Tunnel"></LocaleText>
 								</RouterLink>
 							</li>
 							<li class="nav-item mb-2">
@@ -1232,7 +1232,7 @@ export default {
 	color: #000000 !important;
 }
 
-/* TLS Pipe icon theme-aware styling */
+/* TCP Tunnel icon theme-aware styling */
 .tls-pipe-icon {
 	color: white;
 }

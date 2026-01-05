@@ -197,14 +197,13 @@ nuitka-deps: python-deps
 # Build Go binaries
 go-bins: go-deps
 	@echo "Building Go binaries..."
-	mkdir -p $(BUILD_DIR)/torflux-build $(BUILD_DIR)/traffic_weir $(BUILD_DIR)/healthcheck $(BUILD_DIR)/udptlspipe
+	mkdir -p $(BUILD_DIR)/torflux-build $(BUILD_DIR)/traffic_weir $(BUILD_DIR)/healthcheck
 	
 	# Copy Go source files
 	cp ./torflux/torflux.go $(BUILD_DIR)/torflux-build/
 	cp ./torflux/go.mod $(BUILD_DIR)/torflux-build/
 	cp -r ./traffic_weir/* $(BUILD_DIR)/traffic_weir/
 	cp -r ./healthcheck/* $(BUILD_DIR)/healthcheck/
-	cp -r ./udptlspipe/* $(BUILD_DIR)/udptlspipe/
 	
 	# Build torflux
 	cd $(BUILD_DIR)/torflux-build && \
@@ -235,18 +234,6 @@ go-bins: go-deps
 		cd .. && \
 		rm -rf healthcheck && \
 		mv healthcheck-bin healthcheck
-	
-	# Build udptlspipe (TLS tunnel for WireGuard UDP traffic)
-	cd $(BUILD_DIR)/udptlspipe && \
-		export PATH="$(abspath $(BUILD_DIR))/go/bin:$$PATH" && \
-		go get -u ./... && go mod tidy && \
-		GOOS=linux GOARCH=$(GO_ARCH) CGO_ENABLED=0 go build \
-		-ldflags="-X 'github.com/ameshkov/udptlspipe/internal/version.version=v1.0.0' -s -w" \
-		-buildvcs=false \
-		-o ../udptlspipe-bin && \
-		cd .. && \
-		rm -rf udptlspipe && \
-		mv udptlspipe-bin udptlspipe
 
 # Build Python binaries
 ifeq ($(PY_BUILDER),nuitka)
@@ -499,7 +486,6 @@ install: all
 	cp $(BUILD_DIR)/torflux $(INSTALL_DIR)/
 	cp $(BUILD_DIR)/traffic-weir $(INSTALL_DIR)/
 	cp $(BUILD_DIR)/healthcheck $(INSTALL_DIR)/
-	cp $(BUILD_DIR)/udptlspipe $(INSTALL_DIR)/
 	# Copy wiregate.sh and restricted_shell.sh
 	cp $(WIREGATE_SRC)/wiregate.sh $(INSTALL_DIR)/
 	cp $(WIREGATE_SRC)/restricted_shell.sh $(INSTALL_DIR)/
@@ -533,7 +519,6 @@ install: all
 	chmod +x $(INSTALL_DIR)/torflux
 	chmod +x $(INSTALL_DIR)/traffic-weir
 	chmod +x $(INSTALL_DIR)/healthcheck
-	chmod +x $(INSTALL_DIR)/udptlspipe
 	chmod +x $(INSTALL_DIR)/wiregate.sh
 	chmod +x $(INSTALL_DIR)/restricted_shell.sh
 	

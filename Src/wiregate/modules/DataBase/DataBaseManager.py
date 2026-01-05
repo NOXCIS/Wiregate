@@ -673,6 +673,136 @@ class SQLiteDatabaseManager:
             logger.error(f"Failed to delete TLS pipe route: {e}")
             return False
     
+    # =========================================================================
+    # WgTcpTunnel Routes Table Methods (for wg-tcp-tunnel server persistence)
+    # =========================================================================
+    
+    async def _ensure_wgtcptunnel_routes_table(self) -> bool:
+        """Ensure wgtcptunnel_routes table exists for TCP tunnel persistence"""
+        try:
+            schema = {
+                'config_name': 'VARCHAR PRIMARY KEY',
+                'tcp_port': 'INTEGER NOT NULL',
+                'wireguard_port': 'INTEGER NOT NULL',
+                'use_websocket': 'INTEGER DEFAULT 0',
+                'max_connections': 'INTEGER',
+                'max_queue_size': 'INTEGER',
+                'use_tls': 'INTEGER DEFAULT 0',
+                'tls_cert_path': 'VARCHAR',
+                'tls_key_path': 'VARCHAR',
+                'tls_ca_path': 'VARCHAR',
+                'enabled': 'INTEGER DEFAULT 1',
+                'created_at': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP',
+                'updated_at': 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP'
+            }
+            result = await self.create_table('wgtcptunnel_routes', schema)
+            
+            # Add TLS columns if they don't exist (migration for existing tables)
+            if self.conn:
+                try:
+                    await self.conn.execute("ALTER TABLE wgtcptunnel_routes ADD COLUMN use_tls INTEGER DEFAULT 0")
+                except:
+                    pass  # Column already exists
+                try:
+                    await self.conn.execute("ALTER TABLE wgtcptunnel_routes ADD COLUMN tls_cert_path VARCHAR")
+                except:
+                    pass
+                try:
+                    await self.conn.execute("ALTER TABLE wgtcptunnel_routes ADD COLUMN tls_key_path VARCHAR")
+                except:
+                    pass
+                try:
+                    await self.conn.execute("ALTER TABLE wgtcptunnel_routes ADD COLUMN tls_ca_path VARCHAR")
+                except:
+                    pass
+                await self.conn.commit()
+            
+            return result
+        except Exception as e:
+            logger.error(f"Failed to create wgtcptunnel_routes table: {e}")
+            return False
+    
+    async def save_wgtcptunnel_route(self, config_name: str, tcp_port: int, 
+                                      wireguard_port: int, use_websocket: bool = False,
+                                      max_connections: int = None, max_queue_size: int = None,
+                                      use_tls: bool = False, tls_cert_path: str = None,
+                                      tls_key_path: str = None, tls_ca_path: str = None) -> bool:
+        """Save or update a wg-tcp-tunnel route"""
+        try:
+            if self.conn is None:
+                await self._init_sqlite()
+            
+            await self._ensure_wgtcptunnel_routes_table()
+            
+            # Upsert: insert or replace
+            await self.conn.execute("""
+                INSERT OR REPLACE INTO wgtcptunnel_routes 
+                (config_name, tcp_port, wireguard_port, use_websocket, max_connections, max_queue_size, 
+                 use_tls, tls_cert_path, tls_key_path, tls_ca_path, enabled, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, CURRENT_TIMESTAMP)
+            """, (config_name, tcp_port, wireguard_port, 1 if use_websocket else 0, max_connections, max_queue_size,
+                  1 if use_tls else 0, tls_cert_path, tls_key_path, tls_ca_path))
+            await self.conn.commit()
+            logger.debug(f"Saved wg-tcp-tunnel route for {config_name}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to save wg-tcp-tunnel route: {e}")
+            return False
+    
+    async def get_wgtcptunnel_route(self, config_name: str) -> Optional[Dict[str, Any]]:
+        """Get a wg-tcp-tunnel route by config name"""
+        try:
+            if self.conn is None:
+                await self._init_sqlite()
+            
+            await self._ensure_wgtcptunnel_routes_table()
+            cursor = await self.conn.execute("""
+                SELECT config_name, tcp_port, wireguard_port, use_websocket, max_connections, max_queue_size,
+                       use_tls, tls_cert_path, tls_key_path, tls_ca_path, enabled
+                FROM wgtcptunnel_routes WHERE config_name = ?
+            """, (config_name,))
+            result = await cursor.fetchone()
+            
+            if result:
+                return dict(result)
+            return None
+        except Exception as e:
+            logger.error(f"Failed to get wg-tcp-tunnel route: {e}")
+            return None
+    
+    async def get_all_wgtcptunnel_routes(self) -> List[Dict[str, Any]]:
+        """Get all enabled wg-tcp-tunnel routes"""
+        try:
+            if self.conn is None:
+                await self._init_sqlite()
+            
+            await self._ensure_wgtcptunnel_routes_table()
+            cursor = await self.conn.execute("""
+                SELECT config_name, tcp_port, wireguard_port, use_websocket, max_connections, max_queue_size,
+                       use_tls, tls_cert_path, tls_key_path, tls_ca_path, enabled
+                FROM wgtcptunnel_routes WHERE enabled = 1
+            """)
+            rows = await cursor.fetchall()
+            return [dict(row) for row in rows]
+        except Exception as e:
+            logger.error(f"Failed to get all wg-tcp-tunnel routes: {e}")
+            return []
+    
+    async def delete_wgtcptunnel_route(self, config_name: str) -> bool:
+        """Delete a wg-tcp-tunnel route"""
+        try:
+            if self.conn is None:
+                await self._init_sqlite()
+            
+            await self._ensure_wgtcptunnel_routes_table()
+            await self.conn.execute("DELETE FROM wgtcptunnel_routes WHERE config_name = ?", (config_name,))
+            await self.conn.commit()
+            logger.debug(f"Deleted wg-tcp-tunnel route for {config_name}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete wg-tcp-tunnel route: {e}")
+            return False
+    
     async def close(self):
         """Close the database connection"""
         if self.conn:
@@ -1587,6 +1717,152 @@ class DatabaseManager:
             self.postgres_conn.rollback()
             return False
     
+    # =========================================================================
+    # WgTcpTunnel Routes Table Methods (for wg-tcp-tunnel server persistence)
+    # =========================================================================
+    
+    def _ensure_wgtcptunnel_routes_table(self) -> bool:
+        """Ensure wgtcptunnel_routes table exists for TCP tunnel persistence"""
+        try:
+            with self.postgres_conn.cursor() as cursor:
+                cursor.execute("""
+                    SELECT EXISTS (
+                        SELECT FROM information_schema.tables 
+                        WHERE table_name = 'wgtcptunnel_routes'
+                    )
+                """)
+                table_exists = cursor.fetchone()[0]
+                
+                if not table_exists:
+                    # Create table with proper schema including TLS columns
+                    cursor.execute("""
+                        CREATE TABLE wgtcptunnel_routes (
+                            config_name VARCHAR PRIMARY KEY,
+                            tcp_port INTEGER NOT NULL,
+                            wireguard_port INTEGER NOT NULL,
+                            use_websocket INTEGER DEFAULT 0,
+                            max_connections INTEGER,
+                            max_queue_size INTEGER,
+                            use_tls INTEGER DEFAULT 0,
+                            tls_cert_path VARCHAR,
+                            tls_key_path VARCHAR,
+                            tls_ca_path VARCHAR,
+                            enabled INTEGER DEFAULT 1,
+                            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                        )
+                    """)
+                    self.postgres_conn.commit()
+                    logger.info("Created wgtcptunnel_routes table")
+                else:
+                    # Add TLS columns if they don't exist (migration for existing tables)
+                    for column, col_type in [
+                        ('use_tls', 'INTEGER DEFAULT 0'),
+                        ('tls_cert_path', 'VARCHAR'),
+                        ('tls_key_path', 'VARCHAR'),
+                        ('tls_ca_path', 'VARCHAR')
+                    ]:
+                        try:
+                            cursor.execute(f"""
+                                ALTER TABLE wgtcptunnel_routes ADD COLUMN IF NOT EXISTS {column} {col_type}
+                            """)
+                        except:
+                            pass
+                    self.postgres_conn.commit()
+                
+                return True
+        except Exception as e:
+            logger.error(f"Failed to ensure wgtcptunnel_routes table: {e}")
+            try:
+                self.postgres_conn.rollback()
+            except:
+                pass
+            return False
+    
+    def save_wgtcptunnel_route(self, config_name: str, tcp_port: int, 
+                                wireguard_port: int, use_websocket: bool = False,
+                                max_connections: int = None, max_queue_size: int = None,
+                                use_tls: bool = False, tls_cert_path: str = None,
+                                tls_key_path: str = None, tls_ca_path: str = None) -> bool:
+        """Save or update a wg-tcp-tunnel route"""
+        try:
+            self._ensure_wgtcptunnel_routes_table()
+            
+            # Upsert: insert or update on conflict
+            with self.postgres_conn.cursor() as cursor:
+                cursor.execute("""
+                    INSERT INTO wgtcptunnel_routes 
+                    (config_name, tcp_port, wireguard_port, use_websocket, max_connections, max_queue_size,
+                     use_tls, tls_cert_path, tls_key_path, tls_ca_path, enabled, updated_at)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, 1, CURRENT_TIMESTAMP)
+                    ON CONFLICT (config_name) DO UPDATE SET
+                        tcp_port = EXCLUDED.tcp_port,
+                        wireguard_port = EXCLUDED.wireguard_port,
+                        use_websocket = EXCLUDED.use_websocket,
+                        max_connections = EXCLUDED.max_connections,
+                        max_queue_size = EXCLUDED.max_queue_size,
+                        use_tls = EXCLUDED.use_tls,
+                        tls_cert_path = EXCLUDED.tls_cert_path,
+                        tls_key_path = EXCLUDED.tls_key_path,
+                        tls_ca_path = EXCLUDED.tls_ca_path,
+                        enabled = 1,
+                        updated_at = CURRENT_TIMESTAMP
+                """, (config_name, tcp_port, wireguard_port, 1 if use_websocket else 0, max_connections, max_queue_size,
+                      1 if use_tls else 0, tls_cert_path, tls_key_path, tls_ca_path))
+                self.postgres_conn.commit()
+            logger.debug(f"Saved wg-tcp-tunnel route for {config_name}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to save wg-tcp-tunnel route: {e}")
+            self.postgres_conn.rollback()
+            return False
+    
+    def get_wgtcptunnel_route(self, config_name: str) -> Optional[Dict[str, Any]]:
+        """Get a wg-tcp-tunnel route by config name"""
+        try:
+            self._ensure_wgtcptunnel_routes_table()
+            with self.postgres_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT config_name, tcp_port, wireguard_port, use_websocket, max_connections, max_queue_size,
+                           use_tls, tls_cert_path, tls_key_path, tls_ca_path, enabled
+                    FROM wgtcptunnel_routes WHERE config_name = %s
+                """, (config_name,))
+                result = cursor.fetchone()
+                return dict(result) if result else None
+        except Exception as e:
+            logger.error(f"Failed to get wg-tcp-tunnel route: {e}")
+            return None
+    
+    def get_all_wgtcptunnel_routes(self) -> List[Dict[str, Any]]:
+        """Get all enabled wg-tcp-tunnel routes"""
+        try:
+            self._ensure_wgtcptunnel_routes_table()
+            with self.postgres_conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cursor:
+                cursor.execute("""
+                    SELECT config_name, tcp_port, wireguard_port, use_websocket, max_connections, max_queue_size,
+                           use_tls, tls_cert_path, tls_key_path, tls_ca_path, enabled
+                    FROM wgtcptunnel_routes WHERE enabled = 1
+                """)
+                rows = cursor.fetchall()
+                return [dict(row) for row in rows]
+        except Exception as e:
+            logger.error(f"Failed to get all wg-tcp-tunnel routes: {e}")
+            return []
+    
+    def delete_wgtcptunnel_route(self, config_name: str) -> bool:
+        """Delete a wg-tcp-tunnel route"""
+        try:
+            self._ensure_wgtcptunnel_routes_table()
+            with self.postgres_conn.cursor() as cursor:
+                cursor.execute("DELETE FROM wgtcptunnel_routes WHERE config_name = %s", (config_name,))
+                self.postgres_conn.commit()
+            logger.debug(f"Deleted wg-tcp-tunnel route for {config_name}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to delete wg-tcp-tunnel route: {e}")
+            self.postgres_conn.rollback()
+            return False
+    
     def close(self):
         """Close the database connection"""
         if self.postgres_conn:
@@ -1988,14 +2264,8 @@ class ConfigurationDatabase:
             'I3': 'TEXT',
             'I4': 'TEXT',
             'I5': 'TEXT',
-            # TLS piping (udptlspipe) fields
-            'udptlspipe_enabled': 'INTEGER DEFAULT 0',
-            'udptlspipe_password': 'TEXT',
-            'udptlspipe_port': "TEXT DEFAULT '443'",
-            'udptlspipe_tls_server_name': 'TEXT',
-            'udptlspipe_secure': 'INTEGER DEFAULT 0',
-            'udptlspipe_proxy': 'TEXT',
-            'udptlspipe_fingerprint_profile': "TEXT DEFAULT 'okhttp'"
+            # WgTcpTunnel per-peer setting
+            'wgtcptunnel_enabled': 'INTEGER DEFAULT 0'
         }
         
         # Create main table
@@ -2053,14 +2323,8 @@ class ConfigurationDatabase:
             'I3': {'default': '', 'type': 'TEXT'},
             'I4': {'default': '', 'type': 'TEXT'},
             'I5': {'default': '', 'type': 'TEXT'},
-            # TLS piping (udptlspipe) fields
-            'udptlspipe_enabled': {'default': 0, 'type': 'INTEGER DEFAULT 0'},
-            'udptlspipe_password': {'default': '', 'type': 'TEXT'},
-            'udptlspipe_port': {'default': '443', 'type': "TEXT DEFAULT '443'"},
-            'udptlspipe_tls_server_name': {'default': '', 'type': 'TEXT'},
-            'udptlspipe_secure': {'default': 0, 'type': 'INTEGER DEFAULT 0'},
-            'udptlspipe_proxy': {'default': '', 'type': 'TEXT'},
-            'udptlspipe_fingerprint_profile': {'default': 'okhttp', 'type': "TEXT DEFAULT 'okhttp'"}
+            # WgTcpTunnel per-peer setting
+            'wgtcptunnel_enabled': {'default': 0, 'type': 'INTEGER DEFAULT 0'}
         }
         
         for table in tables:

@@ -16,48 +16,40 @@ const saving = ref(false)
 
 // Server status
 const serverStatus = ref({
-	running: false,
-	pid: null,
-	listen_port: 443,
+	count: 0,
 	route_count: 0,
-	routes: []
+	running_count: 0,
+	servers: {}
 })
 
-// Routes (configs using the shared pipe)
+// Routes (configs using TCP tunnel)
 const routes = ref([])
 
 // Current config settings
 const configEnabled = ref(false)
 const configSettings = ref({
-	password: '',
-	tls_server_name: '',
-	secure: false
+	tcp_port: 443,
+	wireguard_port: 51820,
+	max_connections: 100,
+	max_queue_size: 1000,
+	use_websocket: false,
+	use_tls: false,
+	tls_cert_path: '',
+	tls_key_path: '',
+	tls_ca_path: ''
 })
-
-// Generate random password
-const generatePassword = () => {
-	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-	let result = ''
-	for (let i = 0; i < 24; i++) {
-		result += chars.charAt(Math.floor(Math.random() * chars.length))
-	}
-	configSettings.value.password = result
-}
 
 // Fetch server status
 const fetchStatus = async () => {
 	loading.value = true
-	await fetchGet('/api/udptlspipe/shared/status', {}, (res) => {
+	await fetchGet('/api/wgtcptunnel/status', {}, (res) => {
 		if (res.status && res.data) {
 			serverStatus.value = {
-				running: res.data.running || false,
-				pid: res.data.pid || null,
-				listen_port: res.data.listen_port || 443,
+				count: res.data.count || 0,
 				route_count: res.data.route_count || 0,
-				routes: res.data.routes || []
+				running_count: res.data.running_count || 0,
+				servers: res.data.servers || {}
 			}
-			// Check if current config is enabled
-			configEnabled.value = serverStatus.value.routes.includes(props.configurationInfo?.Name)
 		}
 		loading.value = false
 	})
@@ -65,64 +57,64 @@ const fetchStatus = async () => {
 
 // Fetch all routes with details
 const fetchRoutes = async () => {
-	await fetchGet('/api/udptlspipe/shared/routes', {}, (res) => {
+	await fetchGet('/api/wgtcptunnel/routes', {}, (res) => {
 		if (res.status && res.data) {
 			routes.value = res.data
+			// Check if current config is enabled
+			configEnabled.value = routes.value.some(r => r.config_name === props.configurationInfo?.Name)
 		}
 	})
 }
 
-// Enable TLS pipe for current config
-const enableTlsPipe = async () => {
-	if (!configSettings.value.password) {
-		dashboardStore.newMessage('TLS Pipe', 'Password is required', 'danger')
+// Enable TCP tunnel for current config
+const enableTcpTunnel = async () => {
+	if (!configSettings.value.tcp_port || configSettings.value.tcp_port < 1 || configSettings.value.tcp_port > 65535) {
+		dashboardStore.newMessage('TCP Tunnel', 'Please enter a valid TCP port (1-65535)', 'danger')
 		return
 	}
 	
+	// Note: TLS certificates are optional - server will auto-generate self-signed if not provided
+	
 	saving.value = true
-	await fetchPost(`/api/udptlspipe/shared/enable/${props.configurationInfo.Name}`, {
-		password: configSettings.value.password,
-		tls_server_name: configSettings.value.tls_server_name,
-		secure: configSettings.value.secure
+	await fetchPost(`/api/wgtcptunnel/enable/${props.configurationInfo.Name}`, {
+		tcp_port: configSettings.value.tcp_port,
+		wireguard_port: configSettings.value.wireguard_port || props.configurationInfo.ListenPort,
+		max_connections: configSettings.value.max_connections,
+		max_queue_size: configSettings.value.max_queue_size,
+		use_websocket: configSettings.value.use_websocket,
+		use_tls: configSettings.value.use_tls,
+		tls_cert_path: configSettings.value.tls_cert_path || null,
+		tls_key_path: configSettings.value.tls_key_path || null,
+		tls_ca_path: configSettings.value.tls_ca_path || null
 	}, (res) => {
 		if (res.status) {
-			dashboardStore.newMessage('TLS Pipe', `Enabled for ${props.configurationInfo.Name}`, 'success')
+			dashboardStore.newMessage('TCP Tunnel', `Enabled for ${props.configurationInfo.Name}`, 'success')
 			configEnabled.value = true
 			fetchStatus()
 			fetchRoutes()
 			emit('refresh')
 		} else {
-			dashboardStore.newMessage('TLS Pipe', res.message || 'Failed to enable', 'danger')
+			dashboardStore.newMessage('TCP Tunnel', res.message || 'Failed to enable', 'danger')
 		}
 		saving.value = false
 	})
 }
 
-// Disable TLS pipe for current config
-const disableTlsPipe = async () => {
+// Disable TCP tunnel for current config
+const disableTcpTunnel = async () => {
 	saving.value = true
-	await fetchPost(`/api/udptlspipe/shared/disable/${props.configurationInfo.Name}`, {}, (res) => {
+	await fetchPost(`/api/wgtcptunnel/disable/${props.configurationInfo.Name}`, {}, (res) => {
 		if (res.status) {
-			dashboardStore.newMessage('TLS Pipe', `Disabled for ${props.configurationInfo.Name}`, 'success')
+			dashboardStore.newMessage('TCP Tunnel', `Disabled for ${props.configurationInfo.Name}`, 'success')
 			configEnabled.value = false
 			fetchStatus()
 			fetchRoutes()
 			emit('refresh')
 		} else {
-			dashboardStore.newMessage('TLS Pipe', res.message || 'Failed to disable', 'danger')
+			dashboardStore.newMessage('TCP Tunnel', res.message || 'Failed to disable', 'danger')
 		}
 		saving.value = false
 	})
-}
-
-// Copy password to clipboard
-const copyPassword = async (password) => {
-	try {
-		await navigator.clipboard.writeText(password)
-		dashboardStore.newMessage('TLS Pipe', 'Password copied to clipboard', 'success')
-	} catch (err) {
-		dashboardStore.newMessage('TLS Pipe', 'Failed to copy password', 'danger')
-	}
 }
 
 // Initialize
@@ -133,16 +125,31 @@ onMounted(async () => {
 	// Find current route to get settings
 	const currentRoute = routes.value.find(r => r.config_name === props.configurationInfo?.Name)
 	if (currentRoute) {
-		configSettings.value.password = currentRoute.password || ''
+		configSettings.value.tcp_port = currentRoute.tcp_port || 443
+		configSettings.value.wireguard_port = currentRoute.wireguard_port || props.configurationInfo?.ListenPort || 51820
+		configSettings.value.max_connections = currentRoute.max_connections || 100
+		configSettings.value.max_queue_size = currentRoute.max_queue_size || 1000
+		configSettings.value.use_websocket = currentRoute.use_websocket || false
+		configSettings.value.use_tls = currentRoute.use_tls || false
+		configSettings.value.tls_cert_path = currentRoute.tls_cert_path || ''
+		configSettings.value.tls_key_path = currentRoute.tls_key_path || ''
+		configSettings.value.tls_ca_path = currentRoute.tls_ca_path || ''
 	} else {
-		// Generate a default password for new configs
-		generatePassword()
+		// Use config's listen port for WireGuard port
+		configSettings.value.wireguard_port = props.configurationInfo?.ListenPort || 51820
+		configSettings.value.max_connections = 100
+		configSettings.value.max_queue_size = 1000
 	}
 })
 
-// Computed: is current config using the pipe
+// Computed: is current config using the tunnel
 const isCurrentConfigActive = computed(() => {
-	return serverStatus.value.routes.includes(props.configurationInfo?.Name)
+	return routes.value.some(r => r.config_name === props.configurationInfo?.Name)
+})
+
+// Get current route info
+const currentRoute = computed(() => {
+	return routes.value.find(r => r.config_name === props.configurationInfo?.Name)
 })
 </script>
 
@@ -155,13 +162,13 @@ const isCurrentConfigActive = computed(() => {
 				<div class="d-flex align-items-center gap-2">
 					<div class="rounded-circle bg-primary-subtle d-flex align-items-center justify-content-center" 
 					     style="width: 42px; height: 42px;">
-						<i class="bi bi-shield-lock-fill text-primary fs-5"></i>
+						<i class="bi bi-ethernet text-primary fs-5"></i>
 					</div>
 					<div>
 						<h5 class="modal-title mb-0">
-							<LocaleText t="Shared TLS Pipe Server"></LocaleText>
+							<LocaleText t="TCP Tunnel Server"></LocaleText>
 						</h5>
-						<small class="text-muted">Port 443 • Censorship Resistant Tunnel</small>
+						<small class="text-muted">UDP over TCP • Works on Restricted Networks</small>
 					</div>
 				</div>
 				<button type="button" class="btn-close" @click="emit('close')"></button>
@@ -184,42 +191,36 @@ const isCurrentConfigActive = computed(() => {
 									<i class="bi bi-hdd-network-fill"></i>
 									<LocaleText t="Server Status"></LocaleText>
 								</h6>
-								<span v-if="serverStatus.running" 
+								<span v-if="serverStatus.running_count > 0" 
 								      class="badge bg-success-subtle text-success-emphasis d-flex align-items-center gap-1">
 									<span class="pulse-dot bg-success"></span>
-									Running
+									{{ serverStatus.running_count }} Running
 								</span>
 								<span v-else class="badge bg-secondary-subtle text-secondary-emphasis">
-									Stopped
+									No Active Tunnels
 								</span>
 							</div>
 							
 							<div class="row g-3">
-								<div class="col-6 col-md-3">
-									<div class="text-muted small">Port</div>
-									<div class="fw-semibold">
-										<i class="bi bi-ethernet me-1"></i>
-										{{ serverStatus.listen_port }}
-									</div>
-								</div>
-								<div class="col-6 col-md-3">
-									<div class="text-muted small">Protocol</div>
-									<div class="fw-semibold">
-										<i class="bi bi-lock-fill me-1 text-success"></i>
-										TLS/WSS
-									</div>
-								</div>
-								<div class="col-6 col-md-3">
-									<div class="text-muted small">Active Routes</div>
+								<div class="col-6 col-md-4">
+									<div class="text-muted small">Routes</div>
 									<div class="fw-semibold">
 										<i class="bi bi-signpost-split me-1"></i>
 										{{ serverStatus.route_count }}
 									</div>
 								</div>
-								<div class="col-6 col-md-3" v-if="serverStatus.pid">
-									<div class="text-muted small">Process ID</div>
-									<div class="fw-semibold font-monospace">
-										{{ serverStatus.pid }}
+								<div class="col-6 col-md-4">
+									<div class="text-muted small">Running</div>
+									<div class="fw-semibold">
+										<i class="bi bi-play-circle me-1 text-success"></i>
+										{{ serverStatus.running_count }}
+									</div>
+								</div>
+								<div class="col-6 col-md-4">
+									<div class="text-muted small">Protocol</div>
+									<div class="fw-semibold">
+										<i class="bi bi-arrow-left-right me-1"></i>
+										TCP → UDP
 									</div>
 								</div>
 							</div>
@@ -245,67 +246,175 @@ const isCurrentConfigActive = computed(() => {
 								</span>
 							</div>
 							
-							<!-- Settings Form -->
-							<div class="mb-3">
-								<label class="form-label small text-muted">
-									<i class="bi bi-key-fill me-1"></i>
-									TLS Pipe Password
-									<span class="text-danger">*</span>
-								</label>
-								<div class="input-group">
-									<input type="text" 
-									       class="form-control font-monospace" 
-									       v-model="configSettings.password"
-									       :disabled="isCurrentConfigActive"
-									       placeholder="Enter password for this configuration">
-									<button class="btn btn-outline-secondary" 
-									        type="button"
-									        @click="copyPassword(configSettings.password)"
-									        title="Copy password">
-										<i class="bi bi-clipboard"></i>
-									</button>
-									<button class="btn btn-outline-primary" 
-									        type="button"
-									        @click="generatePassword"
-									        :disabled="isCurrentConfigActive"
-									        title="Generate random password">
-										<i class="bi bi-shuffle"></i>
-									</button>
+							<!-- Current Route Info -->
+							<div v-if="currentRoute" class="alert alert-success border-0 mb-3">
+								<div class="small">
+									<strong>Listening on TCP port {{ currentRoute.tcp_port }}</strong>
+									→ forwarding to WireGuard UDP port {{ currentRoute.wireguard_port }}
+									<span v-if="currentRoute.use_tls" class="badge bg-warning-subtle text-warning-emphasis ms-2">
+										<i class="bi bi-shield-lock me-1"></i>TLS
+									</span>
+									<span v-if="currentRoute.use_websocket" class="badge bg-info-subtle text-info-emphasis ms-2">
+										<i class="bi bi-globe me-1"></i>WebSocket
+									</span>
+									<span v-if="currentRoute.use_tls && currentRoute.use_websocket" class="badge bg-success-subtle text-success-emphasis ms-2">
+										<i class="bi bi-shield-check me-1"></i>WSS
+									</span>
 								</div>
-								<div class="form-text">
-									Clients connecting to this config must use this password
+								<div class="small text-muted mt-1" v-if="currentRoute.running">
+									<i class="bi bi-check-circle me-1"></i> Server is running
 								</div>
 							</div>
 							
+							<!-- Settings Form (only show when not active) -->
+							<div v-if="!isCurrentConfigActive">
 							<div class="row g-3 mb-3">
-								<div class="col-md-8">
+									<div class="col-md-6">
 									<label class="form-label small text-muted">
-										<i class="bi bi-globe me-1"></i>
-										TLS Server Name (SNI)
+											<i class="bi bi-ethernet me-1"></i>
+											TCP Port (clients connect to)
 									</label>
-									<input type="text" 
-									       class="form-control" 
-									       v-model="configSettings.tls_server_name"
-									       :disabled="isCurrentConfigActive"
-									       placeholder="e.g., www.google.com">
+										<input type="number" 
+										       class="form-control font-monospace" 
+										       v-model.number="configSettings.tcp_port"
+										       min="1" max="65535"
+										       placeholder="443">
 									<div class="form-text">
-										Fake hostname for TLS SNI (helps evade censorship)
+											Port clients will connect to over TCP
+										</div>
+									</div>
+									<div class="col-md-6">
+									<label class="form-label small text-muted">
+											<i class="bi bi-hdd-network me-1"></i>
+											WireGuard Port
+										</label>
+										<input type="number" 
+										       class="form-control font-monospace" 
+										       v-model.number="configSettings.wireguard_port"
+										       min="1" max="65535"
+										       :placeholder="configurationInfo.ListenPort || 51820">
+										<div class="form-text">
+											WireGuard's UDP listen port
+										</div>
 									</div>
 								</div>
-								<div class="col-md-4">
-									<label class="form-label small text-muted">
-										<i class="bi bi-shield-check me-1"></i>
-										Certificate Verification
-									</label>
-									<div class="form-check form-switch mt-2">
-										<input class="form-check-input" 
-										       type="checkbox" 
-										       v-model="configSettings.secure"
-										       :disabled="isCurrentConfigActive"
-										       id="tlsSecureSwitch">
-										<label class="form-check-label" for="tlsSecureSwitch">
-											{{ configSettings.secure ? 'Enabled' : 'Disabled' }}
+								<div class="row g-3 mb-3">
+									<div class="col-md-6">
+										<label class="form-label small text-muted">
+											<i class="bi bi-diagram-3 me-1"></i>
+											Max Connections
 										</label>
+										<input type="number" 
+										       class="form-control font-monospace" 
+										       v-model.number="configSettings.max_connections"
+										       min="1" max="10000"
+										       placeholder="100">
+										<div class="form-text">
+											Max concurrent TCP connections per UDP source (default: 100)
+										</div>
+									</div>
+									<div class="col-md-6">
+										<label class="form-label small text-muted">
+											<i class="bi bi-stack me-1"></i>
+											Max Queue Size
+										</label>
+										<input type="number" 
+										       class="form-control font-monospace" 
+										       v-model.number="configSettings.max_queue_size"
+										       min="1" max="10000"
+										       placeholder="1000">
+										<div class="form-text">
+											Max queued packets per connection (default: 1000)
+										</div>
+									</div>
+								</div>
+								
+								<!-- WebSocket Toggle -->
+								<div class="row g-3 mb-3">
+									<div class="col-12">
+										<div class="form-check form-switch">
+											<input class="form-check-input" 
+											       type="checkbox" 
+											       role="switch" 
+											       id="useWebSocket"
+											       v-model="configSettings.use_websocket">
+											<label class="form-check-label" for="useWebSocket">
+												<i class="bi bi-globe me-1"></i>
+												Enable WebSocket Transport
+											</label>
+										</div>
+										<div class="form-text">
+											Wrap traffic in WebSocket frames for better firewall/proxy compatibility
+										</div>
+									</div>
+								</div>
+								
+								<!-- TLS Settings -->
+								<div class="card bg-body-secondary border-0 rounded-3 p-3 mb-3">
+									<div class="row g-3">
+										<div class="col-12">
+											<div class="form-check form-switch">
+												<input class="form-check-input" 
+												       type="checkbox" 
+												       role="switch" 
+												       id="useTls"
+												       v-model="configSettings.use_tls">
+												<label class="form-check-label" for="useTls">
+													<i class="bi bi-shield-lock me-1"></i>
+													Enable TLS Encryption
+												</label>
+											</div>
+											<div class="form-text">
+												Encrypt traffic using TLS/SSL. Auto-generates self-signed certificate if none provided. When combined with WebSocket, creates WSS.
+											</div>
+										</div>
+									</div>
+									
+									<!-- TLS Certificate Settings (shown when TLS is enabled) -->
+									<div v-if="configSettings.use_tls" class="mt-3">
+										<div class="row g-3">
+											<div class="col-md-6">
+												<label class="form-label small text-muted">
+													<i class="bi bi-file-earmark-lock me-1"></i>
+													Certificate Path <span class="text-muted">(optional)</span>
+												</label>
+												<input type="text" 
+												       class="form-control font-monospace" 
+												       v-model="configSettings.tls_cert_path"
+												       placeholder="Auto-generated if empty">
+												<div class="form-text">
+													Path to TLS certificate (PEM). Leave empty to auto-generate self-signed.
+												</div>
+											</div>
+											<div class="col-md-6">
+												<label class="form-label small text-muted">
+													<i class="bi bi-key me-1"></i>
+													Private Key Path <span class="text-muted">(optional)</span>
+												</label>
+												<input type="text" 
+												       class="form-control font-monospace" 
+												       v-model="configSettings.tls_key_path"
+												       placeholder="Auto-generated if empty">
+												<div class="form-text">
+													Path to TLS private key (PEM). Leave empty to auto-generate self-signed.
+												</div>
+											</div>
+										</div>
+										<div class="row g-3 mt-1">
+											<div class="col-12">
+												<label class="form-label small text-muted">
+													<i class="bi bi-file-earmark-check me-1"></i>
+													CA Certificate Path (Optional)
+												</label>
+												<input type="text" 
+												       class="form-control font-monospace" 
+												       v-model="configSettings.tls_ca_path"
+												       placeholder="/etc/ssl/certs/ca.crt">
+												<div class="form-text">
+													Path to CA certificate for client verification (optional, for mutual TLS)
+												</div>
+											</div>
+										</div>
 									</div>
 								</div>
 							</div>
@@ -314,19 +423,19 @@ const isCurrentConfigActive = computed(() => {
 							<div class="d-flex gap-2">
 								<button v-if="!isCurrentConfigActive"
 								        class="btn btn-primary flex-grow-1"
-								        @click="enableTlsPipe"
-								        :disabled="saving || !configSettings.password">
+								        @click="enableTcpTunnel"
+								        :disabled="saving">
 									<span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>
 									<i v-else class="bi bi-power me-2"></i>
-									<LocaleText t="Enable TLS Pipe"></LocaleText>
+									<LocaleText t="Enable TCP Tunnel"></LocaleText>
 								</button>
 								<button v-else
 								        class="btn btn-danger flex-grow-1"
-								        @click="disableTlsPipe"
+								        @click="disableTcpTunnel"
 								        :disabled="saving">
 									<span v-if="saving" class="spinner-border spinner-border-sm me-2"></span>
 									<i v-else class="bi bi-stop-circle me-2"></i>
-									<LocaleText t="Disable TLS Pipe"></LocaleText>
+									<LocaleText t="Disable TCP Tunnel"></LocaleText>
 								</button>
 							</div>
 						</div>
@@ -348,8 +457,10 @@ const isCurrentConfigActive = computed(() => {
 									<thead class="table-light">
 										<tr>
 											<th class="border-0">Configuration</th>
-											<th class="border-0">WireGuard Port</th>
-											<th class="border-0">Password</th>
+											<th class="border-0">TCP Port</th>
+											<th class="border-0">WG Port</th>
+											<th class="border-0">Transport</th>
+											<th class="border-0">Status</th>
 										</tr>
 									</thead>
 									<tbody>
@@ -367,19 +478,38 @@ const isCurrentConfigActive = computed(() => {
 												</div>
 											</td>
 											<td class="align-middle font-monospace text-muted">
-												{{ route.destination }}
+												{{ route.tcp_port }}
+											</td>
+											<td class="align-middle font-monospace text-muted">
+												{{ route.wireguard_port }}
 											</td>
 											<td class="align-middle">
-												<div class="d-flex align-items-center gap-1">
-													<code class="bg-body-secondary px-2 py-1 rounded small">
-														{{ route.password.substring(0, 8) }}...
-													</code>
-													<button class="btn btn-sm btn-link p-0" 
-													        @click="copyPassword(route.password)"
-													        title="Copy full password">
-														<i class="bi bi-clipboard text-muted"></i>
-													</button>
+												<div class="d-flex flex-wrap gap-1">
+													<span v-if="route.use_tls && route.use_websocket" 
+													      class="badge bg-success-subtle text-success-emphasis">
+														WSS
+													</span>
+													<span v-else-if="route.use_tls" 
+													      class="badge bg-warning-subtle text-warning-emphasis">
+														TLS
+													</span>
+													<span v-else-if="route.use_websocket" 
+													      class="badge bg-info-subtle text-info-emphasis">
+														WS
+													</span>
+													<span v-else 
+													      class="badge bg-secondary-subtle text-secondary-emphasis">
+														TCP
+													</span>
 												</div>
+											</td>
+											<td class="align-middle">
+												<span v-if="route.running" class="badge bg-success-subtle text-success-emphasis">
+													<i class="bi bi-check-circle me-1"></i> Running
+												</span>
+												<span v-else class="badge bg-secondary-subtle text-secondary-emphasis">
+													Stopped
+												</span>
 											</td>
 										</tr>
 									</tbody>
@@ -392,10 +522,15 @@ const isCurrentConfigActive = computed(() => {
 					<div class="alert alert-info border-0 rounded-3 mt-4 mb-0 d-flex align-items-start gap-2">
 						<i class="bi bi-info-circle-fill mt-1"></i>
 						<div class="small">
-							<strong>How it works:</strong> The shared TLS pipe server runs on port 443 and routes 
-							traffic to different WireGuard configurations based on the password. Clients connect 
-							to the same port but use different passwords to reach their respective VPN configs.
-							This makes the traffic look like regular HTTPS, making it very hard to block.
+							<strong>How it works:</strong> The TCP tunnel server wraps WireGuard's UDP traffic 
+							in TCP, allowing it to work on networks that block UDP. Each configuration has its 
+							own TCP port. Clients connect to the TCP port, and the server forwards traffic to 
+							the corresponding WireGuard UDP port.<br><br>
+							<strong>Transport Options:</strong><br>
+							• <strong>TCP</strong> — Raw TCP transport<br>
+							• <strong>TLS</strong> — Encrypted TCP with TLS/SSL<br>
+							• <strong>WS</strong> — WebSocket for firewall/proxy compatibility<br>
+							• <strong>WSS</strong> — WebSocket over TLS (most compatible and secure)
 						</div>
 					</div>
 				</template>
@@ -434,4 +569,3 @@ const isCurrentConfigActive = computed(() => {
 	font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Fira Mono', 'Droid Sans Mono', monospace;
 }
 </style>
-
