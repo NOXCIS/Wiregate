@@ -1,5 +1,5 @@
 > [!NOTE]
-> **Obfs4 Plugin**: Has alot of latency and connection drops, use webtunnel or snowflake plugins if possible.
+> **Moved to Gitlab Months Ago https://gitlab.com/Noxcis/Wiregate**.
 >
 > **AmneziaWG 1.5** support is fully functional but is still in devlopement in flat-bridge builds.<hr>
 
