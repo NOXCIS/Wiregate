@@ -14,7 +14,7 @@
     "@vueuse/core": "^10.9.0",
     "@vueuse/shared": "^10.9.0",
     "animate.css": "^4.1.1",
-    "bootstrap": "^5.3.2",
+    "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.11.3",
     "cidr-tools": "^7.0.4",
     "dayjs": "^1.11.12",
