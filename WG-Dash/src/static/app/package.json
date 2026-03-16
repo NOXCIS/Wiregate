@@ -18,7 +18,7 @@
     "bootstrap-icons": "^1.11.3",
     "cidr-tools": "^7.0.4",
     "dayjs": "^1.11.12",
-    "electron-builder": "^24.13.3",
+    "electron-builder": "^26.8.1",
     "fuse.js": "^7.0.0",
     "i": "^0.3.7",
     "is-cidr": "^5.0.3",
